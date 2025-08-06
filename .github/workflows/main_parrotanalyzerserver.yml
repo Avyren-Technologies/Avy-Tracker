@@ -1,0 +1,52 @@
+name: CI/CD for Parrot Analyzer
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'  # Trigger only if files in the backend folder change
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # ← New: write your CA PEM from a GitHub Secret
+      - name: Write CA certificate
+        run: |
+          mkdir -p backend/src/config
+          printf '%s' "${{ secrets.CA_PEM }}" > backend/src/config/ca.pem
+
+      # Step 2: Write Firebase service account key
+      - name: Write Firebase service account key
+        run: |
+          mkdir -p backend/src/config
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 -d > backend/src/config/admin-service-key.json
+
+      # Step 3: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 4: Build and Push Docker Image
+      - name: Build and Push Docker Image
+        run: |
+          cd backend
+          docker build -t chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }} .
+          docker push chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }}
+
+      # Step 5: Deploy to Azure App Service
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: "ParrotAnalyzerServer"  # Replace with your Azure App Service name
+          slot-name: "production"
+          images: "chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }}"
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
