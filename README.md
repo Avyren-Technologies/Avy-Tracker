@@ -167,9 +167,9 @@ ParrotAnalyzer is a multi-tenant mobile platform designed to streamline workforc
 - **Trend Analysis:**  
   - Aggregated data helps identify patterns in employee behavior, leave utilization, and expense trends, supporting informed decision-making.
 
-## 👥 Role-Based Access and Responsibilities in Parrot Analyzer
+## 👥 Role-Based Access and Responsibilities in Daily Flow
 
-Parrot Analyzer is built with a robust role-based access control system. Each role—Employee, Group Admin, Management Personnel, and Super Admin—has a specific set of responsibilities and features that allow for streamlined workforce management. Below is a detailed breakdown of each role along with the key functionalities they control.
+Daily Flow is built with a robust role-based access control system. Each role—Employee, Group Admin, Management Personnel, and Super Admin—has a specific set of responsibilities and features that allow for streamlined workforce management. Below is a detailed breakdown of each role along with the key functionalities they control.
 
 ### 1. Employee
 
