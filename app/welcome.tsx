@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import "./../app/utils/backgroundLocationTask";
-import { View, Text, TouchableOpacity, Animated, Image, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Image, StatusBar, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import ThemeContext from './context/ThemeContext';
 import AuthContext from './context/AuthContext';
@@ -9,6 +9,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PermissionsModal from './components/PermissionsModal';
 import * as Network from 'expo-network';
 import { Ionicons } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
+
+// Orange and Blue color scheme based on logo
+const colors = {
+  primary: '#FF6B35', // Vibrant orange
+  secondary: '#1E3A8A', // Rich blue
+  accent: '#F97316', // Lighter orange
+  accentBlue: '#3B82F6', // Lighter blue
+  white: '#FFFFFF',
+  black: '#000000',
+  textLight: '#FFFFFF',
+  textDark: '#1F2937',
+  textSecondary: '#6B7280',
+};
 
 export default function Welcome() {
     const router = useRouter();
@@ -23,6 +38,7 @@ export default function Welcome() {
         isInternetReachable: true
     });
     const offlineBadgeFadeAnim = useRef(new Animated.Value(0)).current;
+    const buttonScaleAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         Animated.parallel([
@@ -98,34 +114,85 @@ export default function Welcome() {
         router.push('/(auth)/signin');
     };
 
-    const isDark = theme === 'dark';
+    const handleButtonPress = () => {
+        Animated.sequence([
+            Animated.timing(buttonScaleAnim, {
+                toValue: 0.95,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.timing(buttonScaleAnim, {
+                toValue: 1,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+        handleGetStarted();
+    };
 
     return (
         <>
             <StatusBar 
-                barStyle={isDark ? "light-content" : "dark-content"}
-                backgroundColor={isDark ? '#1E293B' : '#EEF2FF'}
+                barStyle="light-content"
+                backgroundColor={colors.primary}
             />
             <LinearGradient
-                colors={isDark ? 
-                    ['#1E293B', '#0F172A'] : 
-                    ['#EEF2FF', '#E0E7FF']}
+                colors={[colors.primary, colors.secondary]}
                 style={{ flex: 1 }}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
             >
-                <View style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    opacity: 0.4,
-                    backgroundColor: 'transparent',
-                    borderStyle: 'solid',
-                    borderWidth: 1.5,
-                    borderColor: isDark ? '#3B82F6' : '#6366F1',
-                    borderRadius: 20,
-                    transform: [{ scale: 1.5 }, { rotate: '45deg' }],
-                }} />
+                {/* Floating geometric shapes */}
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                    {/* Orange circle */}
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: height * 0.15,
+                            right: width * 0.1,
+                            width: 60,
+                            height: 60,
+                            borderRadius: 30,
+                            backgroundColor: colors.primary,
+                            opacity: 0.3,
+                            transform: [{ rotate: '45deg' }],
+                        }}
+                    />
+                    
+                    {/* Blue square */}
+                    <View
+                        style={{
+                            position: 'absolute',
+                            bottom: height * 0.25,
+                            left: width * 0.1,
+                            width: 50,
+                            height: 50,
+                            borderRadius: 10,
+                            backgroundColor: colors.secondary,
+                            opacity: 0.4,
+                            transform: [{ rotate: '-30deg' }],
+                        }}
+                    />
+                    
+                    {/* Orange triangle */}
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: height * 0.5,
+                            right: width * 0.15,
+                            width: 0,
+                            height: 0,
+                            borderLeftWidth: 25,
+                            borderRightWidth: 25,
+                            borderBottomWidth: 43,
+                            borderLeftColor: 'transparent',
+                            borderRightColor: 'transparent',
+                            borderBottomColor: colors.accent,
+                            opacity: 0.2,
+                        }}
+                    />
+                </View>
+
                 <View style={{
                     flex: 1,
                     alignItems: 'center',
@@ -150,79 +217,86 @@ export default function Welcome() {
                             justifyContent: 'center',
                             marginBottom: 24,
                             padding: 3,
-                            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
                             borderWidth: 2,
-                            borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(99, 102, 241, 0.3)',
-                            shadowColor: isDark ? '#3B82F6' : '#6366F1',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 8,
-                            elevation: 8,
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                            shadowColor: colors.primary,
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 16,
+                            elevation: 12,
                         }}>
                             <View style={{
                                 width: '100%',
                                 height: '100%',
                                 borderRadius: 100,
                                 overflow: 'hidden',
-                                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.05)' : 'rgba(99, 102, 241, 0.05)',
+                                backgroundColor: colors.white,
+                                borderWidth: 2,
+                                borderColor: colors.primary,
                             }}>
                                 <Image 
-                                    source={require('../assets/images/icon.png')}
+                                    source={require('../assets/images/adaptive-icon.png')}
                                     style={{
                                         width: '100%',
                                         height: '100%',
                                     }}
-                                    resizeMode="cover"
+                                    resizeMode="contain"
                                 />
                             </View>
                         </View>
                         <Text style={{
                             fontSize: 36,
-                            fontWeight: 'bold',
+                            fontWeight: '800',
                             marginBottom: 12,
-                            color: isDark ? '#ffffff' : '#1F2937',
-                            textShadowColor: 'rgba(0, 0, 0, 0.1)',
+                            color: colors.textLight,
+                            textShadowColor: 'rgba(0, 0, 0, 0.3)',
                             textShadowOffset: { width: 0, height: 2 },
-                            textShadowRadius: 4
+                            textShadowRadius: 4,
+                            letterSpacing: 1,
                         }}>
                             Parrot Analyzer
                         </Text>
                         <Text style={{
                             textAlign: 'center',
-                            fontSize: 20,
-                            color: isDark ? '#D1D5DB' : '#4B5563',
+                            fontSize: 18,
+                            color: colors.textLight,
                             marginBottom: 16,
-                            letterSpacing: 0.5
+                            letterSpacing: 0.5,
+                            opacity: 0.9,
                         }}>
-                            Streamline Employee Tracking & Reporting
+                            Smart Workforce Management
                         </Text>                        
                         {/* Offline indicator */}
                         {isOffline && (
                             <Animated.View 
                                 style={{
                                     opacity: offlineBadgeFadeAnim,
-                                    marginTop: 8,
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
+                                    marginTop: 12,
                                     paddingHorizontal: 12,
                                     paddingVertical: 6,
                                     borderRadius: 12,
-                                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
                                     borderWidth: 1,
-                                    borderColor: isDark ? 'rgba(239, 68, 68, 0.5)' : 'rgba(239, 68, 68, 0.3)',
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
                                 }}
                             >
-                                <Ionicons 
-                                    name="cloud-offline-outline" 
-                                    size={18} 
-                                    color={isDark ? '#FCA5A5' : '#DC2626'}
+                                <View
+                                    style={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: 4,
+                                        backgroundColor: '#EF4444',
+                                        marginRight: 8,
+                                    }}
                                 />
                                 <Text
                                     style={{
-                                        color: isDark ? '#FCA5A5' : '#DC2626',
+                                        color: colors.textLight,
                                         fontSize: 14,
                                         fontWeight: '600',
-                                        marginLeft: 6,
                                     }}
                                 >
                                     Offline Mode
@@ -233,69 +307,48 @@ export default function Welcome() {
 
                     {/* Bottom Section */}
                     <Animated.View style={{
-                        width: '100%',
+                        alignItems: 'center',
                         opacity: fadeAnim,
                         transform: [{ translateY: slideAnim }]
                     }}>
-                        {/* Network status indicator */}
-                        {(!networkState.isConnected || networkState.isInternetReachable === false) && (
-                            <View style={{
-                                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 202, 202, 0.8)',
-                                padding: 12,
-                                borderRadius: 8,
-                                marginBottom: 16,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                borderWidth: 1,
-                                borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : 'rgba(220, 38, 38, 0.3)',
-                            }}>
-                                <Ionicons 
-                                    name="wifi-outline" 
-                                    size={20} 
-                                    color={isDark ? '#FCA5A5' : '#DC2626'}
-                                    style={{ marginRight: 8 }}
-                                />
+                        <Animated.View style={{
+                            transform: [{ scale: buttonScaleAnim }]
+                        }}>
+                            <TouchableOpacity
+                                onPress={handleButtonPress}
+                                style={{
+                                    backgroundColor: colors.white,
+                                    paddingHorizontal: 48,
+                                    paddingVertical: 16,
+                                    borderRadius: 30,
+                                    shadowColor: colors.primary,
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 8,
+                                    elevation: 8,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                }}
+                            >
                                 <Text style={{
-                                    fontSize: 14,
-                                    color: isDark ? '#FCA5A5' : '#B91C1C',
-                                    flex: 1,
+                                    color: colors.primary,
+                                    fontSize: 18,
+                                    fontWeight: '700',
+                                    marginRight: 8,
                                 }}>
-                                    No internet connection. Some features may be limited.
+                                    Get Started
                                 </Text>
-                            </View>
-                        )}
-                    
-                        <TouchableOpacity
-                            style={{
-                                backgroundColor: isDark ? '#3B82F6' : '#6366F1',
-                                paddingVertical: 18,
-                                paddingHorizontal: 32,
-                                borderRadius: 16,
-                                alignItems: 'center',
-                                shadowColor: isDark ? '#3B82F6' : '#6366F1',
-                                shadowOffset: { width: 0, height: 4 },
-                                shadowOpacity: 0.3,
-                                shadowRadius: 8,
-                                elevation: 8,
-                            }}
-                            onPress={handleGetStarted}
-                        >
-                            <Text style={{
-                                color: '#ffffff',
-                                fontSize: 20,
-                                fontWeight: 'bold',
-                                letterSpacing: 0.5
-                            }}>
-                                Get Started
-                            </Text>
-                        </TouchableOpacity>
-
+                                <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+                            </TouchableOpacity>
+                        </Animated.View>
+                        
                         <Text style={{
+                            marginTop: 24,
+                            fontSize: 14,
+                            color: colors.textLight,
+                            opacity: 0.7,
                             textAlign: 'center',
-                            fontSize: 15,
-                            color: isDark ? '#D1D5DB' : '#4B5563',
-                            marginTop: 20,
-                            letterSpacing: 0.5
+                            letterSpacing: 0.5,
                         }}>
                             Powered by Tecosoft.ai
                         </Text>
@@ -303,7 +356,6 @@ export default function Welcome() {
                 </View>
             </LinearGradient>
 
-            {/* Permissions Modal */}
             <PermissionsModal
                 visible={showPermissionsModal}
                 onClose={handlePermissionsClose}

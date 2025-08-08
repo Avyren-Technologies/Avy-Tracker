@@ -8,6 +8,7 @@ import {
   StatusBar,
   Platform,
   AppState,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import ThemeContext from "./context/ThemeContext";
@@ -17,18 +18,34 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Updates from 'expo-updates';
 import * as Network from 'expo-network';
 
+const { width, height } = Dimensions.get('window');
+
+// Orange and Blue color scheme based on logo
+const colors = {
+  primary: '#FF6B35', // Vibrant orange
+  secondary: '#1E3A8A', // Rich blue
+  accent: '#F97316', // Lighter orange
+  accentBlue: '#3B82F6', // Lighter blue
+  white: '#FFFFFF',
+  black: '#000000',
+  textLight: '#FFFFFF',
+  textDark: '#1F2937',
+};
+
 export default function SplashScreen() {
   const router = useRouter();
   const { theme } = ThemeContext.useTheme();
   const { isLoading, user, isOffline } = AuthContext.useAuth();
 
   // Animation refs
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.3);
-  const rotateAnim = new Animated.Value(0);
-  const slideUpAnim = new Animated.Value(50);
-  const textFadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const slideUpAnim = useRef(new Animated.Value(50)).current;
+  const textFadeAnim = useRef(new Animated.Value(0)).current;
   const offlineBadgeFadeAnim = useRef(new Animated.Value(0)).current;
+  const logoGlowAnim = useRef(new Animated.Value(0)).current;
+  const backgroundPulseAnim = useRef(new Animated.Value(0)).current;
 
   // Check for updates when app comes to foreground (production only)
   useEffect(() => {
@@ -62,13 +79,29 @@ export default function SplashScreen() {
   // Animation and navigation logic
   useEffect(() => {
     if (!isLoading) {
+      // Background pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(backgroundPulseAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(backgroundPulseAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
       // Logo animation sequence
       Animated.sequence([
         // First: Scale and fade in the logo
         Animated.parallel([
           Animated.timing(fadeAnim, {
             toValue: 1,
-            duration: 800,
+            duration: 1000,
             useNativeDriver: true,
           }),
           Animated.spring(scaleAnim, {
@@ -78,22 +111,29 @@ export default function SplashScreen() {
             useNativeDriver: true,
           }),
         ]),
-        // Then: Rotate the logo
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
+        // Then: Rotate the logo and add glow effect
+        Animated.parallel([
+          Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(logoGlowAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
         // Finally: Slide up and fade in the text
         Animated.parallel([
           Animated.timing(slideUpAnim, {
             toValue: 0,
-            duration: 500,
+            duration: 600,
             useNativeDriver: true,
           }),
           Animated.timing(textFadeAnim, {
             toValue: 1,
-            duration: 500,
+            duration: 600,
             useNativeDriver: true,
           }),
         ]),
@@ -104,7 +144,7 @@ export default function SplashScreen() {
         Animated.timing(offlineBadgeFadeAnim, {
           toValue: 1,
           duration: 500,
-          delay: 1000,
+          delay: 1200,
           useNativeDriver: true,
         }).start();
       }
@@ -131,16 +171,25 @@ export default function SplashScreen() {
           // No user logged in, go to welcome screen
           router.replace("/welcome");
         }
-      }, 2500);
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
   }, [isLoading, user, isOffline]);
 
-  const isDark = theme === "dark";
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
+  });
+
+  const glowOpacity = logoGlowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.6],
+  });
+
+  const backgroundScale = backgroundPulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
   });
 
   // Function to check and refresh Expo Push Token if needed
@@ -187,149 +236,247 @@ export default function SplashScreen() {
   return (
     <>
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? "#1E293B" : "#EEF2FF"}
+        barStyle="light-content"
+        backgroundColor={colors.primary}
+        translucent={true}
       />
+      
+      {/* Main background gradient - Orange to Blue */}
       <LinearGradient
-        colors={isDark ? ["#1E293B", "#0F172A"] : ["#EEF2FF", "#E0E7FF"]}
+        colors={[colors.primary, colors.secondary]}
         style={{ flex: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <View
+        {/* Animated background elements */}
+        <Animated.View
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: 0.4,
-            backgroundColor: "transparent",
-            borderStyle: "solid",
-            borderWidth: 1.5,
-            borderColor: isDark ? "#3B82F6" : "#6366F1",
-            borderRadius: 20,
-            transform: [{ scale: 1.5 }, { rotate: "45deg" }],
+            top: -height * 0.2,
+            left: -width * 0.2,
+            right: -width * 0.2,
+            bottom: -height * 0.2,
+            transform: [{ scale: backgroundScale }],
+            opacity: 0.1,
           }}
-        />
+        >
+          <LinearGradient
+            colors={[colors.accent, colors.accentBlue]}
+            style={{ flex: 1 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        </Animated.View>
 
+        {/* Floating geometric shapes */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          {/* Orange circle */}
+          <View
+            style={{
+              position: 'absolute',
+              top: height * 0.1,
+              right: width * 0.1,
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: colors.primary,
+              opacity: 0.3,
+              transform: [{ rotate: '45deg' }],
+            }}
+          />
+          
+          {/* Blue square */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: height * 0.2,
+              left: width * 0.1,
+              width: 60,
+              height: 60,
+              borderRadius: 12,
+              backgroundColor: colors.secondary,
+              opacity: 0.4,
+              transform: [{ rotate: '-30deg' }],
+            }}
+          />
+          
+          {/* Orange triangle */}
+          <View
+            style={{
+              position: 'absolute',
+              top: height * 0.6,
+              right: width * 0.2,
+              width: 0,
+              height: 0,
+              borderLeftWidth: 30,
+              borderRightWidth: 30,
+              borderBottomWidth: 52,
+              borderLeftColor: 'transparent',
+              borderRightColor: 'transparent',
+              borderBottomColor: colors.accent,
+              opacity: 0.2,
+            }}
+          />
+        </View>
+
+        {/* Main content container */}
         <View
           style={{
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
+            paddingHorizontal: 40,
           }}
         >
+          {/* Logo container with glow effect */}
           <Animated.View
             style={{
               opacity: fadeAnim,
               transform: [{ scale: scaleAnim }, { rotate: spin }],
               alignItems: "center",
+              marginBottom: 40,
             }}
           >
+            {/* Glow effect */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                width: 280,
+                height: 280,
+                borderRadius: 140,
+                backgroundColor: colors.primary,
+                opacity: glowOpacity,
+                transform: [{ scale: 1.2 }],
+              }}
+            />
+            
+            {/* Main logo container */}
             <View
               style={{
-                width: 240,
-                height: 240,
+                width: 200,
+                height: 200,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 24,
-                padding: 3, // Added padding for border effect
-                borderRadius: 120,
-                backgroundColor: isDark
-                  ? "rgba(59, 130, 246, 0.1)"
-                  : "rgba(99, 102, 241, 0.1)",
-                borderWidth: 2,
-                borderColor: isDark
-                  ? "rgba(59, 130, 246, 0.3)"
-                  : "rgba(99, 102, 241, 0.3)",
-                shadowColor: isDark ? "#3B82F6" : "#6366F1",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                elevation: 8,
+                borderRadius: 100,
+                backgroundColor: colors.white,
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+                elevation: 12,
+                borderWidth: 3,
+                borderColor: colors.primary,
               }}
             >
-              <View
+              <Image
+                source={require("../assets/images/adaptive-icon.png")}
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: 120,
-                  overflow: "hidden",
-                  backgroundColor: isDark
-                    ? "rgba(59, 130, 246, 0.05)"
-                    : "rgba(99, 102, 241, 0.05)",
+                  width: 140,
+                  height: 140,
                 }}
-              >
-                <Image
-                  source={require("../assets/images/icon.png")}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                  }}
-                  resizeMode="cover"
-                />
-              </View>
+                resizeMode="contain"
+              />
             </View>
-            <Animated.Text
-              style={{
-                fontSize: 40,
-                fontWeight: "bold",
-                color: isDark ? "#ffffff" : "#1F2937",
-                textShadowColor: "rgba(0, 0, 0, 0.1)",
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 4,
-                opacity: textFadeAnim,
-                transform: [{ translateY: slideUpAnim }],
-              }}
-            >
-              Parrot Analyzer
-            </Animated.Text>
-            
-            {/* Offline mode indicator */}
-            {isOffline && (
-              <Animated.View 
-                style={{
-                  opacity: offlineBadgeFadeAnim,
-                  marginTop: 12,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.15)',
-                  borderWidth: 1,
-                  borderColor: isDark ? 'rgba(239, 68, 68, 0.5)' : 'rgba(239, 68, 68, 0.3)',
-                }}
-              >
-                <Text
-                  style={{
-                    color: isDark ? '#FCA5A5' : '#DC2626',
-                    fontSize: 14,
-                    fontWeight: '600',
-                  }}
-                >
-                  Offline Mode
-                </Text>
-              </Animated.View>
-            )}
           </Animated.View>
 
+          {/* App title */}
           <Animated.View
             style={{
-              position: "absolute",
-              bottom: 40,
               opacity: textFadeAnim,
               transform: [{ translateY: slideUpAnim }],
+              alignItems: 'center',
             }}
           >
             <Text
               style={{
+                fontSize: 36,
+                fontWeight: "800",
+                color: colors.textLight,
+                textAlign: 'center',
+                letterSpacing: 1,
+                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
+                marginBottom: 8,
+              }}
+            >
+              Parrot Analyzer
+            </Text>
+            
+            <Text
+              style={{
                 fontSize: 16,
-                color: isDark ? "#D1D5DB" : "#4B5563",
+                color: colors.textLight,
+                opacity: 0.8,
+                textAlign: 'center',
                 letterSpacing: 0.5,
               }}
             >
-              Powered by Tecosoft.ai
+              Smart Workforce Management
             </Text>
           </Animated.View>
+          
+          {/* Offline mode indicator */}
+          {isOffline && (
+            <Animated.View 
+              style={{
+                opacity: offlineBadgeFadeAnim,
+                marginTop: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#EF4444',
+                  marginRight: 8,
+                }}
+              />
+              <Text
+                style={{
+                  color: colors.textLight,
+                  fontSize: 14,
+                  fontWeight: '600',
+                }}
+              >
+                Offline Mode
+              </Text>
+            </Animated.View>
+          )}
         </View>
+
+        {/* Bottom powered by text */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            bottom: 60,
+            left: 0,
+            right: 0,
+            opacity: textFadeAnim,
+            transform: [{ translateY: slideUpAnim }],
+            alignItems: 'center',
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              color: colors.textLight,
+              opacity: 0.7,
+              letterSpacing: 0.5,
+            }}
+          >
+            Powered by Tecosoft.ai
+          </Text>
+        </Animated.View>
       </LinearGradient>
     </>
   );

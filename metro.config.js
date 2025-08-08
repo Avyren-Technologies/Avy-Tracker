@@ -1,11 +1,10 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
-const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 
-// First get the Sentry config
-let config = getSentryExpoConfig(__dirname);
+// Get the default config
+let config = getDefaultConfig(__dirname);
 
-// Then apply our custom config
+// Apply our custom config
 config = {
   ...config,
   resolver: {
@@ -15,5 +14,5 @@ config = {
   },
 };
 
-// Finally apply NativeWind
+// Apply NativeWind
 module.exports = withNativeWind(config, { input: "./global.css" });

@@ -5,23 +5,23 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 // Define the configuration as a function that returns the ExpoConfig
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Parrot Analyzer",
-  slug: "parraotanalyzer",
-  version: "1.2.2",
+  name: "Daily Flow",
+  slug: "dailyflow",
+  version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/icon.png",
+  icon: "./assets/images/adaptive-icon.png",
   scheme: "myapp",
   userInterfaceStyle: "automatic",
   assetBundlePatterns: ["**/*"],
   newArchEnabled: true,
   updates: {
-    url: "https://u.expo.dev/593351fc-6ce3-4e49-8d3e-f0d33c486168",
+    url: "https://u.expo.dev/4c2221ee-b651-49c8-9cdc-04c4a1c3b9b5",
     fallbackToCacheTimeout: 0,
     checkAutomatically: "ON_LOAD",
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.loginware.parrotanalyzer",
+    bundleIdentifier: "com.avyrentechnologies.dailyflow",
     buildNumber: "5",
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
@@ -35,10 +35,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: "./assets/images/icon.png",
+      foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    package: "com.loginware.parrotanalyzer",
+    package: "com.avyrentechnologies.dailyflow",
     googleServicesFile: "./constants/google-services.json",
     config: {
       googleMaps: {
@@ -60,7 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     bundler: "metro",
     output: "static",
-    favicon: "./assets/images/icon.png",
+    favicon: "./assets/images/adaptive-icon.png",
   },
   plugins: [
     "expo-router",
@@ -69,7 +69,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: "./assets/images/SplashScreen.png",
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FF6B35", // Updated to orange primary color
       },
     ],
     [
@@ -91,7 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-notifications",
       {
-        icon: "./assets/images/icon.png",
+        icon: "./assets/images/adaptive-icon.png",
         color: "#ffffff",
         sound: "default",
       },
@@ -111,14 +111,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         isAndroidForegroundServiceEnabled: true,
       },
     ],
-    [
-      "@sentry/react-native/expo",
-      {
-        url: "https://sentry.io/",
-        project: process.env.SENTRY_PROJECT || "parrot-analyzer",
-        organization: process.env.SENTRY_ORG || "loginware",
-      },
-    ],
+
   ],
   experiments: {
     typedRoutes: true,
@@ -129,14 +122,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     eas: {
       projectId:
-        process.env.EXPO_PROJECT_ID || "593351fc-6ce3-4e49-8d3e-f0d33c486168",
+        process.env.EXPO_PROJECT_ID || "4c2221ee-b651-49c8-9cdc-04c4a1c3b9b5",
     },
     // Make environment variables available in the app via Constants.expoConfig.extra
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
-    sentryDsn: process.env.SENTRY_DSN,
   },
-  owner: "loginware",
+  owner: "avyrentechnologies",
   runtimeVersion: {
     policy: "sdkVersion",
   },
