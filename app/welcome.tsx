@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import "./../app/utils/backgroundLocationTask";
-import { View, Text, TouchableOpacity, Animated, Image, StatusBar, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Image, StatusBar, Dimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import ThemeContext from './context/ThemeContext';
 import AuthContext from './context/AuthContext';
@@ -11,19 +11,6 @@ import * as Network from 'expo-network';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
-
-// Orange and Blue color scheme based on logo
-const colors = {
-  primary: '#FF6B35', // Vibrant orange
-  secondary: '#1E3A8A', // Rich blue
-  accent: '#F97316', // Lighter orange
-  accentBlue: '#3B82F6', // Lighter blue
-  white: '#FFFFFF',
-  black: '#000000',
-  textLight: '#FFFFFF',
-  textDark: '#1F2937',
-  textSecondary: '#6B7280',
-};
 
 export default function Welcome() {
     const router = useRouter();
@@ -39,6 +26,51 @@ export default function Welcome() {
     });
     const offlineBadgeFadeAnim = useRef(new Animated.Value(0)).current;
     const buttonScaleAnim = useRef(new Animated.Value(1)).current;
+    const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+    const scrollViewRef = useRef<ScrollView>(null);
+    const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+    const isUserInteracting = useRef(false);
+    const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Theme-based colors
+    const colors = {
+        // Light theme colors
+        light: {
+            primary: '#3B82F6', // Blue-500
+            secondary: '#0EA5E9', // Sky-500
+            accent: '#6366F1', // Indigo-500
+            background: '#F8FAFC', // Slate-50
+            surface: '#FFFFFF', // White
+            card: '#FFFFFF', // White
+            text: '#0F172A', // Slate-900
+            textSecondary: '#475569', // Slate-600
+            textTertiary: '#64748B', // Slate-500
+            border: '#E2E8F0', // Slate-200
+            success: '#10B981', // Emerald-500
+            warning: '#F59E0B', // Amber-500
+            error: '#EF4444', // Red-500
+            info: '#3B82F6', // Blue-500
+        },
+        // Dark theme colors
+        dark: {
+            primary: '#60A5FA', // Blue-400
+            secondary: '#38BDF8', // Sky-400
+            accent: '#818CF8', // Indigo-400
+            background: '#0F172A', // Slate-900
+            surface: '#1E293B', // Slate-800
+            card: '#1E293B', // Slate-800
+            text: '#F8FAFC', // Slate-50
+            textSecondary: '#CBD5E1', // Slate-300
+            textTertiary: '#94A3B8', // Slate-400
+            border: '#334155', // Slate-700
+            success: '#34D399', // Emerald-400
+            warning: '#FBBF24', // Amber-400
+            error: '#F87171', // Red-400
+            info: '#60A5FA', // Blue-400
+        }
+    };
+
+    const currentColors = colors[theme];
 
     useEffect(() => {
         Animated.parallel([
@@ -59,6 +91,15 @@ export default function Welcome() {
             }),
         ]).start();
         
+        // Floating shapes animation
+        Animated.loop(
+            Animated.timing(floatingShapesAnim, {
+                toValue: 1,
+                duration: 10000,
+                useNativeDriver: true,
+            })
+        ).start();
+        
         // Check network connectivity
         checkNetworkStatus();
         
@@ -71,7 +112,74 @@ export default function Welcome() {
                 useNativeDriver: true,
             }).start();
         }
+
+        // Start auto-scrolling after a delay
+        const autoScrollTimer = setTimeout(startAutoScroll, 2000);
+
+        return () => {
+            if (autoScrollRef.current) {
+                clearInterval(autoScrollRef.current);
+            }
+            if (pauseTimeoutRef.current) {
+                clearTimeout(pauseTimeoutRef.current);
+            }
+            clearTimeout(autoScrollTimer);
+        };
     }, [isOffline]);
+
+    // Pause auto-scrolling when user touches the scroll view
+    const handleScrollBeginDrag = () => {
+        isUserInteracting.current = true;
+        if (autoScrollRef.current) {
+            clearInterval(autoScrollRef.current);
+        }
+    };
+
+    // Resume auto-scrolling after user stops touching
+    const handleScrollEndDrag = () => {
+        isUserInteracting.current = false;
+        // Resume after 2 seconds of no interaction
+        if (pauseTimeoutRef.current) {
+            clearTimeout(pauseTimeoutRef.current);
+        }
+        pauseTimeoutRef.current = setTimeout(() => {
+            if (!isUserInteracting.current) {
+                startAutoScroll();
+            }
+        }, 2000);
+    };
+
+    // Start auto-scrolling function
+    const startAutoScroll = () => {
+        if (scrollViewRef.current && !isUserInteracting.current) {
+            let scrollPosition = 0;
+            const scrollStep = 2; // Increased step size for faster movement
+            const scrollInterval = 30; // Reduced interval for smoother movement
+            
+            autoScrollRef.current = setInterval(() => {
+                if (isUserInteracting.current) return; // Don't scroll if user is interacting
+                
+                scrollPosition += scrollStep;
+                if (scrollViewRef.current) {
+                    // Smooth reset when reaching the end
+                    if (scrollPosition >= 1500) {
+                        scrollPosition = 0;
+                        // Use animated scroll for smooth reset
+                        scrollViewRef.current.scrollTo({
+                            x: scrollPosition,
+                            animated: true,
+                        });
+                    } else {
+                        // Regular scroll without animation for smooth movement
+                        scrollViewRef.current.scrollTo({
+                            x: scrollPosition,
+                            animated: false,
+                        });
+                    }
+                }
+            }, scrollInterval);
+        }
+    };
     
     const checkNetworkStatus = async () => {
         try {
@@ -130,22 +238,45 @@ export default function Welcome() {
         handleGetStarted();
     };
 
+    const floatingOffset = floatingShapesAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 25],
+    });
+
     return (
         <>
             <StatusBar 
-                barStyle="light-content"
-                backgroundColor={colors.primary}
+                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+                backgroundColor={currentColors.background}
             />
-            <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                style={{ flex: 1 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
+            
+            {/* Main background */}
+            <View style={{
+                flex: 1,
+                backgroundColor: currentColors.background,
+            }}>
+                {/* Subtle gradient overlay */}
+                <LinearGradient
+                    colors={[
+                        currentColors.background,
+                        theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.02)',
+                        currentColors.background
+                    ]}
+                    style={{ 
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                    }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                />
+
                 {/* Floating geometric shapes */}
                 <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-                    {/* Orange circle */}
-                    <View
+                    {/* Blue circle */}
+                    <Animated.View
                         style={{
                             position: 'absolute',
                             top: height * 0.15,
@@ -153,14 +284,14 @@ export default function Welcome() {
                             width: 60,
                             height: 60,
                             borderRadius: 30,
-                            backgroundColor: colors.primary,
-                            opacity: 0.3,
-                            transform: [{ rotate: '45deg' }],
+                            backgroundColor: currentColors.primary,
+                            opacity: 0.15,
+                            transform: [{ translateY: floatingOffset }],
                         }}
                     />
                     
-                    {/* Blue square */}
-                    <View
+                    {/* Sky square */}
+                    <Animated.View
                         style={{
                             position: 'absolute',
                             bottom: height * 0.25,
@@ -168,14 +299,17 @@ export default function Welcome() {
                             width: 50,
                             height: 50,
                             borderRadius: 10,
-                            backgroundColor: colors.secondary,
-                            opacity: 0.4,
-                            transform: [{ rotate: '-30deg' }],
+                            backgroundColor: currentColors.secondary,
+                            opacity: 0.2,
+                            transform: [{ translateY: floatingOffset.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, -20],
+                            }) }],
                         }}
                     />
                     
-                    {/* Orange triangle */}
-                    <View
+                    {/* Indigo triangle */}
+                    <Animated.View
                         style={{
                             position: 'absolute',
                             top: height * 0.5,
@@ -187,8 +321,12 @@ export default function Welcome() {
                             borderBottomWidth: 43,
                             borderLeftColor: 'transparent',
                             borderRightColor: 'transparent',
-                            borderBottomColor: colors.accent,
-                            opacity: 0.2,
+                            borderBottomColor: currentColors.accent,
+                            opacity: 0.1,
+                            transform: [{ translateY: floatingOffset.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, 15],
+                            }) }],
                         }}
                     />
                 </View>
@@ -209,31 +347,41 @@ export default function Welcome() {
                             { scale: scaleAnim }
                         ]
                     }}>
+                        {/* Logo container with modern design */}
                         <View style={{
                             width: 200,
                             height: 200,
                             borderRadius: 100,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: 24,
-                            padding: 3,
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            marginBottom: 32,
+                            padding: 4,
+                            backgroundColor: theme === 'dark' 
+                                ? 'rgba(59, 130, 246, 0.1)' 
+                                : 'rgba(59, 130, 246, 0.05)',
                             borderWidth: 2,
-                            borderColor: 'rgba(255, 255, 255, 0.3)',
-                            shadowColor: colors.primary,
+                            borderColor: theme === 'dark' 
+                                ? 'rgba(59, 130, 246, 0.3)' 
+                                : 'rgba(59, 130, 246, 0.2)',
+                            shadowColor: currentColors.primary,
                             shadowOffset: { width: 0, height: 8 },
-                            shadowOpacity: 0.3,
+                            shadowOpacity: 0.2,
                             shadowRadius: 16,
-                            elevation: 12,
+                            elevation: 8,
                         }}>
                             <View style={{
                                 width: '100%',
                                 height: '100%',
                                 borderRadius: 100,
                                 overflow: 'hidden',
-                                backgroundColor: colors.white,
+                                backgroundColor: currentColors.surface,
                                 borderWidth: 2,
-                                borderColor: colors.primary,
+                                borderColor: currentColors.primary,
+                                shadowColor: currentColors.primary,
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                                elevation: 4,
                             }}>
                                 <Image 
                                     source={require('../assets/images/adaptive-icon.png')}
@@ -245,40 +393,61 @@ export default function Welcome() {
                                 />
                             </View>
                         </View>
+
+                        {/* App title and description */}
                         <Text style={{
                             fontSize: 36,
                             fontWeight: '800',
                             marginBottom: 12,
-                            color: colors.textLight,
-                            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                            color: currentColors.text,
+                            textShadowColor: theme === 'dark' 
+                                ? 'rgba(0, 0, 0, 0.5)' 
+                                : 'rgba(255, 255, 255, 0.8)',
                             textShadowOffset: { width: 0, height: 2 },
                             textShadowRadius: 4,
                             letterSpacing: 1,
+                            textAlign: 'center',
                         }}>
                             Parrot Analyzer
                         </Text>
+                        
                         <Text style={{
                             textAlign: 'center',
                             fontSize: 18,
-                            color: colors.textLight,
-                            marginBottom: 16,
+                            color: currentColors.textSecondary,
+                            marginBottom: 8,
                             letterSpacing: 0.5,
-                            opacity: 0.9,
+                            fontWeight: '500',
                         }}>
                             Smart Workforce Management
-                        </Text>                        
+                        </Text>
+
+                        <Text style={{
+                            textAlign: 'center',
+                            fontSize: 16,
+                            color: currentColors.textTertiary,
+                            marginBottom: 16,
+                            letterSpacing: 0.5,
+                            lineHeight: 22,
+                            maxWidth: width * 0.8,
+                        }}>
+                            Advanced employee tracking, analytics, and productivity insights for modern businesses
+                        </Text>
+                        
                         {/* Offline indicator */}
                         {isOffline && (
                             <Animated.View 
                                 style={{
                                     opacity: offlineBadgeFadeAnim,
-                                    marginTop: 12,
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 12,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                    marginTop: 16,
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 8,
+                                    borderRadius: 20,
+                                    backgroundColor: theme === 'dark' 
+                                        ? 'rgba(239, 68, 68, 0.2)' 
+                                        : 'rgba(239, 68, 68, 0.1)',
                                     borderWidth: 1,
-                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    borderColor: currentColors.error,
                                     flexDirection: 'row',
                                     alignItems: 'center',
                                 }}
@@ -288,13 +457,13 @@ export default function Welcome() {
                                         width: 8,
                                         height: 8,
                                         borderRadius: 4,
-                                        backgroundColor: '#EF4444',
+                                        backgroundColor: currentColors.error,
                                         marginRight: 8,
                                     }}
                                 />
                                 <Text
                                     style={{
-                                        color: colors.textLight,
+                                        color: currentColors.error,
                                         fontSize: 14,
                                         fontWeight: '600',
                                     }}
@@ -311,41 +480,197 @@ export default function Welcome() {
                         opacity: fadeAnim,
                         transform: [{ translateY: slideAnim }]
                     }}>
+                        {/* Get Started Button */}
                         <Animated.View style={{
                             transform: [{ scale: buttonScaleAnim }]
                         }}>
                             <TouchableOpacity
                                 onPress={handleButtonPress}
                                 style={{
-                                    backgroundColor: colors.white,
+                                    backgroundColor: currentColors.primary,
                                     paddingHorizontal: 48,
-                                    paddingVertical: 16,
+                                    paddingVertical: 18,
                                     borderRadius: 30,
-                                    shadowColor: colors.primary,
-                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowColor: currentColors.primary,
+                                    shadowOffset: { width: 0, height: 6 },
                                     shadowOpacity: 0.3,
-                                    shadowRadius: 8,
+                                    shadowRadius: 12,
                                     elevation: 8,
                                     flexDirection: 'row',
                                     alignItems: 'center',
+                                    borderWidth: 2,
+                                    borderColor: currentColors.secondary,
                                 }}
                             >
                                 <Text style={{
-                                    color: colors.primary,
+                                    color: currentColors.surface,
                                     fontSize: 18,
                                     fontWeight: '700',
                                     marginRight: 8,
+                                    letterSpacing: 0.5,
                                 }}>
                                     Get Started
                                 </Text>
-                                <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+                                <Ionicons 
+                                    name="arrow-forward" 
+                                    size={20} 
+                                    color={currentColors.surface} 
+                                />
                             </TouchableOpacity>
                         </Animated.View>
                         
-                        <Text style={{
+                        {/* Features preview - Enhanced with comprehensive app features and auto-scrolling */}
+                        <View
+                            className="flex-row justify-center mt-6"
+                            style={{
+                                width: '100%',
+                                maxWidth: width * 0.98,
+                                alignSelf: 'center',
+                            }}
+                        >
+                            <ScrollView
+                                ref={scrollViewRef}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    paddingHorizontal: 4,
+                                }}
+                                style={{ flexGrow: 0 }}
+                                onScrollBeginDrag={handleScrollBeginDrag}
+                                onScrollEndDrag={handleScrollEndDrag}
+                                // Auto-scroll animation
+                            >
+                                {[
+                                    { icon: 'location', text: 'Live GPS Tracking' },
+                                    { icon: 'analytics', text: 'Real-time Analytics' },
+                                    { icon: 'people', text: 'Team Management' },
+                                    { icon: 'shield-checkmark', text: 'Role-based Access' },
+                                    { icon: 'calendar', text: 'Attendance Management' },
+                                    { icon: 'card', text: 'Expense Tracking' },
+                                    { icon: 'time', text: 'Leave Management' },
+                                    { icon: 'chatbubbles', text: 'AI Chat Support' },
+                                    { icon: 'notifications', text: 'Push Notifications' },
+                                    { icon: 'document', text: 'PDF Reports' },
+                                    { icon: 'trending-up', text: 'Performance Metrics' },
+                                    { icon: 'map', text: 'Geofencing' },
+                                    { icon: 'sync', text: 'Shift Tracking' },
+                                    { icon: 'bar-chart', text: 'Travel Analytics' },
+                                    { icon: 'settings', text: 'System Config' },
+                                    { icon: 'cloud', text: 'Multi-tenant' }
+                                ].map((feature, index) => (
+                                    <View
+                                        key={feature.icon}
+                                        className="items-center"
+                                        style={{
+                                            marginHorizontal: 6,
+                                            minWidth: 80,
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                width: 40,
+                                                height: 40,
+                                                borderRadius: 20,
+                                                backgroundColor: theme === 'dark'
+                                                    ? 'rgba(59, 130, 246, 0.18)'
+                                                    : 'rgba(59, 130, 246, 0.09)',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                marginBottom: 8,
+                                                borderWidth: 1,
+                                                borderColor: theme === 'dark'
+                                                    ? 'rgba(59, 130, 246, 0.3)'
+                                                    : 'rgba(59, 130, 246, 0.2)',
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name={feature.icon as any}
+                                                size={20}
+                                                color={currentColors.primary}
+                                            />
+                                        </View>
+                                        <Text
+                                            style={{
+                                                fontSize: 11,
+                                                color: currentColors.textSecondary,
+                                                textAlign: 'center',
+                                                fontWeight: '500',
+                                                lineHeight: 14,
+                                            }}
+                                            numberOfLines={2}
+                                            adjustsFontSizeToFit
+                                        >
+                                            {feature.text}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        {/* Key Capabilities Section */}
+                        {/* <View style={{
                             marginTop: 24,
+                            paddingHorizontal: 20,
+                        }}>
+                            <Text style={{
+                                fontSize: 16,
+                                fontWeight: '700',
+                                color: currentColors.text,
+                                textAlign: 'center',
+                                marginBottom: 16,
+                                letterSpacing: 0.5,
+                            }}>
+                                Key Capabilities
+                            </Text>
+                            
+                            <View style={{
+                                backgroundColor: theme === 'dark' 
+                                    ? 'rgba(59, 130, 246, 0.1)' 
+                                    : 'rgba(59, 130, 246, 0.05)',
+                                borderRadius: 16,
+                                padding: 20,
+                                borderWidth: 1,
+                                borderColor: theme === 'dark' 
+                                    ? 'rgba(59, 130, 246, 0.2)' 
+                                    : 'rgba(59, 130, 246, 0.1)',
+                            }}>
+                                {[
+                                    '• Real-time GPS tracking with geofencing for accurate travel metrics',
+                                    '• Automated attendance logging with shift start/end tracking',
+                                    '• Comprehensive leave management with multi-level approval workflows',
+                                    '• Expense submission and approval system with receipt uploads',
+                                    '• Role-based dashboards (Employee, Group Admin, Management, Super Admin)',
+                                    '• Live chatbot support powered by Google Gemini AI',
+                                    '• Advanced analytics and reporting with PDF export capabilities',
+                                    '• Push notifications for real-time updates and alerts',
+                                    '• Multi-tenant architecture supporting multiple companies',
+                                    '• Performance metrics and travel efficiency analysis'
+                                ].map((capability, index) => (
+                                    <View key={index} style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'flex-start',
+                                        marginBottom: 8,
+                                    }}>
+                                        <Text style={{
+                                            fontSize: 13,
+                                            color: currentColors.textSecondary,
+                                            lineHeight: 18,
+                                            flex: 1,
+                                        }}>
+                                            {capability}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View> */}
+                        
+                        <Text style={{
+                            marginTop: 32,
                             fontSize: 14,
-                            color: colors.textLight,
+                            color: currentColors.textTertiary,
                             opacity: 0.7,
                             textAlign: 'center',
                             letterSpacing: 0.5,
@@ -354,7 +679,7 @@ export default function Welcome() {
                         </Text>
                     </Animated.View>
                 </View>
-            </LinearGradient>
+            </View>
 
             <PermissionsModal
                 visible={showPermissionsModal}

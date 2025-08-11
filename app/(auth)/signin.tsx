@@ -13,19 +13,6 @@ import { getTokenDebugInfo, repairTokenIssues } from '../utils/tokenDebugger';
 
 const { width, height } = Dimensions.get('window');
 
-// Orange and Blue color scheme based on logo (matching splash screen)
-const colors = {
-  primary: '#FF6B35', // Vibrant orange
-  secondary: '#1E3A8A', // Rich blue
-  accent: '#F97316', // Lighter orange
-  accentBlue: '#3B82F6', // Lighter blue
-  white: '#FFFFFF',
-  black: '#000000',
-  textLight: '#FFFFFF',
-  textDark: '#1F2937',
-  textSecondary: '#6B7280',
-};
-
 // Storage keys (keep in sync with AuthContext)
 const AUTH_TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
@@ -56,6 +43,57 @@ export default function SignIn() {
     const slideAnim = useRef(new Animated.Value(30)).current;
     const inputFocusAnim = useRef(new Animated.Value(0)).current;
     const networkStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+
+    // Theme-based colors
+    const colors = {
+        // Light theme colors
+        light: {
+            primary: '#3B82F6', // Blue-500
+            secondary: '#0EA5E9', // Sky-500
+            accent: '#6366F1', // Indigo-500
+            background: '#F8FAFC', // Slate-50
+            surface: '#FFFFFF', // White
+            card: '#FFFFFF', // White
+            text: '#0F172A', // Slate-900
+            textSecondary: '#475569', // Slate-600
+            textTertiary: '#64748B', // Slate-500
+            border: '#E2E8F0', // Slate-200
+            inputBackground: '#FFFFFF', // White
+            inputBorder: '#E2E8F0', // Slate-200
+            inputBorderFocus: '#3B82F6', // Blue-500
+            inputBorderError: '#EF4444', // Red-500
+            inputBorderSuccess: '#10B981', // Emerald-500
+            success: '#10B981', // Emerald-500
+            warning: '#F59E0B', // Amber-500
+            error: '#EF4444', // Red-500
+            info: '#3B82F6', // Blue-500
+        },
+        // Dark theme colors
+        dark: {
+            primary: '#60A5FA', // Blue-400
+            secondary: '#38BDF8', // Sky-400
+            accent: '#818CF8', // Indigo-400
+            background: '#0F172A', // Slate-900
+            surface: '#1E293B', // Slate-800
+            card: '#1E293B', // Slate-800
+            text: '#F8FAFC', // Slate-50
+            textSecondary: '#CBD5E1', // Slate-300
+            textTertiary: '#94A3B8', // Slate-400
+            border: '#334155', // Slate-700
+            inputBackground: '#1E293B', // Slate-800
+            inputBorder: '#334155', // Slate-700
+            inputBorderFocus: '#60A5FA', // Blue-400
+            inputBorderError: '#F87171', // Red-400
+            inputBorderSuccess: '#34D399', // Emerald-400
+            success: '#34D399', // Emerald-400
+            warning: '#FBBF24', // Amber-400
+            error: '#F87171', // Red-400
+            info: '#60A5FA', // Blue-400
+        }
+    };
+
+    const currentColors = colors[theme];
 
     useEffect(() => {
         // Check network status on mount and periodically
@@ -64,6 +102,15 @@ export default function SignIn() {
 
         // Check if there are token storage inconsistencies on mount
         checkTokenStorageHealth();
+
+        // Floating shapes animation
+        Animated.loop(
+            Animated.timing(floatingShapesAnim, {
+                toValue: 1,
+                duration: 12000,
+                useNativeDriver: true,
+            })
+        ).start();
 
         // Set up periodic network check
         networkStatusTimerRef.current = setInterval(() => {
@@ -500,11 +547,16 @@ export default function SignIn() {
         ]).start();
     });
 
+    const floatingOffset = floatingShapesAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 20],
+    });
+
     return (
         <>
             <StatusBar
-                barStyle="light-content"
-                backgroundColor={colors.primary}
+                barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+                backgroundColor={currentColors.background}
             />
             <TouchableOpacity
                 activeOpacity={1}
@@ -513,16 +565,33 @@ export default function SignIn() {
                     flex: 1,
                 }}
             >
+                {/* Main background */}
+                <View style={{
+                    flex: 1,
+                    backgroundColor: currentColors.background,
+                }}>
+                    {/* Subtle gradient overlay */}
                 <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    style={{ flex: 1 }}
+                        colors={[
+                            currentColors.background,
+                            theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.02)',
+                            currentColors.background
+                        ]}
+                        style={{ 
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                        }}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                >
+                    />
+                    
                     {/* Floating geometric shapes */}
                     <View style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                        {/* Orange circle */}
-                        <View
+                        {/* Blue circle */}
+                        <Animated.View
                             style={{
                                 position: 'absolute',
                                 top: height * 0.1,
@@ -530,14 +599,14 @@ export default function SignIn() {
                                 width: 60,
                                 height: 60,
                                 borderRadius: 30,
-                                backgroundColor: colors.accent,
-                                opacity: 0.2,
-                                transform: [{ rotate: '45deg' }],
+                                backgroundColor: currentColors.primary,
+                                opacity: 0.15,
+                                transform: [{ translateY: floatingOffset }],
                             }}
                         />
                         
-                        {/* Blue square */}
-                        <View
+                        {/* Sky square */}
+                        <Animated.View
                             style={{
                                 position: 'absolute',
                                 bottom: height * 0.3,
@@ -545,14 +614,17 @@ export default function SignIn() {
                                 width: 40,
                                 height: 40,
                                 borderRadius: 8,
-                                backgroundColor: colors.accentBlue,
-                                opacity: 0.3,
-                                transform: [{ rotate: '-30deg' }],
+                                backgroundColor: currentColors.secondary,
+                                opacity: 0.2,
+                                transform: [{ translateY: floatingOffset.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, -15],
+                                }) }],
                             }}
                         />
                         
-                        {/* Orange triangle */}
-                        <View
+                        {/* Indigo triangle */}
+                        <Animated.View
                             style={{
                                 position: 'absolute',
                                 top: height * 0.7,
@@ -564,8 +636,12 @@ export default function SignIn() {
                                 borderBottomWidth: 35,
                                 borderLeftColor: 'transparent',
                                 borderRightColor: 'transparent',
-                                borderBottomColor: colors.accent,
-                                opacity: 0.15,
+                                borderBottomColor: currentColors.accent,
+                                opacity: 0.1,
+                                transform: [{ translateY: floatingOffset.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, 10],
+                                }) }],
                             }}
                         />
                     </View>
@@ -595,8 +671,8 @@ export default function SignIn() {
                                     width: 200,
                                     height: 200,
                                     borderRadius: 100,
-                                    backgroundColor: colors.primary,
-                                    opacity: 0.3,
+                                    backgroundColor: currentColors.primary,
+                                    opacity: 0.2,
                                     transform: [{ scale: 1.2 }],
                                 }} />
                                 
@@ -607,15 +683,15 @@ export default function SignIn() {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     borderRadius: 70,
-                                    backgroundColor: colors.white,
+                                    backgroundColor: currentColors.surface,
                                     marginBottom: 24,
-                                    shadowColor: colors.primary,
+                                    shadowColor: currentColors.primary,
                                     shadowOffset: { width: 0, height: 8 },
-                                    shadowOpacity: 0.3,
+                                    shadowOpacity: 0.2,
                                     shadowRadius: 16,
-                                    elevation: 12,
+                                    elevation: 8,
                                     borderWidth: 3,
-                                    borderColor: colors.primary,
+                                    borderColor: currentColors.primary,
                                 }}>
                                     <Image
                                         source={require('../../assets/images/adaptive-icon.png')}
@@ -629,9 +705,11 @@ export default function SignIn() {
                                 <Text style={{
                                     fontSize: 32,
                                     fontWeight: '800',
-                                    color: colors.textLight,
+                                    color: currentColors.text,
                                     marginBottom: 8,
-                                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                                    textShadowColor: theme === 'dark' 
+                                        ? 'rgba(0, 0, 0, 0.5)' 
+                                        : 'rgba(255, 255, 255, 0.8)',
                                     textShadowOffset: { width: 0, height: 2 },
                                     textShadowRadius: 4,
                                     letterSpacing: 1,
@@ -640,10 +718,10 @@ export default function SignIn() {
                                 </Text>
                                 <Text style={{
                                     fontSize: 16,
-                                    color: colors.textLight,
-                                    opacity: 0.9,
+                                    color: currentColors.textSecondary,
                                     textAlign: 'center',
                                     letterSpacing: 0.5,
+                                    fontWeight: '500',
                                 }}>
                                     Sign in to continue to Parrot Analyzer
                                 </Text>
@@ -651,9 +729,14 @@ export default function SignIn() {
 
                             {/* Network Status Indicator */}
                             {(!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
-                                <View style={styles.networkErrorContainer}>
-                                    <Ionicons name="wifi" size={24} color="#DC2626" />
-                                    <Text style={styles.networkErrorText}>
+                                <View style={[styles.networkErrorContainer, {
+                                    backgroundColor: theme === 'dark' 
+                                        ? 'rgba(239, 68, 68, 0.1)' 
+                                        : 'rgba(239, 68, 68, 0.05)',
+                                    borderColor: currentColors.error,
+                                }]}>
+                                    <Ionicons name="wifi" size={24} color={currentColors.error} />
+                                    <Text style={[styles.networkErrorText, { color: currentColors.error }]}>
                                         No internet connection. {offlineLoginAvailable ? 'Offline login available.' : ''}
                                     </Text>
                                 </View>
@@ -663,12 +746,17 @@ export default function SignIn() {
                             {isOffline && (
                                 <View style={[
                                     styles.offlineBanner,
-                                    { backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)' }
+                                    { 
+                                        backgroundColor: theme === 'dark' 
+                                            ? 'rgba(239, 68, 68, 0.1)' 
+                                            : 'rgba(239, 68, 68, 0.05)',
+                                        borderColor: currentColors.error,
+                                    }
                                 ]}>
-                                    <Ionicons name="cloud-offline" size={22} color={theme === 'dark' ? '#FCA5A5' : '#DC2626'} />
+                                    <Ionicons name="cloud-offline" size={22} color={currentColors.error} />
                                     <Text style={[
                                         styles.offlineBannerText,
-                                        { color: theme === 'dark' ? '#FCA5A5' : '#DC2626' }
+                                        { color: currentColors.error }
                                     ]}>
                                         App is in offline mode. Some features may be limited.
                                     </Text>
@@ -683,18 +771,20 @@ export default function SignIn() {
                                 {offlineLoginAvailable && (!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
                                     <TouchableOpacity
                                         style={[styles.offlineLoginButton, {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                                            borderColor: 'rgba(255, 255, 255, 0.4)',
+                                            backgroundColor: theme === 'dark' 
+                                                ? 'rgba(59, 130, 246, 0.2)' 
+                                                : 'rgba(59, 130, 246, 0.1)',
+                                            borderColor: currentColors.primary,
                                         }]}
                                         onPress={handleOfflineLogin}
                                     >
                                         <Ionicons 
                                             name="cloud-offline-outline" 
                                             size={24} 
-                                            color={colors.textLight} 
+                                            color={currentColors.primary} 
                                             style={{ marginRight: 8 }}
                                         />
-                                        <Text style={[styles.offlineLoginButtonText, { color: colors.textLight }]}>
+                                        <Text style={[styles.offlineLoginButtonText, { color: currentColors.primary }]}>
                                             Continue with Saved Credentials
                                         </Text>
                                     </TouchableOpacity>
@@ -703,7 +793,7 @@ export default function SignIn() {
                                 <View style={{ marginBottom: 16 }}>
                                     <Text style={{
                                         marginBottom: 8,
-                                        color: colors.textLight,
+                                        color: currentColors.text,
                                         fontSize: 14,
                                         fontWeight: '600',
                                     }}>
@@ -715,30 +805,30 @@ export default function SignIn() {
                                         keyboardType={identifierType === 'phone' ? 'phone-pad' : 'email-address'}
                                         autoCapitalize="none"
                                         style={{
-                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            backgroundColor: currentColors.inputBackground,
                                             padding: 16,
                                             borderRadius: 12,
-                                            color: colors.textDark,
+                                            color: currentColors.text,
                                             borderWidth: 2,
                                             borderColor: isValidIdentifier
-                                                ? '#10B981'
+                                                ? currentColors.inputBorderSuccess
                                                 : identifier
-                                                    ? '#EF4444'
-                                                    : 'rgba(255, 255, 255, 0.3)',
-                                            shadowColor: colors.primary,
+                                                    ? currentColors.inputBorderError
+                                                    : currentColors.inputBorder,
+                                            shadowColor: currentColors.primary,
                                             shadowOffset: { width: 0, height: 2 },
                                             shadowOpacity: 0.1,
                                             shadowRadius: 4,
                                             elevation: 3,
                                         }}
-                                        placeholderTextColor={colors.textSecondary}
+                                        placeholderTextColor={currentColors.textSecondary}
                                         placeholder="Enter your email or phone"
                                     />
                                     {identifier && (
                                         <Text style={{
                                             marginTop: 4,
                                             fontSize: 12,
-                                            color: isValidIdentifier ? '#10B981' : '#EF4444',
+                                            color: isValidIdentifier ? currentColors.success : currentColors.error,
                                         }}>
                                             {isValidIdentifier
                                                 ? `Valid ${identifierType}`
@@ -750,7 +840,7 @@ export default function SignIn() {
                                 <View style={{ marginBottom: 16 }}>
                                     <Text style={{
                                         marginBottom: 8,
-                                        color: colors.textLight,
+                                        color: currentColors.text,
                                         fontSize: 14,
                                         fontWeight: '600',
                                     }}>
@@ -765,20 +855,20 @@ export default function SignIn() {
                                             }}
                                             secureTextEntry={!showPassword}
                                             style={{
-                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                backgroundColor: currentColors.inputBackground,
                                                 padding: 16,
                                                 paddingRight: 48,
                                                 borderRadius: 12,
-                                                color: colors.textDark,
+                                                color: currentColors.text,
                                                 borderWidth: 2,
-                                                borderColor: 'rgba(255, 255, 255, 0.3)',
-                                                shadowColor: colors.primary,
+                                                borderColor: currentColors.inputBorder,
+                                                shadowColor: currentColors.primary,
                                                 shadowOffset: { width: 0, height: 2 },
                                                 shadowOpacity: 0.1,
                                                 shadowRadius: 4,
                                                 elevation: 3,
                                             }}
-                                            placeholderTextColor={colors.textSecondary}
+                                            placeholderTextColor={currentColors.textSecondary}
                                             placeholder="Enter your password"
                                         />
                                         <TouchableOpacity
@@ -792,7 +882,7 @@ export default function SignIn() {
                                             <Ionicons
                                                 name={showPassword ? 'eye-off' : 'eye'}
                                                 size={24}
-                                                color={colors.textSecondary}
+                                                color={currentColors.textSecondary}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -800,7 +890,7 @@ export default function SignIn() {
                                         <Text style={{
                                             marginTop: 4,
                                             fontSize: 12,
-                                            color: '#EF4444',
+                                            color: currentColors.error,
                                         }}>
                                             Password must be at least 6 characters
                                         </Text>
@@ -812,7 +902,7 @@ export default function SignIn() {
                                     style={{ alignSelf: 'flex-end', marginBottom: 24 }}
                                 >
                                     <Text style={{
-                                        color: colors.accentBlue,
+                                        color: currentColors.secondary,
                                         fontSize: 14,
                                         fontWeight: '600',
                                     }}>
@@ -829,15 +919,15 @@ export default function SignIn() {
                                         error.type === 'OFFLINE_AVAILABLE' ? styles.offlineAvailableError :
                                         styles.generalError
                                     ]}>
-                                        <Text style={styles.errorText}>{error.message}</Text>
+                                        <Text style={[styles.errorText, { color: currentColors.error }]}>{error.message}</Text>
                                         {error.details && (
-                                            <Text style={styles.errorSubText}>
+                                            <Text style={[styles.errorSubText, { color: currentColors.textSecondary }]}>
                                                 {error.details}
                                             </Text>
                                         )}
                                         {error.type === 'TOKEN_STORAGE_ISSUE' && (
                                             <TouchableOpacity 
-                                                style={styles.errorActionButton}
+                                                style={[styles.errorActionButton, { backgroundColor: currentColors.error }]}
                                                 onPress={resetStorageAndLogout}
                                             >
                                                 <Text style={styles.errorActionButtonText}>Reset Storage</Text>
@@ -845,7 +935,7 @@ export default function SignIn() {
                                         )}
                                         {error.type === 'OFFLINE_AVAILABLE' && (
                                             <TouchableOpacity 
-                                                style={styles.offlineActionButton}
+                                                style={[styles.offlineActionButton, { backgroundColor: currentColors.secondary }]}
                                                 onPress={handleOfflineLogin}
                                             >
                                                 <Text style={styles.offlineActionButtonText}>Continue Offline</Text>
@@ -858,27 +948,27 @@ export default function SignIn() {
                                     onPress={handleSignIn}
                                     disabled={isLoading || isCheckingStorage}
                                     style={{
-                                        backgroundColor: colors.primary,
+                                        backgroundColor: currentColors.primary,
                                         paddingVertical: 16,
                                         paddingHorizontal: 32,
                                         borderRadius: 16,
                                         opacity: (isLoading || isCheckingStorage) ? 0.7 : 1,
-                                        shadowColor: colors.primary,
+                                        shadowColor: currentColors.primary,
                                         shadowOffset: { width: 0, height: 6 },
-                                        shadowOpacity: 0.4,
+                                        shadowOpacity: 0.3,
                                         shadowRadius: 12,
                                         elevation: 8,
                                         borderWidth: 2,
-                                        borderColor: colors.accent,
+                                        borderColor: currentColors.secondary,
                                     }}
                                 >
                                     {isLoading ? (
-                                        <ActivityIndicator color="white" />
+                                        <ActivityIndicator color={currentColors.surface} />
                                     ) : isCheckingStorage ? (
                                         <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                                            <ActivityIndicator color="white" size="small" style={{ marginRight: 8 }} />
+                                            <ActivityIndicator color={currentColors.surface} size="small" style={{ marginRight: 8 }} />
                                             <Text style={{
-                                                color: '#ffffff',
+                                                color: currentColors.surface,
                                                 textAlign: 'center',
                                                 fontSize: 16,
                                                 fontWeight: 'bold',
@@ -889,7 +979,7 @@ export default function SignIn() {
                                         </View>
                                     ) : (
                                         <Text style={{
-                                            color: '#ffffff',
+                                            color: currentColors.surface,
                                             textAlign: 'center',
                                             fontSize: 18,
                                             fontWeight: 'bold',
@@ -911,21 +1001,23 @@ export default function SignIn() {
                                         marginTop: 16,
                                         paddingVertical: 8,
                                         paddingHorizontal: 12,
-                                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                                        backgroundColor: theme === 'dark' 
+                                            ? 'rgba(59, 130, 246, 0.1)' 
+                                            : 'rgba(59, 130, 246, 0.05)',
                                         borderRadius: 20,
                                         borderWidth: 1,
-                                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                                        borderColor: currentColors.primary,
                                         maxWidth: '80%',
                                     }}
                                 >
                                     <Ionicons 
                                         name="refresh-outline" 
                                         size={16} 
-                                        color={colors.textLight} 
+                                        color={currentColors.primary} 
                                         style={{ marginRight: 6 }}
                                     />
                                     <Text style={{
-                                        color: colors.textLight,
+                                        color: currentColors.primary,
                                         fontSize: 12,
                                         fontWeight: '500',
                                         textAlign: 'center',
@@ -936,7 +1028,7 @@ export default function SignIn() {
                             </Animated.View>
                         </Animated.View>
                     </ScrollView>
-                </LinearGradient>
+                </View>
             </TouchableOpacity>
         </>
     );
@@ -945,52 +1037,47 @@ export default function SignIn() {
 const styles = StyleSheet.create({
     errorContainer: {
         padding: 16,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 16,
         width: '100%',
+        borderWidth: 1,
     },
     generalError: {
-        backgroundColor: '#FEE2E2',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
         borderColor: '#EF4444',
-        borderWidth: 1,
     },
     companyDisabledError: {
-        backgroundColor: '#DC2626',
-        borderColor: '#B91C1C',
-        borderWidth: 1,
+        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+        borderColor: '#DC2626',
     },
     networkError: {
-        backgroundColor: '#FEF3C7',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
         borderColor: '#F59E0B',
-        borderWidth: 1,
     },
     serverError: {
-        backgroundColor: '#DBEAFE',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderColor: '#3B82F6',
-        borderWidth: 1,
     },
     offlineAvailableError: {
-        backgroundColor: '#E0F2FE',
+        backgroundColor: 'rgba(14, 165, 233, 0.1)',
         borderColor: '#0EA5E9',
-        borderWidth: 1,
     },
     errorText: {
-        color: '#991B1B',
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
         textAlign: 'center',
+        marginBottom: 4,
     },
     errorSubText: {
-        color: '#991B1B',
         fontSize: 12,
         marginTop: 8,
         textAlign: 'center',
+        lineHeight: 16,
     },
     errorActionButton: {
-        backgroundColor: '#B91C1C',
-        padding: 8,
-        borderRadius: 4,
-        marginTop: 10,
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 12,
         alignSelf: 'center',
     },
     errorActionButtonText: {
@@ -999,10 +1086,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     offlineActionButton: {
-        backgroundColor: '#0EA5E9',
-        padding: 8,
-        borderRadius: 4,
-        marginTop: 10,
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 12,
         alignSelf: 'center',
     },
     offlineActionButtonText: {
@@ -1011,34 +1097,32 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     networkErrorContainer: {
-        backgroundColor: '#FEF2F2',
         padding: 12,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderColor: '#DC2626',
         borderWidth: 1,
     },
     networkErrorText: {
-        color: '#DC2626',
         fontSize: 13,
         marginLeft: 8,
+        fontWeight: '500',
     },
     offlineBanner: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 12,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#DC2626',
     },
     offlineBannerText: {
         fontSize: 14,
         marginLeft: 8,
         flex: 1,
+        fontWeight: '500',
     },
     offlineLoginButton: {
         flexDirection: 'row',

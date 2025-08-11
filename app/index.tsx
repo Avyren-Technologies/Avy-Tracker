@@ -20,18 +20,6 @@ import * as Network from 'expo-network';
 
 const { width, height } = Dimensions.get('window');
 
-// Orange and Blue color scheme based on logo
-const colors = {
-  primary: '#FF6B35', // Vibrant orange
-  secondary: '#1E3A8A', // Rich blue
-  accent: '#F97316', // Lighter orange
-  accentBlue: '#3B82F6', // Lighter blue
-  white: '#FFFFFF',
-  black: '#000000',
-  textLight: '#FFFFFF',
-  textDark: '#1F2937',
-};
-
 export default function SplashScreen() {
   const router = useRouter();
   const { theme } = ThemeContext.useTheme();
@@ -46,6 +34,41 @@ export default function SplashScreen() {
   const offlineBadgeFadeAnim = useRef(new Animated.Value(0)).current;
   const logoGlowAnim = useRef(new Animated.Value(0)).current;
   const backgroundPulseAnim = useRef(new Animated.Value(0)).current;
+  const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme-based colors
+  const colors = {
+    // Light theme colors
+    light: {
+      primary: '#3B82F6', // Blue-500
+      secondary: '#0EA5E9', // Sky-500
+      accent: '#6366F1', // Indigo-500
+      background: '#F8FAFC', // Slate-50
+      surface: '#FFFFFF', // White
+      text: '#0F172A', // Slate-900
+      textSecondary: '#475569', // Slate-600
+      border: '#E2E8F0', // Slate-200
+      success: '#10B981', // Emerald-500
+      warning: '#F59E0B', // Amber-500
+      error: '#EF4444', // Red-500
+    },
+    // Dark theme colors
+    dark: {
+      primary: '#60A5FA', // Blue-400
+      secondary: '#38BDF8', // Sky-400
+      accent: '#818CF8', // Indigo-400
+      background: '#0F172A', // Slate-900
+      surface: '#1E293B', // Slate-800
+      text: '#F8FAFC', // Slate-50
+      textSecondary: '#CBD5E1', // Slate-300
+      border: '#334155', // Slate-700
+      success: '#34D399', // Emerald-400
+      warning: '#FBBF24', // Amber-400
+      error: '#F87171', // Red-400
+    }
+  };
+
+  const currentColors = colors[theme];
 
   // Check for updates when app comes to foreground (production only)
   useEffect(() => {
@@ -84,15 +107,24 @@ export default function SplashScreen() {
         Animated.sequence([
           Animated.timing(backgroundPulseAnim, {
             toValue: 1,
-            duration: 2000,
+            duration: 3000,
             useNativeDriver: true,
           }),
           Animated.timing(backgroundPulseAnim, {
             toValue: 0,
-            duration: 2000,
+            duration: 3000,
             useNativeDriver: true,
           }),
         ])
+      ).start();
+
+      // Floating shapes animation
+      Animated.loop(
+        Animated.timing(floatingShapesAnim, {
+          toValue: 1,
+          duration: 8000,
+          useNativeDriver: true,
+        })
       ).start();
 
       // Logo animation sequence
@@ -184,12 +216,17 @@ export default function SplashScreen() {
 
   const glowOpacity = logoGlowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.6],
+    outputRange: [0, 0.4],
   });
 
   const backgroundScale = backgroundPulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.1],
+    outputRange: [1, 1.05],
+  });
+
+  const floatingOffset = floatingShapesAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
   });
 
   // Function to check and refresh Expo Push Token if needed
@@ -236,32 +273,30 @@ export default function SplashScreen() {
   return (
     <>
       <StatusBar
-        barStyle="light-content"
-        backgroundColor={colors.primary}
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={currentColors.background}
         translucent={true}
       />
       
-      {/* Main background gradient - Orange to Blue */}
-      <LinearGradient
-        colors={[colors.primary, colors.secondary]}
-        style={{ flex: 1 }}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Animated background elements */}
+      {/* Main background */}
+      <View style={{
+        flex: 1,
+        backgroundColor: currentColors.background,
+      }}>
+        {/* Animated background gradient */}
         <Animated.View
           style={{
             position: "absolute",
-            top: -height * 0.2,
-            left: -width * 0.2,
-            right: -width * 0.2,
-            bottom: -height * 0.2,
+            top: -height * 0.1,
+            left: -width * 0.1,
+            right: -width * 0.1,
+            bottom: -height * 0.1,
             transform: [{ scale: backgroundScale }],
-            opacity: 0.1,
+            opacity: 0.6,
           }}
         >
           <LinearGradient
-            colors={[colors.accent, colors.accentBlue]}
+            colors={[currentColors.primary, currentColors.secondary, currentColors.accent]}
             style={{ flex: 1 }}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -270,8 +305,8 @@ export default function SplashScreen() {
 
         {/* Floating geometric shapes */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-          {/* Orange circle */}
-          <View
+          {/* Blue circle */}
+          <Animated.View
             style={{
               position: 'absolute',
               top: height * 0.1,
@@ -279,14 +314,14 @@ export default function SplashScreen() {
               width: 80,
               height: 80,
               borderRadius: 40,
-              backgroundColor: colors.primary,
-              opacity: 0.3,
-              transform: [{ rotate: '45deg' }],
+              backgroundColor: currentColors.primary,
+              opacity: 0.2,
+              transform: [{ translateY: floatingOffset }],
             }}
           />
           
-          {/* Blue square */}
-          <View
+          {/* Sky square */}
+          <Animated.View
             style={{
               position: 'absolute',
               bottom: height * 0.2,
@@ -294,14 +329,17 @@ export default function SplashScreen() {
               width: 60,
               height: 60,
               borderRadius: 12,
-              backgroundColor: colors.secondary,
-              opacity: 0.4,
-              transform: [{ rotate: '-30deg' }],
+              backgroundColor: currentColors.secondary,
+              opacity: 0.3,
+              transform: [{ translateY: floatingOffset.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -15],
+              }) }],
             }}
           />
           
-          {/* Orange triangle */}
-          <View
+          {/* Indigo triangle */}
+          <Animated.View
             style={{
               position: 'absolute',
               top: height * 0.6,
@@ -313,8 +351,12 @@ export default function SplashScreen() {
               borderBottomWidth: 52,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
-              borderBottomColor: colors.accent,
-              opacity: 0.2,
+              borderBottomColor: currentColors.accent,
+              opacity: 0.15,
+              transform: [{ translateY: floatingOffset.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 10],
+              }) }],
             }}
           />
         </View>
@@ -344,7 +386,7 @@ export default function SplashScreen() {
                 width: 280,
                 height: 280,
                 borderRadius: 140,
-                backgroundColor: colors.primary,
+                backgroundColor: currentColors.primary,
                 opacity: glowOpacity,
                 transform: [{ scale: 1.2 }],
               }}
@@ -358,14 +400,14 @@ export default function SplashScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 100,
-                backgroundColor: colors.white,
-                shadowColor: colors.primary,
+                backgroundColor: currentColors.surface,
+                shadowColor: currentColors.primary,
                 shadowOffset: { width: 0, height: 8 },
                 shadowOpacity: 0.3,
                 shadowRadius: 16,
                 elevation: 12,
                 borderWidth: 3,
-                borderColor: colors.primary,
+                borderColor: currentColors.primary,
               }}
             >
               <Image
@@ -391,10 +433,10 @@ export default function SplashScreen() {
               style={{
                 fontSize: 36,
                 fontWeight: "800",
-                color: colors.textLight,
+                color: currentColors.text,
                 textAlign: 'center',
                 letterSpacing: 1,
-                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)',
                 textShadowOffset: { width: 0, height: 2 },
                 textShadowRadius: 4,
                 marginBottom: 8,
@@ -406,13 +448,25 @@ export default function SplashScreen() {
             <Text
               style={{
                 fontSize: 16,
-                color: colors.textLight,
-                opacity: 0.8,
+                color: currentColors.textSecondary,
+                textAlign: 'center',
+                letterSpacing: 0.5,
+                marginBottom: 8,
+              }}
+            >
+              Smart Workforce Management
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 14,
+                color: currentColors.textSecondary,
+                opacity: 0.7,
                 textAlign: 'center',
                 letterSpacing: 0.5,
               }}
             >
-              Smart Workforce Management
+              Employee Tracking & Analytics Platform
             </Text>
           </Animated.View>
           
@@ -425,9 +479,11 @@ export default function SplashScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 20,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: theme === 'dark' 
+                  ? 'rgba(239, 68, 68, 0.2)' 
+                  : 'rgba(239, 68, 68, 0.1)',
                 borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.3)',
+                borderColor: currentColors.error,
                 flexDirection: 'row',
                 alignItems: 'center',
               }}
@@ -437,13 +493,13 @@ export default function SplashScreen() {
                   width: 8,
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: '#EF4444',
+                  backgroundColor: currentColors.error,
                   marginRight: 8,
                 }}
               />
               <Text
                 style={{
-                  color: colors.textLight,
+                  color: currentColors.error,
                   fontSize: 14,
                   fontWeight: '600',
                 }}
@@ -469,7 +525,7 @@ export default function SplashScreen() {
           <Text
             style={{
               fontSize: 14,
-              color: colors.textLight,
+              color: currentColors.textSecondary,
               opacity: 0.7,
               letterSpacing: 0.5,
             }}
@@ -477,7 +533,7 @@ export default function SplashScreen() {
             Powered by Tecosoft.ai
           </Text>
         </Animated.View>
-      </LinearGradient>
+      </View>
     </>
   );
 }
