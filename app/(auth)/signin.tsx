@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Animated, Keyboard, Image, StatusBar, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Animated, Keyboard, Image, StatusBar, ScrollView, StyleSheet, Platform, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import ThemeContext from '../context/ThemeContext';
 import AuthContext from '../context/AuthContext';
@@ -10,6 +10,21 @@ import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTokenDebugInfo, repairTokenIssues } from '../utils/tokenDebugger';
+
+const { width, height } = Dimensions.get('window');
+
+// Orange and Blue color scheme based on logo (matching splash screen)
+const colors = {
+  primary: '#FF6B35', // Vibrant orange
+  secondary: '#1E3A8A', // Rich blue
+  accent: '#F97316', // Lighter orange
+  accentBlue: '#3B82F6', // Lighter blue
+  white: '#FFFFFF',
+  black: '#000000',
+  textLight: '#FFFFFF',
+  textDark: '#1F2937',
+  textSecondary: '#6B7280',
+};
 
 // Storage keys (keep in sync with AuthContext)
 const AUTH_TOKEN_KEY = "auth_token";
@@ -488,23 +503,73 @@ export default function SignIn() {
     return (
         <>
             <StatusBar
-                barStyle={theme === 'dark' ? "light-content" : "dark-content"}
-                backgroundColor={theme === 'dark' ? '#1E293B' : '#EEF2FF'}
+                barStyle="light-content"
+                backgroundColor={colors.primary}
             />
             <TouchableOpacity
                 activeOpacity={1}
                 onPress={Keyboard.dismiss}
                 style={{
                     flex: 1,
-                    backgroundColor: theme === 'dark' ? '#1E293B' : '#EEF2FF',
                 }}
             >
                 <LinearGradient
-                    colors={theme === 'dark' ?
-                        ['#1E293B', '#0F172A'] :
-                        ['#EEF2FF', '#E0E7FF']}
+                    colors={[colors.primary, colors.secondary]}
                     style={{ flex: 1 }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
                 >
+                    {/* Floating geometric shapes */}
+                    <View style={{ position: 'absolute', width: '100%', height: '100%' }}>
+                        {/* Orange circle */}
+                        <View
+                            style={{
+                                position: 'absolute',
+                                top: height * 0.1,
+                                right: width * 0.1,
+                                width: 60,
+                                height: 60,
+                                borderRadius: 30,
+                                backgroundColor: colors.accent,
+                                opacity: 0.2,
+                                transform: [{ rotate: '45deg' }],
+                            }}
+                        />
+                        
+                        {/* Blue square */}
+                        <View
+                            style={{
+                                position: 'absolute',
+                                bottom: height * 0.3,
+                                left: width * 0.1,
+                                width: 40,
+                                height: 40,
+                                borderRadius: 8,
+                                backgroundColor: colors.accentBlue,
+                                opacity: 0.3,
+                                transform: [{ rotate: '-30deg' }],
+                            }}
+                        />
+                        
+                        {/* Orange triangle */}
+                        <View
+                            style={{
+                                position: 'absolute',
+                                top: height * 0.7,
+                                right: width * 0.2,
+                                width: 0,
+                                height: 0,
+                                borderLeftWidth: 20,
+                                borderRightWidth: 20,
+                                borderBottomWidth: 35,
+                                borderLeftColor: 'transparent',
+                                borderRightColor: 'transparent',
+                                borderBottomColor: colors.accent,
+                                opacity: 0.15,
+                            }}
+                        />
+                    </View>
+                    
                     <ScrollView
                         contentContainerStyle={{ flexGrow: 1 }}
                         keyboardShouldPersistTaps="handled"
@@ -524,54 +589,59 @@ export default function SignIn() {
                                 marginTop: 60,
                                 marginBottom: 40,
                             }}>
+                                {/* Glow effect */}
                                 <View style={{
-                                    width: 120,
-                                    height: 120,
-                                    borderRadius: 60,
+                                    position: 'absolute',
+                                    width: 200,
+                                    height: 200,
+                                    borderRadius: 100,
+                                    backgroundColor: colors.primary,
+                                    opacity: 0.3,
+                                    transform: [{ scale: 1.2 }],
+                                }} />
+                                
+                                {/* Main logo container */}
+                                <View style={{
+                                    width: 140,
+                                    height: 140,
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    borderRadius: 70,
+                                    backgroundColor: colors.white,
                                     marginBottom: 24,
-                                    padding: 3,
-                                    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                                    borderWidth: 2,
-                                    borderColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(99, 102, 241, 0.3)',
-                                    shadowColor: theme === 'dark' ? '#3B82F6' : '#6366F1',
-                                    shadowOffset: { width: 0, height: 4 },
-                                    shadowOpacity: 0.2,
-                                    shadowRadius: 8,
-                                    elevation: 8,
+                                    shadowColor: colors.primary,
+                                    shadowOffset: { width: 0, height: 8 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 16,
+                                    elevation: 12,
+                                    borderWidth: 3,
+                                    borderColor: colors.primary,
                                 }}>
-                                    <View style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        borderRadius: 60,
-                                        overflow: 'hidden',
-                                        backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(99, 102, 241, 0.05)',
-                                    }}>
-                                        <Image
-                                            source={require('../../assets/images/icon.png')}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                            }}
-                                            resizeMode="cover"
-                                        />
-                                    </View>
+                                    <Image
+                                        source={require('../../assets/images/adaptive-icon.png')}
+                                        style={{
+                                            width: 100,
+                                            height: 100,
+                                        }}
+                                        resizeMode="contain"
+                                    />
                                 </View>
                                 <Text style={{
-                                    fontSize: 28,
-                                    fontWeight: 'bold',
-                                    color: theme === 'dark' ? '#ffffff' : '#1F2937',
+                                    fontSize: 32,
+                                    fontWeight: '800',
+                                    color: colors.textLight,
                                     marginBottom: 8,
-                                    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+                                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
                                     textShadowOffset: { width: 0, height: 2 },
-                                    textShadowRadius: 4
+                                    textShadowRadius: 4,
+                                    letterSpacing: 1,
                                 }}>
                                     Welcome Back
                                 </Text>
                                 <Text style={{
                                     fontSize: 16,
-                                    color: theme === 'dark' ? '#D1D5DB' : '#4B5563',
+                                    color: colors.textLight,
+                                    opacity: 0.9,
                                     textAlign: 'center',
                                     letterSpacing: 0.5,
                                 }}>
@@ -612,16 +682,19 @@ export default function SignIn() {
                                 {/* Show offline login option if available */}
                                 {offlineLoginAvailable && (!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
                                     <TouchableOpacity
-                                        style={styles.offlineLoginButton}
+                                        style={[styles.offlineLoginButton, {
+                                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                            borderColor: 'rgba(255, 255, 255, 0.4)',
+                                        }]}
                                         onPress={handleOfflineLogin}
                                     >
                                         <Ionicons 
                                             name="cloud-offline-outline" 
                                             size={24} 
-                                            color={theme === 'dark' ? '#93C5FD' : '#3B82F6'} 
+                                            color={colors.textLight} 
                                             style={{ marginRight: 8 }}
                                         />
-                                        <Text style={styles.offlineLoginButtonText}>
+                                        <Text style={[styles.offlineLoginButtonText, { color: colors.textLight }]}>
                                             Continue with Saved Credentials
                                         </Text>
                                     </TouchableOpacity>
@@ -630,8 +703,9 @@ export default function SignIn() {
                                 <View style={{ marginBottom: 16 }}>
                                     <Text style={{
                                         marginBottom: 8,
-                                        color: theme === 'dark' ? '#D1D5DB' : '#4B5563',
+                                        color: colors.textLight,
                                         fontSize: 14,
+                                        fontWeight: '600',
                                     }}>
                                         Email or Phone Number
                                     </Text>
@@ -641,18 +715,23 @@ export default function SignIn() {
                                         keyboardType={identifierType === 'phone' ? 'phone-pad' : 'email-address'}
                                         autoCapitalize="none"
                                         style={{
-                                            backgroundColor: theme === 'dark' ? '#1F2937' : '#F3F4F6',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                             padding: 16,
                                             borderRadius: 12,
-                                            color: theme === 'dark' ? '#ffffff' : '#1F2937',
+                                            color: colors.textDark,
                                             borderWidth: 2,
                                             borderColor: isValidIdentifier
                                                 ? '#10B981'
                                                 : identifier
                                                     ? '#EF4444'
-                                                    : theme === 'dark' ? '#374151' : '#E5E7EB',
+                                                    : 'rgba(255, 255, 255, 0.3)',
+                                            shadowColor: colors.primary,
+                                            shadowOffset: { width: 0, height: 2 },
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 4,
+                                            elevation: 3,
                                         }}
-                                        placeholderTextColor={theme === 'dark' ? '#6B7280' : '#9CA3AF'}
+                                        placeholderTextColor={colors.textSecondary}
                                         placeholder="Enter your email or phone"
                                     />
                                     {identifier && (
@@ -671,8 +750,9 @@ export default function SignIn() {
                                 <View style={{ marginBottom: 16 }}>
                                     <Text style={{
                                         marginBottom: 8,
-                                        color: theme === 'dark' ? '#D1D5DB' : '#4B5563',
+                                        color: colors.textLight,
                                         fontSize: 14,
+                                        fontWeight: '600',
                                     }}>
                                         Password
                                     </Text>
@@ -685,15 +765,20 @@ export default function SignIn() {
                                             }}
                                             secureTextEntry={!showPassword}
                                             style={{
-                                                backgroundColor: theme === 'dark' ? '#1F2937' : '#F3F4F6',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                                 padding: 16,
                                                 paddingRight: 48,
                                                 borderRadius: 12,
-                                                color: theme === 'dark' ? '#ffffff' : '#1F2937',
+                                                color: colors.textDark,
                                                 borderWidth: 2,
-                                                borderColor: theme === 'dark' ? '#374151' : '#E5E7EB',
+                                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                                shadowColor: colors.primary,
+                                                shadowOffset: { width: 0, height: 2 },
+                                                shadowOpacity: 0.1,
+                                                shadowRadius: 4,
+                                                elevation: 3,
                                             }}
-                                            placeholderTextColor={theme === 'dark' ? '#6B7280' : '#9CA3AF'}
+                                            placeholderTextColor={colors.textSecondary}
                                             placeholder="Enter your password"
                                         />
                                         <TouchableOpacity
@@ -707,7 +792,7 @@ export default function SignIn() {
                                             <Ionicons
                                                 name={showPassword ? 'eye-off' : 'eye'}
                                                 size={24}
-                                                color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
+                                                color={colors.textSecondary}
                                             />
                                         </TouchableOpacity>
                                     </View>
@@ -727,8 +812,9 @@ export default function SignIn() {
                                     style={{ alignSelf: 'flex-end', marginBottom: 24 }}
                                 >
                                     <Text style={{
-                                        color: '#3B82F6',
+                                        color: colors.accentBlue,
                                         fontSize: 14,
+                                        fontWeight: '600',
                                     }}>
                                         Forgot Password?
                                     </Text>
@@ -772,16 +858,18 @@ export default function SignIn() {
                                     onPress={handleSignIn}
                                     disabled={isLoading || isCheckingStorage}
                                     style={{
-                                        backgroundColor: theme === 'dark' ? '#3B82F6' : '#6366F1',
+                                        backgroundColor: colors.primary,
                                         paddingVertical: 16,
                                         paddingHorizontal: 32,
                                         borderRadius: 16,
                                         opacity: (isLoading || isCheckingStorage) ? 0.7 : 1,
-                                        shadowColor: theme === 'dark' ? '#3B82F6' : '#6366F1',
-                                        shadowOffset: { width: 0, height: 4 },
-                                        shadowOpacity: 0.3,
-                                        shadowRadius: 8,
+                                        shadowColor: colors.primary,
+                                        shadowOffset: { width: 0, height: 6 },
+                                        shadowOpacity: 0.4,
+                                        shadowRadius: 12,
                                         elevation: 8,
+                                        borderWidth: 2,
+                                        borderColor: colors.accent,
                                     }}
                                 >
                                     {isLoading ? (
@@ -823,21 +911,21 @@ export default function SignIn() {
                                         marginTop: 16,
                                         paddingVertical: 8,
                                         paddingHorizontal: 12,
-                                        backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(99, 102, 241, 0.08)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
                                         borderRadius: 20,
                                         borderWidth: 1,
-                                        borderColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(99, 102, 241, 0.3)',
+                                        borderColor: 'rgba(255, 255, 255, 0.3)',
                                         maxWidth: '80%',
                                     }}
                                 >
                                     <Ionicons 
                                         name="refresh-outline" 
                                         size={16} 
-                                        color={theme === 'dark' ? '#60A5FA' : '#818CF8'} 
+                                        color={colors.textLight} 
                                         style={{ marginRight: 6 }}
                                     />
                                     <Text style={{
-                                        color: theme === 'dark' ? '#60A5FA' : '#818CF8',
+                                        color: colors.textLight,
                                         fontSize: 12,
                                         fontWeight: '500',
                                         textAlign: 'center',
@@ -954,17 +1042,14 @@ const styles = StyleSheet.create({
     },
     offlineLoginButton: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(59, 130, 246, 0.15)',
         padding: 16,
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#3B82F6',
     },
     offlineLoginButtonText: {
-        color: '#3B82F6',
         fontSize: 16,
         fontWeight: '600',
     },

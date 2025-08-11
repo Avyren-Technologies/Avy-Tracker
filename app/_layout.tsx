@@ -7,10 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, AppState } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 import Constants from 'expo-constants';
 import { logStorageState } from './utils/tokenDebugger';
-import errorReporting from './utils/errorReporting';
 import '../global.css';
 import * as Location from 'expo-location';
 import { NotificationProvider } from './context/NotificationContext';
@@ -23,9 +21,6 @@ import * as Network from 'expo-network';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
-
-// Initialize Sentry for error reporting
-errorReporting.initSentry();
 
 // Simple component to hide splash screen after authentication is ready
 function SplashScreenController() {
@@ -46,23 +41,11 @@ function SplashScreenController() {
 // Handle unhandled JS promise rejections
 const handlePromiseRejection = (event: PromiseRejectionEvent) => {
   console.error('Unhandled promise rejection:', event.reason);
-  
-  // Log to Sentry
-  errorReporting.reportError(
-    event.reason instanceof Error ? event.reason : new Error(String(event.reason)), 
-    { type: 'unhandled_promise_rejection' }
-  );
 };
 
 // Handle global errors
 const handleGlobalError = (event: ErrorEvent) => {
   console.error('Global error:', event.error);
-  
-  // Log to Sentry
-  errorReporting.reportError(
-    event.error instanceof Error ? event.error : new Error(String(event.error)),
-    { type: 'global_error' }
-  );
 };
 
 function RootLayout() {
@@ -126,13 +109,6 @@ function RootLayout() {
   // Error handler for the ErrorBoundary
   const handleError = (error: Error) => {
     console.error('Application error caught by root ErrorBoundary:', error);
-    
-    // Log to Sentry
-    errorReporting.reportError(error, { 
-      source: 'ErrorBoundary',
-      component: 'RootLayout',
-      networkStatus: `${networkStatus.isConnected ? 'Connected' : 'Disconnected'}, Internet: ${networkStatus.isInternetReachable ? 'Reachable' : 'Unreachable'}`
-    });
   };
 
   // Initialize location store when app starts
@@ -222,4 +198,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default RootLayout;

@@ -69,7 +69,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: "./assets/images/SplashScreen.png",
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#FF6B35", // Updated to orange primary color
       },
     ],
     [
