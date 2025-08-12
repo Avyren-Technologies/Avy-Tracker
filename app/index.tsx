@@ -203,7 +203,7 @@ export default function SplashScreen() {
           // No user logged in, go to welcome screen
           router.replace("/welcome");
         }
-      }, 2000);
+      }, 3500);
 
       return () => clearTimeout(timer);
     }
@@ -524,57 +524,26 @@ export default function SplashScreen() {
         >
           <Text
             style={{
-              fontSize: 14,
+              fontSize: 16,
               color: currentColors.textSecondary,
-              opacity: 0.7,
-              letterSpacing: 0.5,
+              fontWeight: '500',
+              letterSpacing: 0.8,
+              textAlign: 'center',
+              textShadowColor: theme === 'dark'
+                ? 'rgba(0, 0, 0, 0.8)'
+                : 'rgba(255, 255, 255, 0.9)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
             }}
           >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '700',
-                color: currentColors.primary,
-                letterSpacing: 1,
-                textAlign: 'center',
-                textShadowColor: theme === 'dark'
-                  ? 'rgba(96, 165, 250, 0.25)'
-                  : 'rgba(59, 130, 246, 0.15)',
-                textShadowOffset: { width: 0, height: 2 },
-                textShadowRadius: 6,
-                backgroundColor: theme === 'dark'
-                  ? 'rgba(30, 41, 59, 0.7)'
-                  : 'rgba(224, 242, 254, 0.7)',
-                paddingHorizontal: 18,
-                paddingVertical: 8,
-                borderRadius: 18,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: theme === 'dark'
-                  ? 'rgba(96, 165, 250, 0.3)'
-                  : 'rgba(59, 130, 246, 0.15)',
-                elevation: 2,
-              }}
-            >
-              <Text style={{ color: currentColors.textSecondary, fontSize: 14, fontWeight: '500' }}>
-                Powered by{' '}
-              </Text>
-              <Text style={{
-                color: currentColors.primary,
-                fontWeight: 'bold',
-                fontSize: 16,
-                letterSpacing: 1.2,
-                textDecorationLine: 'underline',
-                textDecorationColor: currentColors.accent,
-                textShadowColor: theme === 'dark'
-                  ? 'rgba(129, 140, 248, 0.4)'
-                  : 'rgba(99, 102, 241, 0.2)',
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 4,
-              }}>
-                Avyren Technologies
-              </Text>
-              <Text style={{ color: currentColors.accent, fontSize: 16 }}> 🚀</Text>
+            Powered by{' '}
+            <Text style={{
+              color: currentColors.primary,
+              fontWeight: '700',
+              fontSize: 18,
+              letterSpacing: 1,
+            }}>
+              Avyren Technologies
             </Text>
           </Text>
         </Animated.View>

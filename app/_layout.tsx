@@ -111,21 +111,21 @@ function RootLayout() {
     console.error('Application error caught by root ErrorBoundary:', error);
   };
 
-  // Initialize location store when app starts
-  useEffect(() => {
-    const initLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('Location permission denied');
-        }
-      } catch (error) {
-        console.error('Error initializing location:', error);
-      }
-    };
+  // // Initialize location store when app starts
+  // useEffect(() => {
+  //   const initLocation = async () => {
+  //     try {
+  //       const { status } = await Location.requestForegroundPermissionsAsync();
+  //       if (status !== 'granted') {
+  //         console.log('Location permission denied');
+  //       }
+  //     } catch (error) {
+  //       console.error('Error initializing location:', error);
+  //     }
+  //   };
 
-    initLocation();
-  }, []);
+  //   initLocation();
+  // }, []);
     
   return (
     <ErrorBoundary onError={handleError}>

@@ -675,7 +675,25 @@ export default function Welcome() {
                             textAlign: 'center',
                             letterSpacing: 0.5,
                         }}>
-                            Powered by Tecosoft.ai
+                            <Text style={{ color: currentColors.textSecondary, fontSize: 14, fontWeight: '500' }}>
+                                Powered by{' '}
+                            </Text>
+                            <Text style={{
+                                color: currentColors.primary,
+                                fontWeight: 'bold',
+                                fontSize: 16,
+                                letterSpacing: 1.2,
+                                textDecorationLine: 'underline',
+                                textDecorationColor: currentColors.accent,
+                                textShadowColor: theme === 'dark'
+                                    ? 'rgba(129, 140, 248, 0.4)'
+                                    : 'rgba(99, 102, 241, 0.2)',
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 4,
+                            }}>
+                                Avyren Technologies
+                            </Text>
+                            <Text style={{ color: currentColors.accent, fontSize: 16 }}> </Text>
                         </Text>
                     </Animated.View>
                 </View>
