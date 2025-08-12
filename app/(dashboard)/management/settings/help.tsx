@@ -103,7 +103,7 @@ const articleSteps: Record<string, Step[]> = {
       id: "2",
       title: "Login",
       description:
-        "Open the Parrot Analyzer app, enter your credentials, and click Login.",
+        "Open the Avy Tracker app, enter your credentials, and click Login.",
       icon: "login",
     },
     {

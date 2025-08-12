@@ -723,7 +723,7 @@ export default function SignIn() {
                                     letterSpacing: 0.5,
                                     fontWeight: '500',
                                 }}>
-                                    Sign in to continue to Parrot Analyzer
+                                    Sign in to continue to Avy Tracker
                                 </Text>
                             </View>
 

@@ -1,4 +1,4 @@
-name: CI/CD for Parrot Analyzer
+name: CI/CD for Avy Tracker
 
 on:
   push:

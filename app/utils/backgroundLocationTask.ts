@@ -667,7 +667,7 @@ export async function startBackgroundLocationTracking(
         distanceInterval: adaptiveParams.distanceInterval || options.distanceInterval || 5,
         // Enhanced foreground service for Android
         foregroundService: {
-          notificationTitle: "Parrot Analyzer is tracking your location",
+          notificationTitle: "Avy Tracker is tracking your location",
           notificationBody: "To stop tracking, open the app and turn off tracking",
           notificationColor: "#3B82F6"
           // Only using supported properties
@@ -693,7 +693,7 @@ export async function startBackgroundLocationTracking(
         distanceInterval: options.distanceInterval || 5,
         // Enhanced foreground service for Android
         foregroundService: {
-          notificationTitle: "Parrot Analyzer is tracking your location",
+          notificationTitle: "Avy Tracker is tracking your location",
           notificationBody: "To stop tracking, open the app and turn off tracking",
           notificationColor: "#3B82F6"
           // Only using supported properties

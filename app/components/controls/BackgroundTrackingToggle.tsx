@@ -280,7 +280,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
                       if (result.status !== "granted") {
                         Alert.alert(
                           "Permission Required",
-                          "Please go to Settings > Apps > Parrot Analyzer > Permissions > Location and select 'Allow all the time'",
+                          "Please go to Settings > Apps > Avy Tracker > Permissions > Location and select 'Allow all the time'",
                           [
                             {
                               text: "Later",

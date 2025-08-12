@@ -79,7 +79,7 @@ export default function AboutScreen() {
             About the Management Personal Page
           </Text>
           <Text className={`text-base leading-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            The Management Personal Page in Parrot Analyzer is designed to empower individuals with oversight and control over team operations. This page provides access to key management features, enabling efficient tracking, team management, and report generation.
+            The Management Personal Page in Avy Tracker is designed to empower individuals with oversight and control over team operations. This page provides access to key management features, enabling efficient tracking, team management, and report generation.
           </Text>
         </View>
 

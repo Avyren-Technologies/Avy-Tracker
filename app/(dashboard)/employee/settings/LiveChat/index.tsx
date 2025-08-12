@@ -375,7 +375,7 @@ export default function LiveChat() {
                   <Text className={`text-center mt-4 ${
                     isDark ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    Ask me anything about Parrot Analyzer!
+                    Ask me anything about Avy Tracker!
                   </Text>
                 </View>
               </ScrollView>

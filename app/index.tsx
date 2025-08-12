@@ -203,11 +203,11 @@ export default function SplashScreen() {
           // No user logged in, go to welcome screen
           router.replace("/welcome");
         }
-      }, 3000);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [isLoading, user, isOffline]);
+  }, [isLoading, user]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -442,7 +442,7 @@ export default function SplashScreen() {
                 marginBottom: 8,
               }}
             >
-              Parrot Analyzer
+              Avy Tracker
             </Text>
             
             <Text
@@ -454,7 +454,7 @@ export default function SplashScreen() {
                 marginBottom: 8,
               }}
             >
-              Smart Workforce Management
+              Smart Workforce Management Platform
             </Text>
 
             <Text
@@ -530,7 +530,52 @@ export default function SplashScreen() {
               letterSpacing: 0.5,
             }}
           >
-            Powered by Tecosoft.ai
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: '700',
+                color: currentColors.primary,
+                letterSpacing: 1,
+                textAlign: 'center',
+                textShadowColor: theme === 'dark'
+                  ? 'rgba(96, 165, 250, 0.25)'
+                  : 'rgba(59, 130, 246, 0.15)',
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 6,
+                backgroundColor: theme === 'dark'
+                  ? 'rgba(30, 41, 59, 0.7)'
+                  : 'rgba(224, 242, 254, 0.7)',
+                paddingHorizontal: 18,
+                paddingVertical: 8,
+                borderRadius: 18,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: theme === 'dark'
+                  ? 'rgba(96, 165, 250, 0.3)'
+                  : 'rgba(59, 130, 246, 0.15)',
+                elevation: 2,
+              }}
+            >
+              <Text style={{ color: currentColors.textSecondary, fontSize: 14, fontWeight: '500' }}>
+                Powered by{' '}
+              </Text>
+              <Text style={{
+                color: currentColors.primary,
+                fontWeight: 'bold',
+                fontSize: 16,
+                letterSpacing: 1.2,
+                textDecorationLine: 'underline',
+                textDecorationColor: currentColors.accent,
+                textShadowColor: theme === 'dark'
+                  ? 'rgba(129, 140, 248, 0.4)'
+                  : 'rgba(99, 102, 241, 0.2)',
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 4,
+              }}>
+                Avyren Technologies
+              </Text>
+              <Text style={{ color: currentColors.accent, fontSize: 16 }}> 🚀</Text>
+            </Text>
           </Text>
         </Animated.View>
       </View>

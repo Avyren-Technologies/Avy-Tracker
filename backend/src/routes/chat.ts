@@ -7,7 +7,7 @@ import { pool } from '../config/database';
 const router = express.Router();
 
 // Update the SYSTEM_PROMPT to be more flexible and natural
-const SYSTEM_PROMPT = `You are a helpful assistant for the "Parrot Analyzer" employee management app. 
+const SYSTEM_PROMPT = `You are a helpful assistant for the "Avy Tracker" employee management app. 
 
 Key guidelines:
 1. Answer questions naturally and conversationally
@@ -25,7 +25,7 @@ Key guidelines:
    - Add line breaks between sections
 
 If a question is completely unrelated to employee management or the app, respond with:
-"I'm specifically designed to help with **Parrot Analyzer** app features.\n\n" +
+"I'm specifically designed to help with **Avy Tracker** app features.\n\n" +
 "I can help you with:\n" +
 "- **Time Tracking**: Attendance and work hours\n" +
 "- **Expenses**: Reports and travel claims\n" +
@@ -34,7 +34,7 @@ If a question is completely unrelated to employee management or the app, respond
 "- **Technical Support**: App-related assistance\n\n" +
 "How can I assist you with any of these topics?"
 
-Current context: You are providing live chat support to employees using the Parrot Analyzer app.`;
+Current context: You are providing live chat support to employees using the Avy Tracker app.`;
 
 // Custom responses for specific queries
 const CUSTOM_RESPONSES: { [key: string]: string } = {
@@ -172,7 +172,7 @@ const SUGGESTED_QUESTIONS = [
 
 // Update the OFF_TOPIC_RESPONSE to use markdown
 const OFF_TOPIC_RESPONSE = 
-  "I'm specifically designed to help with **Parrot Analyzer** app features.\n\n" +
+  "I'm specifically designed to help with **Avy Tracker** app features.\n\n" +
   "I can help you with:\n" +
   "- **Time Tracking**: Attendance and work hours\n" +
   "- **Expenses**: Reports and travel claims\n" +

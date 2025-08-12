@@ -1644,7 +1644,7 @@ export default function EmployeeTrackingScreen() {
                     console.log("❌ Background location permission denied");
                     Alert.alert(
                       "Permission Denied",
-                      "Background location was not granted. Please go to Settings > Privacy > Location Services > Parrot Analyzer and select 'Always' to enable background tracking.",
+                      "Background location was not granted. Please go to Settings > Privacy > Location Services > Avy Tracker and select 'Always' to enable background tracking.",
                       [
                         { text: "Later", style: "cancel" },
                         {
@@ -1672,7 +1672,7 @@ export default function EmployeeTrackingScreen() {
           console.log("❌ Background location permission denied");
           Alert.alert(
             "Permission Denied",
-            "To enable background location tracking, please go to Settings > Apps > Parrot Analyzer > Permissions > Location and select 'Allow all the time'.",
+            "To enable background location tracking, please go to Settings > Apps > Avy Tracker > Permissions > Location and select 'Allow all the time'.",
             [
               { text: "Later", style: "cancel" },
               { text: "Open Settings", onPress: () => Linking.openSettings() },

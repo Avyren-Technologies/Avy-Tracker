@@ -277,7 +277,7 @@ router.post('/support-message', verifyToken, async (req: CustomRequest, res: Res
         <h3>Message:</h3>
         <p>${message}</p>
         <hr>
-        <p><small>Sent from Parrot Analyzer Support System</small></p>
+        <p><small>Sent from Avy Tracker Support System</small></p>
       `
     };
 

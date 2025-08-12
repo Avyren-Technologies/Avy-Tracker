@@ -1,4 +1,4 @@
-There are **30 tables** in total for this project **Parrot Analyzer** whos schema can be found in the `main_schema.sql` file. And Diagram can be found in the `Schema_Diagram.svg` file.
+There are **30 tables** in total for this project **Avy Tracker** whos schema can be found in the `main_schema.sql` file. And Diagram can be found in the `Schema_Diagram.svg` file.
 1. `chat_messages`
 2. `companies`
 3. `company_geofences`

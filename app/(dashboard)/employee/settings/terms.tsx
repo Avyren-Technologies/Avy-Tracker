@@ -35,7 +35,7 @@ export default function Terms() {
       content: [
         {
           heading: 'Acceptance of Terms',
-          text: 'By accessing and using Parrot Analyzer, you agree to be bound by these terms and conditions. If you disagree with any part of these terms, you may not access the service.',
+          text: 'By accessing and using Avy Tracker, you agree to be bound by these terms and conditions. If you disagree with any part of these terms, you may not access the service.',
         },
         {
           heading: 'User Accounts',

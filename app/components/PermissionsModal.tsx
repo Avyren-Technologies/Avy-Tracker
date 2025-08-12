@@ -184,7 +184,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
         if (Platform.OS === 'ios') {
           Alert.alert(
             "Background Location Required",
-            "Parrot Analyzer needs to track your location in the background for shift management. In the next prompt, please select 'Always Allow' to enable this feature.",
+            "Avy Tracker needs to track your location in the background for shift management. In the next prompt, please select 'Always Allow' to enable this feature.",
             [{ text: "OK", onPress: async () => {
               // Request background permission
               const backgroundResult = await Location.requestBackgroundPermissionsAsync();
@@ -213,7 +213,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
           if (backgroundResult.status !== 'granted') {
             Alert.alert(
               "Background Permission Required",
-              "Background location permission is needed for shift tracking. Please go to Settings > Apps > Parrot Analyzer > Permissions > Location and select 'Allow all the time'.",
+              "Background location permission is needed for shift tracking. Please go to Settings > Apps > Avy Tracker > Permissions > Location and select 'Allow all the time'.",
               [
                 { text: "Later", style: "cancel" },
                 { text: "Settings", onPress: openSettings }
@@ -355,7 +355,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             />
             
             <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
-              Welcome to Parrot Analyzer
+              Welcome to Avy Tracker
             </Text>
             
             <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>

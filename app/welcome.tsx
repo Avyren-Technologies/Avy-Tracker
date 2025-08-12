@@ -408,7 +408,7 @@ export default function Welcome() {
                             letterSpacing: 1,
                             textAlign: 'center',
                         }}>
-                            Parrot Analyzer
+                            Avy Tracker
                         </Text>
                         
                         <Text style={{

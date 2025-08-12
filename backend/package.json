@@ -1,7 +1,7 @@
 {
-  "name": "parrot-analyzer-backend",
+  "name": "avy-tracker-backend",
   "version": "1.0.0",
-  "description": "Backend for Parrot Analyzer",
+  "description": "Backend for Avy Tracker",
   "main": "server.ts",
   "scripts": {
     "start": "node dist/server.js",

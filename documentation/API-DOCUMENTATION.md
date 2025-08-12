@@ -1,6 +1,6 @@
-# Parrot Analyzer API Documentation
+# Avy Tracker API Documentation
 
-This document provides a comprehensive overview of the Parrot Analyzer API. It covers everything from general API information and authentication to detailed endpoint descriptions for user management, expense management, leave management, task management, chat, reports, company management, and additional administrative functions. It also details error handling and middleware configurations.
+This document provides a comprehensive overview of the Avy Tracker API. It covers everything from general API information and authentication to detailed endpoint descriptions for user management, expense management, leave management, task management, chat, reports, company management, and additional administrative functions. It also details error handling and middleware configurations.
 
 ---
 
@@ -797,7 +797,7 @@ Authorization: Bearer <token>
 - *Method:* GET  
 - *Description:* Welcome message  
 - *Response:*  
-  "Welcome to Parrot Analyzer API"
+  "Welcome to Avy Tracker API"
 
 ---
 
@@ -1359,4 +1359,4 @@ Authorization: Bearer <token>
 
 ---
 
-This document includes all API endpoints along with their request/response formats, error responses, and middleware configurations. It is designed to help developers integrate with the Parrot Analyzer API seamlessly while ensuring clear guidelines for authentication, user operations, administrative tasks, and more.
+This document includes all API endpoints along with their request/response formats, error responses, and middleware configurations. It is designed to help developers integrate with the Avy Tracker API seamlessly while ensuring clear guidelines for authentication, user operations, administrative tasks, and more.
