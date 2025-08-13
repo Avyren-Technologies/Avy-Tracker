@@ -2,7 +2,6 @@ import { pool } from '../config/database';
 import { GeofenceManagementService } from './GeofenceManagementService';
 import notificationService from './notificationService';
 import { format, differenceInSeconds } from 'date-fns';
-import { sendAttendanceToSparrow, getEmployeeCode } from './sparrowAttendanceService';
 import { ErrorLoggingService } from './ErrorLoggingService';
 
 export class ShiftTrackingService {
@@ -14,49 +13,7 @@ export class ShiftTrackingService {
         this.errorLogger = new ErrorLoggingService();
     }
 
-    // Helper function to check if Sparrow API should be called
-    private async shouldUseSparrowAPI(userId: number): Promise<boolean> {
-        // Check environment
-        if (process.env.NODE_ENV === 'development') {
-            console.log('Skipping Sparrow API in development environment');
-            return false;
-        }
-        
-        // Check if user belongs to Tecosoft (company ID = 1)
-        const client = await pool.connect();
-        try {
-            const result = await client.query(
-                'SELECT company_id FROM users WHERE id = $1',
-                [userId]
-            );
-            
-            if (!result.rows.length) return false;
-            
-            const companyId = result.rows[0].company_id;
-            const isTecosoftUser = companyId === 1;
-            
-            if (!isTecosoftUser) {
-                console.log(`User ${userId} belongs to company ${companyId}, not Tecosoft (ID: 1). Skipping Sparrow API.`);
-            }
-            
-            return isTecosoftUser;
-        } catch (error) {
-            // Log company ID check error to database and console
-            await this.errorLogger.logError(
-                error instanceof Error ? error : new Error(`Company ID check failed: ${error}`),
-                'ShiftTrackingService',
-                userId,
-                {
-                    action: 'shouldUseSparrowAPI-company-check',
-                    userId
-                }
-            );
-            console.error('Error checking company ID:', error);
-            return false;
-        } finally {
-            client.release();
-        }
-    }
+
 
     async startShift(userId: number, latitude: number, longitude: number): Promise<any> {
         try {
@@ -503,89 +460,12 @@ export class ShiftTrackingService {
 
                   const user = userResult.rows[0];
 
-                  // Initialize variables for Sparrow response tracking
-                  let hasSparrowWarning = false;
-                  let sparrowErrorDetails: any = {};
-
                   // Calculate elapsed time in seconds for notification formatting only
                   const elapsedSeconds = Math.max(0, Math.floor(
                     (new Date(timer.end_time).getTime() - startTime.getTime()) / 1000
                   ));
 
                   if (userRole === "employee") {
-
-                                         // Check if Sparrow API should be used for auto-end
-                     const useSparrowAPI = await this.shouldUseSparrowAPI(timer.user_id);
-                     
-                     // Only call Sparrow API if conditions are met
-                     if (useSparrowAPI) {
-                       let employeeCode: string | null = null;
-                       try {
-                         // Get employee code and call Sparrow API
-                         employeeCode = await getEmployeeCode(timer.user_id);
-                         if (employeeCode) {
-                           console.log(`[Auto-End] Calling Sparrow API for employee ${employeeCode} (User ID: ${timer.user_id})`);
-                           
-                           // Call Sparrow API before updating our database record
-                           const sparrowResponse = await sendAttendanceToSparrow([employeeCode]);
-                           
-                           // For auto-end, we handle cooldown errors differently than manual end
-                           // We log the error but don't prevent the auto-end from happening
-                           if (!sparrowResponse.success) {
-                             hasSparrowWarning = true;
-                             sparrowErrorDetails = {
-                               sparrowWarning: true,
-                               sparrowMessage: sparrowResponse.message,
-                               sparrowErrors: sparrowResponse.sparrowErrors,
-                               sparrowErrorType: sparrowResponse.errorType
-                             };
-                             
-                             // Log Sparrow error to database and console
-                             await this.errorLogger.logError(
-                               new Error(`Sparrow API error during auto-end: ${sparrowResponse.message}`),
-                               'ShiftTrackingService',
-                               timer.user_id,
-                               {
-                                 action: 'auto-end-sparrow-integration',
-                                 employeeCode,
-                                 sparrowErrorType: sparrowResponse.errorType,
-                                 sparrowErrors: sparrowResponse.sparrowErrors,
-                                 statusCode: sparrowResponse.statusCode,
-                                 shiftId: timer.shift_id,
-                                 timerDuration: timer.timer_duration_hours
-                               }
-                             );
-                             
-                             console.log(`[Auto-End] Sparrow API warning for user ${timer.user_id}:`, sparrowErrorDetails);
-                           } else {
-                             console.log(`[Auto-End] Sparrow API success for user ${timer.user_id}`);
-                           }
-                         }
-                       } catch (sparrowError) {
-                         // Log Sparrow exception to database and console
-                         await this.errorLogger.logError(
-                           sparrowError instanceof Error ? sparrowError : new Error(`Sparrow API exception during auto-end: ${sparrowError}`),
-                           'ShiftTrackingService',
-                           timer.user_id,
-                           {
-                             action: 'auto-end-sparrow-integration',
-                             employeeCode: employeeCode || 'unknown',
-                             shiftId: timer.shift_id,
-                             timerDuration: timer.timer_duration_hours,
-                             errorDetails: sparrowError
-                           }
-                         );
-                         
-                         console.error(`[Auto-End] Sparrow API error for user ${timer.user_id}:`, sparrowError);
-                         // Continue with auto-end even if Sparrow fails
-                         hasSparrowWarning = true;
-                         sparrowErrorDetails = {
-                           sparrowWarning: true,
-                           sparrowMessage: "Failed to update attendance system",
-                           sparrowErrorType: "SPARROW_UNKNOWN_ERROR"
-                         };
-                       }
-                     }
 
                     // For employee shifts, calculate metrics
                     const metrics = await this.calculateShiftMetrics(
@@ -687,13 +567,8 @@ export class ShiftTrackingService {
                       .toString()
                       .padStart(2, "0")}`;
 
-                    // Prepare user notification message with Sparrow warning if applicable
+                    // Prepare user notification message
                     let userMessage = `Your ${timer.timer_duration_hours}-hour shift has been automatically completed as scheduled.`;
-                    
-                    // Add Sparrow warning to user notification if there was an issue
-                    if (userRole === "employee" && hasSparrowWarning && sparrowErrorDetails.sparrowMessage) {
-                      userMessage += ` Note: ${sparrowErrorDetails.sparrowMessage}`;
-                    }
 
                     // Send notification to user
                     await notificationService
@@ -708,8 +583,7 @@ export class ShiftTrackingService {
                           shiftId: timer.shift_id,
                           startTime: startTime.toISOString(),
                           endTime: timer.end_time,
-                          duration: timer.timer_duration_hours,
-                          ...(userRole === "employee" && hasSparrowWarning && sparrowErrorDetails)
+                          duration: timer.timer_duration_hours
                         },
                       })
                       .catch((error) => {
@@ -729,7 +603,7 @@ export class ShiftTrackingService {
                         : null;
 
                     if (notificationEndpoint) {
-                      // Prepare notification message with Sparrow warning if applicable
+                      // Prepare notification message
                       let notificationMessage = `👤 ${
                         user.name
                       } has completed their scheduled ${
@@ -741,11 +615,6 @@ export class ShiftTrackingService {
                         new Date(timer.end_time),
                         "hh:mm a"
                       )}`;
-
-                      // Add Sparrow warning to notification if there was an issue
-                      if (userRole === "employee" && hasSparrowWarning && sparrowErrorDetails.sparrowMessage) {
-                        notificationMessage += `\n\n⚠️ Attendance System Warning: ${sparrowErrorDetails.sparrowMessage}`;
-                      }
 
                       await notificationService
                         .sendRoleNotification(
@@ -764,8 +633,7 @@ export class ShiftTrackingService {
                               userName: user.name,
                               startTime: startTime.toISOString(),
                               endTime: timer.end_time,
-                              duration: timer.timer_duration_hours,
-                              ...(userRole === "employee" && hasSparrowWarning && sparrowErrorDetails)
+                              duration: timer.timer_duration_hours
                             },
                           }
                         )
