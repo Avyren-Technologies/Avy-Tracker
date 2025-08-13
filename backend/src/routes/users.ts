@@ -267,7 +267,7 @@ router.post('/support-message', verifyToken, async (req: CustomRequest, res: Res
     // Prepare email content
     const emailContent = {
       from: process.env.EMAIL_USER || 'parrotanalyzer@gmail.com',
-      to: 'parrotanalyzer@gmail.com',
+      to: 'support@avyrentechnologies.com',
       subject: `Support Request: ${subject}`,
       html: `
         <h2>Support Request from User</h2>

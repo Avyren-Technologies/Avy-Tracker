@@ -1,4 +1,4 @@
-# ParrotAnalyzer
+# Avy Tracker
 
 ![React Native](https://img.shields.io/badge/react_native-%23282C34.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Expo](https://img.shields.io/badge/expo-%23000020.svg?style=for-the-badge&logo=expo&logoColor=#D04A37)

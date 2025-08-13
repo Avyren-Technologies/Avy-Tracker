@@ -52,7 +52,7 @@ const helpSections: HelpSection[] = [
         items: [
             {
                 question: 'Technical Support',
-                answer: 'If you encounter technical issues, contact the support team via email at support@parrotanalyzer.com or call +91-9876543210.'
+                answer: 'If you encounter technical issues, contact the support team via email at support@avyrentechnologies.com or call +91-9876543210.'
             },
             {
                 question: 'Policy or Compliance Queries',

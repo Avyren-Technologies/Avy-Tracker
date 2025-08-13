@@ -45,7 +45,7 @@ export default function Support() {
         const emailSubject = encodeURIComponent(subject || 'Support Request');
         const emailBody = encodeURIComponent(message || '');
         Linking.openURL(
-          `mailto:parrotanalyzer@gmail.com?subject=${emailSubject}&body=${emailBody}`
+          `mailto:support@avyrentechnologies.com?subject=${emailSubject}&body=${emailBody}`
         );
       }
     },

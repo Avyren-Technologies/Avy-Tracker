@@ -155,7 +155,7 @@ export default function Help() {
   }, [searchQuery, helpSections]);
 
   const contactSupport = () => {
-    Linking.openURL('mailto:support@parrotanalyzer.com?subject=Help%20Request');
+    Linking.openURL('mailto:support@avyrentechnologies.com?subject=Help%20Request');
   };
 
   return (

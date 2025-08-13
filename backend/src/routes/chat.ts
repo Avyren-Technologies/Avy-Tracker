@@ -110,7 +110,7 @@ const CUSTOM_RESPONSES: { [key: string]: string } = {
     "- Open the app and navigate to 'Help & Support'\n" +
     "- Select 'Contact Support'\n\n" +
     "**2. Choose a Contact Method**\n" +
-    "- Email: parrotanalyzer@gmail.com\n" +
+    "- Email: support@avyrentechnologies.com\n" +
     "- Phone: +916363451047\n" +
     "- In-app chat support\n\n" +
     "**3. Submit a Ticket**\n" +
