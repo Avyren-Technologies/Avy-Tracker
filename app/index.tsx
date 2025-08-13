@@ -276,6 +276,9 @@ export default function SplashScreen() {
         barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={currentColors.background}
         translucent={true}
+        animated={true}
+        hidden={false}
+        networkActivityIndicatorVisible={false}
       />
       
       {/* Main background */}

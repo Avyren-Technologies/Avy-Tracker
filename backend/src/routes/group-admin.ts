@@ -6,7 +6,7 @@ import { CustomRequest } from '../types';
 import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import { format } from 'date-fns';
-import { sendAttendanceToSparrow, getEmployeeCode } from '../services/sparrowAttendanceService'; // Uncomment Later When needed
+
 
 type ParsedCSV = string[][];
 interface CSVHeaders {
@@ -21,39 +21,7 @@ const convertToLocalTime = (isoString: string) => {
   return isoString.replace(/Z$/, '');  // Remove Z suffix to treat as local time
 };
 
-// Helper function to check if Sparrow API should be called
-const shouldUseSparrowAPI = async (userId: number): Promise<boolean> => {
-  // Check environment
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Skipping Sparrow API in development environment');
-    return false;
-  }
-  
-  // Check if user belongs to Tecosoft (company ID = 1)
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      'SELECT company_id FROM users WHERE id = $1',
-      [userId]
-    );
-    
-    if (!result.rows.length) return false;
-    
-    const companyId = result.rows[0].company_id;
-    const isTecosoftUser = companyId === 1;
-    
-    if (!isTecosoftUser) {
-      console.log(`User ${userId} belongs to company ${companyId}, not Tecosoft (ID: 1). Skipping Sparrow API.`);
-    }
-    
-    return isTecosoftUser;
-  } catch (error) {
-    console.error('Error checking company ID:', error);
-    return false;
-  } finally {
-    client.release();
-  }
-};
+
 
 // Get employees for a group admin
 router.get('/employees', verifyToken, async (req: CustomRequest, res: Response) => {
@@ -808,42 +776,7 @@ router.post('/shift/start', verifyToken, async (req: CustomRequest, res: Respons
     const { startTime, location } = req.body;
     const localStartTime = startTime ? convertToLocalTime(startTime) : 'CURRENT_TIMESTAMP';
 
-    // Initialize variables for Sparrow response tracking
-    let hasSparrowWarning = false;
-    let sparrowErrorDetails = {};
-    
-    // Check if Sparrow API should be used
-    const useSparrowAPI = await shouldUseSparrowAPI(req.user.id);
-    
-    // Only call Sparrow API if conditions are met
-    if (useSparrowAPI) {
-      // Get employee code and validate with Sparrow
-      const employeeCode = await getEmployeeCode(req.user.id);
-      if (employeeCode) {
-        // Call Sparrow API before creating our database record
-        const sparrowResponse = await sendAttendanceToSparrow([employeeCode]);
-        
-        // If there's a cooldown error, return it immediately without creating shift
-        if (!sparrowResponse.success && sparrowResponse.errorType === 'SPARROW_COOLDOWN_ERROR') {
-          return res.status(429).json({
-            error: 'Rate limit exceeded',
-            sparrowWarning: true,
-            sparrowMessage: sparrowResponse.message,
-            sparrowErrors: sparrowResponse.sparrowErrors,
-            sparrowErrorType: sparrowResponse.errorType
-          });
-        }
 
-        // For other Sparrow errors, we'll continue but include the warning in the response
-        hasSparrowWarning = !sparrowResponse.success;
-        sparrowErrorDetails = {
-          sparrowWarning: hasSparrowWarning,
-          sparrowMessage: sparrowResponse.message,
-          sparrowErrors: sparrowResponse.sparrowErrors,
-          sparrowErrorType: sparrowResponse.errorType
-        };
-      }
-    }
 
     // Format the location as PostgreSQL point data type if provided
     let locationQuery = '';
@@ -863,14 +796,6 @@ router.post('/shift/start', verifyToken, async (req: CustomRequest, res: Respons
        }`,
       [req.user.id, localStartTime, ...locationParam]
     );
-
-    // If we have a Sparrow warning (not a cooldown error), include it in the response
-    if (hasSparrowWarning) {
-      return res.status(200).json({
-        ...result.rows[0],
-        ...sparrowErrorDetails
-      });
-    }
 
     res.json(result.rows[0]);
   } catch (error) {
@@ -906,43 +831,7 @@ router.post('/shift/end', verifyToken, async (req: CustomRequest, res: Response)
       return res.status(404).json({ error: 'No active shift found' });
     }
 
-    // Initialize variables for Sparrow response tracking
-    let hasSparrowWarning = false;
-    let sparrowErrorDetails = {};
 
-    // Check if Sparrow API should be used
-    const useSparrowAPI = await shouldUseSparrowAPI(req.user.id);
-    
-    // Only call Sparrow API if conditions are met
-    if (useSparrowAPI) {
-      // Check with Sparrow API first
-      const employeeCode = await getEmployeeCode(req.user.id);
-      if (employeeCode) {
-        // Call Sparrow API before updating our database record
-        const sparrowResponse = await sendAttendanceToSparrow([employeeCode]);
-        
-        // If there's a cooldown error, return it immediately without ending shift
-        if (!sparrowResponse.success && sparrowResponse.errorType === 'SPARROW_COOLDOWN_ERROR') {
-          await client.query('ROLLBACK');
-          return res.status(429).json({
-            error: 'Rate limit exceeded',
-            sparrowWarning: true,
-            sparrowMessage: sparrowResponse.message,
-            sparrowErrors: sparrowResponse.sparrowErrors,
-            sparrowErrorType: sparrowResponse.errorType
-          });
-        }
-
-        // For other Sparrow errors, we'll continue but include the warning in the response
-        hasSparrowWarning = !sparrowResponse.success;
-        sparrowErrorDetails = {
-          sparrowWarning: hasSparrowWarning,
-          sparrowMessage: sparrowResponse.message,
-          sparrowErrors: sparrowResponse.sparrowErrors,
-          sparrowErrorType: sparrowResponse.errorType
-        };
-      }
-    }
 
     // Get total expenses for this shift period
     const expenses = await client.query(
@@ -987,13 +876,7 @@ router.post('/shift/end', verifyToken, async (req: CustomRequest, res: Response)
 
     await client.query('COMMIT');
 
-    // If we have a Sparrow warning (not a cooldown error), include it in the response
-    if (hasSparrowWarning) {
-      return res.status(200).json({
-        ...result.rows[0],
-        ...sparrowErrorDetails
-      });
-    }
+
 
     res.json(result.rows[0]);
   } catch (error) {

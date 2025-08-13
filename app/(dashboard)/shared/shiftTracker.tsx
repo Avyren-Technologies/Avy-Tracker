@@ -1925,46 +1925,14 @@ export default function EmployeeShiftTracker() {
         })
       );
 
-      // Handle Sparrow warnings
-      if (response.data.sparrowWarning) {
-        let message = response.data.sparrowMessage || "There was an issue with the attendance system.";
-        
-        if (response.data.sparrowErrorType === 'SPARROW_COOLDOWN_ERROR') {
-          // Revert state for cooldown errors
-          updateShiftState(false, null);
-          await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-          setModalData({
-            title: "Attendance Error",
-            message: response.data.sparrowErrors?.[0] || "You need to wait before starting another shift.",
-            type: "info",
-            showCancel: false,
-          });
-          setShowModal(true);
-          setIsProcessingShift(false);
-          return;
-        } else {
-          // Show warning but continue with shift
-          setModalData({
-            title: response.data.sparrowErrorType === 'SPARROW_ROSTER_ERROR' ? "Roster Warning" : 
-                   response.data.sparrowErrorType === 'SPARROW_SCHEDULE_ERROR' ? "Schedule Warning" : "Attendance Warning",
-            message: message,
-            type: "info",
-            showCancel: false,
-          });
-          setShowModal(true);
-        }
-      }
-
-      // Show success message immediately if no warning was shown
-      if (!response.data.sparrowWarning) {
-        setModalData({
-          title: "Shift Started",
-          message: `Your shift has started at ${format(now, "hh:mm a")}. Setting up notifications in the background...`,
-          type: "success",
-          showCancel: false,
-        });
-        setShowModal(true);
-      }
+      // Show success message immediately
+      setModalData({
+        title: "Shift Started",
+        message: `Your shift has started at ${format(now, "hh:mm a")}. Setting up notifications in the background...`,
+        type: "success",
+        showCancel: false,
+      });
+      setShowModal(true);
 
       // Set cooldown after successful shift start
       await setShiftCooldown();
@@ -2177,24 +2145,9 @@ export default function EmployeeShiftTracker() {
       // Store basic shift status change immediately
       await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
 
-      // Handle Sparrow warnings and show modal immediately
-      let modalTitle = "Shift Completed";
-      let modalMessage = `Your shift has ended successfully.\n\nTotal Duration: ${duration}\nStart: ${format(shiftStart, "hh:mm a")}\nEnd: ${format(now, "hh:mm a")}`;
-
-      if (response.data.sparrowWarning) {
-        const warningMessage = response.data.sparrowMessage || "There was an issue with the attendance system.";
-        
-        if (response.data.sparrowErrorType === 'SPARROW_COOLDOWN_ERROR') {
-          modalTitle = "Attendance Error";
-          modalMessage = response.data.sparrowErrors?.[0] || "You need to wait before ending your shift.";
-        } else {
-          modalTitle = response.data.sparrowErrorType === 'SPARROW_ROSTER_ERROR' ? "Roster Warning" : 
-                     response.data.sparrowErrorType === 'SPARROW_SCHEDULE_ERROR' ? "Schedule Warning" : "Attendance Warning";
-          modalMessage = warningMessage;
-        }
-      } else {
-        modalMessage += "\n\nProcessing attendance in the background...";
-      }
+      // Show completion modal immediately
+      const modalTitle = "Shift Completed";
+      const modalMessage = `Your shift has ended successfully.\n\nTotal Duration: ${duration}\nStart: ${format(shiftStart, "hh:mm a")}\nEnd: ${format(now, "hh:mm a")}\n\nProcessing attendance in the background...`;
 
       // Show completion modal immediately
       setModalData({
@@ -2251,12 +2204,10 @@ export default function EmployeeShiftTracker() {
           await Promise.allSettled(backgroundPromises);
 
           // Update modal message to show completion
-          if (!response.data.sparrowWarning) {
-            setModalData(prev => ({
-              ...prev,
-              message: prev.message.replace("Processing attendance in the background...", "Attendance has been successfully registered.")
-            }));
-          }
+          setModalData(prev => ({
+            ...prev,
+            message: prev.message.replace("Processing attendance in the background...", "Attendance has been successfully registered.")
+          }));
         } catch (error) {
           console.error("Background operations failed for shift end:", error);
           showInAppNotification("Shift ended but some background operations failed", "warning");
