@@ -489,6 +489,7 @@ export default function GroupAdminDashboard() {
                           >
                             {activity.type}
                           </Text>
+
                           <Text
                             className={`text-base font-semibold ${
                               isDark ? "text-white" : "text-gray-900"
@@ -675,3 +676,4 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 });
+

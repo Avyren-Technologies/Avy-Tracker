@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Dimensions,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -31,7 +33,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Modal from "react-native-modal";
 import numberToWords from "./components/NumberToWords";
-import Constants from 'expo-constants';
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width, height } = Dimensions.get("window");
+import Constants from "expo-constants";
 
 interface TravelDetail {
   id: number;
@@ -93,7 +98,10 @@ interface DocumentFile {
   isImage?: boolean;
 }
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL =
+  Constants.expoConfig?.extra?.apiUrl ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://localhost:3000";
 
 const CACHE_KEYS = {
   EMPLOYEE_DETAILS: "employee_expense_details",
@@ -137,7 +145,6 @@ const calculateAverageSpeed = (
 const convertNumberToWords = (num: number): string => {
   return numberToWords(num);
 };
-
 
 export default function EmployeeExpenses() {
   const { theme } = ThemeContext.useTheme();
@@ -192,6 +199,60 @@ export default function EmployeeExpenses() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Animation refs
+  const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme-based colors
+  const colors = {
+    // Light theme colors
+    light: {
+      primary: "#3B82F6", // Blue-500
+      secondary: "#0EA5E9", // Sky-500
+      accent: "#6366F1", // Indigo-500
+      background: "#F8FAFC", // Slate-50
+      surface: "#FFFFFF", // White
+      card: "#FFFFFF", // White
+      text: "#0F172A", // Slate-900
+      textSecondary: "#475569", // Slate-600
+      textTertiary: "#64748B", // Slate-500
+      border: "#E2E8F0", // Slate-200
+      success: "#10B981", // Emerald-500
+      warning: "#F59E0B", // Amber-500
+      error: "#EF4444", // Red-500
+      info: "#3B82F6", // Blue-500
+    },
+    // Dark theme colors
+    dark: {
+      primary: "#60A5FA", // Blue-400
+      secondary: "#38BDF8", // Sky-400
+      accent: "#818CF8", // Indigo-400
+      background: "#0F172A", // Slate-900
+      surface: "#1E293B", // Slate-800
+      card: "#1E293B", // Slate-800
+      text: "#F8FAFC", // Slate-50
+      textSecondary: "#CBD5E1", // Slate-300
+      textTertiary: "#94A3B8", // Slate-400
+      border: "#334155", // Slate-700
+      success: "#34D399", // Emerald-400
+      warning: "#FBBF24", // Amber-400
+      error: "#F87171", // Red-400
+      info: "#60A5FA", // Blue-400
+    },
+  };
+
+  const currentColors = colors[theme];
+
+  // Floating shapes animation
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(floatingShapesAnim, {
+        toValue: 1,
+        duration: 12000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
 
   // Calculated fields
   const totalExpenses = React.useMemo(() => {
@@ -279,7 +340,9 @@ export default function EmployeeExpenses() {
       try {
         // First check if we already have a valid user and token from context
         if (!user || !token) {
-          console.log("No user or token in context, attempting token refresh...");
+          console.log(
+            "No user or token in context, attempting token refresh..."
+          );
           const currentToken = await refreshToken();
           if (!currentToken) {
             console.error("Failed to refresh token");
@@ -289,7 +352,7 @@ export default function EmployeeExpenses() {
         }
 
         // Use the token from context if available, otherwise use the refreshed token
-        const activeToken = token || await refreshToken();
+        const activeToken = token || (await refreshToken());
         if (!activeToken) {
           router.replace("/(auth)/signin");
           return;
@@ -345,7 +408,10 @@ export default function EmployeeExpenses() {
           );
         } else {
           // For other errors, just show an error message without redirecting
-          console.warn("Failed to fetch employee details, but staying on page:", error?.message || "Unknown error");
+          console.warn(
+            "Failed to fetch employee details, but staying on page:",
+            error?.message || "Unknown error"
+          );
           Alert.alert(
             "Warning",
             "Failed to fetch employee details. Some information may not be available.",
@@ -500,13 +566,16 @@ export default function EmployeeExpenses() {
       formDataToSend.append("tollCharges", formData.tollCharges);
       formDataToSend.append("otherExpenses", formData.otherExpenses);
       formDataToSend.append("advanceTaken", formData.advanceTaken);
-      
+
       // Use calculateTotalAmount and calculateAmountPayable which include saved expenses
       const calculatedTotalAmount = calculateTotalAmount();
       const calculatedAmountPayable = calculateAmountPayable();
-      
+
       formDataToSend.append("totalAmount", calculatedTotalAmount.toString());
-      formDataToSend.append("amountPayable", calculatedAmountPayable.toString());
+      formDataToSend.append(
+        "amountPayable",
+        calculatedAmountPayable.toString()
+      );
 
       // Add supporting documents
       formData.supportingDocs.forEach((doc, index) => {
@@ -561,11 +630,13 @@ export default function EmployeeExpenses() {
           message: `📊 Expense Details:\n🗓️ Date: ${format(
             formData.date,
             "dd/MM/yyyy"
-          )}\n💵 Total Amount: ₹${calculatedTotalAmount.toFixed(2)}\n🚗 Travel: ${
-            formData.totalKilometers
-          }km\n📍 Route: ${formData.routeTaken}\n\n💼 Department: ${
-            formData.department
-          }\n👤 Designation: ${formData.designation}`,
+          )}\n💵 Total Amount: ₹${calculatedTotalAmount.toFixed(
+            2
+          )}\n🚗 Travel: ${formData.totalKilometers}km\n📍 Route: ${
+            formData.routeTaken
+          }\n\n💼 Department: ${formData.department}\n👤 Designation: ${
+            formData.designation
+          }`,
           type: "expense-submission",
         },
         {
@@ -1116,295 +1187,242 @@ export default function EmployeeExpenses() {
     loadCachedEmployeeDetails();
   }, []);
 
+  const floatingOffset = floatingShapesAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
+  });
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[
-        styles.container,
-        { backgroundColor: theme === "dark" ? "#111827" : "#F3F4F6" },
-      ]}
-    >
+    <>
       <StatusBar
-        backgroundColor={theme === "dark" ? "#1F2937" : "#FFFFFF"}
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={currentColors.background}
+        translucent={true}
+        animated={true}
       />
 
-      {/* Update header to match profile page */}
-      <View
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={[
-          styles.header,
-          {
-            backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF",
-            paddingTop:
-              Platform.OS === "ios"
-                ? StatusBar.currentHeight || 44
-                : StatusBar.currentHeight || 0,
-          },
+          styles.container,
+          { backgroundColor: currentColors.background },
         ]}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[
-              styles.backButton,
-              { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
+        {/* Main background */}
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          {/* Subtle gradient overlay */}
+          <LinearGradient
+            colors={[
+              currentColors.background,
+              theme === "dark"
+                ? "rgba(59, 130, 246, 0.05)"
+                : "rgba(59, 130, 246, 0.02)",
+              currentColors.background,
             ]}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+
+          {/* Floating geometric shapes */}
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={theme === "dark" ? "#FFFFFF" : "#000000"}
+            {/* Blue circle */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: height * 0.15,
+                right: width * 0.1,
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: currentColors.primary,
+                opacity: 0.15,
+                transform: [{ translateY: floatingOffset }],
+              }}
             />
-          </TouchableOpacity>
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Travel Claim Form
-          </Text>
-          <View style={{ width: 40 }}>
-            <Text> </Text>
+
+            {/* Sky square */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: height * 0.25,
+                left: width * 0.1,
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                backgroundColor: currentColors.secondary,
+                opacity: 0.2,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -15],
+                    }),
+                  },
+                ],
+              }}
+            />
+
+            {/* Indigo triangle */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: height * 0.6,
+                right: width * 0.2,
+                width: 0,
+                height: 0,
+                borderLeftWidth: 20,
+                borderRightWidth: 20,
+                borderBottomWidth: 35,
+                borderLeftColor: "transparent",
+                borderRightColor: "transparent",
+                borderBottomColor: currentColors.accent,
+                opacity: 0.1,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 10],
+                    }),
+                  },
+                ],
+              }}
+            />
           </View>
         </View>
-      </View>
 
-      {/* Form Content */}
-      <ScrollView style={styles.content}>
-        {/* Company Details */}
+        {/* Header */}
         <View
           style={[
-            styles.section,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+            styles.header,
+            {
+              backgroundColor: currentColors.surface,
+              borderBottomColor: currentColors.border,
+              shadowColor: currentColors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 5,
+              paddingTop:
+                Platform.OS === "ios"
+                  ? StatusBar.currentHeight || 44
+                  : StatusBar.currentHeight || 0,
+            },
           ]}
         >
-          <Text
-            style={[
-              styles.companyName,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            {companyName}
-          </Text>
-          <Text
-            style={[
-              styles.formCode,
-              { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-            ]}
-          >
-            Form Code: TP/TCF
-          </Text>
-        </View>
-
-        {/* Employee Details Section */}
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Employee Details
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Employee Name
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  borderColor: errors.employeeName ? "#EF4444" : "#E5E7EB",
-                },
-              ]}
-              value={formData.employeeName}
-              editable={false}
-              placeholder="Employee name"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Employee Number
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  borderColor: errors.employeeNumber ? "#EF4444" : "#E5E7EB",
-                },
-              ]}
-              value={formData.employeeNumber}
-              editable={false}
-              placeholder="Employee number"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Department
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  borderColor: errors.department ? "#EF4444" : "#E5E7EB",
-                },
-              ]}
-              value={formData.department}
-              editable={false}
-              placeholder="Department"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Designation
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  borderColor: errors.designation ? "#EF4444" : "#E5E7EB",
-                },
-              ]}
-              value={formData.designation}
-              editable={false}
-              placeholder="Designation"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Location
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.location}
-              onChangeText={(text) =>
-                handleEmployeeDetailsChange("location", text)
-              }
-              placeholder="Enter location"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(59, 130, 246, 0.2)"
+                    : "rgba(59, 130, 246, 0.1)",
+                alignItems: "center",
                 justifyContent: "center",
+                borderWidth: 1,
+                borderColor: currentColors.border,
+              }}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={currentColors.primary}
+              />
+            </TouchableOpacity>
+            <Text
+              style={[
+                styles.headerTitle,
+                {
+                  color: currentColors.text,
+                  textShadowColor:
+                    theme === "dark"
+                      ? "rgba(0, 0, 0, 0.5)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                },
+              ]}
+            >
+              Travel Claim Form
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </View>
+
+        {/* Form Content */}
+        <ScrollView style={styles.content}>
+          {/* Company Details */}
+          <View
+            style={[
+              styles.section,
+              {
+                backgroundColor: currentColors.surface,
+                borderWidth: 1,
+                borderColor: currentColors.border,
+                shadowColor: currentColors.primary,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
               },
             ]}
-            onPress={() => showDatePickerModal("date")}
           >
-            <Text style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}>
-              {formData.date
-                ? format(new Date(formData.date), "dd MMM yyyy")
-                : "Select date"}
+            <Text style={[styles.companyName, { color: currentColors.text }]}>
+              {companyName}
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Enhanced Travel Details Section */}
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Travel Details
-          </Text>
-
-          <View style={styles.inputGroup}>
             <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
+              style={[styles.formCode, { color: currentColors.textSecondary }]}
             >
-              Vehicle Type
+              Form Code: TP/TCF
             </Text>
-            <View
-              style={[
-                styles.pickerContainer,
-                { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
-              ]}
-            >
-              <Picker
-                selectedValue={formData.vehicleType}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, vehicleType: value }))
-                }
-                style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
-              >
-                <Picker.Item label="Select Vehicle Type" value="" />
-                <Picker.Item label="Car" value="car" />
-                <Picker.Item label="Bike" value="bike" />
-                <Picker.Item label="Public Transport" value="public" />
-                <Picker.Item label="Other" value="other" />
-              </Picker>
-            </View>
           </View>
 
-          {formData.vehicleType !== "public" && (
+          {/* Employee Details Section */}
+          <View
+            style={[
+              styles.section,
+              {
+                backgroundColor: currentColors.surface,
+                borderWidth: 1,
+                borderColor: currentColors.border,
+                shadowColor: currentColors.primary,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: currentColors.text }]}>
+              Employee Details
+            </Text>
+
             <View style={styles.inputGroup}>
               <Text
                 style={[
@@ -1412,7 +1430,107 @@ export default function EmployeeExpenses() {
                   { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
                 ]}
               >
-                Vehicle Number
+                Employee Name
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    borderColor: errors.employeeName ? "#EF4444" : "#E5E7EB",
+                  },
+                ]}
+                value={formData.employeeName}
+                editable={false}
+                placeholder="Employee name"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Employee Number
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    borderColor: errors.employeeNumber ? "#EF4444" : "#E5E7EB",
+                  },
+                ]}
+                value={formData.employeeNumber}
+                editable={false}
+                placeholder="Employee number"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Department
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    borderColor: errors.department ? "#EF4444" : "#E5E7EB",
+                  },
+                ]}
+                value={formData.department}
+                editable={false}
+                placeholder="Department"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Designation
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    borderColor: errors.designation ? "#EF4444" : "#E5E7EB",
+                  },
+                ]}
+                value={formData.designation}
+                editable={false}
+                placeholder="Designation"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Location
               </Text>
               <TextInput
                 style={[
@@ -1422,894 +1540,1006 @@ export default function EmployeeExpenses() {
                     color: theme === "dark" ? "#FFFFFF" : "#111827",
                   },
                 ]}
-                value={formData.vehicleNumber}
+                value={formData.location}
                 onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, vehicleNumber: text }))
+                  handleEmployeeDetailsChange("location", text)
                 }
-                placeholder="Enter vehicle number"
+                placeholder="Enter location"
                 placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
               />
             </View>
-          )}
 
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Total Distance (KM) *
-            </Text>
-            <TextInput
+            <TouchableOpacity
               style={[
                 styles.input,
                 {
                   backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  justifyContent: "center",
                 },
               ]}
-              value={formData.totalKilometers}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, totalKilometers: text }))
-              }
-              keyboardType="numeric"
-              placeholder="Enter total kilometers"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
+              onPress={() => showDatePickerModal("date")}
+            >
+              <Text style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}>
+                {formData.date
+                  ? format(new Date(formData.date), "dd MMM yyyy")
+                  : "Select date"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.rowInputs}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+          {/* Enhanced Travel Details Section */}
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+              ]}
+            >
+              Travel Details
+            </Text>
+
+            <View style={styles.inputGroup}>
               <Text
                 style={[
                   styles.label,
                   { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
                 ]}
               >
-                Start Date & Time *
+                Vehicle Type
               </Text>
-              <TouchableOpacity
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                    justifyContent: "center",
-                  },
-                ]}
-                onPress={showStartDateTimePicker}
-              >
-                <Text
-                  style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
-                >
-                  {format(formData.startDateTime, "dd MMM yyyy hh:mm aa")}
-                </Text>
-              </TouchableOpacity>
-
-              {formData.showStartPicker && (
-                <DateTimePicker
-                  value={formData.startDateTime}
-                  mode={pickerMode}
-                  is24Hour={false}
-                  display="default"
-                  onChange={handleStartDateTimeChange}
-                />
-              )}
-            </View>
-
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-                ]}
-              >
-                End Date & Time *
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                    justifyContent: "center",
-                  },
-                ]}
-                onPress={showEndDateTimePicker}
-              >
-                <Text
-                  style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
-                >
-                  {format(formData.endDateTime, "dd MMM yyyy hh:mm aa")}
-                </Text>
-              </TouchableOpacity>
-
-              {formData.showEndPicker && (
-                <DateTimePicker
-                  value={formData.endDateTime}
-                  mode={pickerMode}
-                  is24Hour={false}
-                  display="default"
-                  onChange={handleEndDateTimeChange}
-                  minimumDate={formData.startDateTime}
-                />
-              )}
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Total Travel Time
-            </Text>
-            <Text
-              style={[
-                styles.calculatedValue,
-                {
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                },
-              ]}
-            >
-              {calculateTravelTime(
-                formData.startDateTime,
-                formData.endDateTime
-              )}
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Average Speed (KM/H)
-            </Text>
-            <Text
-              style={[
-                styles.calculatedValue,
-                {
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                },
-              ]}
-            >
-              {calculateAverageSpeed(
-                formData.totalKilometers,
-                formData.startDateTime,
-                formData.endDateTime
-              )}
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Route Details
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                  height: 80,
-                },
-              ]}
-              value={formData.routeTaken}
-              onChangeText={(text) =>
-                setFormData((prev) => ({ ...prev, routeTaken: text }))
-              }
-              placeholder="Enter route details"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              multiline
-            />
-          </View>
-
-          <View style={styles.travelButtonsContainer}>
-            <TouchableOpacity
-              style={[
-                styles.travelButton,
-                { backgroundColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
-              ]}
-              onPress={handleTravelDetailsReset}
-            >
-              <Text
-                style={[
-                  styles.travelButtonText,
-                  { color: theme === "dark" ? "#FFFFFF" : "#374151" },
-                ]}
-              >
-                Reset
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.travelButton, { backgroundColor: "#10B981" }]}
-              onPress={handleSaveTravelDetails}
-            >
-              <Text style={styles.travelButtonText}>Save</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Saved Travel Details List */}
-        {savedTravelDetails.length > 0 && (
-          <View style={styles.savedTravelDetails}>
-            {savedTravelDetails.map((detail, index) => (
               <View
-                key={detail.id}
                 style={[
-                  styles.savedTravelItem,
-                  { backgroundColor: theme === "dark" ? "#374151" : "#E8F5E9" },
-                ]}
-              >
-                <View style={styles.savedTravelContent}>
-                  <View style={styles.savedTravelInfo}>
-                    <Text
-                      style={[
-                        styles.savedTravelText,
-                        { color: theme === "dark" ? "#10B981" : "#047857" },
-                      ]}
-                    >
-                      Travel Details {index + 1}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.savedTravelSubText,
-                        { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-                      ]}
-                    >
-                      {`${detail.totalKilometers}km • ${format(
-                        new Date(detail.startDateTime),
-                        "dd MMM yyyy"
-                      )}`}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteTravelDetail(detail.id)}
-                    style={styles.deleteButton}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={theme === "dark" ? "#EF4444" : "#DC2626"}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {showDatePicker && (
-          <DateTimePicker
-            value={dateType === "date" ? formData.date : formData.travelDate}
-            mode="date"
-            display="default"
-            onChange={handleDateChange}
-          />
-        )}
-
-        {/* Expense Details Section */}
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Expense Details
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Lodging Expenses (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.lodgingExpenses}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({
-                  ...prev,
-                  lodgingExpenses: numericValue,
-                }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Daily Allowance/Food (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.dailyAllowance}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({
-                  ...prev,
-                  dailyAllowance: numericValue,
-                }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Diesel (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.diesel}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({ ...prev, diesel: numericValue }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Toll Charges (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.tollCharges}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({ ...prev, tollCharges: numericValue }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Other Expenses (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.otherExpenses}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({
-                  ...prev,
-                  otherExpenses: numericValue,
-                }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
-              ]}
-              onPress={handleExpenseDetailsReset}
-            >
-              <Text
-                style={[
-                  styles.actionButtonText,
-                  { color: theme === "dark" ? "#FFFFFF" : "#374151" },
-                ]}
-              >
-                Reset
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: "#10B981" }]}
-              onPress={handleSaveExpenseDetails}
-            >
-              <Text style={[styles.actionButtonText, { color: "#FFFFFF" }]}>
-                Save
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Saved Expense Details List */}
-        {savedExpenseDetails.length > 0 && (
-          <View style={styles.savedDetailsContainer}>
-            {savedExpenseDetails.map((detail, index) => (
-              <View
-                key={detail.id}
-                style={[
-                  styles.savedDetailItem,
-                  { backgroundColor: theme === "dark" ? "#374151" : "#E8F5E9" },
-                ]}
-              >
-                <View style={styles.savedDetailContent}>
-                  <View style={styles.savedDetailInfo}>
-                    <Text
-                      style={[
-                        styles.savedDetailTitle,
-                        { color: theme === "dark" ? "#10B981" : "#047857" },
-                      ]}
-                    >
-                      Expense Details {index + 1}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.savedDetailSubText,
-                        { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-                      ]}
-                    >
-                      {`Total Amount: ₹${detail.totalAmount.toFixed(2)}`}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteExpenseDetail(detail.id)}
-                    style={styles.deleteButton}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={theme === "dark" ? "#EF4444" : "#DC2626"}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Financial Summary Section */}
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Financial Summary
-          </Text>
-
-          <View style={styles.summaryRow}>
-            <Text
-              style={[
-                styles.summaryLabel,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Total Expenses
-            </Text>
-            <Text
-              style={[
-                styles.summaryValue,
-                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-              ]}
-            >
-              ₹ {calculateTotalAmount().toFixed(2)}
-            </Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280", marginTop: 10 },
-              ]}
-            >
-              Advance Taken (₹)
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
-                  color: theme === "dark" ? "#FFFFFF" : "#111827",
-                },
-              ]}
-              value={formData.advanceTaken}
-              onChangeText={(text) => {
-                const numericValue = text.replace(/[^0-9.]/g, "");
-                setFormData((prev) => ({
-                  ...prev,
-                  advanceTaken: numericValue,
-                }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-              keyboardType="decimal-pad"
-            />
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text
-              style={[
-                styles.summaryLabel,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Amount {calculateAmountPayable() >= 0 ? "Payable" : "Receivable"}
-            </Text>
-            <Text
-              style={[
-                styles.summaryValue,
-                { color: calculateAmountPayable() >= 0 ? "#10B981" : "#EF4444" },
-              ]}
-            >
-              ₹ {Math.abs(calculateAmountPayable()).toFixed(2)}
-            </Text>
-          </View>
-
-          <View style={styles.amountInWords}>
-            <Text
-              style={[
-                styles.label,
-                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-              ]}
-            >
-              Amount in Words:
-            </Text>
-            <Text
-              style={[
-                styles.wordsText,
-                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-              ]}
-            >
-              {convertNumberToWords(Math.abs(calculateAmountPayable()))} Rupees Only
-            </Text>
-          </View>
-        </View>
-
-        {/* Document Upload Section */}
-        <TouchableOpacity
-          style={[
-            styles.uploadButton,
-            { backgroundColor: theme === "dark" ? "#374151" : "#E5E7EB" },
-          ]}
-          onPress={handleDocumentUpload}
-        >
-          <Ionicons
-            name="cloud-upload-outline"
-            size={24}
-            color={theme === "dark" ? "#FFFFFF" : "#111827"}
-          />
-          <Text
-            style={[
-              styles.uploadButtonText,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Upload Supporting Documents
-          </Text>
-        </TouchableOpacity>
-
-        {/* Display uploaded files */}
-        {formData.supportingDocs.length > 0 && (
-          <View style={styles.uploadedFiles}>
-            {formData.supportingDocs.map((doc, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.uploadedFile,
+                  styles.pickerContainer,
                   { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
                 ]}
               >
-                {doc.isImage ? (
-                  <Image
-                    source={{ uri: doc.uri }}
-                    style={styles.documentThumbnail}
-                  />
-                ) : (
-                  <Ionicons
-                    name="document-outline"
-                    size={24}
-                    color={theme === "dark" ? "#FFFFFF" : "#111827"}
-                  />
-                )}
+                <Picker
+                  selectedValue={formData.vehicleType}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, vehicleType: value }))
+                  }
+                  style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
+                >
+                  <Picker.Item label="Select Vehicle Type" value="" />
+                  <Picker.Item label="Car" value="car" />
+                  <Picker.Item label="Bike" value="bike" />
+                  <Picker.Item label="Public Transport" value="public" />
+                  <Picker.Item label="Other" value="other" />
+                </Picker>
+              </View>
+            </View>
+
+            {formData.vehicleType !== "public" && (
+              <View style={styles.inputGroup}>
                 <Text
                   style={[
-                    styles.fileName,
-                    { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                    styles.label,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
                   ]}
-                  numberOfLines={1}
                 >
-                  {doc.name}
+                  Vehicle Number
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                      color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    },
+                  ]}
+                  value={formData.vehicleNumber}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, vehicleNumber: text }))
+                  }
+                  placeholder="Enter vehicle number"
+                  placeholderTextColor={
+                    theme === "dark" ? "#9CA3AF" : "#6B7280"
+                  }
+                />
+              </View>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Total Distance (KM) *
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.totalKilometers}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, totalKilometers: text }))
+                }
+                keyboardType="numeric"
+                placeholder="Enter total kilometers"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </View>
+
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                <Text
+                  style={[
+                    styles.label,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                  ]}
+                >
+                  Start Date & Time *
                 </Text>
                 <TouchableOpacity
-                  onPress={() => removeDocument(index)}
-                  style={styles.removeButton}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                      justifyContent: "center",
+                    },
+                  ]}
+                  onPress={showStartDateTimePicker}
                 >
-                  <Ionicons
-                    name="close-circle"
-                    size={24}
-                    color={theme === "dark" ? "#EF4444" : "#DC2626"}
-                  />
+                  <Text
+                    style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
+                  >
+                    {format(formData.startDateTime, "dd MMM yyyy hh:mm aa")}
+                  </Text>
                 </TouchableOpacity>
+
+                {formData.showStartPicker && (
+                  <DateTimePicker
+                    value={formData.startDateTime}
+                    mode={pickerMode}
+                    is24Hour={false}
+                    display="default"
+                    onChange={handleStartDateTimeChange}
+                  />
+                )}
               </View>
-            ))}
-          </View>
-        )}
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            { backgroundColor: theme === "dark" ? "#3B82F6" : "#2563EB" },
-            isSubmitting && { opacity: 0.7 }, // Add opacity when submitting
-          ]}
-          onPress={handleSubmit}
-          disabled={isSubmitting} // Disable button while submitting
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit Claim</Text>
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                <Text
+                  style={[
+                    styles.label,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                  ]}
+                >
+                  End Date & Time *
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                      justifyContent: "center",
+                    },
+                  ]}
+                  onPress={showEndDateTimePicker}
+                >
+                  <Text
+                    style={{ color: theme === "dark" ? "#FFFFFF" : "#111827" }}
+                  >
+                    {format(formData.endDateTime, "dd MMM yyyy hh:mm aa")}
+                  </Text>
+                </TouchableOpacity>
+
+                {formData.showEndPicker && (
+                  <DateTimePicker
+                    value={formData.endDateTime}
+                    mode={pickerMode}
+                    is24Hour={false}
+                    display="default"
+                    onChange={handleEndDateTimeChange}
+                    minimumDate={formData.startDateTime}
+                  />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Total Travel Time
+              </Text>
+              <Text
+                style={[
+                  styles.calculatedValue,
+                  {
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                  },
+                ]}
+              >
+                {calculateTravelTime(
+                  formData.startDateTime,
+                  formData.endDateTime
+                )}
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Average Speed (KM/H)
+              </Text>
+              <Text
+                style={[
+                  styles.calculatedValue,
+                  {
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                  },
+                ]}
+              >
+                {calculateAverageSpeed(
+                  formData.totalKilometers,
+                  formData.startDateTime,
+                  formData.endDateTime
+                )}
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Route Details
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                    height: 80,
+                  },
+                ]}
+                value={formData.routeTaken}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, routeTaken: text }))
+                }
+                placeholder="Enter route details"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                multiline
+              />
+            </View>
+
+            <View style={styles.travelButtonsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.travelButton,
+                  { backgroundColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
+                ]}
+                onPress={handleTravelDetailsReset}
+              >
+                <Text
+                  style={[
+                    styles.travelButtonText,
+                    { color: theme === "dark" ? "#FFFFFF" : "#374151" },
+                  ]}
+                >
+                  Reset
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.travelButton, { backgroundColor: "#10B981" }]}
+                onPress={handleSaveTravelDetails}
+              >
+                <Text style={styles.travelButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Saved Travel Details List */}
+          {savedTravelDetails.length > 0 && (
+            <View style={styles.savedTravelDetails}>
+              {savedTravelDetails.map((detail, index) => (
+                <View
+                  key={detail.id}
+                  style={[
+                    styles.savedTravelItem,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#E8F5E9",
+                    },
+                  ]}
+                >
+                  <View style={styles.savedTravelContent}>
+                    <View style={styles.savedTravelInfo}>
+                      <Text
+                        style={[
+                          styles.savedTravelText,
+                          { color: theme === "dark" ? "#10B981" : "#047857" },
+                        ]}
+                      >
+                        Travel Details {index + 1}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.savedTravelSubText,
+                          { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                        ]}
+                      >
+                        {`${detail.totalKilometers}km • ${format(
+                          new Date(detail.startDateTime),
+                          "dd MMM yyyy"
+                        )}`}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteTravelDetail(detail.id)}
+                      style={styles.deleteButton}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={20}
+                        color={theme === "dark" ? "#EF4444" : "#DC2626"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
           )}
-        </TouchableOpacity>
-      </ScrollView>
 
-      {/* Success Modal */}
-      <Modal
-        isVisible={showSuccessModal}
-        backdropOpacity={0.5}
-        animationIn="fadeIn"
-        animationOut="fadeOut"
-        useNativeDriver
-        style={styles.modal}
-      >
-        <View
-          style={[
-            styles.successModal,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <View style={styles.successIconContainer}>
-            <Ionicons name="checkmark-circle" size={50} color="#10B981" />
-          </View>
-          <Text
+          {showDatePicker && (
+            <DateTimePicker
+              value={dateType === "date" ? formData.date : formData.travelDate}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
+
+          {/* Expense Details Section */}
+          <View
             style={[
-              styles.successTitle,
-              { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+              styles.section,
+              { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
             ]}
           >
-            Success!
-          </Text>
-          <Text
-            style={[
-              styles.successMessage,
-              { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-            ]}
-          >
-            Expense claim submitted successfully
-          </Text>
-        </View>
-      </Modal>
-
-      {/* Document Upload Modal */}
-      <Modal
-        isVisible={showUploadModal}
-        backdropOpacity={0.5}
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        useNativeDriver
-        onBackdropPress={() => setShowUploadModal(false)}
-        style={styles.modal}
-      >
-        <View
-          style={[
-            styles.uploadModal,
-            { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
-          ]}
-        >
-          <View style={styles.uploadModalHeader}>
             <Text
               style={[
-                styles.uploadModalTitle,
+                styles.sectionTitle,
                 { color: theme === "dark" ? "#FFFFFF" : "#111827" },
               ]}
             >
-              Upload Document
+              Expense Details
             </Text>
-            <TouchableOpacity
-              onPress={() => setShowUploadModal(false)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name="close"
-                size={24}
-                color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Lodging Expenses (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.lodgingExpenses}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({
+                    ...prev,
+                    lodgingExpenses: numericValue,
+                  }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
               />
-            </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Daily Allowance/Food (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.dailyAllowance}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({
+                    ...prev,
+                    dailyAllowance: numericValue,
+                  }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Diesel (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.diesel}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({ ...prev, diesel: numericValue }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Toll Charges (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.tollCharges}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({
+                    ...prev,
+                    tollCharges: numericValue,
+                  }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Other Expenses (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.otherExpenses}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({
+                    ...prev,
+                    otherExpenses: numericValue,
+                  }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
+                ]}
+                onPress={handleExpenseDetailsReset}
+              >
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    { color: theme === "dark" ? "#FFFFFF" : "#374151" },
+                  ]}
+                >
+                  Reset
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: "#10B981" }]}
+                onPress={handleSaveExpenseDetails}
+              >
+                <Text style={[styles.actionButtonText, { color: "#FFFFFF" }]}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          
-          <Text
-            style={[
-              styles.uploadModalSubtitle,
-              { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-            ]}
-          >
-            Choose upload method
-          </Text>
-          
-          <TouchableOpacity
-            style={[
-              styles.uploadOption,
-              { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
-            ]}
-            onPress={() => {
-              setShowUploadModal(false);
-              captureImage();
-            }}
-          >
-            <View style={styles.uploadOptionIcon}>
-              <Ionicons
-                name="camera"
-                size={24}
-                color={theme === "dark" ? "#3B82F6" : "#2563EB"}
-              />
+
+          {/* Saved Expense Details List */}
+          {savedExpenseDetails.length > 0 && (
+            <View style={styles.savedDetailsContainer}>
+              {savedExpenseDetails.map((detail, index) => (
+                <View
+                  key={detail.id}
+                  style={[
+                    styles.savedDetailItem,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#E8F5E9",
+                    },
+                  ]}
+                >
+                  <View style={styles.savedDetailContent}>
+                    <View style={styles.savedDetailInfo}>
+                      <Text
+                        style={[
+                          styles.savedDetailTitle,
+                          { color: theme === "dark" ? "#10B981" : "#047857" },
+                        ]}
+                      >
+                        Expense Details {index + 1}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.savedDetailSubText,
+                          { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                        ]}
+                      >
+                        {`Total Amount: ₹${detail.totalAmount.toFixed(2)}`}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteExpenseDetail(detail.id)}
+                      style={styles.deleteButton}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={20}
+                        color={theme === "dark" ? "#EF4444" : "#DC2626"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
             </View>
-            <View style={styles.uploadOptionText}>
-              <Text
-                style={[
-                  styles.uploadOptionTitle,
-                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-                ]}
-              >
-                Take Photo
-              </Text>
-              <Text
-                style={[
-                  styles.uploadOptionDescription,
-                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-                ]}
-              >
-                Use your camera to take a new photo
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
+          )}
+
+          {/* Financial Summary Section */}
+          <View
             style={[
-              styles.uploadOption,
-              { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
+              styles.section,
+              { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
             ]}
-            onPress={() => {
-              setShowUploadModal(false);
-              pickDocument();
-            }}
-          >
-            <View style={styles.uploadOptionIcon}>
-              <Ionicons
-                name="images"
-                size={24}
-                color={theme === "dark" ? "#10B981" : "#047857"}
-              />
-            </View>
-            <View style={styles.uploadOptionText}>
-              <Text
-                style={[
-                  styles.uploadOptionTitle,
-                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
-                ]}
-              >
-                Choose from Gallery
-              </Text>
-              <Text
-                style={[
-                  styles.uploadOptionDescription,
-                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
-                ]}
-              >
-                Select images or documents from your device
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.cancelButton,
-              { borderColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
-            ]}
-            onPress={() => setShowUploadModal(false)}
           >
             <Text
               style={[
-                styles.cancelButtonText,
+                styles.sectionTitle,
+                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+              ]}
+            >
+              Financial Summary
+            </Text>
+
+            <View style={styles.summaryRow}>
+              <Text
+                style={[
+                  styles.summaryLabel,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Total Expenses
+              </Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                ]}
+              >
+                ₹ {calculateTotalAmount().toFixed(2)}
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+                    marginTop: 10,
+                  },
+                ]}
+              >
+                Advance Taken (₹)
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    color: theme === "dark" ? "#FFFFFF" : "#111827",
+                  },
+                ]}
+                value={formData.advanceTaken}
+                onChangeText={(text) => {
+                  const numericValue = text.replace(/[^0-9.]/g, "");
+                  setFormData((prev) => ({
+                    ...prev,
+                    advanceTaken: numericValue,
+                  }));
+                }}
+                placeholder="0.00"
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text
+                style={[
+                  styles.summaryLabel,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Amount{" "}
+                {calculateAmountPayable() >= 0 ? "Payable" : "Receivable"}
+              </Text>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  {
+                    color:
+                      calculateAmountPayable() >= 0 ? "#10B981" : "#EF4444",
+                  },
+                ]}
+              >
+                ₹ {Math.abs(calculateAmountPayable()).toFixed(2)}
+              </Text>
+            </View>
+
+            <View style={styles.amountInWords}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Amount in Words:
+              </Text>
+              <Text
+                style={[
+                  styles.wordsText,
+                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                ]}
+              >
+                {convertNumberToWords(Math.abs(calculateAmountPayable()))}{" "}
+                Rupees Only
+              </Text>
+            </View>
+          </View>
+
+          {/* Document Upload Section */}
+          <TouchableOpacity
+            style={[
+              styles.uploadButton,
+              { backgroundColor: theme === "dark" ? "#374151" : "#E5E7EB" },
+            ]}
+            onPress={handleDocumentUpload}
+          >
+            <Ionicons
+              name="cloud-upload-outline"
+              size={24}
+              color={theme === "dark" ? "#FFFFFF" : "#111827"}
+            />
+            <Text
+              style={[
+                styles.uploadButtonText,
+                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+              ]}
+            >
+              Upload Supporting Documents
+            </Text>
+          </TouchableOpacity>
+
+          {/* Display uploaded files */}
+          {formData.supportingDocs.length > 0 && (
+            <View style={styles.uploadedFiles}>
+              {formData.supportingDocs.map((doc, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.uploadedFile,
+                    {
+                      backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    },
+                  ]}
+                >
+                  {doc.isImage ? (
+                    <Image
+                      source={{ uri: doc.uri }}
+                      style={styles.documentThumbnail}
+                    />
+                  ) : (
+                    <Ionicons
+                      name="document-outline"
+                      size={24}
+                      color={theme === "dark" ? "#FFFFFF" : "#111827"}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.fileName,
+                      { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {doc.name}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => removeDocument(index)}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={24}
+                      color={theme === "dark" ? "#EF4444" : "#DC2626"}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              { backgroundColor: theme === "dark" ? "#3B82F6" : "#2563EB" },
+              isSubmitting && { opacity: 0.7 }, // Add opacity when submitting
+            ]}
+            onPress={handleSubmit}
+            disabled={isSubmitting} // Disable button while submitting
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>Submit Claim</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Success Modal */}
+        <Modal
+          isVisible={showSuccessModal}
+          backdropOpacity={0.5}
+          animationIn="fadeIn"
+          animationOut="fadeOut"
+          useNativeDriver
+          style={styles.modal}
+        >
+          <View
+            style={[
+              styles.successModal,
+              { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+            ]}
+          >
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-circle" size={50} color="#10B981" />
+            </View>
+            <Text
+              style={[
+                styles.successTitle,
+                { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+              ]}
+            >
+              Success!
+            </Text>
+            <Text
+              style={[
+                styles.successMessage,
                 { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
               ]}
             >
-              Cancel
+              Expense claim submitted successfully
             </Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+          </View>
+        </Modal>
+
+        {/* Document Upload Modal */}
+        <Modal
+          isVisible={showUploadModal}
+          backdropOpacity={0.5}
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          useNativeDriver
+          onBackdropPress={() => setShowUploadModal(false)}
+          style={styles.modal}
+        >
+          <View
+            style={[
+              styles.uploadModal,
+              { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+            ]}
+          >
+            <View style={styles.uploadModalHeader}>
+              <Text
+                style={[
+                  styles.uploadModalTitle,
+                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                ]}
+              >
+                Upload Document
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowUploadModal(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={[
+                styles.uploadModalSubtitle,
+                { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+              ]}
+            >
+              Choose upload method
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.uploadOption,
+                { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
+              ]}
+              onPress={() => {
+                setShowUploadModal(false);
+                captureImage();
+              }}
+            >
+              <View style={styles.uploadOptionIcon}>
+                <Ionicons
+                  name="camera"
+                  size={24}
+                  color={theme === "dark" ? "#3B82F6" : "#2563EB"}
+                />
+              </View>
+              <View style={styles.uploadOptionText}>
+                <Text
+                  style={[
+                    styles.uploadOptionTitle,
+                    { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                  ]}
+                >
+                  Take Photo
+                </Text>
+                <Text
+                  style={[
+                    styles.uploadOptionDescription,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                  ]}
+                >
+                  Use your camera to take a new photo
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.uploadOption,
+                { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
+              ]}
+              onPress={() => {
+                setShowUploadModal(false);
+                pickDocument();
+              }}
+            >
+              <View style={styles.uploadOptionIcon}>
+                <Ionicons
+                  name="images"
+                  size={24}
+                  color={theme === "dark" ? "#10B981" : "#047857"}
+                />
+              </View>
+              <View style={styles.uploadOptionText}>
+                <Text
+                  style={[
+                    styles.uploadOptionTitle,
+                    { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                  ]}
+                >
+                  Choose from Gallery
+                </Text>
+                <Text
+                  style={[
+                    styles.uploadOptionDescription,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                  ]}
+                >
+                  Select images or documents from your device
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.cancelButton,
+                { borderColor: theme === "dark" ? "#4B5563" : "#E5E7EB" },
+              ]}
+              onPress={() => setShowUploadModal(false)}
+            >
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                ]}
+              >
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
