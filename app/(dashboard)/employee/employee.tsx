@@ -845,7 +845,7 @@ export default function EmployeeDashboard() {
                 }}
               >
                 <Image
-                  source={require("./../../../assets/images/icon.png")}
+                  source={require("./../../../assets/images/adaptive-icon.png")}
                   style={styles.logo}
                   resizeMode="contain"
                 />

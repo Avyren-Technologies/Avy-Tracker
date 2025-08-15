@@ -6,11 +6,11 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
-  Alert,
   Animated,
-  Easing,
-  Platform,
+  Image,
+  Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ThemeContext from "../../context/ThemeContext";
 import BottomNav from "../../components/BottomNav";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +21,16 @@ import axios from "axios";
 import AuthContext from "../../context/AuthContext";
 import { groupAdminNavItems } from "./utils/navigationItems";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { getCurrentColors } from "../../utils/themeColors";
+import {
+  differenceInSeconds,
+  differenceInHours,
+  differenceInMinutes,
+  format,
+} from "date-fns";
+
+const { width, height } = Dimensions.get("window");
 
 // Add new interface for activities
 interface RecentActivity {
@@ -35,10 +45,42 @@ export default function GroupAdminDashboard() {
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [isShiftActive, setIsShiftActive] = useState(false);
   const [shiftStartTime, setShiftStartTime] = useState<string | null>(null);
+  const [currentShiftDuration, setCurrentShiftDuration] = useState<
+    string | null
+  >(null);
+  const [greeting, setGreeting] = useState("");
+  const [lastLogin, setLastLogin] = useState("");
+
   const { theme } = ThemeContext.useTheme();
   const { token, user } = AuthContext.useAuth();
   const router = useRouter();
   const isDark = theme === "dark";
+
+  // Get current theme colors
+  const currentColors = getCurrentColors(theme);
+
+  // Animation refs
+  const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+
+  // Set greeting based on time of day
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good Morning");
+    else if (hour < 17) setGreeting("Good Afternoon");
+    else setGreeting("Good Evening");
+
+    // Simulate fetching last login
+    setLastLogin(new Date().toLocaleString());
+
+    // Floating shapes animation
+    Animated.loop(
+      Animated.timing(floatingShapesAnim, {
+        toValue: 1,
+        duration: 12000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
 
   // Add useEffect to fetch activities
   useEffect(() => {
@@ -95,9 +137,28 @@ export default function GroupAdminDashboard() {
           const { isActive, startTime } = JSON.parse(shiftStatusData);
           setIsShiftActive(isActive);
           setShiftStartTime(startTime);
+
+          if (isActive && startTime) {
+            // Calculate duration in real-time
+            const elapsedSeconds = differenceInSeconds(
+              new Date(),
+              new Date(startTime)
+            );
+            const hours = Math.floor(elapsedSeconds / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+            const duration = `${hours.toString().padStart(2, "0")}:${minutes
+              .toString()
+              .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+            setCurrentShiftDuration(duration);
+          } else {
+            setCurrentShiftDuration(null);
+          }
         } else {
           setIsShiftActive(false);
           setShiftStartTime(null);
+          setCurrentShiftDuration(null);
         }
       } catch (error) {
         console.error("Error updating shift status:", error);
@@ -179,344 +240,552 @@ export default function GroupAdminDashboard() {
     },
   ];
 
+  const floatingOffset = floatingShapesAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
+  });
+
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
-    >
+    <>
       <StatusBar
-        backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
-        barStyle={isDark ? "light-content" : "dark-content"}
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={currentColors.background}
+        translucent={false}
+        animated={true}
       />
 
-      {/* Header */}
-      <View
-        className={`${isDark ? "bg-gray-800" : "bg-white"}`}
-        style={styles.header}
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: currentColors.background }}
       >
-        <View className="flex-row items-center justify-between px-4 pt-3 pb-4">
-          <Text
-            style={{ fontSize: 23 }}
-            className={`pl-4 font-semibold ${
-              isDark ? "text-white" : "text-gray-900"
-            }`}
+        {/* Main background */}
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          {/* Subtle gradient overlay */}
+          <LinearGradient
+            colors={[
+              currentColors.background,
+              theme === "dark"
+                ? "rgba(59, 130, 246, 0.05)"
+                : "rgba(59, 130, 246, 0.02)",
+              currentColors.background,
+            ]}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+
+          {/* Floating geometric shapes */}
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
           >
-            Group Admin
-          </Text>
+            {/* Blue circle */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: height * 0.1,
+                right: width * 0.1,
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: currentColors.primary,
+                opacity: 0.15,
+                transform: [{ translateY: floatingOffset }],
+              }}
+            />
+
+            {/* Sky square */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: height * 0.3,
+                left: width * 0.1,
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                backgroundColor: currentColors.secondary,
+                opacity: 0.2,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -15],
+                    }),
+                  },
+                ],
+              }}
+            />
+
+            {/* Indigo triangle */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: height * 0.7,
+                right: width * 0.2,
+                width: 0,
+                height: 0,
+                borderLeftWidth: 20,
+                borderRightWidth: 20,
+                borderBottomWidth: 35,
+                borderLeftColor: "transparent",
+                borderRightColor: "transparent",
+                borderBottomColor: currentColors.accent,
+                opacity: 0.1,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 10],
+                    }),
+                  },
+                ],
+              }}
+            />
+          </View>
+        </View>
+
+        {/* Header */}
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: currentColors.surface,
+              borderBottomColor: currentColors.border,
+              shadowColor: currentColors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() =>
+              router.replace("/(dashboard)/Group-Admin/group-admin")
+            }
+          >
+            <View
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(59, 130, 246, 0.2)"
+                    : "rgba(59, 130, 246, 0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: currentColors.primary,
+              }}
+            >
+              <Image
+                source={require("./../../../assets/images/adaptive-icon.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.welcomeText,
+                {
+                  color: currentColors.text,
+                  textShadowColor:
+                    theme === "dark"
+                      ? "rgba(0, 0, 0, 0.5)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                },
+              ]}
+            >
+              {greeting}, {user?.name}
+            </Text>
+            <Text
+              style={[styles.subText, { color: currentColors.textSecondary }]}
+            >
+              Last login: {lastLogin}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => router.push("/(dashboard)/Group-Admin/settings")}
-            className={`p-2 rounded-full ${
-              isDark ? "bg-gray-700" : "bg-gray-100"
-            }`}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor:
+                theme === "dark"
+                  ? "rgba(59, 130, 246, 0.2)"
+                  : "rgba(59, 130, 246, 0.1)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: currentColors.border,
+            }}
           >
             <Ionicons
               name="settings-outline"
-              size={24}
-              color={isDark ? "#FFFFFF" : "#111827"}
+              size={20}
+              color={currentColors.primary}
             />
           </TouchableOpacity>
         </View>
-      </View>
 
-      <ScrollView
-        style={[
-          styles.content,
-          { backgroundColor: isDark ? "#111827" : "#F3F4F6" },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Shift Status Button - Moved inside header */}
-        <View className="mt-2" style={styles.shiftStatusContainer}>
-          <TouchableOpacity
-            onPress={() => router.push("/(dashboard)/shared/shiftTracker")}
+        {/* Main Content */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Shift Status Button */}
+          <View style={styles.shiftStatusContainer}>
+            <TouchableOpacity
+              onPress={() => router.push("/(dashboard)/shared/shiftTracker")}
+              style={[
+                styles.shiftStatusButton,
+                {
+                  backgroundColor: isShiftActive
+                    ? currentColors.error
+                    : currentColors.success,
+                  shadowColor: currentColors.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 8,
+                  elevation: 5,
+                },
+              ]}
+            >
+              <View style={styles.shiftButtonContent}>
+                <View style={styles.shiftButtonLeft}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      {
+                        backgroundColor: isShiftActive
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : "rgba(255, 255, 255, 0.2)",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isShiftActive ? "timer" : "timer-outline"}
+                      size={20}
+                      color="white"
+                    />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.statusText}>
+                      {isShiftActive ? "Active Shift" : "Start Shift"}
+                    </Text>
+                    {isShiftActive && currentShiftDuration && (
+                      <Text style={styles.timeText}>
+                        Duration: {currentShiftDuration}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.chevronContainer}>
+                  <Ionicons name="chevron-forward" size={20} color="white" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Actions Grid */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentColors.text }]}>
+              Quick Actions
+            </Text>
+            <View style={styles.quickActionsGrid}>
+              {quickActions.map((action, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.quickActionCard,
+                    {
+                      backgroundColor: currentColors.surface,
+                      borderWidth: 1,
+                      borderColor: currentColors.border,
+                      shadowColor: currentColors.primary,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3,
+                    },
+                  ]}
+                  onPress={() => router.push(action.route as any)}
+                >
+                  <View
+                    style={[
+                      styles.iconCircle,
+                      {
+                        backgroundColor:
+                          theme === "dark"
+                            ? `${action.color}30`
+                            : `${action.color}20`,
+                        borderWidth: 1,
+                        borderColor:
+                          theme === "dark"
+                            ? `${action.color}50`
+                            : `${action.color}30`,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={action.icon as keyof typeof Ionicons.glyphMap}
+                      size={24}
+                      color={action.color}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.cardTitle, { color: currentColors.text }]}
+                  >
+                    {action.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.cardDescription,
+                      { color: currentColors.textSecondary },
+                    ]}
+                  >
+                    {action.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Leave Management Section */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentColors.text }]}>
+              Leave Management
+            </Text>
+            <View style={styles.quickActionsGrid}>
+              {leaveManagementActions.map((action, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.quickActionCard,
+                    {
+                      backgroundColor: currentColors.surface,
+                      borderWidth: 1,
+                      borderColor: currentColors.border,
+                      shadowColor: currentColors.primary,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      elevation: 3,
+                    },
+                  ]}
+                  onPress={() => router.push(action.route as any)}
+                >
+                  <View
+                    style={[
+                      styles.iconCircle,
+                      {
+                        backgroundColor:
+                          theme === "dark"
+                            ? `${action.color}30`
+                            : `${action.color}20`,
+                        borderWidth: 1,
+                        borderColor:
+                          theme === "dark"
+                            ? `${action.color}50`
+                            : `${action.color}30`,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={action.icon as keyof typeof Ionicons.glyphMap}
+                      size={24}
+                      color={action.color}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.cardTitle, { color: currentColors.text }]}
+                  >
+                    {action.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.cardDescription,
+                      { color: currentColors.textSecondary },
+                    ]}
+                  >
+                    {action.description}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Recent Activity Section */}
+          <View
             style={[
-              styles.shiftStatusButton,
+              styles.activityCard,
               {
-                backgroundColor: isShiftActive
-                  ? isDark
-                    ? "#DC2626"
-                    : "#EF4444"
-                  : isDark
-                  ? "#059669"
-                  : "#10B981",
+                backgroundColor: currentColors.surface,
+                borderWidth: 1,
+                borderColor: currentColors.border,
+                shadowColor: currentColors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 5,
               },
             ]}
           >
-            <View className="flex-row items-center justify-between w-full">
-              <View className="flex-row items-center flex-1">
+            {/* Header */}
+            <View style={styles.activityHeader}>
+              <View style={styles.activityHeaderLeft}>
                 <View
                   style={[
-                    styles.iconContainer,
+                    styles.activityIconContainer,
                     {
-                      backgroundColor: isShiftActive
-                        ? isDark
-                          ? "rgba(220, 38, 38, 0.8)"
-                          : "rgba(239, 68, 68, 0.8)"
-                        : isDark
-                        ? "rgba(5, 150, 105, 0.8)"
-                        : "rgba(16, 185, 129, 0.8)",
+                      backgroundColor:
+                        theme === "dark"
+                          ? "rgba(59, 130, 246, 0.2)"
+                          : "rgba(59, 130, 246, 0.1)",
                     },
                   ]}
                 >
                   <Ionicons
-                    name={isShiftActive ? "timer" : "timer-outline"}
+                    name="time-outline"
                     size={20}
-                    color="white"
+                    color={currentColors.primary}
                   />
                 </View>
-                <View style={styles.textContainer}>
-                  <Text style={styles.statusText}>
-                    {isShiftActive ? "Active Shift" : "Start Shift"}
-                  </Text>
-                  {isShiftActive && shiftStartTime && (
-                    <Text style={styles.timeText}>
-                      Started at{" "}
-                      {new Date(shiftStartTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.chevronContainer}>
-                <Ionicons name="chevron-forward" size={20} color="white" />
+                <Text
+                  style={[styles.activityTitle, { color: currentColors.text }]}
+                >
+                  Recent Activity
+                </Text>
               </View>
             </View>
-          </TouchableOpacity>
-        </View>
 
-        {/* Quick Actions Grid */}
-        <View style={styles.section}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: isDark ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Quick Actions
-          </Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.quickActionCard,
-                  { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" },
-                ]}
-                onPress={() => router.push(action.route as any)}
-              >
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: `${action.color}20` },
-                  ]}
-                >
-                  <Ionicons
-                    name={action.icon as keyof typeof Ionicons.glyphMap}
-                    size={24}
-                    color={action.color}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.cardTitle,
-                    { color: isDark ? "#FFFFFF" : "#111827" },
-                  ]}
-                >
-                  {action.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.cardDescription,
-                    { color: isDark ? "#9CA3AF" : "#6B7280" },
-                  ]}
-                >
-                  {action.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* New Leave Management Section */}
-        <View style={styles.section}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: isDark ? "#FFFFFF" : "#111827" },
-            ]}
-          >
-            Leave Management
-          </Text>
-          <View style={styles.quickActionsGrid}>
-            {leaveManagementActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.quickActionCard,
-                  { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" },
-                ]}
-                onPress={() => router.push(action.route as any)}
-              >
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: `${action.color}20` },
-                  ]}
-                >
-                  <Ionicons
-                    name={action.icon as keyof typeof Ionicons.glyphMap}
-                    size={24}
-                    color={action.color}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.cardTitle,
-                    { color: isDark ? "#FFFFFF" : "#111827" },
-                  ]}
-                >
-                  {action.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.cardDescription,
-                    { color: isDark ? "#9CA3AF" : "#6B7280" },
-                  ]}
-                >
-                  {action.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Recent Activity Section */}
-        <View
-          className={`mt-6 mx-4 p-4 rounded-xl mb-10 ${
-            isDark ? "bg-gray-800" : "bg-white"
-          }`}
-          style={styles.activityCard}
-        >
-          {/* Header */}
-          <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-row items-center">
-              <View
-                className={`w-8 h-8 rounded-full items-center justify-center mr-2 ${
-                  isDark ? "bg-blue-500/20" : "bg-blue-100"
-                }`}
-              >
+            {loadingActivities ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={currentColors.primary} />
+              </View>
+            ) : activities.length === 0 ? (
+              <View style={styles.emptyContainer}>
                 <Ionicons
-                  name="time-outline"
-                  size={20}
-                  color={isDark ? "#60A5FA" : "#3B82F6"}
+                  name="notifications-outline"
+                  size={40}
+                  color={currentColors.textTertiary}
                 />
-              </View>
-              <Text
-                className={`text-lg font-semibold ${
-                  isDark ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Recent Activity
-              </Text>
-            </View>
-          </View>
-
-          {loadingActivities ? (
-            <View className="py-8">
-              <ActivityIndicator
-                size="small"
-                color={isDark ? "#60A5FA" : "#3B82F6"}
-              />
-            </View>
-          ) : activities.length === 0 ? (
-            <View className="py-8 items-center">
-              <Ionicons
-                name="notifications-outline"
-                size={40}
-                color={isDark ? "#4B5563" : "#9CA3AF"}
-              />
-              <Text
-                className={`mt-2 text-center ${
-                  isDark ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                No recent activities
-              </Text>
-            </View>
-          ) : (
-            activities.map((activity, index) => {
-              // Determine icon based on activity type
-              let icon: keyof typeof Ionicons.glyphMap = "ellipse-outline";
-              let iconColor = isDark ? "#60A5FA" : "#3B82F6";
-
-              if (activity.type.includes("Employee")) {
-                icon = "person-add-outline";
-                iconColor = "#10B981"; // Green
-              } else if (activity.type.includes("Task")) {
-                icon = "list-outline";
-                iconColor = "#8B5CF6"; // Purple
-              } else if (activity.type.includes("Expense")) {
-                icon = "receipt-outline";
-                iconColor = activity.type.includes("Approved")
-                  ? "#10B981"
-                  : "#EF4444";
-              }
-
-              return (
-                <View
-                  key={index}
-                  className={`py-3 ${
-                    index !== activities.length - 1 ? "border-b" : ""
-                  } ${isDark ? "border-gray-700" : "border-gray-200"}`}
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { color: currentColors.textSecondary },
+                  ]}
                 >
-                  <View className="flex-row items-center">
-                    <View
-                      className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
-                        isDark ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <Ionicons name={icon} size={16} color={iconColor} />
-                    </View>
-                    <View className="flex-1">
-                      <View className="flex-row justify-between items-start">
-                        <View className="flex-1">
-                          <Text
-                            className={`text-sm font-medium ${
-                              isDark ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            {activity.type}
-                          </Text>
+                  No recent activities
+                </Text>
+              </View>
+            ) : (
+              activities.map((activity, index) => {
+                // Determine icon based on activity type
+                let icon: keyof typeof Ionicons.glyphMap = "ellipse-outline";
+                let iconColor = currentColors.primary;
 
+                if (activity.type.includes("Employee")) {
+                  icon = "person-add-outline";
+                  iconColor = currentColors.success;
+                } else if (activity.type.includes("Task")) {
+                  icon = "list-outline";
+                  iconColor = "#8B5CF6";
+                } else if (activity.type.includes("Expense")) {
+                  icon = "receipt-outline";
+                  iconColor = activity.type.includes("Approved")
+                    ? currentColors.success
+                    : currentColors.error;
+                }
+
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.activityItem,
+                      {
+                        borderBottomWidth:
+                          index !== activities.length - 1 ? 1 : 0,
+                        borderBottomColor: currentColors.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.activityItemContent}>
+                      <View
+                        style={[
+                          styles.activityItemIcon,
+                          {
+                            backgroundColor:
+                              theme === "dark"
+                                ? "rgba(59, 130, 246, 0.2)"
+                                : "rgba(59, 130, 246, 0.1)",
+                          },
+                        ]}
+                      >
+                        <Ionicons name={icon} size={16} color={iconColor} />
+                      </View>
+                      <View style={styles.activityItemText}>
+                        <View style={styles.activityItemHeader}>
+                          <View style={styles.activityItemLeft}>
+                            <Text
+                              style={[
+                                styles.activityType,
+                                { color: currentColors.textSecondary },
+                              ]}
+                            >
+                              {activity.type}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.activityName,
+                                { color: currentColors.text },
+                              ]}
+                            >
+                              {activity.name}
+                            </Text>
+                          </View>
                           <Text
-                            className={`text-base font-semibold ${
-                              isDark ? "text-white" : "text-gray-900"
-                            }`}
+                            style={[
+                              styles.activityTime,
+                              { color: currentColors.textTertiary },
+                            ]}
                           >
-                            {activity.name}
+                            {activity.time}
                           </Text>
                         </View>
-                        <Text
-                          className={`text-xs ${
-                            isDark ? "text-gray-400" : "text-gray-600"
-                          }`}
-                        >
-                          {activity.time}
-                        </Text>
                       </View>
                     </View>
                   </View>
-                </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
+                );
+              })
+            )}
+          </View>
+        </ScrollView>
 
-      <BottomNav items={groupAdminNavItems} />
-    </View>
+        <BottomNav items={groupAdminNavItems} />
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -525,27 +794,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3, // Add padding to accommodate the shift status button
-  },
-  headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "transparent",
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+  headerTextContainer: {
+    flex: 1,
+    marginHorizontal: 12,
   },
-  headerSubtitle: {
-    fontSize: 14,
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  settingsButton: {
-    padding: 8,
+  welcomeText: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  subText: {
+    fontSize: 12,
+    marginTop: 4,
   },
   content: {
     flex: 1,
@@ -557,6 +829,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 12,
+    marginLeft: 6,
   },
   quickActionsGrid: {
     flexDirection: "row",
@@ -568,11 +841,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   iconCircle: {
     width: 48,
@@ -583,69 +851,113 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     marginBottom: 4,
   },
   cardDescription: {
     fontSize: 12,
+    lineHeight: 16,
   },
-  activityList: {
-    borderRadius: 12,
-    overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+  activityCard: {
+    margin: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 32,
   },
-  activityItem: {
+  activityHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    marginBottom: 16,
   },
-  borderBottom: {
-    borderBottomWidth: 1,
+  activityHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  activityContent: {
+  activityIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  activityTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  loadingContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  emptyText: {
+    marginTop: 8,
+    textAlign: "center",
+    fontSize: 14,
+  },
+  activityItem: {
+    paddingVertical: 12,
+  },
+  activityItemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  activityItemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  activityItemText: {
+    flex: 1,
+  },
+  activityItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  activityItemLeft: {
     flex: 1,
   },
   activityType: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   activityName: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
   },
   activityTime: {
-    fontSize: 12,
-  },
-  activityCard: {
-    marginTop: 16, // Reduced margin since button is now fixed in header
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    fontSize: 11,
   },
   shiftStatusContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   shiftStatusButton: {
     padding: 16,
-    paddingRight: 20,
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  shiftButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  shiftButtonLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   iconContainer: {
     width: 40,
@@ -666,7 +978,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
   },
   chevronContainer: {

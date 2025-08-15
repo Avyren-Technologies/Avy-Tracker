@@ -1,206 +1,368 @@
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, StyleSheet, Platform, StatusBar, Modal, Animated } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../context/ThemeContext';
-import AuthContext from '../../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import BottomNav from '../../components/BottomNav';
-import { groupAdminNavItems } from './utils/navigationItems';
-import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Switch,
+  StyleSheet,
+  StatusBar,
+  Modal,
+  Animated,
+  Dimensions,
+  Image,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../context/ThemeContext";
+import AuthContext from "../../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import BottomNav from "../../components/BottomNav";
+import { groupAdminNavItems } from "./utils/navigationItems";
+import React, { useState, useEffect, useRef } from "react";
+import { getCurrentColors } from "../../utils/themeColors";
+
+const { width, height } = Dimensions.get("window");
 
 interface SettingsItem {
-    icon: string;
-    label: string;
-    action: () => void;
-    showArrow?: boolean;
-    isSwitch?: boolean;
-    switchValue?: boolean;
+  icon: string;
+  label: string;
+  action: () => void;
+  showArrow?: boolean;
+  isSwitch?: boolean;
+  switchValue?: boolean;
 }
 
 export default function GroupAdminSettings() {
-    const { theme, toggleTheme } = ThemeContext.useTheme();
-    const { logout } = AuthContext.useAuth();
-    const router = useRouter();
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [modalAnimation] = useState(new Animated.Value(0));
-    
-    useEffect(() => {
-        if (showLogoutModal) {
-            Animated.timing(modalAnimation, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }).start();
-        } else {
-            Animated.timing(modalAnimation, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [showLogoutModal]);
+  const { theme, toggleTheme } = ThemeContext.useTheme();
+  const { logout } = AuthContext.useAuth();
+  const router = useRouter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [modalAnimation] = useState(new Animated.Value(0));
 
-    const handleLogout = () => {
-        setShowLogoutModal(true);
-    };
+  // Get current theme colors
+  const currentColors = getCurrentColors(theme);
 
-    const confirmLogout = async () => {
-        setShowLogoutModal(false);
-        try {
-          await logout();
-          router.replace("/(auth)/signin");
-        } catch (error) {
-          console.error("Error during logout:", error);
-          router.replace("/(auth)/signin");
-        }
-    };
+  // Animation refs
+  const floatingShapesAnim = useRef(new Animated.Value(0)).current;
 
-    const settingsSections = [
+  useEffect(() => {
+    // Floating shapes animation
+    Animated.loop(
+      Animated.timing(floatingShapesAnim, {
+        toValue: 1,
+        duration: 12000,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    if (showLogoutModal) {
+      Animated.timing(modalAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(modalAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showLogoutModal]);
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    try {
+      logout();
+      router.replace("/(auth)/signin");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      router.replace("/(auth)/signin");
+    }
+  };
+
+  const floatingOffset = floatingShapesAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
+  });
+
+  const settingsSections = [
+    {
+      title: "Account",
+      items: [
         {
-            title: 'Account',
-            items: [
-                {
-                    icon: 'person-outline',
-                    label: 'Profile Settings',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/ProfileSettings'),
-                    showArrow: true
-                } as SettingsItem,
-                {
-                    icon: 'notifications-outline',
-                    label: 'Notifications',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/Notifications'),
-                    showArrow: true
-                },
-                {
-                    icon: 'shield-outline',
-                    label: 'Privacy & Security',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/PrivacySecurity'),
-                    showArrow: true
-                }
-            ]
+          icon: "person-outline",
+          label: "Profile Settings",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/ProfileSettings"),
+          showArrow: true,
+        } as SettingsItem,
+        {
+          icon: "notifications-outline",
+          label: "Notifications",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/Notifications"),
+          showArrow: true,
         },
         {
-            title: 'Group Management',
-            items: [
-                {
-                    icon: 'people-outline',
-                    label: 'User Permissions',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/UserPermissions'),
-                    showArrow: true
-                },
-                {
-                    icon: 'map-outline',
-                    label: 'Tracking Settings',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/TrackingSettings'),
-                    showArrow: true
-                },
-                {
-                    icon: 'receipt-outline',
-                    label: 'Expense Approval Rules',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/ExpenseApprovalRules'),
-                    showArrow: true
-                },
-                // {
-                //     icon: 'git-branch-outline',
-                //     label: 'Leave Workflow Config',
-                //     action: () => router.push('/(dashboard)/Group-Admin/settings/LeaveWorkflowConfig'),
-                //     showArrow: true
-                // }
-            ]
+          icon: "shield-outline",
+          label: "Privacy & Security",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/PrivacySecurity"),
+          showArrow: true,
+        },
+      ],
+    },
+    {
+      title: "Group Management",
+      items: [
+        {
+          icon: "people-outline",
+          label: "User Permissions",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/UserPermissions"),
+          showArrow: true,
         },
         {
-            title: 'Appearance',
-            items: [
-                {
-                    icon: theme === 'dark' ? 'moon' : 'sunny',
-                    label: 'Dark Mode',
-                    action: toggleTheme,
-                    isSwitch: true,
-                    switchValue: theme === 'dark'
-                }
-            ]
+          icon: "map-outline",
+          label: "Tracking Settings",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/TrackingSettings"),
+          showArrow: true,
         },
         {
-            title: 'Support',
-            items: [
-                {
-                    icon: 'help-circle-outline',
-                    label: 'Help & Support',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/HelpSupport'),
-                    showArrow: true
-                },
-                {
-                    icon: 'information-circle-outline',
-                    label: 'About',
-                    action: () => router.push('/(dashboard)/Group-Admin/settings/About'),
-                    showArrow: true
-                }
-            ]
-        }
-    ];
+          icon: "receipt-outline",
+          label: "Expense Approval Rules",
+          action: () =>
+            router.push(
+              "/(dashboard)/Group-Admin/settings/ExpenseApprovalRules"
+            ),
+          showArrow: true,
+        },
+        // {
+        //     icon: 'git-branch-outline',
+        //     label: 'Leave Workflow Config',
+        //     action: () => router.push('/(dashboard)/Group-Admin/settings/LeaveWorkflowConfig'),
+        //     showArrow: true
+        // }
+      ],
+    },
+    {
+      title: "Appearance",
+      items: [
+        {
+          icon: theme === "dark" ? "moon" : "sunny",
+          label: "Dark Mode",
+          action: toggleTheme,
+          isSwitch: true,
+          switchValue: theme === "dark",
+        },
+      ],
+    },
+    {
+      title: "Support",
+      items: [
+        {
+          icon: "help-circle-outline",
+          label: "Help & Support",
+          action: () =>
+            router.push("/(dashboard)/Group-Admin/settings/HelpSupport"),
+          showArrow: true,
+        },
+        {
+          icon: "information-circle-outline",
+          label: "About",
+          action: () => router.push("/(dashboard)/Group-Admin/settings/About"),
+          showArrow: true,
+        },
+      ],
+    },
+  ];
 
-    return (
-      <View
-        className="flex-1"
-        style={{ backgroundColor: theme === "dark" ? "#111827" : "#F3F4F6" }}
+  return (
+    <>
+      <StatusBar
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={currentColors.background}
+        translucent={false}
+        animated={true}
+      />
+
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: currentColors.background }}
       >
-        <StatusBar
-          backgroundColor={theme === "dark" ? "#1F2937" : "#FFFFFF"}
-          barStyle={theme === "dark" ? "light-content" : "dark-content"}
-        />
-
-        {/* Header */}
+        {/* Main background */}
         <View
-          className={`${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-          style={styles.header}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
         >
-          <View className="flex-row items-center justify-between px-4 pt-3 pb-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className={`p-2 rounded-full ${
-                theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-              }`}
-              style={{
-                width: 40,
-                height: 40,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Ionicons
-                name="arrow-back"
-                size={24}
-                color={theme === "dark" ? "#FFFFFF" : "#111827"}
-              />
-            </TouchableOpacity>
-            <View
+          {/* Subtle gradient overlay */}
+          <LinearGradient
+            colors={[
+              currentColors.background,
+              theme === "dark"
+                ? "rgba(59, 130, 246, 0.05)"
+                : "rgba(59, 130, 246, 0.02)",
+              currentColors.background,
+            ]}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+
+          {/* Floating geometric shapes */}
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          >
+            {/* Blue circle */}
+            <Animated.View
               style={{
                 position: "absolute",
-                left: 0,
-                right: 0,
-                alignItems: "center",
+                top: height * 0.1,
+                right: width * 0.1,
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: currentColors.primary,
+                opacity: 0.15,
+                transform: [{ translateY: floatingOffset }],
               }}
-            >
-              <Text
-                className={`text-xl font-semibold ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Settings
-              </Text>
-            </View>
-            <View style={{ width: 40 }} />
+            />
+
+            {/* Sky square */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: height * 0.3,
+                left: width * 0.1,
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                backgroundColor: currentColors.secondary,
+                opacity: 0.2,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -15],
+                    }),
+                  },
+                ],
+              }}
+            />
+
+            {/* Indigo triangle */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: height * 0.7,
+                right: width * 0.2,
+                width: 0,
+                height: 0,
+                borderLeftWidth: 20,
+                borderRightWidth: 20,
+                borderBottomWidth: 35,
+                borderLeftColor: "transparent",
+                borderRightColor: "transparent",
+                borderBottomColor: currentColors.accent,
+                opacity: 0.1,
+                transform: [
+                  {
+                    translateY: floatingOffset.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 10],
+                    }),
+                  },
+                ],
+              }}
+            />
           </View>
         </View>
 
-        {/* Settings Content with Enhanced Styling */}
+        {/* Header */}
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: currentColors.surface,
+              borderBottomColor: currentColors.border,
+              shadowColor: currentColors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 5,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor:
+                theme === "dark"
+                  ? "rgba(59, 130, 246, 0.2)"
+                  : "rgba(59, 130, 246, 0.1)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: currentColors.border,
+            }}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={currentColors.primary}
+            />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text
+              style={[
+                styles.headerTitle,
+                {
+                  color: currentColors.text,
+                  textShadowColor:
+                    theme === "dark"
+                      ? "rgba(0, 0, 0, 0.5)"
+                      : "rgba(255, 255, 255, 0.8)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                },
+              ]}
+            >
+              Settings
+            </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Settings Content */}
         <ScrollView
-          className={`flex-1 ${
-            theme === "dark" ? "bg-gray-900" : "bg-gray-50"
-          }`}
-          showsVerticalScrollIndicator={false}
           style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
         >
           {settingsSections.map((section, sectionIndex) => (
             <View
@@ -323,191 +485,212 @@ export default function GroupAdminSettings() {
         <BottomNav items={groupAdminNavItems} />
 
         <Modal
-            visible={showLogoutModal}
-            transparent
-            animationType="none"
-            onRequestClose={() => setShowLogoutModal(false)}
+          visible={showLogoutModal}
+          transparent
+          animationType="none"
+          onRequestClose={() => setShowLogoutModal(false)}
         >
-            <Animated.View 
-                style={[
-                    styles.modalOverlay,
+          <Animated.View
+            style={[
+              styles.modalOverlay,
+              {
+                opacity: modalAnimation,
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+              },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                {
+                  opacity: modalAnimation,
+                  transform: [
                     {
-                        opacity: modalAnimation,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    }
-                ]}
+                      scale: modalAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1],
+                      }),
+                    },
+                  ],
+                  backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF",
+                },
+              ]}
             >
-                <Animated.View
-                    style={[
-                        styles.modalContainer,
-                        {
-                            opacity: modalAnimation,
-                            transform: [
-                                {
-                                    scale: modalAnimation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [0.9, 1],
-                                    }),
-                                },
-                            ],
-                            backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF",
-                        },
-                    ]}
+              <View className="items-center mb-2">
+                <View className="w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4">
+                  <Ionicons name="log-out-outline" size={32} color="#EF4444" />
+                </View>
+                <Text
+                  className={`text-xl font-bold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}
                 >
-                    <View className="items-center mb-2">
-                        <View className="w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4">
-                            <Ionicons name="log-out-outline" size={32} color="#EF4444" />
-                        </View>
-                        <Text className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                            Logout Confirmation
-                        </Text>
-                    </View>
-                    
-                    <Text className={`text-center my-4 px-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                        Are you sure you want to logout from your account?
-                    </Text>
-                    
-                    <View className="flex-row mt-2 px-2">
-                        <TouchableOpacity
-                            onPress={() => setShowLogoutModal(false)}
-                            className={`flex-1 py-3 mr-2 rounded-xl ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}
-                        >
-                            <Text className={`text-center font-semibold ${theme === "dark" ? "text-white" : "text-gray-800"}`}>
-                                Cancel
-                            </Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                            onPress={confirmLogout}
-                            className="flex-1 py-3 ml-2 rounded-xl bg-red-500"
-                        >
-                            <Text className="text-center text-white font-semibold">
-                                Logout
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </Animated.View>
+                  Logout Confirmation
+                </Text>
+              </View>
+
+              <Text
+                className={`text-center my-4 px-4 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
+                Are you sure you want to logout from your account?
+              </Text>
+
+              <View className="flex-row mt-2 px-2">
+                <TouchableOpacity
+                  onPress={() => setShowLogoutModal(false)}
+                  className={`flex-1 py-3 mr-2 rounded-xl ${
+                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                  }`}
+                >
+                  <Text
+                    className={`text-center font-semibold ${
+                      theme === "dark" ? "text-white" : "text-gray-800"
+                    }`}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={confirmLogout}
+                  className="flex-1 py-3 ml-2 rounded-xl bg-red-500"
+                >
+                  <Text className="text-center text-white font-semibold">
+                    Logout
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
+          </Animated.View>
         </Modal>
-      </View>
-    );
+      </SafeAreaView>
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "transparent",
+  },
+  headerTextContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  backButton: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  sectionContent: {
+    borderRadius: 16,
+    marginHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  settingItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  settingItemBorder: {
+    borderBottomWidth: 1,
+  },
+  settingItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    flex: 1,
+  },
+  switch: {
+    transform: [{ scale: 0.9 }],
+  },
+  arrowContainer: {
+    padding: 4,
+  },
+  logoutButtonContainer: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
+  logoutGradient: {
+    borderRadius: 12,
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  logoutText: {
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  versionContainer: {
+    marginTop: 8,
+    marginBottom: 32,
+    alignItems: "center",
+  },
+  versionText: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "85%",
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
     },
-    header: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    headerTitle: {
-        fontSize: 28,
-        letterSpacing: 0.5,
-    },
-    backButton: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    section: {
-        marginBottom: 8,
-    },
-    sectionTitle: {
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-    },
-    sectionContent: {
-        borderRadius: 16,
-        marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    settingItem: {
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-    },
-    settingItemBorder: {
-        borderBottomWidth: 1,
-    },
-    settingItemLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    settingLabel: {
-        fontSize: 16,
-        fontWeight: '500',
-        flex: 1,
-    },
-    switch: {
-        transform: [{ scale: 0.9 }],
-    },
-    arrowContainer: {
-        padding: 4,
-    },
-    logoutButtonContainer: {
-        marginHorizontal: 16,
-        marginVertical: 8,
-    },
-    logoutGradient: {
-        borderRadius: 12,
-        shadowColor: '#DC2626',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    logoutText: {
-        textAlign: 'center',
-        fontSize: 16,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-    },
-    versionContainer: {
-        marginTop: 8,
-        marginBottom: 32,
-        alignItems: 'center',
-    },
-    versionText: {
-        fontSize: 14,
-        opacity: 0.7,
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContainer: {
-        width: '85%',
-        padding: 20,
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 3,
-        },
-        shadowOpacity: 0.27,
-        shadowRadius: 4.65,
-        elevation: 6,
-    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+  },
 });
