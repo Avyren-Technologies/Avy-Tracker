@@ -7,4 +7,7 @@ export interface User {
   company_id?: number;
   group_id?: number;
   profile_image?: string;
-} 
+}
+
+// Export OTP types
+export * from './otp'; 

@@ -14,6 +14,7 @@ import {
   StyleSheet,
   TextInput,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -30,7 +31,26 @@ import useLocationStore from "../../store/locationStore";
 import * as Location from "expo-location";
 import { useFocusEffect } from "@react-navigation/native";
 import { Location as AppLocation } from "../../types/liveTracking";
-import { AppState } from "react-native";
+import { AppState, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Import new components
+import FaceVerificationModal from "../../components/FaceVerificationModal";
+import EmbeddedMap from "../../components/EmbeddedMap";
+import OTPVerification from "../../components/OTPVerification";
+import VerificationOrchestrator from "../../components/VerificationOrchestrator";
+
+// Import deep link utilities
+import { promptFaceConfiguration } from "../../utils/deepLinkUtils";
+
+// Import types - define locally since verification types may not be exported
+interface FaceVerificationResult {
+  success: boolean;
+  confidence?: number;
+  error?: string;
+  imageData?: string;
+}
 
 interface ShiftData {
   date: string;
@@ -55,6 +75,42 @@ interface RecentShift {
 interface WarningMessage {
   title: string;
   message: string;
+}
+
+interface VerificationState {
+  faceVerificationRequired: boolean;
+  locationVerificationRequired: boolean;
+  verificationInProgress: boolean;
+  verificationResults: {
+    face: FaceVerificationResult | null;
+    location: LocationResult | null;
+  };
+  currentStep: 'location' | 'face' | 'complete';
+  retryCount: number;
+  maxRetries: number;
+  canOverride: boolean;
+  overrideReason?: string;
+}
+
+interface LocationResult {
+  success: boolean;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+  isInGeofence?: boolean;
+  geofenceName?: string;
+  error?: string;
+  confidence?: number;
+}
+
+interface OfflineVerificationData {
+  id: string;
+  timestamp: number;
+  shiftAction: 'start' | 'end';
+  faceVerification?: FaceVerificationResult;
+  locationVerification?: LocationResult;
+  userId: number;
+  synced: boolean;
 }
 
 // Add notification-related constants
@@ -560,6 +616,41 @@ export default function EmployeeShiftTracker() {
   const [shiftCooldownUntil, setShiftCooldownUntil] = useState<Date | null>(null);
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
 
+  // Face verification state
+  const [showFaceVerificationModal, setShowFaceVerificationModal] = useState(false);
+  const [faceVerificationMode, setFaceVerificationMode] = useState<'register' | 'verify'>('verify');
+  const [verificationState, setVerificationState] = useState<VerificationState>({
+    faceVerificationRequired: false,
+    locationVerificationRequired: false,
+    verificationInProgress: false,
+    verificationResults: {
+      face: null,
+      location: null,
+    },
+    currentStep: 'location',
+    retryCount: 0,
+    maxRetries: 3,
+    canOverride: false,
+  });
+
+  // Enhanced verification orchestrator state
+  const [showVerificationOrchestrator, setShowVerificationOrchestrator] = useState(false);
+  const [pendingShiftAction, setPendingShiftAction] = useState<'start' | 'end' | null>(null);
+  const [verificationConfig, setVerificationConfig] = useState({
+    requireLocation: true,
+    requireFace: true,
+    allowLocationFallback: true,
+    allowFaceFallback: true,
+    maxRetries: 3,
+    timeoutMs: 30000,
+    confidenceThreshold: 0.7,
+  });
+  const [showManagerOverride, setShowManagerOverride] = useState(false);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [offlineVerificationQueue, setOfflineVerificationQueue] = useState<OfflineVerificationData[]>([]);
+  const [faceRegistrationRequired, setFaceRegistrationRequired] = useState(false);
+  const [showEmbeddedMap, setShowEmbeddedMap] = useState(true);
+
   // Get the API endpoint based on user role
   const apiEndpoint = getApiEndpoint(user?.role || "employee");
 
@@ -572,7 +663,7 @@ export default function EmployeeShiftTracker() {
     setBatteryLevel,
   } = useLocationStore();
 
-  const { getCurrentLocation } = useLocationTracking({
+  const { getCurrentLocation, startTracking, stopTracking } = useLocationTracking({
     onError: (error) => {
       console.error("Location tracking error:", error);
       setLocationErrorMessage(error);
@@ -580,10 +671,419 @@ export default function EmployeeShiftTracker() {
     },
   });
 
-  const { isLocationInAnyGeofence } = useGeofencing();
+  const { isLocationInAnyGeofence, getCurrentGeofence } = useGeofencing();
 
   // Check if the user can override geofence restrictions
   const [canOverrideGeofence, setCanOverrideGeofence] = useState(false);
+
+  // Function declarations (moved up to avoid hoisting issues)
+  const updateShiftState = useCallback((active: boolean, startTime: Date | null) => {
+    setIsShiftActive(active);
+    setShiftStart(startTime);
+    
+    if (active && startTime) {
+      setElapsedTime(0);
+      // startAnimations will be called from useEffect
+    } else {
+      setElapsedTime(0);
+      pulseAnim.setValue(1);
+      rotateAnim.setValue(0);
+    }
+  }, [pulseAnim, rotateAnim]);
+
+  const showWarningMessages = useCallback(() => {
+    if (warningMessages.length > 0) {
+      setCurrentWarningIndex(0);
+      setShowWarningModal(true);
+    }
+  }, []);
+
+
+
+
+
+  const setShiftCooldown = async () => {
+    const cooldownDuration = 30000; // 30 seconds
+    const cooldownEnd = new Date(Date.now() + cooldownDuration);
+    setShiftCooldownUntil(cooldownEnd);
+    setCooldownTimeLeft(cooldownDuration / 1000);
+    
+    // Start countdown timer
+    const countdownInterval = setInterval(() => {
+      setCooldownTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setShiftCooldownUntil(null);
+          setCooldownTimeLeft(0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+
+
+  // Face verification utility functions
+  const checkFaceRegistrationStatus = useCallback(async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const isRegistered = response.data?.isRegistered || false;
+      setFaceRegistrationRequired(!isRegistered);
+      return isRegistered;
+    } catch (error) {
+      console.error('Error checking face registration status:', error);
+      return false;
+    }
+  }, [token]);
+
+  const performLocationVerification = useCallback(async (): Promise<LocationResult> => {
+    try {
+      // Use cached location first for faster response
+      let appLocation = convertToLocation(currentLocation);
+      
+      // If no cached location or it's stale, get fresh location
+      const isLocationStale = !appLocation?.timestamp || 
+        new Date().getTime() - new Date(appLocation.timestamp).getTime() > 120000; // 2 minutes
+      
+      if (!appLocation || isLocationStale) {
+        try {
+          const locationPromise = getCurrentLocation();
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Location timeout')), 5000);
+          });
+          
+          const locationResult = await Promise.race([locationPromise, timeoutPromise]);
+          if (locationResult) {
+            appLocation = convertToLocation(locationResult);
+            if (locationResult && typeof locationResult === 'object' && 'coords' in locationResult) {
+              useLocationStore.getState().setCurrentLocation(locationResult as any);
+            }
+          }
+        } catch (locationError) {
+          console.log('Location fetch failed, using cached location');
+        }
+      }
+
+      if (!appLocation) {
+        return {
+          success: false,
+          error: 'Unable to get current location'
+        };
+      }
+
+      // Check geofence status
+      const isInside = isLocationInAnyGeofence(appLocation);
+      const currentGeofence = getCurrentGeofence();
+      
+      return {
+        success: true,
+        latitude: appLocation.latitude,
+        longitude: appLocation.longitude,
+        accuracy: appLocation.accuracy || undefined,
+        isInGeofence: isInside,
+        geofenceName: currentGeofence?.name,
+      };
+    } catch (error) {
+      console.error('Location verification failed:', error);
+      return {
+        success: false,
+        error: 'Location verification failed'
+      };
+    }
+  }, [currentLocation, getCurrentLocation, isLocationInAnyGeofence]);
+
+  const queueOfflineVerification = useCallback(async (data: Omit<OfflineVerificationData, 'id' | 'timestamp' | 'synced'>) => {
+    const offlineData: OfflineVerificationData = {
+      ...data,
+      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: Date.now(),
+      synced: false,
+    };
+
+    try {
+      const existingQueue = await AsyncStorage.getItem('offlineVerificationQueue');
+      const queue = existingQueue ? JSON.parse(existingQueue) : [];
+      queue.push(offlineData);
+      
+      await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(queue));
+      setOfflineVerificationQueue(queue);
+      
+      console.log('Queued offline verification:', offlineData.id);
+    } catch (error) {
+      console.error('Error queueing offline verification:', error);
+    }
+  }, []);
+
+  const syncOfflineVerifications = useCallback(async () => {
+    try {
+      const queueData = await AsyncStorage.getItem('offlineVerificationQueue');
+      if (!queueData) return;
+
+      const queue: OfflineVerificationData[] = JSON.parse(queueData);
+      const unsyncedItems = queue.filter(item => !item.synced);
+
+      if (unsyncedItems.length === 0) return;
+
+      console.log(`Syncing ${unsyncedItems.length} offline verifications`);
+
+      for (const item of unsyncedItems) {
+        try {
+          await axios.post(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/sync-offline`,
+            item,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          // Mark as synced
+          item.synced = true;
+        } catch (error) {
+          console.error(`Failed to sync offline verification ${item.id}:`, error);
+        }
+      }
+
+      // Update storage with synced items
+      await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(queue));
+      setOfflineVerificationQueue(queue);
+
+      // Clean up old synced items (older than 7 days)
+      const cleanupThreshold = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const cleanedQueue = queue.filter(item => !item.synced || item.timestamp > cleanupThreshold);
+      
+      if (cleanedQueue.length !== queue.length) {
+        await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(cleanedQueue));
+        setOfflineVerificationQueue(cleanedQueue);
+      }
+    } catch (error) {
+      console.error('Error syncing offline verifications:', error);
+    }
+  }, [token]);
+
+  const resetVerificationState = useCallback(() => {
+    setVerificationState({
+      faceVerificationRequired: false,
+      locationVerificationRequired: false,
+      verificationInProgress: false,
+      verificationResults: {
+        face: null,
+        location: null,
+      },
+      currentStep: 'location',
+      retryCount: 0,
+      maxRetries: 3,
+      canOverride: false,
+    });
+    setShowFaceVerificationModal(false);
+    setShowEmbeddedMap(false);
+    setShowOTPVerification(false);
+    setShowManagerOverride(false);
+    setPendingShiftAction(null);
+  }, []);
+
+  // Face verification handlers
+  const handleFaceVerificationError = useCallback((error: any) => {
+    console.error('Face verification failed:', error);
+    
+    setVerificationState(prev => ({
+      ...prev,
+      retryCount: prev.retryCount + 1,
+    }));
+
+    setShowFaceVerificationModal(false);
+
+    // Check if max retries reached
+    if (verificationState.retryCount >= verificationState.maxRetries - 1) {
+      // Show manager override option
+      setVerificationState(prev => ({
+        ...prev,
+        canOverride: true,
+      }));
+      setShowManagerOverride(true);
+    } else {
+      // Show retry option with face setup option
+      const buttons = [
+        {
+          text: 'Cancel',
+          style: 'cancel' as const,
+          onPress: () => resetVerificationState(),
+        },
+        {
+          text: 'Retry',
+          onPress: () => {
+            setShowFaceVerificationModal(true);
+          },
+        },
+      ];
+
+      // Add face setup option if face is not registered or verification keeps failing
+      if (error.message?.includes('not registered') || error.message?.includes('profile not found') || verificationState.retryCount >= 2) {
+        buttons.splice(1, 0, {
+          text: 'Setup Face',
+          onPress: async () => {
+            resetVerificationState();
+            await promptFaceConfiguration('shift-tracker-error');
+          },
+        });
+      }
+
+      Alert.alert(
+        'Face Verification Failed',
+        `${error.message}\n\nWould you like to try again? (${verificationState.retryCount + 1}/${verificationState.maxRetries})`,
+        buttons
+      );
+    }
+  }, [verificationState.retryCount, verificationState.maxRetries]);
+
+  const handleManagerOverride = useCallback(async (reason: string) => {
+    try {
+      // Request manager override via OTP
+      setShowOTPVerification(true);
+      setVerificationState(prev => ({
+        ...prev,
+        overrideReason: reason,
+      }));
+    } catch (error) {
+      console.error('Error requesting manager override:', error);
+      showInAppNotification('Failed to request manager override', 'error');
+    }
+  }, []);
+
+  const handleOTPSuccess = useCallback(async () => {
+    console.log('OTP verification successful - proceeding with manager override');
+    setShowOTPVerification(false);
+    
+    // Mark verification as overridden and proceed
+    setVerificationState(prev => ({
+      ...prev,
+      verificationResults: {
+        ...prev.verificationResults,
+        face: {
+          success: true,
+          confidence: 0,
+          livenessDetected: false,
+          faceEncoding: '',
+          timestamp: new Date(),
+          overridden: true,
+          overrideReason: prev.overrideReason,
+        },
+      },
+    }));
+
+    await proceedWithShiftAction();
+  }, []);
+
+  const executeShiftStart = useCallback(async (verificationData: any) => {
+    const now = new Date();
+    
+    // Prepare location data from verification results
+    const locationData = verificationData.locationVerification?.success ? {
+      latitude: verificationData.locationVerification.latitude,
+      longitude: verificationData.locationVerification.longitude,
+      accuracy: verificationData.locationVerification.accuracy || 0,
+    } : undefined;
+
+    // Make API call with verification data
+    const response = await axios.post(
+      `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/start`,
+      {
+        startTime: formatDateForBackend(now),
+        location: locationData,
+        faceVerification: verificationData.faceVerification,
+        verificationTimestamp: verificationData.timestamp,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      }
+    );
+
+    // Update UI state
+    updateShiftState(true, now);
+
+    // Store shift status
+    await AsyncStorage.setItem(
+      `${user?.role}-shiftStatus`,
+      JSON.stringify({
+        isActive: true,
+        startTime: now.toISOString(),
+        verificationData,
+      })
+    );
+
+    // Show success message
+    setModalData({
+      title: "Shift Started Successfully",
+      message: `Your shift has started at ${format(now, "hh:mm a")} with verified identity and location.`,
+      type: "success",
+      showCancel: false,
+    });
+    setShowModal(true);
+
+    // Set cooldown and background operations
+    await setShiftCooldown();
+    InteractionManager.runAfterInteractions(async () => {
+      await scheduleFastNotifications();
+      showWarningMessages();
+    });
+  }, [apiEndpoint, token, user?.role, updateShiftState, setShiftCooldown]);
+
+  const executeShiftEnd = useCallback(async (verificationData: any) => {
+    const now = new Date();
+    if (!shiftStart) return;
+
+    // Prepare location data from verification results
+    const locationData = verificationData.locationVerification?.success ? {
+      latitude: verificationData.locationVerification.latitude,
+      longitude: verificationData.locationVerification.longitude,
+      accuracy: verificationData.locationVerification.accuracy || 0,
+    } : undefined;
+
+    // Make API call with verification data
+    const response = await axios.post(
+      `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
+      {
+        endTime: formatDateForBackend(now),
+        location: locationData,
+        faceVerification: verificationData.faceVerification,
+        verificationTimestamp: verificationData.timestamp,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      }
+    );
+
+    // Update UI state
+    updateShiftState(false, null);
+
+    // Clear shift status
+    await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
+
+    // Calculate duration
+    const duration = formatElapsedTime(differenceInSeconds(now, shiftStart));
+
+    // Show success message
+    setModalData({
+      title: "Shift Completed Successfully",
+      message: `Your shift has ended at ${format(now, "hh:mm a")} with verified identity and location.\n\nDuration: ${duration}`,
+      type: "success",
+      showCancel: false,
+    });
+    setShowModal(true);
+
+    // Set cooldown and background operations
+    await setShiftCooldown();
+    InteractionManager.runAfterInteractions(async () => {
+      await cancelShiftNotifications();
+      await loadShiftHistoryFromBackend();
+    });
+  }, [apiEndpoint, token, shiftStart, updateShiftState, user?.role, setShiftCooldown]);
+
+
 
   // Add this function before the useEffect
   const fetchAndUpdateGeofencePermissions = async () => {
@@ -648,7 +1148,9 @@ export default function EmployeeShiftTracker() {
   useEffect(() => {
     console.log("ShiftTracker mounted - fetching initial permissions");
     fetchAndUpdateGeofencePermissions();
-  }, []);
+    checkFaceRegistrationStatus();
+    syncOfflineVerifications();
+  }, [checkFaceRegistrationStatus, syncOfflineVerifications]);
 
   // Load persistent state and cooldown
   useEffect(() => {
@@ -676,16 +1178,7 @@ export default function EmployeeShiftTracker() {
     }
   };
 
-  // Set cooldown state
-  const setShiftCooldown = async () => {
-    try {
-      const cooldownUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-      setShiftCooldownUntil(cooldownUntil);
-      await AsyncStorage.setItem(`${user?.role}-shiftCooldown`, JSON.stringify(cooldownUntil.toISOString()));
-    } catch (error) {
-      console.error("Error setting cooldown state:", error);
-    }
-  };
+
 
   // Clear cooldown state
   const clearShiftCooldown = async () => {
@@ -701,6 +1194,7 @@ export default function EmployeeShiftTracker() {
   // Animation effects
   useEffect(() => {
     if (isShiftActive) {
+      // Start animations when shift becomes active
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -717,7 +1211,6 @@ export default function EmployeeShiftTracker() {
           }),
         ])
       ).start();
-
       Animated.loop(
         Animated.timing(rotateAnim, {
           toValue: 1,
@@ -730,7 +1223,7 @@ export default function EmployeeShiftTracker() {
       pulseAnim.setValue(1);
       rotateAnim.setValue(0);
     }
-  }, [isShiftActive]);
+  }, [isShiftActive, pulseAnim, rotateAnim]);
 
   // Add this effect near other animation effects
   useEffect(() => {
@@ -892,34 +1385,7 @@ export default function EmployeeShiftTracker() {
       .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Optimize animations with useCallback
-  const startAnimations = useCallback(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
 
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 3000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-  }, [pulseAnim, rotateAnim]);
 
   // Add this helper function at the top
   const formatDateForBackend = (date: Date) => {
@@ -1451,19 +1917,7 @@ export default function EmployeeShiftTracker() {
     return { allowed: true, reason: null };
   }, [lastClickTime, shiftCooldownUntil, cooldownTimeLeft, isShiftActive]);
 
-  // Centralized state update function
-  const updateShiftState = useCallback((isActive: boolean, startTime: Date | null) => {
-    setIsShiftActive(isActive);
-    setShiftStart(startTime);
-    setElapsedTime(startTime ? differenceInSeconds(new Date(), startTime) : 0);
-    
-    if (isActive && startTime) {
-      startAnimations();
-    } else {
-      pulseAnim.setValue(1);
-      rotateAnim.setValue(0);
-    }
-  }, [pulseAnim, rotateAnim, startAnimations]);
+
 
   // Fix the useEffect that updates battery level
   useEffect(() => {
@@ -1711,10 +2165,7 @@ export default function EmployeeShiftTracker() {
     };
   }, [isShiftActive, isLocationServiceEnabled, user?.role]);
 
-  // Replace the sequential warnings function with a single modal
-  const showWarningMessages = useCallback(() => {
-    setShowWarningModal(true);
-  }, []);
+
 
   // Add this helper function to safely get location
   const safeGetCurrentLocation = async (): Promise<AppLocation | null> => {
@@ -1834,173 +2285,104 @@ export default function EmployeeShiftTracker() {
     setIsProcessingShift(true);
 
     try {
-      const now = new Date();
-
-      // Quick location check for employees (non-blocking)
-      let locationData: any = undefined;
-      if (user?.role === 'employee') {
-        try {
-          // Try to use cached location first for faster response
-          let appLocation = convertToLocation(currentLocation);
-          
-          // If no cached location or it's very stale (>5 minutes), get fresh location
-          const isLocationVeryStale = !appLocation?.timestamp || 
-            new Date().getTime() - new Date(appLocation.timestamp).getTime() > 300000;
-          
-          if (!appLocation || isLocationVeryStale) {
-            // Get location with shorter timeout for faster response
-            const locationPromise = getCurrentLocation();
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Location timeout')), 5000); // 5 second timeout
-            });
-            
-            try {
-              const locationResult = await Promise.race([locationPromise, timeoutPromise]);
-              appLocation = locationResult ? convertToLocation(locationResult) : null;
-              
-              if (appLocation && locationResult && typeof locationResult === 'object' && 'coords' in locationResult) {
-                useLocationStore.getState().setCurrentLocation(locationResult as any);
-              }
-            } catch (locationError) {
-              console.log("Quick location fetch failed, using cached location");
-              // Continue with cached location or no location
-            }
-          }
-
-          // Quick geofence validation
-          if (appLocation) {
-            const isInside = isLocationInAnyGeofence(appLocation);
-            
-            // Only block if outside geofence AND no override permission
-            if (!isInside && !canOverrideGeofence) {
-              setLocationErrorMessage(
-                "You don't have permission to start your shift outside designated work areas. Please move to a work area or contact your administrator."
-              );
-              setShowLocationError(true);
-              setIsProcessingShift(false);
-              return;
-            }
-
-            locationData = {
-              latitude: appLocation.latitude,
-              longitude: appLocation.longitude,
-              accuracy: appLocation.accuracy || 0,
-            };
-          }
-        } catch (error) {
-          console.log("Location validation failed, proceeding without location data");
-          // Continue without blocking the shift start
-        }
+      // Check if face registration is required
+      const isFaceRegistered = await checkFaceRegistrationStatus();
+      
+      if (!isFaceRegistered) {
+        setIsProcessingShift(false);
+        
+        // Show user-friendly prompt to set up face verification
+        Alert.alert(
+          'Face Verification Setup Required',
+          'To start your shift securely, you need to set up face verification first. This helps ensure only you can start and end your shifts.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Set Up Now',
+              onPress: async () => {
+                await promptFaceConfiguration('shift-start-required');
+              },
+            },
+            {
+              text: 'Register Here',
+              onPress: () => {
+                setFaceVerificationMode('register');
+                setShowFaceVerificationModal(true);
+              },
+            },
+          ]
+        );
+        return;
       }
 
-      // Show immediate UI feedback
-      Animated.timing(pulseAnim, {
-        toValue: 1.05,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
+      // Initialize verification state
+      setPendingShiftAction('start');
+      setVerificationState(prev => ({
+        ...prev,
+        faceVerificationRequired: true,
+        locationVerificationRequired: true,
+        verificationInProgress: true,
+        currentStep: 'location',
+      }));
 
-      // Make API call with shorter timeout for better responsiveness
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/start`,
-        {
-          startTime: formatDateForBackend(now),
-          location: locationData,
+      // Step 1: Perform location verification
+      const locationResult = await performLocationVerification();
+      
+      // Check location requirements for employees
+      if (user?.role === 'employee' && !locationResult.success) {
+        setLocationErrorMessage(locationResult.error || 'Location verification failed');
+        setShowLocationError(true);
+        setIsProcessingShift(false);
+        resetVerificationState();
+        return;
+      }
+
+      // Check geofence requirements for employees
+      if (user?.role === 'employee' && locationResult.success && !locationResult.isInGeofence && !canOverrideGeofence) {
+        setLocationErrorMessage(
+          "You don't have permission to start your shift outside designated work areas. Please move to a work area or contact your administrator."
+        );
+        setShowLocationError(true);
+        setIsProcessingShift(false);
+        resetVerificationState();
+        return;
+      }
+
+      // Store location verification result
+      setVerificationState(prev => ({
+        ...prev,
+        verificationResults: {
+          ...prev.verificationResults,
+          location: locationResult,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 8000, // Reduced to 8 second timeout
-        }
-      );
+        currentStep: 'face',
+      }));
 
-      // Immediately update UI state after successful API response
-      updateShiftState(true, now);
-
-      // Store basic shift status immediately
-      await AsyncStorage.setItem(
-        `${user?.role}-shiftStatus`,
-        JSON.stringify({
-          isActive: true,
-          startTime: now.toISOString(),
-        })
-      );
-
-      // Show success message immediately
-      setModalData({
-        title: "Shift Started",
-        message: `Your shift has started at ${format(now, "hh:mm a")}. Setting up notifications in the background...`,
-        type: "success",
-        showCancel: false,
-      });
-      setShowModal(true);
-
-      // Set cooldown after successful shift start
-      await setShiftCooldown();
-
-      // Move heavy operations to background - don't wait for them
-      InteractionManager.runAfterInteractions(async () => {
-        try {
-          // Set up notifications in background
-          await scheduleFastNotifications();
-
-          // Send admin notification if not management
-          if (user?.role !== "management") {
-            axios.post(
-              `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
-              {
-                title: `🟢 Shift Started, by ${user?.name}`,
-                message: `👤 ${user?.name} has started their shift at ${format(now, "hh:mm a")} \n⏰ expected duration: ${timerDuration ? `${timerDuration} hours` : `8 hours`}`,
-                type: "shift-start",
-              },
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            ).catch(error => console.log("Admin notification failed:", error));
-          }
-
-          // Show warning messages after everything is set up
-          setTimeout(() => {
-            showWarningMessages();
-          }, 1000);
-        } catch (error) {
-          console.error("Background operations failed:", error);
-          showInAppNotification("Shift started but some features may be limited", "warning");
-        }
-      });
+      // Step 2: Perform face verification
+      setFaceVerificationMode('verify');
+      setShowFaceVerificationModal(true);
+      setIsProcessingShift(false);
 
     } catch (error: any) {
-      console.error("Error starting shift:", error);
+      console.error("Error in shift start verification:", error);
+      setIsProcessingShift(false);
+      resetVerificationState();
       
-      // Revert any UI changes
-      updateShiftState(false, null);
-      
-      let errorMessage = "Failed to start shift. Please try again.";
-      if (error.code === 'ECONNABORTED') {
-        errorMessage = "Request timed out. Please check your connection and try again.";
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      }
-
       setModalData({
-        title: "Error Starting Shift",
-        message: errorMessage,
+        title: "Verification Error",
+        message: "Failed to start verification process. Please try again.",
         type: "info",
         showCancel: false,
       });
       setShowModal(true);
-    } finally {
-      setIsProcessingShift(false);
-      // Reset button animation
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
     }
   };
 
-  // Optimized handleEndShift
-  const handleEndShift = () => {
+  // Enhanced handleEndShift with face verification
+  const handleEndShift = async () => {
     // Enhanced validation with cooldown check
     const validation = isShiftActionAllowed();
     if (!validation.allowed || isProcessingShift) {
@@ -2010,21 +2392,183 @@ export default function EmployeeShiftTracker() {
       return;
     }
 
-    // Show immediate animation feedback
-    Animated.timing(pulseAnim, {
-      toValue: 1.05,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-
-    setModalData({
-      title: "End Shift?",
-      message: `Are you sure you want to end your current shift?`,
-      type: "info",
-      showCancel: true,
-    });
-    setShowModal(true);
+    // Show confirmation dialog first
+    Alert.alert(
+      "End Shift?",
+      "Are you sure you want to end your current shift?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "End Shift",
+          onPress: () => startEndShiftVerification('end'),
+        },
+      ]
+    );
   };
+
+  const startEndShiftVerification = useCallback(async (action: 'start' | 'end') => {
+    try {
+      setIsProcessingShift(true);
+      setPendingShiftAction(action);
+      
+      // Configure verification requirements based on shift action and user settings
+      const config = {
+        requireLocation: true,
+        requireFace: true,
+        allowLocationFallback: action === 'end', // Allow location fallback for shift end
+        allowFaceFallback: false, // Face verification is always required
+        maxRetries: 3,
+        timeoutMs: 30000,
+        confidenceThreshold: 0.7,
+      };
+      
+      setVerificationConfig(config);
+      
+      // Show verification orchestrator
+      setShowVerificationOrchestrator(true);
+      
+    } catch (error) {
+      console.error('Error starting verification:', error);
+      setIsProcessingShift(false);
+      showInAppNotification('Failed to start verification. Please try again.', 'error');
+    }
+  }, []);
+
+
+
+  const handleLocationVerificationSuccess = useCallback((locationResult: LocationResult) => {
+    setVerificationState(prev => ({
+      ...prev,
+      verificationResults: {
+        ...prev.verificationResults,
+        location: locationResult,
+      },
+      currentStep: 'face',
+    }));
+    
+    // Close map and show face verification
+    setShowEmbeddedMap(false);
+    setShowFaceVerificationModal(true);
+  }, []);
+
+  const handleFaceVerificationSuccess = useCallback(async (faceResult: FaceVerificationResult) => {
+    setVerificationState(prev => ({
+      ...prev,
+      verificationResults: {
+        ...prev.verificationResults,
+        face: faceResult,
+      },
+      currentStep: 'complete',
+      verificationInProgress: false,
+    }));
+    
+    setShowFaceVerificationModal(false);
+
+    // If this was the last required verification step, proceed with shift action
+    if (verificationState.currentStep === 'face') {
+      await proceedWithShiftAction();
+    }
+  }, [verificationState.currentStep]);
+
+  const proceedWithShiftAction = useCallback(async () => {
+    if (!pendingShiftAction) return;
+
+    try {
+      setVerificationState(prev => ({ ...prev, verificationInProgress: true }));
+
+      const { face: faceResult, location: locationResult } = verificationState.verificationResults;
+
+      // Prepare verification data for API
+      const verificationData = {
+        faceVerification: faceResult,
+        locationVerification: locationResult,
+        timestamp: new Date().toISOString(),
+      };
+
+      if (pendingShiftAction === 'start') {
+        await executeShiftStart(verificationData);
+      } else {
+        await executeShiftEnd(verificationData);
+      }
+
+      // Reset verification state
+      resetVerificationState();
+    } catch (error) {
+      console.error('Error during verification flow:', error);
+      showInAppNotification('Verification failed. Please try again.', 'error');
+      resetVerificationState();
+    }
+  }, [pendingShiftAction, verificationState.verificationResults, resetVerificationState]);
+
+  // Enhanced verification orchestrator handlers
+  const handleVerificationSuccess = useCallback(async (summary: any) => {
+    try {
+      setShowVerificationOrchestrator(false);
+      setIsProcessingShift(true);
+
+      console.log('Verification completed successfully:', summary);
+
+      // Extract verification results from summary
+      const locationStep = summary.completedSteps.includes('location');
+      const faceStep = summary.completedSteps.includes('face');
+
+      // Prepare verification data for API
+      const verificationData = {
+        sessionId: summary.sessionId,
+        confidenceScore: summary.confidenceScore,
+        fallbackMode: summary.fallbackMode,
+        completedSteps: summary.completedSteps,
+        totalLatency: summary.totalLatency,
+        locationVerified: locationStep,
+        faceVerified: faceStep,
+      };
+
+      // Proceed with shift action
+      if (pendingShiftAction === 'start') {
+        await executeShiftStart(verificationData);
+      } else if (pendingShiftAction === 'end') {
+        await executeShiftEnd(verificationData);
+      }
+
+      // Reset state
+      setPendingShiftAction(null);
+      setIsProcessingShift(false);
+
+      // Show success notification
+      showInAppNotification(
+        `Shift ${pendingShiftAction} completed successfully with ${summary.confidenceScore}% confidence`,
+        'success'
+      );
+
+    } catch (error) {
+      console.error('Error processing verification success:', error);
+      setIsProcessingShift(false);
+      showInAppNotification('Failed to process verification. Please try again.', 'error');
+    }
+  }, [pendingShiftAction]);
+
+  const handleVerificationError = useCallback((error: string) => {
+    console.error('Verification failed:', error);
+    setShowVerificationOrchestrator(false);
+    setIsProcessingShift(false);
+    setPendingShiftAction(null);
+    
+    showInAppNotification(error || 'Verification failed. Please try again.', 'error');
+  }, []);
+
+  const handleVerificationCancel = useCallback(() => {
+    console.log('Verification cancelled by user');
+    setShowVerificationOrchestrator(false);
+    setIsProcessingShift(false);
+    setPendingShiftAction(null);
+    
+    showInAppNotification('Verification cancelled', 'info');
+  }, []);
+
+
 
   // Optimized confirmEndShift - fast UI updates, background processing
   const confirmEndShift = async () => {
@@ -2036,7 +2580,7 @@ export default function EmployeeShiftTracker() {
         setIsProcessingShift(false);
         return;
       }
-
+      
       // Quick location check for employees (non-blocking)
       let locationData: any = undefined;
       if (user?.role === 'employee' && !timerEndTime) {
@@ -2066,7 +2610,7 @@ export default function EmployeeShiftTracker() {
               console.log("Quick location fetch failed for shift end, using cached location");
             }
           }
-
+          
           // Quick geofence validation
           if (appLocation) {
             const isInside = isLocationInAnyGeofence(appLocation);
@@ -2080,7 +2624,6 @@ export default function EmployeeShiftTracker() {
               setIsProcessingShift(false);
               return;
             }
-
             locationData = {
               latitude: appLocation.latitude,
               longitude: appLocation.longitude,
@@ -2091,7 +2634,7 @@ export default function EmployeeShiftTracker() {
           console.log("Location validation failed for shift end, proceeding without location data");
         }
       }
-
+      
       // Cancel any active timer immediately (non-blocking)
       if (timerEndTime) {
         setTimerDuration(null);
@@ -2105,13 +2648,13 @@ export default function EmployeeShiftTracker() {
           console.log("Non-critical error cancelling timer:", error);
         });
       }
-
+      
       // Close modal immediately for better UX
       setShowModal(false);
-
+      
       // Calculate duration for immediate feedback
       const duration = formatElapsedTime(differenceInSeconds(now, shiftStart));
-
+      
       // Make API call with shorter timeout
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
@@ -2124,10 +2667,10 @@ export default function EmployeeShiftTracker() {
           timeout: 8000, // Reduced from 15s to 8s
         }
       );
-
+      
       // Immediately update UI state after successful API response
       updateShiftState(false, null);
-
+      
       // Clear monitoring resources immediately
       if (locationOffTimer) {
         clearTimeout(locationOffTimer);
@@ -2141,14 +2684,29 @@ export default function EmployeeShiftTracker() {
         clearInterval(locationWatchId as any);
         setLocationWatchId(null);
       }
-
+      
       // Store basic shift status change immediately
       await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-
-      // Show completion modal immediately
-      const modalTitle = "Shift Completed";
-      const modalMessage = `Your shift has ended successfully.\n\nTotal Duration: ${duration}\nStart: ${format(shiftStart, "hh:mm a")}\nEnd: ${format(now, "hh:mm a")}\n\nProcessing attendance in the background...`;
-
+      
+      // Handle Sparrow warnings and show modal immediately
+      let modalTitle = "Shift Completed";
+      let modalMessage = `Your shift has ended successfully.\n\nTotal Duration: ${duration}\nStart: ${format(shiftStart, "hh:mm a")}\nEnd: ${format(now, "hh:mm a")}`;
+      
+      if (response.data.sparrowWarning) {
+        const warningMessage = response.data.sparrowMessage || "There was an issue with the attendance system.";
+        
+        if (response.data.sparrowErrorType === 'SPARROW_COOLDOWN_ERROR') {
+          modalTitle = "Attendance Error";
+          modalMessage = response.data.sparrowErrors?.[0] || "You need to wait before ending your shift.";
+        } else {
+          modalTitle = response.data.sparrowErrorType === 'SPARROW_ROSTER_ERROR' ? "Roster Warning" : 
+                     response.data.sparrowErrorType === 'SPARROW_SCHEDULE_ERROR' ? "Schedule Warning" : "Attendance Warning";
+          modalMessage = warningMessage;
+        }
+      } else {
+        modalMessage += "\n\nProcessing attendance in the background...";
+      }
+      
       // Show completion modal immediately
       setModalData({
         title: modalTitle,
@@ -2157,10 +2715,10 @@ export default function EmployeeShiftTracker() {
         showCancel: false,
       });
       setShowModal(true);
-
+      
       // Set cooldown after successful shift end
       await setShiftCooldown();
-
+      
       // Move heavy operations to background
       InteractionManager.runAfterInteractions(async () => {
         try {
@@ -2171,7 +2729,7 @@ export default function EmployeeShiftTracker() {
             endTime: format(now, "HH:mm:ss"),
             duration,
           };
-
+          
           // Cancel notifications and update storage in background
           const backgroundPromises = [
             cancelShiftNotifications(),
@@ -2182,7 +2740,7 @@ export default function EmployeeShiftTracker() {
             loadShiftHistoryFromBackend(),
             fetchRecentShifts(),
           ];
-
+          
           // Send admin notification if not management
           if (user?.role !== "management") {
             backgroundPromises.push(
@@ -2199,37 +2757,39 @@ export default function EmployeeShiftTracker() {
               ).then(() => {}).catch(error => console.log("Admin notification failed:", error))
             );
           }
-
+          
           // Execute all background operations
           await Promise.allSettled(backgroundPromises);
-
+          
           // Update modal message to show completion
-          setModalData(prev => ({
-            ...prev,
-            message: prev.message.replace("Processing attendance in the background...", "Attendance has been successfully registered.")
-          }));
+          if (!response.data.sparrowWarning) {
+            setModalData(prev => ({
+              ...prev,
+              message: prev.message.replace("Processing attendance in the background...", "Attendance has been successfully registered.")
+            }));
+          }
         } catch (error) {
           console.error("Background operations failed for shift end:", error);
           showInAppNotification("Shift ended but some background operations failed", "warning");
         }
       });
-
+      
       // Reset location validation state
       setLocationValidated(false);
-
+      
     } catch (error: any) {
       console.error("Error ending shift:", error);
-
+      
       // Revert UI state on error
       updateShiftState(true, shiftStart);
-
+      
       let errorMessage = "Failed to end shift. Please try again.";
       if (error.code === 'ECONNABORTED') {
         errorMessage = "Request timed out. Please check your connection and try again.";
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-
+      
       setModalData({
         title: "Error Ending Shift",
         message: errorMessage,
@@ -2821,6 +3381,91 @@ export default function EmployeeShiftTracker() {
   //   };
   // }, [user?.role]);
 
+  // Handler functions for embedded map integration
+  const handleMapLocationUpdate = useCallback((location: AppLocation) => {
+    console.log('Map location updated:', location);
+    
+    // Update the current location in the store
+    if (location.latitude && location.longitude) {
+      const enhancedLocation = {
+        coords: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy || null,
+          altitude: location.altitude || null,
+          altitudeAccuracy: location.altitudeAccuracy || null,
+          heading: location.heading || null,
+          speed: location.speed || null,
+        },
+        timestamp: typeof location.timestamp === 'string' 
+          ? new Date(location.timestamp).getTime() 
+          : location.timestamp || Date.now(),
+        batteryLevel: location.batteryLevel,
+        isMoving: location.isMoving,
+      };
+      
+      useLocationStore.getState().setCurrentLocation(enhancedLocation);
+      
+      // Update address
+      getLocationAddress(location.latitude, location.longitude)
+        .then(address => setCurrentAddress(address))
+        .catch(error => console.log("Error getting address from map:", error));
+    }
+  }, []);
+
+  const handleGeofenceStatusChange = useCallback((isInside: boolean, geofenceName?: string) => {
+    console.log('Geofence status changed:', { isInside, geofenceName });
+    
+    // Update geofence status in store
+    const currentGeofence = getCurrentGeofence();
+    setIsInGeofence(isInside, currentGeofence?.id);
+    
+    // Show notification for geofence changes during active shift
+    if (isShiftActive) {
+      const message = isInside 
+        ? `Entered work area: ${geofenceName || 'Unknown'}`
+        : `Exited work area: ${geofenceName || 'Unknown'}`;
+      
+      showInAppNotification(message, isInside ? 'success' : 'warning');
+    }
+  }, [isShiftActive, getCurrentGeofence, setIsInGeofence]);
+
+  const handleLocationRetry = useCallback(async () => {
+    try {
+      setShowLocationError(false);
+      setLocationErrorMessage('');
+      
+      // Show loading state
+      showInAppNotification('Retrying location...', 'info');
+      
+      // Try to get current location
+      const location = await getCurrentLocation();
+      
+      if (location) {
+        const appLocation = convertToLocation(location);
+        if (appLocation?.latitude && appLocation?.longitude) {
+          // Update address
+          const address = await getLocationAddress(appLocation.latitude, appLocation.longitude);
+          setCurrentAddress(address);
+          
+          // Check geofence status
+          const isInside = isLocationInAnyGeofence(appLocation);
+          const currentGeofence = getCurrentGeofence();
+          setIsInGeofence(isInside, currentGeofence?.id);
+          
+          showInAppNotification('Location updated successfully', 'success');
+        }
+      } else {
+        throw new Error('Unable to get current location');
+      }
+    } catch (error) {
+      console.error('Location retry failed:', error);
+      setLocationErrorMessage(String(error));
+      setShowLocationError(true);
+      showInAppNotification('Location retry failed', 'error');
+    }
+  }, [getCurrentLocation, isLocationInAnyGeofence, getCurrentGeofence, setIsInGeofence]);
+
   return (
     <View className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       <StatusBar
@@ -2883,7 +3528,7 @@ export default function EmployeeShiftTracker() {
               isDark ? "bg-gray-800" : "bg-white"
             }`}
           >
-            <View className="flex-row justify-between items-center mb-2">
+            <View className="flex-row justify-between items-center mb-4">
               <Text
                 className={`font-semibold ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -2906,77 +3551,249 @@ export default function EmployeeShiftTracker() {
               </View>
             </View>
 
-            <View className="flex-row justify-between items-center">
-              <View>
-                <Text
-                  className={`text-xs ${
-                    isDark ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Current Position
-                </Text>
-                <View className="flex-row items-center">
-                  <Text className={`${isDark ? "text-white" : "text-gray-800"}`}>
-                    {currentAddress}
-                  </Text>
-                  <TouchableOpacity 
-                    onPress={handleAddressRefresh}
-                    disabled={isAddressRefreshing}
-                    className="ml-2"
-                  >
-                    <Animated.View style={{ transform: [{ rotate: addressRefreshRotate }] }}>
+            {/* Embedded Map Section */}
+            {showEmbeddedMap && (
+              <View className="flex-row mb-4">
+                <View className="flex-1 mr-4">
+                  <EmbeddedMap
+                    size={{ width: 150, height: 150 }}
+                    currentLocation={convertToLocation(currentLocation)}
+                    onLocationUpdate={handleMapLocationUpdate}
+                    onGeofenceStatusChange={handleGeofenceStatusChange}
+                    showCurrentLocation={true}
+                    showGeofences={true}
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: isDark ? '#374151' : '#e5e7eb',
+                    }}
+                  />
+                </View>
+                <View className="flex-1 justify-center">
+                  <View className="mb-3">
+                    <Text
+                      className={`text-xs ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      Current Position
+                    </Text>
+                    <View className="flex-row items-center">
+                      <Text className={`text-sm ${isDark ? "text-white" : "text-gray-800"}`} numberOfLines={2}>
+                        {currentAddress}
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={handleAddressRefresh}
+                        disabled={isAddressRefreshing}
+                        className="ml-2"
+                      >
+                        <Animated.View style={{ transform: [{ rotate: addressRefreshRotate }] }}>
+                          <Ionicons
+                            name="refresh-outline"
+                            size={16}
+                            color={isDark ? "#9CA3AF" : "#6B7280"}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View className="mb-3">
+                    <Text
+                      className={`text-xs ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      Battery Level
+                    </Text>
+                    <View className="flex-row items-center">
                       <Ionicons
-                        name="refresh-outline"
+                        name={
+                          batteryLevel > 75
+                            ? "battery-full"
+                            : batteryLevel > 45
+                            ? "battery-half"
+                            : batteryLevel > 15
+                            ? "battery-half"
+                            : "battery-dead"
+                        }
                         size={16}
-                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                        color={
+                          batteryLevel > 20
+                            ? isDark
+                              ? "#10B981"
+                              : "#059669"
+                            : "#EF4444"
+                        }
+                        style={{ marginRight: 4 }}
                       />
-                    </Animated.View>
-                  </TouchableOpacity>
+                      <Text
+                        className={`${
+                          batteryLevel > 20
+                            ? isDark
+                              ? "text-green-400"
+                              : "text-green-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {batteryLevel}%
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Location accuracy indicator */}
+                  {currentLocation?.coords?.accuracy && (
+                    <View>
+                      <Text
+                        className={`text-xs ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        GPS Accuracy
+                      </Text>
+                      <View className="flex-row items-center">
+                        <Ionicons
+                          name="radio-outline"
+                          size={16}
+                          color={
+                            currentLocation.coords.accuracy < 10
+                              ? "#10B981"
+                              : currentLocation.coords.accuracy < 50
+                              ? "#F59E0B"
+                              : "#EF4444"
+                          }
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text
+                          className={`text-sm ${
+                            currentLocation.coords.accuracy < 10
+                              ? isDark ? "text-green-400" : "text-green-600"
+                              : currentLocation.coords.accuracy < 50
+                              ? isDark ? "text-yellow-400" : "text-yellow-600"
+                              : "text-red-500"
+                          }`}
+                        >
+                          ±{Math.round(currentLocation.coords.accuracy)}m
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </View>
+            )}
 
-              <View>
-                <Text
-                  className={`text-xs text-right ${
-                    isDark ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Battery
-                </Text>
-                <View className="flex-row items-center justify-end">
-                  <Ionicons
-                    name={
-                      batteryLevel > 75
-                        ? "battery-full"
-                        : batteryLevel > 45
-                        ? "battery-half"
-                        : batteryLevel > 15
-                        ? "battery-half"
-                        : "battery-dead"
-                    }
-                    size={16}
-                    color={
-                      batteryLevel > 20
-                        ? isDark
-                          ? "#10B981"
-                          : "#059669"
-                        : "#EF4444"
-                    }
-                    style={{ marginRight: 4 }}
-                  />
+            {/* Fallback location display when map is hidden */}
+            {!showEmbeddedMap && (
+              <View className="flex-row justify-between items-center mb-2">
+                <View>
                   <Text
-                    className={`${
-                      batteryLevel > 20
-                        ? isDark
-                          ? "text-green-400"
-                          : "text-green-600"
-                        : "text-red-500"
+                    className={`text-xs ${
+                      isDark ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    {batteryLevel}%
+                    Current Position
                   </Text>
+                  <View className="flex-row items-center">
+                    <Text className={`${isDark ? "text-white" : "text-gray-800"}`}>
+                      {currentAddress}
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={handleAddressRefresh}
+                      disabled={isAddressRefreshing}
+                      className="ml-2"
+                    >
+                      <Animated.View style={{ transform: [{ rotate: addressRefreshRotate }] }}>
+                        <Ionicons
+                          name="refresh-outline"
+                          size={16}
+                          color={isDark ? "#9CA3AF" : "#6B7280"}
+                        />
+                      </Animated.View>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View>
+                  <Text
+                    className={`text-xs text-right ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Battery
+                  </Text>
+                  <View className="flex-row items-center justify-end">
+                    <Ionicons
+                      name={
+                        batteryLevel > 75
+                          ? "battery-full"
+                          : batteryLevel > 45
+                          ? "battery-half"
+                          : batteryLevel > 15
+                          ? "battery-half"
+                          : "battery-dead"
+                      }
+                      size={16}
+                      color={
+                        batteryLevel > 20
+                          ? isDark
+                            ? "#10B981"
+                            : "#059669"
+                          : "#EF4444"
+                      }
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      className={`${
+                        batteryLevel > 20
+                          ? isDark
+                            ? "text-green-400"
+                            : "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {batteryLevel}%
+                    </Text>
+                  </View>
                 </View>
               </View>
+            )}
+
+            {/* Geofence status indicators */}
+            <View className="flex-row justify-between items-center mb-2">
+              <View className="flex-row items-center">
+                <Ionicons
+                  name={isInGeofence ? "location" : "location-outline"}
+                  size={16}
+                  color={isInGeofence ? "#10B981" : "#F59E0B"}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  {isInGeofence 
+                    ? `Inside: ${getCurrentGeofence()?.name || 'Work Area'}`
+                    : 'Outside work areas'
+                  }
+                </Text>
+              </View>
+              
+              {/* Map toggle button */}
+              <TouchableOpacity
+                onPress={() => setShowEmbeddedMap(!showEmbeddedMap)}
+                className={`px-3 py-1 rounded-full ${
+                  isDark ? "bg-gray-700" : "bg-gray-100"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-600"
+                  }`}
+                >
+                  {showEmbeddedMap ? "Hide Map" : "Show Map"}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Add geofence override indicator */}
@@ -2985,6 +3802,29 @@ export default function EmployeeShiftTracker() {
                 <Text className="text-xs text-blue-800 font-medium">
                   Geofence Override Enabled
                 </Text>
+              </View>
+            )}
+
+            {/* Location error handling */}
+            {showLocationError && (
+              <View className="mt-2 p-3 bg-red-100 rounded-lg">
+                <View className="flex-row items-center">
+                  <Ionicons name="warning" size={16} color="#EF4444" />
+                  <Text className="text-red-800 text-sm font-medium ml-2">
+                    Location Error
+                  </Text>
+                </View>
+                <Text className="text-red-700 text-sm mt-1">
+                  {locationErrorMessage}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleLocationRetry}
+                  className="mt-2 px-3 py-1 bg-red-500 rounded-md self-start"
+                >
+                  <Text className="text-white text-xs font-medium">
+                    Retry Location
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -3027,7 +3867,7 @@ export default function EmployeeShiftTracker() {
             }}
           >
             <TouchableOpacity
-              onPress={isShiftActive ? handleEndShift : handleStartShift}
+              onPress={isShiftActive ? () => startEndShiftVerification('end') : () => startEndShiftVerification('start')}
               disabled={isProcessingShift || ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0)}
               className={`w-40 h-40 rounded-full items-center justify-center ${
                 isProcessingShift || ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0)
@@ -3521,6 +4361,205 @@ export default function EmployeeShiftTracker() {
           </View>
         </View>
       </Modal>
+
+      {/* Face Verification Modal */}
+      <FaceVerificationModal
+        visible={showFaceVerificationModal}
+        mode={faceVerificationMode}
+        onSuccess={handleFaceVerificationSuccess}
+        onError={handleFaceVerificationError}
+        onCancel={() => {
+          setShowFaceVerificationModal(false);
+          resetVerificationState();
+        }}
+        retryCount={verificationState.retryCount}
+        maxRetries={verificationState.maxRetries}
+        title={faceVerificationMode === 'register' ? 'Register Your Face' : 'Verify Your Identity'}
+        subtitle={faceVerificationMode === 'register' 
+          ? 'Please register your face to enable secure shift operations'
+          : 'Please look at the camera and blink to verify your identity'
+        }
+      />
+
+      {/* Manager Override Modal */}
+      <Modal
+        visible={showManagerOverride}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowManagerOverride(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className={`m-5 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} w-5/6`}>
+            <View className="flex-row items-center mb-4">
+              <Ionicons name="shield-checkmark" size={24} color="#f59e0b" />
+              <Text className={`text-xl font-bold ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Manager Override Required
+              </Text>
+            </View>
+            
+            <Text className={`text-base mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Face verification failed after {verificationState.maxRetries} attempts. 
+              A manager override is required to proceed with the shift operation.
+            </Text>
+
+            <Text className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              This will require OTP verification from a manager.
+            </Text>
+
+            <View className="flex-row justify-end space-x-3">
+              <TouchableOpacity
+                onPress={() => {
+                  setShowManagerOverride(false);
+                  resetVerificationState();
+                }}
+                className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}
+              >
+                <Text className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  setShowManagerOverride(false);
+                  handleManagerOverride('Face verification failed - manager override requested');
+                }}
+                className="px-4 py-2 rounded-lg bg-orange-500"
+              >
+                <Text className="text-white font-semibold">Request Override</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* OTP Verification Modal */}
+      <OTPVerification
+        visible={showOTPVerification}
+        purpose="manager_override"
+        phoneNumber={user?.phone || ''}
+        onSuccess={handleOTPSuccess}
+        onError={(error) => {
+          console.error('OTP verification failed:', error);
+          setShowOTPVerification(false);
+          showInAppNotification('Manager override failed. Please try again.', 'error');
+        }}
+        onCancel={() => {
+          setShowOTPVerification(false);
+          resetVerificationState();
+        }}
+        title="Manager Override Verification"
+        subtitle="Enter the OTP sent to the manager's phone to authorize this override"
+        maxAttempts={3}
+        expiryMinutes={5}
+      />
+
+      {/* Face Verification Modal */}
+      <FaceVerificationModal
+        visible={showFaceVerificationModal}
+        mode="verify"
+        onSuccess={handleFaceVerificationSuccess}
+        onError={handleFaceVerificationError}
+        onCancel={() => {
+          setShowFaceVerificationModal(false);
+          resetVerificationState();
+        }}
+        title="Face Verification Required"
+        subtitle="Please look at the camera to verify your identity"
+        retryCount={verificationState.retryCount}
+        maxRetries={verificationState.maxRetries}
+      />
+
+      {/* Embedded Map for Location Verification */}
+      <Modal visible={showEmbeddedMap} transparent animationType="slide">
+        <View className="flex-1 bg-black/50">
+          <View className={`flex-1 m-4 rounded-xl overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+            <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+              <Text className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Location Verification
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowEmbeddedMap(false);
+                  resetVerificationState();
+                }}
+                className="p-2"
+              >
+                <Ionicons name="close" size={24} color={isDark ? "#9CA3AF" : "#6B7280"} />
+              </TouchableOpacity>
+            </View>
+            <EmbeddedMap
+              onLocationUpdate={(location) => {
+                // Handle location update and verification
+                const locationResult: LocationResult = {
+                  success: true,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  accuracy: location.accuracy || 0,
+                  isInGeofence: isLocationInAnyGeofence(location),
+                  geofenceName: getCurrentGeofence?.name,
+                };
+                handleLocationVerificationSuccess(locationResult);
+              }}
+              onGeofenceStatusChange={(isInside, geofenceName) => {
+                // Update geofence status
+                console.log('Geofence status changed:', { isInside, geofenceName });
+              }}
+              showCurrentLocation={true}
+              showGeofences={true}
+              size={{ width: screenWidth - 32, height: screenHeight - 200 }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+
+
+      {/* Verification Progress Overlay */}
+      {verificationState.verificationInProgress && (
+        <Modal transparent visible={true}>
+          <View className="flex-1 justify-center items-center bg-black/50">
+            <View className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} w-4/5`}>
+              <View className="items-center">
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text className={`text-lg font-semibold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Processing Verification
+                </Text>
+                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {verificationState.currentStep === 'location' 
+                    ? 'Verifying your location...'
+                    : verificationState.currentStep === 'face'
+                    ? 'Processing face verification...'
+                    : 'Completing shift operation...'
+                  }
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Enhanced Verification Orchestrator */}
+      <VerificationOrchestrator
+        visible={showVerificationOrchestrator}
+        userId={Number(user?.id) || 0}
+        token={token || ''}
+        shiftAction={pendingShiftAction || 'start'}
+        config={verificationConfig}
+        onSuccess={handleVerificationSuccess}
+        onCancel={handleVerificationCancel}
+        onError={handleVerificationError}
+        locationVerificationFn={performLocationVerification}
+        canOverrideGeofence={canOverrideGeofence}
+      />
+
+      {/* In-app notification */}
+      <InAppNotification
+        visible={inAppNotification.visible}
+        message={inAppNotification.message}
+        type={inAppNotification.type}
+        onDismiss={() => setInAppNotification(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }

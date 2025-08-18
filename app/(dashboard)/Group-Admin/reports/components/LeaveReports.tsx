@@ -329,6 +329,7 @@ export default function LeaveReports({ section, isDark }: { section: ReportSecti
             width={screenWidth}
             height={220}
             yAxisLabel=""
+            yAxisSuffix=""
             chartConfig={{
               backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
               backgroundGradientFrom: isDark ? '#1F2937' : '#FFFFFF',
@@ -401,6 +402,7 @@ export default function LeaveReports({ section, isDark }: { section: ReportSecti
               width={screenWidth}
               height={220}
               yAxisLabel=""
+              yAxisSuffix=""
               chartConfig={{
                 backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
                 backgroundGradientFrom: isDark ? '#1F2937' : '#FFFFFF',
@@ -621,7 +623,7 @@ export default function LeaveReports({ section, isDark }: { section: ReportSecti
         {renderMetricsCards()}
         <GraphSelector
           options={graphOptions}
-          selected={graphType}
+          selectedType={graphType}
           onSelect={setGraphType}
           isDark={isDark}
         />

@@ -25,6 +25,7 @@ import TaskList from './components/TaskList';
 import BottomNav from '../../components/BottomNav';
 import { employeeNavItems } from './utils/navigationItems';
 import Constants from 'expo-constants';
+import { promptFaceConfiguration } from '../../utils/deepLinkUtils';
 // import PushNotificationService from '../../utils/pushNotificationService';
 
 // Add Task interface
@@ -66,38 +67,78 @@ export default function EmployeeDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [faceRegistrationStatus, setFaceRegistrationStatus] = useState<{
+    registered: boolean;
+    enabled: boolean;
+    loading: boolean;
+  }>({ registered: false, enabled: true, loading: true });
 
-  // Add new state for quick actions
-  const [quickActions] = useState([
-    {
-      id: 1,
-      title: "Shift Tracker",
-      icon: "time-outline",
-      color: "#10B981",
-      action: () => router.push("/(dashboard)/shared/shiftTracker"),
-    },
-    {
-      id: 2,
-      title: "Submit Expenses",
-      icon: "receipt-outline",
-      color: "#F59E0B",
-      action: () => router.push("/(dashboard)/employee/employeeExpenses"),
-    },
-    {
-      id: 3,
-      title: "View Schedule",
-      icon: "calendar-outline",
-      color: "#3B82F6",
-      action: () => router.push("/(dashboard)/employee/employeeSchedule"),
-    },
-    {
-      id: 4,
-      title: "Request Leave",
-      icon: "airplane-outline",
-      color: "#8B5CF6",
-      action: () => router.push("/(dashboard)/employee/leave-insights"),
-    },
-  ]);
+  // Fetch face registration status
+  const fetchFaceRegistrationStatus = async () => {
+    try {
+      setFaceRegistrationStatus(prev => ({ ...prev, loading: true }));
+      const response = await axios.get(
+        `${API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setFaceRegistrationStatus({
+        registered: response.data.face_registered || false,
+        enabled: response.data.face_enabled !== false,
+        loading: false
+      });
+    } catch (error) {
+      console.error("Error fetching face registration status:", error);
+      setFaceRegistrationStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Dynamic quick actions based on face registration status
+  const getQuickActions = () => {
+    const baseActions = [
+      {
+        id: 1,
+        title: "Shift Tracker",
+        icon: "time-outline",
+        color: "#10B981",
+        action: () => router.push("/(dashboard)/shared/shiftTracker"),
+      },
+      {
+        id: 2,
+        title: "Submit Expenses",
+        icon: "receipt-outline",
+        color: "#F59E0B",
+        action: () => router.push("/(dashboard)/employee/employeeExpenses"),
+      },
+      {
+        id: 3,
+        title: "View Schedule",
+        icon: "calendar-outline",
+        color: "#3B82F6",
+        action: () => router.push("/(dashboard)/employee/employeeSchedule"),
+      },
+      {
+        id: 4,
+        title: "Request Leave",
+        icon: "airplane-outline",
+        color: "#8B5CF6",
+        action: () => router.push("/(dashboard)/employee/leave-insights"),
+      },
+    ];
+
+    // Add face setup action if not registered or if there are issues
+    if (!faceRegistrationStatus.loading && !faceRegistrationStatus.registered) {
+      baseActions.splice(1, 0, {
+        id: 5,
+        title: "Set Up Face Verification",
+        icon: "shield-outline",
+        color: "#EF4444",
+        action: () => promptFaceConfiguration('dashboard-quick-action'),
+      });
+    }
+
+    return baseActions;
+  };
 
   // Add isFocused hook
   const isFocused = useIsFocused();
@@ -352,7 +393,7 @@ export default function EmployeeDashboard() {
   // Initial fetch for both tasks and stats
   useEffect(() => {
     const initialFetch = async () => {
-      await Promise.all([fetchTasks(), fetchTaskStats()]);
+      await Promise.all([fetchTasks(), fetchTaskStats(), fetchFaceRegistrationStatus()]);
     };
     initialFetch();
   }, []);
@@ -364,6 +405,7 @@ export default function EmployeeDashboard() {
       await Promise.all([
         fetchTasks(),
         fetchTaskStats(true), // Force refresh stats
+        fetchFaceRegistrationStatus(),
       ]);
     } finally {
       setIsRefreshing(false);
@@ -618,7 +660,7 @@ export default function EmployeeDashboard() {
               Quick Actions
             </Text>
             <View style={styles.quickActionsGrid}>
-              {quickActions.map((action) => (
+              {getQuickActions().map((action) => (
                 <TouchableOpacity
                   key={action.id}
                   style={[

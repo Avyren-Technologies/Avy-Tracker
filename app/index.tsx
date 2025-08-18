@@ -17,8 +17,13 @@ import AuthContext from "./context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Updates from 'expo-updates';
 import * as Network from 'expo-network';
+import { LogBox } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
+
+LogBox.ignoreLogs([
+  'No route named', // ignores all "No route named" warnings
+]);
 
 export default function SplashScreen() {
   const router = useRouter();

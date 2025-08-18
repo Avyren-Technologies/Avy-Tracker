@@ -57,6 +57,11 @@ export default function EmployeeSettings() {
   const [profileImage, setProfileImage] = React.useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   const [modalAnimation] = React.useState(new Animated.Value(0));
+  const [faceRegistrationStatus, setFaceRegistrationStatus] = React.useState<{
+    registered: boolean;
+    enabled: boolean;
+    loading: boolean;
+  }>({ registered: false, enabled: true, loading: true });
 
   React.useEffect(() => {
     setDarkMode(theme === "dark");
@@ -65,6 +70,7 @@ export default function EmployeeSettings() {
   React.useEffect(() => {
     if (user?.id) {
       fetchProfileImage();
+      fetchFaceRegistrationStatus();
     }
   }, [user?.id]);
 
@@ -98,10 +104,71 @@ export default function EmployeeSettings() {
     }
   };
 
+  const fetchFaceRegistrationStatus = async () => {
+    try {
+      setFaceRegistrationStatus(prev => ({ ...prev, loading: true }));
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setFaceRegistrationStatus({
+        registered: response.data.face_registered || false,
+        enabled: response.data.face_enabled !== false, // Default to true if not specified
+        loading: false
+      });
+    } catch (error) {
+      console.error("Error fetching face registration status:", error);
+      setFaceRegistrationStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const handleThemeToggle = (value: boolean) => {
     setDarkMode(value);
     toggleTheme();
   };
+
+  const handleFaceRegistration = () => {
+    router.push("/(dashboard)/employee/face-registration" as any);
+  };
+
+  const handleFaceConfiguration = () => {
+    router.push("/(dashboard)/employee/face-configuration" as any);
+  };
+
+  const handleFaceSetup = () => {
+    if (faceRegistrationStatus.registered) {
+      handleFaceConfiguration();
+    } else {
+      handleFaceRegistration();
+    }
+  };
+
+  // Deep linking handler for face configuration
+  React.useEffect(() => {
+    const handleDeepLink = async () => {
+      try {
+        // Check if there's a deep link parameter for face configuration
+        const deepLinkAction = await AsyncStorage.getItem('deepLink_faceConfiguration');
+        if (deepLinkAction) {
+          await AsyncStorage.removeItem('deepLink_faceConfiguration');
+
+          // Wait for face registration status to load
+          if (!faceRegistrationStatus.loading) {
+            if (deepLinkAction === 'configure' && faceRegistrationStatus.registered) {
+              handleFaceConfiguration();
+            } else if (deepLinkAction === 'register' && !faceRegistrationStatus.registered) {
+              handleFaceRegistration();
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error handling deep link:', error);
+      }
+    };
+
+    handleDeepLink();
+  }, [faceRegistrationStatus.loading, faceRegistrationStatus.registered]);
 
   const settingsSections: SettingSection[] = [
     {
@@ -123,6 +190,21 @@ export default function EmployeeSettings() {
           type: "switch",
           value: notifications,
           onChange: setNotifications,
+        },
+      ],
+    },
+    {
+      title: "Security",
+      items: [
+        {
+          icon: faceRegistrationStatus.registered ? "shield-checkmark-outline" : "shield-outline",
+          title: faceRegistrationStatus.registered ? "Face Configuration" : "Set Up Face Verification",
+          subtitle: faceRegistrationStatus.loading
+            ? "Loading..."
+            : faceRegistrationStatus.registered
+              ? "Manage your face profile and settings"
+              : "Secure your shifts with face verification",
+          action: handleFaceSetup,
         },
       ],
     },
@@ -210,9 +292,8 @@ export default function EmployeeSettings() {
             />
           </TouchableOpacity>
           <Text
-            className={`text-xl font-bold ${
-              theme === "dark" ? "text-white" : "text-gray-900"
-            }`}
+            className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
+              }`}
           >
             Settings
           </Text>
@@ -221,9 +302,8 @@ export default function EmployeeSettings() {
       </LinearGradient>
 
       <View
-        className={`mx-4 mt-4 p-4 rounded-2xl ${
-          theme === "dark" ? "bg-gray-800" : "bg-white"
-        }`}
+        className={`mx-4 mt-4 p-4 rounded-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"
+          }`}
         style={styles.profileCard}
       >
         <View className="flex-row items-center">
@@ -251,31 +331,27 @@ export default function EmployeeSettings() {
           </View>
           <View className="ml-4 flex-1">
             <Text
-              className={`text-xl font-bold mb-1 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
+              className={`text-xl font-bold mb-1 ${theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
               numberOfLines={1}
             >
               {user?.name}
             </Text>
             <Text
-              className={`text-sm ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}
+              className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}
               numberOfLines={1}
             >
               {user?.email}
             </Text>
             <View className="flex-row items-center mt-1">
               <View
-                className={`px-2 py-1 rounded-full ${
-                  theme === "dark" ? "bg-blue-900/50" : "bg-blue-100"
-                }`}
+                className={`px-2 py-1 rounded-full ${theme === "dark" ? "bg-blue-900/50" : "bg-blue-100"
+                  }`}
               >
                 <Text
-                  className={`text-xs ${
-                    theme === "dark" ? "text-blue-300" : "text-blue-800"
-                  }`}
+                  className={`text-xs ${theme === "dark" ? "text-blue-300" : "text-blue-800"
+                    }`}
                 >
                   {user?.role?.toUpperCase()}
                 </Text>
@@ -289,34 +365,29 @@ export default function EmployeeSettings() {
         {settingsSections.map((section, index) => (
           <View key={index} style={styles.section}>
             <Text
-              className={`text-sm font-semibold mb-2 px-1 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-500"
-              }`}
+              className={`text-sm font-semibold mb-2 px-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+                }`}
             >
               {section.title}
             </Text>
             <View
-              className={`rounded-2xl overflow-hidden ${
-                theme === "dark" ? "bg-gray-800" : "bg-white"
-              }`}
+              className={`rounded-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"
+                }`}
               style={styles.sectionCard}
             >
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
-                  className={`flex-row items-center justify-between p-4 ${
-                    itemIndex < section.items.length - 1 ? "border-b" : ""
-                  } ${
-                    theme === "dark" ? "border-gray-700" : "border-gray-100"
-                  }`}
+                  className={`flex-row items-center justify-between p-4 ${itemIndex < section.items.length - 1 ? "border-b" : ""
+                    } ${theme === "dark" ? "border-gray-700" : "border-gray-100"
+                    }`}
                   onPress={"action" in item ? item.action : undefined}
                   style={styles.settingItem}
                 >
                   <View className="flex-row items-center flex-1">
                     <View
-                      className={`w-8 h-8 rounded-full items-center justify-center ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
+                      className={`w-8 h-8 rounded-full items-center justify-center ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                        }`}
                     >
                       <Ionicons
                         name={item.icon}
@@ -326,17 +397,15 @@ export default function EmployeeSettings() {
                     </View>
                     <View className="ml-3 flex-1">
                       <Text
-                        className={`text-base font-medium ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
+                        className={`text-base font-medium ${theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}
                       >
                         {item.title}
                       </Text>
-                      {!("type" in item) && item.subtitle && (
+                      {item.subtitle && (
                         <Text
-                          className={`text-sm mt-0.5 ${
-                            theme === "dark" ? "text-gray-400" : "text-gray-500"
-                          }`}
+                          className={`text-sm mt-0.5 ${theme === "dark" ? "text-gray-400" : "text-gray-500"
+                            }`}
                         >
                           {item.subtitle}
                         </Text>
@@ -385,7 +454,7 @@ export default function EmployeeSettings() {
         animationType="none"
         onRequestClose={() => setShowLogoutModal(false)}
       >
-        <Animated.View 
+        <Animated.View
           style={[
             styles.modalOverlay,
             {
@@ -419,11 +488,11 @@ export default function EmployeeSettings() {
                 Logout Confirmation
               </Text>
             </View>
-            
+
             <Text className={`text-center my-4 px-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
               Are you sure you want to logout from your account?
             </Text>
-            
+
             <View className="flex-row mt-2 px-2">
               <TouchableOpacity
                 onPress={() => setShowLogoutModal(false)}
@@ -433,7 +502,7 @@ export default function EmployeeSettings() {
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={confirmLogout}
                 className="flex-1 py-3 ml-2 rounded-xl bg-red-500"
