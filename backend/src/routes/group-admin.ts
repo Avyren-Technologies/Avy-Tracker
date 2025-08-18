@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database';
 import { verifyToken } from '../middleware/auth';
@@ -207,7 +207,7 @@ router.post('/employees', verifyToken, async (req: CustomRequest, res: Response)
 });
 
 // Bulk create employees from CSV
-router.post('/employees/bulk', verifyToken, upload.single('file'), async (req: CustomRequest, res: Response) => {
+router.post('/employees/bulk', verifyToken, upload.single('file') as any, async (req: CustomRequest, res: Response) => {
   const client = await pool.connect();
   try {
     if (req.user?.role !== 'group-admin') {

@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { pool } from '../config/database';
 import { CustomRequest } from '../types';
@@ -78,7 +78,7 @@ router.get(
 router.put(
   "/profile",
   authMiddleware,
-  upload.single("profileImage"),
+  upload.single("profileImage") as any,
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {

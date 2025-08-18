@@ -23,6 +23,16 @@ export const pool = new Pool({
 export const initDB = async () => {
   try {
     await seedUsers();
+    
+    // Setup face verification system
+    try {
+      const { setupFaceVerification } = await import('../scripts/setupFaceVerification');
+      await setupFaceVerification();
+    } catch (error) {
+      console.warn('Face verification setup failed:', error);
+      console.warn('Face verification features may not work properly');
+    }
+    
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);

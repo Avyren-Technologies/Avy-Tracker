@@ -1,4 +1,4 @@
-import express, { Response, NextFunction } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import { pool } from '../config/database';
 import { verifyToken } from '../middleware/auth';
 import { CustomRequest } from '../types';
@@ -392,7 +392,7 @@ router.get('/group-admin/reports/expenses/by-employee', verifyToken, async (req:
 router.post(
   "/submit",
   verifyToken,
-  upload.array("documents"),
+  upload.array("documents") as any,
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {

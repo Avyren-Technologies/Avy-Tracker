@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database';
 import { verifyToken, requireSuperAdmin } from '../middleware/auth';
@@ -74,7 +74,7 @@ router.get('/', verifyToken, requireSuperAdmin, async (req: CustomRequest, res: 
 router.post('/', 
   verifyToken, 
   requireSuperAdmin,
-  upload.single('logo'), // Handle file upload
+  upload.single('logo') as any, // Handle file upload
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {

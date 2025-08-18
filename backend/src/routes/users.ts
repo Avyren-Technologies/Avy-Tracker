@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database';
 import { verifyToken, requireSuperAdmin } from '../middleware/auth';
@@ -148,7 +148,7 @@ router.post('/change-password', verifyToken, async (req: CustomRequest, res: Res
 // Add this endpoint after existing routes
 router.put('/profile', 
   verifyToken, 
-  upload.single('profileImage'), 
+  upload.single('profileImage') as any, 
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {

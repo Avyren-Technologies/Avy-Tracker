@@ -28,6 +28,8 @@ import groupAdminNotifications from "./src/routes/groupAdminNotifications";
 import managementNotifications from "./src/routes/managementNotifications";
 import employeeLiveTracking from "./src/routes/employeeLiveTracking";
 import groupAdminLiveTracking from "./src/routes/groupAdminLiveTracking";
+import faceVerificationRoutes from "./src/routes/faceVerification";
+import otpVerificationRoutes from "./src/routes/otpVerification";
 import LocationSocketService from "./src/services/socketService";
 import { createServer } from "http";
 import { startScheduledJobs } from "./src/jobs/scheduledTasks";
@@ -84,6 +86,8 @@ app.use("/api/group-admin-notifications", groupAdminNotifications);
 app.use("/api/management-notifications", managementNotifications);
 app.use("/api/employee-tracking", employeeLiveTracking);
 app.use("/api/group-admin-tracking", groupAdminLiveTracking);
+app.use("/api/face-verification", faceVerificationRoutes);
+app.use("/api/otp", otpVerificationRoutes);
 
 // Test route at root level
 app.get("/api/test", (req, res) => {
@@ -154,6 +158,8 @@ initDB()
     console.log("- /api/management-notifications/*");
     console.log("- /api/employee-tracking/*");
     console.log("- /api/group-admin-tracking/*");
+    console.log("- /api/face-verification/*");
+    console.log("- /api/otp/*");
   })
   .catch((error) => {
     console.error("Failed to initialize:", error);

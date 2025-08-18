@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, RequestHandler } from 'express';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { parse } from 'csv-parse/sync';
@@ -189,7 +189,7 @@ router.post('/', verifyToken, async (req: CustomRequest, res: Response) => {
 });
 
 // Bulk create group admins from CSV
-router.post('/bulk', verifyToken, upload.single('file'), async (req: CustomRequest, res: Response) => {
+router.post('/bulk', verifyToken, upload.single('file') as any, async (req: CustomRequest, res: Response) => {
   const client = await pool.connect();
   try {
     if (!["management", "super-admin"].includes(req.user?.role || "")) {

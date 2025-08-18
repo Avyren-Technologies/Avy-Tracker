@@ -9,16 +9,26 @@
     "build": "tsc",
     "serve": "node dist/server.js",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .ts",
-    "migrate": "node-pg-migrate"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "migrate": "node-pg-migrate",
+    "validate-config": "npx ts-node src/scripts/validateConfig.ts",
+    "setup-db": "createdb shift_tracker_db && psql -d shift_tracker_db -c 'CREATE EXTENSION IF NOT EXISTS postgis;'",
+    "reset-db": "dropdb --if-exists shift_tracker_db && npm run setup-db && npm run migrate",
+    "setup-face-verification": "npx ts-node src/scripts/setupFaceVerification.ts",
+    "test-face-verification": "npx ts-node src/scripts/testFaceVerification.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@socket.io/postgres-adapter": "^0.4.0",
+    "@types/aws-sdk": "^0.0.42",
     "@types/cron": "^2.0.1",
     "@types/csv-parse": "^1.1.12",
     "@types/ioredis": "^4.28.10",
     "@types/multer": "^1.4.12",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.9.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -35,7 +45,9 @@
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.16",
     "pg": "^8.11.3",
-    "socket.io": "^4.8.1"
+    "react-native-vision-camera": "^4.7.1",
+    "socket.io": "^4.8.1",
+    "twilio": "^4.23.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -43,12 +55,16 @@
     "@types/cors": "^2.8.17",
     "@types/date-fns": "^2.5.3",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.4",
     "@types/node-schedule": "^2.1.7",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.10.9",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.0.5",
     "nodemon": "^3.1.9",
+    "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
