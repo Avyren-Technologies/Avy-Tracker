@@ -10,11 +10,11 @@ import {
 // Default liveness detection thresholds
 const DEFAULT_THRESHOLDS: LivenessThresholds = {
   minBlinkDuration: 100, // 100ms minimum blink duration
-  maxBlinkDuration: 500, // 500ms maximum blink duration
-  eyeClosedThreshold: 0.3, // Eye considered closed below 30% open probability
-  eyeOpenThreshold: 0.7, // Eye considered open above 70% open probability
-  minLivenessScore: 0.6, // Minimum 60% liveness score
-  blinkTimeoutMs: 5000, // 5 second timeout for blink detection
+  maxBlinkDuration: 800, // 800ms maximum blink duration - more lenient
+  eyeClosedThreshold: 0.4, // Eye considered closed below 40% open probability - more lenient
+  eyeOpenThreshold: 0.6, // Eye considered open above 60% open probability - more lenient
+  minLivenessScore: 0.5, // Minimum 50% liveness score - more lenient
+  blinkTimeoutMs: 8000, // 8 second timeout for blink detection - more time
 };
 
 // Eye state tracking
@@ -91,7 +91,8 @@ export function useCameraLiveness(
     }
     
     // In between thresholds - maintain previous state to reduce noise
-    return openProbability > 0.5;
+    // More lenient threshold for better detection
+    return openProbability > 0.45;
   }, [livenessThresholds.eyeClosedThreshold, livenessThresholds.eyeOpenThreshold]);
 
   /**
@@ -116,7 +117,7 @@ export function useCameraLiveness(
       const blinkDuration = timestamp - blinkStartTimeRef.current;
       blinkStartTimeRef.current = null;
       
-      // Validate blink duration
+      // Validate blink duration - more lenient for natural blinks
       const isValidBlink = blinkDuration >= livenessThresholds.minBlinkDuration &&
                           blinkDuration <= livenessThresholds.maxBlinkDuration;
       
@@ -131,14 +132,17 @@ export function useCameraLiveness(
         
         blinkEventsRef.current.push(blinkEvent);
         
-        // Keep only recent blinks (last 10 seconds)
-        const tenSecondsAgo = timestamp - 10000;
+        // Keep only recent blinks (last 15 seconds) - longer window
+        const fifteenSecondsAgo = timestamp - 15000;
         blinkEventsRef.current = blinkEventsRef.current.filter(
-          event => event.endTime > tenSecondsAgo
+          event => event.endTime > fifteenSecondsAgo
         );
         
         lastBlinkTimeRef.current = timestamp;
+        console.log('Valid blink detected:', { duration: blinkDuration, totalBlinks: blinkEventsRef.current.length });
         return true;
+      } else {
+        console.log('Invalid blink duration:', { duration: blinkDuration, min: livenessThresholds.minBlinkDuration, max: livenessThresholds.maxBlinkDuration });
       }
     }
     
@@ -182,18 +186,26 @@ export function useCameraLiveness(
     eyeMovementScore: number,
     timeSinceLastBlink: number
   ): number => {
-    // Blink score (40% weight)
-    const blinkScore = Math.min(blinkCount / 3, 1); // Optimal at 3+ blinks
+    // Blink score (50% weight) - more lenient
+    const blinkScore = Math.min(blinkCount / 2, 1); // Optimal at 2+ blinks (reduced from 3)
     
     // Eye movement score (30% weight)
     const movementScore = eyeMovementScore;
     
-    // Recency score (30% weight) - recent blinks are better
-    const maxRecencyTime = 5000; // 5 seconds
+    // Recency score (20% weight) - recent blinks are better, but less strict
+    const maxRecencyTime = 8000; // 8 seconds - more lenient
     const recencyScore = Math.max(0, 1 - (timeSinceLastBlink / maxRecencyTime));
     
     // Weighted average
-    const overallScore = (blinkScore * 0.4) + (movementScore * 0.3) + (recencyScore * 0.3);
+    const overallScore = (blinkScore * 0.5) + (movementScore * 0.3) + (recencyScore * 0.2);
+    
+    console.log('Liveness score calculation:', {
+      blinkCount,
+      blinkScore,
+      movementScore,
+      recencyScore,
+      overallScore
+    });
     
     return Math.min(overallScore, 1);
   }, []);

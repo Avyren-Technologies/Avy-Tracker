@@ -6,8 +6,8 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,9 @@ import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
 import { useAuth } from '../context/AuthContext';
 import FaceVerificationModal from '../components/FaceVerificationModal';
 import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
+import { useFaceDetection } from '../hooks/useFaceDetection';
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 
 
@@ -42,6 +44,13 @@ export default function FaceRegistration() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const { token } = useAuth();
+
+  // Face detection hook
+  // const { device } = useFaceDetection({
+  //   performanceMode: 'fast',
+  //   enableLivenessDetection: true,
+  //   qualityThreshold: 0.7,
+  // });
 
   // Theme colors
   const backgroundColor = useThemeColor('#ffffff', '#1e293b');
@@ -123,9 +132,30 @@ export default function FaceRegistration() {
     setCurrentStep(1);
   };
 
+  const handleFaceRegistrationTest = () => {
+    router.push('/(testing)/face-registration-test');
+  }
+
+  const handlecameraLivenessTest = () => {
+    router.push('/(testing)/camera-liveness-test');
+  }
+
+  const checkFaceDetectionBug = () => {
+    router.push('/(testing)/face-detection-debug');
+  }
+
+  const checkFaceVerificationTest = () => {
+    router.push('/(testing)/face-verification-test');
+  }
+
+  const checkFinalTest = () => {
+    router.push('/(testing)/final-face-test');
+  }
+
+
   const handleFaceRegistrationSuccess = async (result: FaceVerificationResult) => {
     console.log('Face registration successful for angle:', captureStep, result);
-    
+
     // Add this capture to our collection
     const newCapturedAngles = [...capturedAngles, result];
     setCapturedAngles(newCapturedAngles);
@@ -136,7 +166,7 @@ export default function FaceRegistration() {
       // Move to next angle
       const nextStep = captureStep + 1;
       setCaptureStep(nextStep);
-      
+
       Alert.alert(
         'Capture Complete',
         `${captureAngles[captureStep].name} captured successfully!\n\nNext: ${captureAngles[nextStep].name}`,
@@ -151,7 +181,7 @@ export default function FaceRegistration() {
   const processMultiAngleRegistration = async (angles: FaceVerificationResult[]) => {
     try {
       setIsLoading(true);
-      
+
       // Combine all face encodings for better accuracy
       const combinedResult: FaceVerificationResult = {
         success: true,
@@ -186,11 +216,13 @@ export default function FaceRegistration() {
         'Registration Error',
         'Failed to complete face registration. Please try again.',
         [
-          { text: 'Retry', onPress: () => {
-            setCapturedAngles([]);
-            setCaptureStep(0);
-            setCurrentStep(1);
-          }},
+          {
+            text: 'Retry', onPress: () => {
+              setCapturedAngles([]);
+              setCaptureStep(0);
+              setCurrentStep(1);
+            }
+          },
           { text: 'Cancel', onPress: () => router.back() }
         ]
       );
@@ -260,7 +292,7 @@ export default function FaceRegistration() {
   };
 
   const renderConsentStep = () => (
-    <ScrollView className="flex-1 p-6">
+    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
       <View className="items-center mb-8">
         <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
           style={{ backgroundColor: primaryColor }}>
@@ -312,6 +344,56 @@ export default function FaceRegistration() {
       </TouchableOpacity>
 
       <TouchableOpacity
+        onPress={handleFaceRegistrationTest}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: primaryColor }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          Test Face Registration First
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={handlecameraLivenessTest}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: primaryColor }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          Test Camera Liveness Test
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={checkFaceDetectionBug}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: primaryColor }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          Check Face Detection Bug (Debug)
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={checkFaceVerificationTest}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: primaryColor }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          Check Face Verification Test
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={checkFinalTest}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: primaryColor }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          Check Face Verification Final Test
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         onPress={() => router.back()}
         className={`py-3 px-6 rounded-lg`}
         style={{ backgroundColor: borderColor }}
@@ -324,7 +406,7 @@ export default function FaceRegistration() {
   );
 
   const renderRegistrationStep = () => (
-    <View className="flex-1 p-6">
+    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
       <View className="items-center mb-8">
         <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
           style={{ backgroundColor: primaryColor }}>
@@ -363,21 +445,21 @@ export default function FaceRegistration() {
               )}
             </View>
             <View className="flex-1">
-              <Text className={`font-medium`} style={{ 
-                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor 
+              <Text className={`font-medium`} style={{
+                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor
               }}>
                 {angle.name}
               </Text>
-              <Text className={`text-sm`} style={{ 
-                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor 
+              <Text className={`text-sm`} style={{
+                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor
               }}>
                 {angle.description}
               </Text>
             </View>
-            <Ionicons 
-              name={angle.icon as any} 
-              size={20} 
-              color={capturedAngles.length > index || captureStep === index ? primaryColor : borderColor} 
+            <Ionicons
+              name={angle.icon as any}
+              size={20}
+              color={capturedAngles.length > index || captureStep === index ? primaryColor : borderColor}
             />
           </View>
         ))}
@@ -436,7 +518,7 @@ export default function FaceRegistration() {
         disabled={capturedAngles.length === captureAngles.length}
       >
         <Text className="text-white text-center font-semibold text-lg">
-          {captureStep < captureAngles.length 
+          {captureStep < captureAngles.length
             ? `Capture ${captureAngles[captureStep].name}`
             : 'All Angles Captured!'
           }
@@ -452,11 +534,11 @@ export default function FaceRegistration() {
           Back
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   const renderTestStep = () => (
-    <View className="flex-1 p-6">
+    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
       <View className="items-center mb-8">
         <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
           style={{ backgroundColor: successColor }}>
@@ -509,7 +591,7 @@ export default function FaceRegistration() {
           Skip Test - Go to Dashboard
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   const renderProgressIndicator = () => (
@@ -563,7 +645,7 @@ export default function FaceRegistration() {
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={primaryColor} />
           <Text className={`mt-4 text-lg text-center`} style={{ color: textColor }}>
-            {capturedAngles.length > 0 
+            {capturedAngles.length > 0
               ? `Processing ${capturedAngles.length} face captures...`
               : 'Checking registration status...'
             }
@@ -608,7 +690,7 @@ export default function FaceRegistration() {
         onSuccess={currentStep === 1 ? handleFaceRegistrationSuccess : handleVerificationTestSuccess}
         onError={currentStep === 1 ? handleFaceRegistrationError : handleVerificationTestError}
         onCancel={() => setShowFaceModal(false)}
-        title={currentStep === 1 
+        title={currentStep === 1
           ? `Register: ${captureAngles[captureStep]?.name || 'Face'}`
           : 'Test Face Verification'
         }

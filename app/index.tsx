@@ -22,7 +22,8 @@ import { LogBox } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 LogBox.ignoreLogs([
-  'No route named', // ignores all "No route named" warnings
+  'No route named', 
+  '[Layout children]: No route named',
 ]);
 
 export default function SplashScreen() {

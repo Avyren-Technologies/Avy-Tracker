@@ -15,6 +15,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import { TrackingProvider } from './context/TrackingContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Network from 'expo-network';
+import { FaceDetectionProvider } from '@infinitered/react-native-mlkit-face-detection';
 
 // Note: The background location task is defined in app/utils/backgroundLocationTask.ts
 // We don't define it here to avoid duplicate task definitions which can cause issues
@@ -135,7 +136,16 @@ function RootLayout() {
             <SplashScreenController />
             <NotificationProvider>
               <TrackingProvider>
-                <Stack
+                <FaceDetectionProvider 
+                  options={{
+                    performanceMode: 'fast',
+                    landmarkMode: true,
+                    classificationMode: true,
+                    minFaceSize: 0.15,
+                    isTrackingEnabled: true,
+                  }}
+                >
+                  <Stack
                   screenOptions={{
                     headerShown: false,
                   }}
@@ -164,31 +174,9 @@ function RootLayout() {
                       headerShown: false,
                     }}
                   />
-                  <Stack.Screen
-                    name="(dashboard)/employee/notifications"
-                    options={{
-                      title: "Notifications",
-                    }}
-                  />
-                  <Stack.Screen
-                    name="(dashboard)/Group-Admin/notifications"
-                    options={{
-                      title: "Notifications",
-                    }}
-                  />
-                  <Stack.Screen
-                    name="(dashboard)/management/notifications"
-                    options={{
-                      title: "Notifications",
-                    }}
-                  />
-                  <Stack.Screen
-                    name="(dashboard)/test-notifications"
-                    options={{
-                      title: "Test Notifications",
-                    }}
-                  />
-                </Stack>
+                  {/* Dashboard routes are handled by (dashboard)/_layout.tsx */}
+                  </Stack>
+                </FaceDetectionProvider>
               </TrackingProvider>
             </NotificationProvider>
           </AuthContext.AuthProvider>

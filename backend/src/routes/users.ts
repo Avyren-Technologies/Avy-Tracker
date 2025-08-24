@@ -259,14 +259,14 @@ router.post('/support-message', verifyToken, async (req: CustomRequest, res: Res
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'parrotanalyzer@gmail.com',
+        user: process.env.EMAIL_USER || 'avyrentechnologies@gmail.com',
         pass: process.env.EMAIL_PASS
       },
     });
 
     // Prepare email content
     const emailContent = {
-      from: process.env.EMAIL_USER || 'parrotanalyzer@gmail.com',
+      from: process.env.EMAIL_USER || 'avyrentechnologies@gmail.com',
       to: 'support@avyrentechnologies.com',
       subject: `Support Request: ${subject}`,
       html: `

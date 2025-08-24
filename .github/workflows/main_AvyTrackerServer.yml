@@ -39,14 +39,14 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           cd backend
-          docker build -t chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }} .
-          docker push chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }}
+          docker build -t chiranjeevichetan/avy-trackerapp:v${{ github.run_number }} .
+          docker push chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}
 
       # Step 5: Deploy to Azure App Service
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
-          app-name: "ParrotAnalyzerServer"  # Replace with your Azure App Service name
+          app-name: "AvyTrackerServer"  # Replace with your Azure App Service name
           slot-name: "production"
-          images: "chiranjeevichetan/parrot-analyzer-app:v${{ github.run_number }}"
+          images: "chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}"
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}

@@ -1,0 +1,129 @@
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Requesting camera permissions...
+ (NOBRIDGE) LOG  App state changed: active -> background
+ (NOBRIDGE) LOG  App went to background, keeping token refresh timer active
+ (NOBRIDGE) LOG  Face detection app state changed: active -> background
+ (NOBRIDGE) LOG  Liveness detection app state changed: active -> background
+ (NOBRIDGE) LOG  App state changed: background -> active
+ (NOBRIDGE) LOG  App has come to the foreground!
+ (NOBRIDGE) LOG  Face detection app state changed: background -> active
+ (NOBRIDGE) LOG  Liveness detection app state changed: background -> active
+ (NOBRIDGE) LOG  Initializing ML Kit Face Detection...
+ (NOBRIDGE) LOG  ML Kit detector available, checking methods: ["status", "error", "options"]
+ (NOBRIDGE) LOG  ML Kit Face Detection initialized successfully with config: {"classificationMode": true, "contourMode": false, "isTrackingEnabled": true, "landmarkMode": true, "minFaceSize": 0.1, "performanceMode": "fast"}
+ (NOBRIDGE) LOG  Testing ML Kit detector...
+ (NOBRIDGE) LOG  ML Kit detector test completed successfully
+ (NOBRIDGE) LOG  Initializing camera with performance mode: fast
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true...
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🔍 isDetecting state changed: {"from": true, "stack": "    at anonymous (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:391929:25)
+    at commitHookEffectListMount (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)
+    at commitHookPassiveMountEffects (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:32682:38)", "timestamp": "2025-08-24T14:45:55.863Z"}
+ (NOBRIDGE) LOG  🔍 Face detection state changed: {"faceData": null, "faceDetected": false, "faceQuality": null, "isDetecting": true, "timestamp": "2025-08-24T14:45:55.866Z"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:56.682Z"}
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:56.696Z"}
+ (NOBRIDGE) LOG  Requesting camera permissions...
+ (NOBRIDGE) LOG  App state changed: active -> background
+ (NOBRIDGE) LOG  App went to background, keeping token refresh timer active
+ (NOBRIDGE) LOG  Liveness detection app state changed: active -> background
+ (NOBRIDGE) LOG  Face detection app state changed: active -> background
+ (NOBRIDGE) LOG  App going to background, pausing face detection
+ (NOBRIDGE) LOG  App state changed: background -> active
+ (NOBRIDGE) LOG  App has come to the foreground!
+ (NOBRIDGE) LOG  Liveness detection app state changed: background -> active
+ (NOBRIDGE) LOG  Face detection app state changed: background -> active
+ (NOBRIDGE) LOG  App coming to foreground, resuming face detection
+(NOBRIDGE) LOG  Initializing ML Kit Face Detection...
+ (NOBRIDGE) LOG  ML Kit detector available, checking methods: ["status", "error", "options"]
+ (NOBRIDGE) LOG  🔄 Face detection already running, skipping start request
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  Setting camera reference: {"cameraComponent": true, "componentMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "componentType": "object", "hasComponent": true, "hasTakePhoto": true}
+ (NOBRIDGE) LOG  Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:57.719Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:57.732Z"}
+ (NOBRIDGE) LOG  ML Kit Face Detection initialized successfully with config: {"classificationMode": true, "contourMode": false, "isTrackingEnabled": true, "landmarkMode": true, "minFaceSize": 0.1, "performanceMode": "fast"}
+ (NOBRIDGE) LOG  Testing ML Kit detector...
+ (NOBRIDGE) LOG  ML Kit detector test completed successfully
+ (NOBRIDGE) LOG  Initializing camera with performance mode: fast
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  🧹 Cleared existing detection interval
+ (NOBRIDGE) LOG  🧹 Cleared existing detection timeout
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true...
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.169Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.486Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.803Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.119Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.436Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.753Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.070Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.386Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.703Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.019Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.336Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.653Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.969Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.286Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.603Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.919Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:03.236Z"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:03.552Z"}
+ (NOBRIDGE) ERROR  Frame processor error: {}

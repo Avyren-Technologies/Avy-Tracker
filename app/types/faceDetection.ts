@@ -54,6 +54,17 @@ export interface UseFaceDetectionReturn {
   cameraPermissionStatus: CameraPermissionStatus | null;
   isInitialized: boolean;
   faceQuality: FaceQuality | null;
+  detectionStats: {
+    totalFrames: number;
+    facesDetected: number;
+    averageProcessingTime: number;
+  };
+  frameProcessor: any; // Frame processor for Camera component
+  device: any; // Camera device
+  setCameraRef: (cameraComponent: any) => void; // Function to set camera reference
+  getCameraInstance: () => any; // Get direct camera instance
+  hasTakePhotoMethod: () => boolean; // Check if takePhoto method is available
+  getGlobalCameraInstance: () => any; // Most reliable camera access method
 }
 
 export interface FaceVerificationResult {

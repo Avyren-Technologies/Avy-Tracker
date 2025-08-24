@@ -311,65 +311,31 @@ export const LivenessProgressOverlay: React.FC<LivenessProgressOverlayProps> = (
           >
             <Text
               style={{ color: currentColors.text }}
-              className="text-xl font-bold mb-4 text-center"
+              className="text-lg font-semibold mb-4 text-center"
             >
-              Liveness Detection
+              {instruction}
             </Text>
-
             <CountdownTimer
               seconds={countdown}
               onComplete={onCountdownComplete}
               size={120}
-              color={blinkDetected ? currentColors.success : undefined}
+              showText={true}
             />
-
-            <Text
-              style={{ color: currentColors.text }}
-              className="text-lg font-semibold mt-6 text-center"
-            >
-              {instruction}
-            </Text>
-
             {blinkDetected && (
-              <View className="flex-row items-center mt-4">
-                <View
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
-                    backgroundColor: currentColors.success,
-                    marginRight: 8,
-                  }}
-                />
+              <View className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <Text
                   style={{ color: currentColors.success }}
-                  className="text-sm font-medium"
+                  className="text-sm text-center"
                 >
-                  Blink detected!
+                  ✓ Blink detected
                 </Text>
               </View>
             )}
-
-            <View className="w-full mt-6">
-              <Text
-                style={{ color: currentColors.textSecondary }}
-                className="text-sm mb-2"
-              >
-                Liveness Score: {Math.round(livenessScore * 100)}%
-              </Text>
-              <ProgressBar
-                progress={livenessScore * 100}
-                height={6}
-                color={currentColors.success}
-                animated={true}
-              />
-            </View>
-
             <Text
               style={{ color: currentColors.textSecondary }}
-              className="text-xs mt-4 text-center px-4"
+              className="text-xs mt-4 text-center"
             >
-              Please look directly at the camera and blink naturally when prompted
+              Liveness Score: {Math.round(livenessScore * 100)}%
             </Text>
           </View>
         </BlurView>

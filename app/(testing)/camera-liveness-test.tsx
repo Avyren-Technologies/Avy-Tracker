@@ -11,6 +11,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCameraLiveness } from '../hooks/useCameraLiveness';
 import { FaceDetectionData } from '../types/faceDetection';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Mock face data for testing
 const createMockFaceData = (
@@ -122,7 +123,7 @@ export default function CameraLivenessTest() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           title: 'Camera Liveness Test',
@@ -298,7 +299,7 @@ export default function CameraLivenessTest() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -63,10 +63,10 @@ export default function Support() {
     },
     {
       title: 'Phone Support',
-      description: 'Call us at +1-800-PARROT1',
+      description: 'Call us at +1-800-7393737',
       icon: 'call-outline',
       action: () => {
-        Linking.openURL('tel:+18007277681');
+        Linking.openURL('tel:+18007393737');
       }
     },
   ];

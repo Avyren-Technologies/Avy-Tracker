@@ -32,7 +32,7 @@ A mobile application for real-time employee tracking, attendance, leave, and exp
   - [6. Live Chatbot Support (Gemini AI)](#6-live-chatbot-support-gemini-ai)
   - [7. Push Notifications & Alerts](#7-push-notifications--alerts)
   - [8. Analytics & Reporting](#8-analytics--reporting)
-- [Role-Based Access and Responsibilities](#role-based-access-and-responsibilities-in-parrot-analyzer)
+- [Role-Based Access and Responsibilities](#role-based-access-and-responsibilities-in-avy-tracker)
   - [1. Employee](#1-employee)
   - [2. Group Admin](#2-group-admin)
   - [3. Management Personnel](#3-management-personnel)
@@ -52,7 +52,7 @@ A mobile application for real-time employee tracking, attendance, leave, and exp
 
 ## 🌟 Overview
 
-ParrotAnalyzer is a multi-tenant mobile platform designed to streamline workforce management for organizations. It enables real-time tracking of employees through GPS, automated attendance logging, detailed travel analytics (with indoor movements excluded via geofencing), comprehensive expense management, and a robust leave management system with multi-level approval workflows. The platform provides role-specific dashboards for Employees, Group Admins, Management Personnel, and Super Admins. Additionally, Gemini AI is integrated as a live chatbot support tool to assist employees with real-time queries, ensuring a responsive and user-friendly experience across both Android and iOS devices.
+Avy Tracker is a multi-tenant mobile platform designed to streamline workforce management for organizations. It enables real-time tracking of employees through GPS, automated attendance logging, detailed travel analytics (with indoor movements excluded via geofencing), comprehensive expense management, and a robust leave management system with multi-level approval workflows. The platform provides role-specific dashboards for Employees, Group Admins, Management Personnel, and Super Admins. Additionally, Gemini AI is integrated as a live chatbot support tool to assist employees with real-time queries, ensuring a responsive and user-friendly experience across both Android and iOS devices.
 
 ## 🎯 Key Features
 
@@ -330,7 +330,7 @@ Avy Tracker is built with a robust role-based access control system. Each role�
 1. Clone the repository:
    ```bash
    git clone [repository-url]
-   cd ParrotAnalyzer
+   cd avy-tracker
    ```
 
 2. Install dependencies for the frontend:
@@ -393,7 +393,7 @@ Avy Tracker is built with a robust role-based access control system. Each role�
 ## 📂 Project Structure
 
 ```
-ParrotAnalyzer
+avy-tracker
 ├──app
 │   ├──(auth)
 │   │   ├──_layout.tsx
@@ -576,7 +576,7 @@ ParrotAnalyzer
 │   │   └──images
 │   │   │   ├──favicon.png
 │   │   │   ├──icon.png
-│   │   │   ├──ParrotAnalyzerSplash.png
+│   │   │   ├──adaptive-icon.png
 │   │   │   └──SplashScreen.png
 │   ├──backend
 │   │   ├──src
@@ -618,7 +618,7 @@ ParrotAnalyzer
 │   │   │   └──database.bak
 │   │   └──.github
 │   │   │   └──workflows
-│   │   │   │   └──main_parrotanalyzerserver.yml
+│   │   │   │   main_AvyTrackerServer.yml
 │   ├──app.json
 │   ├──babel.config.js
 │   ├──eas.json
