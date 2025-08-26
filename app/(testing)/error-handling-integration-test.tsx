@@ -17,6 +17,7 @@ import { useErrorHandling } from '../hooks/useErrorHandling';
 import ErrorDisplay from '../components/ErrorDisplay';
 import {
   FaceVerificationErrorType,
+  FaceVerificationError,
   ErrorContext
 } from '../types/faceVerificationErrors';
 import ThemeContext from '../context/ThemeContext';
@@ -49,10 +50,10 @@ const ErrorHandlingIntegrationTest: React.FC = () => {
     executeWithErrorHandling
   } = useErrorHandling({
     sessionId: 'error-test-session',
-    onError: (error) => {
+    onError: (error: FaceVerificationError) => {
       console.log('Test error handled:', error.type);
     },
-    onRetry: (attempt, error) => {
+    onRetry: (attempt: number, error: FaceVerificationError) => {
       console.log(`Test retry attempt ${attempt} for error:`, error.type);
     }
   });
@@ -200,7 +201,16 @@ const ErrorHandlingIntegrationTest: React.FC = () => {
 
   const testHookIntegration = async () => {
     // Test that the hook properly handles errors
-    const testError = new Error('Hook integration test error');
+    const testError: FaceVerificationError = {
+      type: FaceVerificationErrorType.UNKNOWN_ERROR,
+      message: 'Hook integration test error',
+      userMessage: 'Test error occurred',
+      retryable: true,
+      suggestions: ['Try again'],
+      severity: 'medium',
+      code: 'TEST_ERROR',
+      timestamp: new Date()
+    };
     
     handleError(testError);
 
@@ -455,7 +465,7 @@ const ErrorHandlingIntegrationTest: React.FC = () => {
           error={error}
           isRetrying={isRetrying}
           recoveryActions={recoveryActions}
-          onRetry={canRetry() ? retry : undefined}
+          onRetry={canRetry ? retry : undefined}
           onDismiss={clearError}
           onRecoveryAction={executeRecoveryAction}
           showDetails={true}

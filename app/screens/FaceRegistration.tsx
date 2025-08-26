@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -70,6 +70,9 @@ export default function FaceRegistration() {
   const [captureStep, setCaptureStep] = useState(0);
   const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
 
+  // CRITICAL: Component lifecycle management for multi-angle registration
+  const isMountedRef = useRef(true);
+
   // Multi-angle capture configuration
   const captureAngles = [
     { name: 'Front View', description: 'Look directly at the camera', icon: 'person' },
@@ -102,6 +105,15 @@ export default function FaceRegistration() {
   // Check if user already has face registration
   useEffect(() => {
     checkExistingRegistration();
+  }, []);
+
+  // CRITICAL: Component cleanup effect
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const checkExistingRegistration = async () => {
@@ -167,10 +179,14 @@ export default function FaceRegistration() {
       const nextStep = captureStep + 1;
       setCaptureStep(nextStep);
 
+      // FIXED: Don't automatically restart - let user choose when to continue
       Alert.alert(
         'Capture Complete',
         `${captureAngles[captureStep].name} captured successfully!\n\nNext: ${captureAngles[nextStep].name}`,
-        [{ text: 'Continue', onPress: () => setShowFaceModal(true) }]
+        [
+          { text: 'Continue Later', style: 'cancel' },
+          { text: 'Continue Now', onPress: () => setShowFaceModal(true) }
+        ]
       );
     } else {
       // All angles captured, process registration
@@ -390,6 +406,26 @@ export default function FaceRegistration() {
       >
         <Text className="text-white text-center font-semibold text-lg">
           Check Face Verification Final Test
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push('/(testing)/simple-face-test')}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: '#27ae60' }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          🧪 Simple Face Detection Test (Fixed)
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push('/(testing)/camera-test')}
+        className={`py-4 px-6 rounded-lg mb-4`}
+        style={{ backgroundColor: '#3498db' }}
+      >
+        <Text className="text-white text-center font-semibold text-lg">
+          📷 Camera Reference Test
         </Text>
       </TouchableOpacity>
 

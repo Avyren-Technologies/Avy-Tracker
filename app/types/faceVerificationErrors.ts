@@ -78,8 +78,21 @@ export interface RetryConfig {
 export interface ErrorRecoveryAction {
   type: 'retry' | 'fallback' | 'manual' | 'skip';
   label: string;
+  description?: string;
   action: () => Promise<void> | void;
   priority: number;
+}
+
+export interface ErrorHandlingConfig {
+  retryConfig?: {
+    maxAttempts: number;
+    backoffMultiplier?: number;
+    initialDelay?: number;
+  };
+  sessionId?: string;
+  onError?: (error: FaceVerificationError) => void;
+  onRetry?: (attempt: number, error: FaceVerificationError) => void;
+  onRecovery?: (action: ErrorRecoveryAction) => void;
 }
 
 export interface ErrorContext {

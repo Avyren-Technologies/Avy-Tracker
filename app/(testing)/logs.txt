@@ -1,17 +1,25 @@
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
  (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
  (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
  (NOBRIDGE) LOG  Requesting camera permissions...
  (NOBRIDGE) LOG  App state changed: active -> background
  (NOBRIDGE) LOG  App went to background, keeping token refresh timer active
  (NOBRIDGE) LOG  Face detection app state changed: active -> background
  (NOBRIDGE) LOG  Liveness detection app state changed: active -> background
+ (NOBRIDGE) LOG  App went to background, pausing liveness detection
  (NOBRIDGE) LOG  App state changed: background -> active
  (NOBRIDGE) LOG  App has come to the foreground!
  (NOBRIDGE) LOG  Face detection app state changed: background -> active
  (NOBRIDGE) LOG  Liveness detection app state changed: background -> active
- (NOBRIDGE) LOG  Initializing ML Kit Face Detection...
+(NOBRIDGE) LOG  Initializing ML Kit Face Detection...
  (NOBRIDGE) LOG  ML Kit detector available, checking methods: ["status", "error", "options"]
+ (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
  (NOBRIDGE) LOG  ML Kit Face Detection initialized successfully with config: {"classificationMode": true, "contourMode": false, "isTrackingEnabled": true, "landmarkMode": true, "minFaceSize": 0.1, "performanceMode": "fast"}
  (NOBRIDGE) LOG  Testing ML Kit detector...
  (NOBRIDGE) LOG  ML Kit detector test completed successfully
@@ -19,111 +27,1337 @@
  (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
  (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
  (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
- (NOBRIDGE) LOG  📊 Setting isDetecting to true...
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": false, "verificationStep": "initializing"}
- (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
- (NOBRIDGE) LOG  🔍 isDetecting state changed: {"from": true, "stack": "    at anonymous (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:391929:25)
-    at commitHookEffectListMount (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)
-    at commitHookPassiveMountEffects (http://192.168.0.106:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:32682:38)", "timestamp": "2025-08-24T14:45:55.863Z"}
- (NOBRIDGE) LOG  🔍 Face detection state changed: {"faceData": null, "faceDetected": false, "faceQuality": null, "isDetecting": true, "timestamp": "2025-08-24T14:45:55.866Z"}
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "initializing"}
- (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
  (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
  (NOBRIDGE) LOG  ⏰ Starting detection interval...
  (NOBRIDGE) LOG  ✅ Face detection interval started successfully
  (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: false
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:02.016Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: false
+ (NOBRIDGE) LOG  🔍 Face detected: false
+ (NOBRIDGE) LOG  🔍 Face quality: false
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:02.036Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
  (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:56.682Z"}
  (NOBRIDGE) LOG  Camera onInitialized called
  (NOBRIDGE) LOG  Camera started - ensuring detection is running
  (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:56.696Z"}
- (NOBRIDGE) LOG  Requesting camera permissions...
- (NOBRIDGE) LOG  App state changed: active -> background
- (NOBRIDGE) LOG  App went to background, keeping token refresh timer active
- (NOBRIDGE) LOG  Liveness detection app state changed: active -> background
- (NOBRIDGE) LOG  Face detection app state changed: active -> background
- (NOBRIDGE) LOG  App going to background, pausing face detection
- (NOBRIDGE) LOG  App state changed: background -> active
- (NOBRIDGE) LOG  App has come to the foreground!
- (NOBRIDGE) LOG  Liveness detection app state changed: background -> active
- (NOBRIDGE) LOG  Face detection app state changed: background -> active
- (NOBRIDGE) LOG  App coming to foreground, resuming face detection
-(NOBRIDGE) LOG  Initializing ML Kit Face Detection...
- (NOBRIDGE) LOG  ML Kit detector available, checking methods: ["status", "error", "options"]
- (NOBRIDGE) LOG  🔄 Face detection already running, skipping start request
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": false, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:02.247Z"}
+ (NOBRIDGE) LOG  ❌ Skipping face detection - conditions not met: {"hasCamera": false, "hasMLKit": true, "isDetecting": false, "isMounted": true}
+ (NOBRIDGE) LOG  🔍 Camera ref missing - detection will retry when camera is connected
  (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
- (NOBRIDGE) LOG  Setting camera reference: {"cameraComponent": true, "componentMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "componentType": "object", "hasComponent": true, "hasTakePhoto": true}
- (NOBRIDGE) LOG  Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true}
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔄 Camera connected during active detection - detection will now proceed
  (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:57.719Z"}
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:02.550Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:02.866Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  🔄 Face detection already running (interval active), skipping start request
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: false
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:03.183Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  ✅ Photo captured successfully: {"height": 1200, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg", "width": 1600}
+ (NOBRIDGE) LOG  📁 Photo URI generated: file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg
+ (NOBRIDGE) LOG  Processing photo for ML Kit compatibility...
+ (NOBRIDGE) LOG  Waiting for photo file to be fully written...
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  ✅ Photo captured successfully: {"height": 1200, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg", "width": 1600}
+ (NOBRIDGE) LOG  📁 Photo URI generated: file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg
+ (NOBRIDGE) LOG  Processing photo for ML Kit compatibility...
+ (NOBRIDGE) LOG  Waiting for photo file to be fully written...
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:03.500Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  ✅ Photo captured successfully: {"height": 1200, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg", "width": 1600}
+ (NOBRIDGE) LOG  📁 Photo URI generated: file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg
+ (NOBRIDGE) LOG  Processing photo for ML Kit compatibility...
+ (NOBRIDGE) LOG  Waiting for photo file to be fully written...
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  Photo file verification: {"exists": true, "fileSize": 575141, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg"}
+ (NOBRIDGE) LOG  Photo file verified successfully: {"path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg", "size": 575141, "uri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg"}
+ (NOBRIDGE) LOG  Applying ML Kit photo processing...
+ (NOBRIDGE) LOG  Photo file read successfully, content length: 766856
+ (NOBRIDGE) LOG  ✅ Photo has valid image format header
+ (NOBRIDGE) LOG  Additional delay for file system sync...
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:03.818Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  Photo file verification: {"exists": true, "fileSize": 611447, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg"}
+ (NOBRIDGE) LOG  Photo file verified successfully: {"path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg", "size": 611447, "uri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg"}
+ (NOBRIDGE) LOG  Applying ML Kit photo processing...
+ (NOBRIDGE) LOG  Photo file read successfully, content length: 815264
+ (NOBRIDGE) LOG  ✅ Photo has valid image format header
+ (NOBRIDGE) LOG  Additional delay for file system sync...
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  🤖 Sending photo to ML Kit for face detection...
+ (NOBRIDGE) LOG  🔍 ML Kit detector state before detection: {"availableMethods": ["status", "error", "options"], "detectorType": "object", "isInitialized": true, "photoPath": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg", "photoUri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg"}
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:04.134Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  ✅ Photo captured successfully: {"height": 1200, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg", "width": 1600}
+ (NOBRIDGE) LOG  📁 Photo URI generated: file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg
+ (NOBRIDGE) LOG  Processing photo for ML Kit compatibility...
+ (NOBRIDGE) LOG  Waiting for photo file to be fully written...
+ (NOBRIDGE) LOG  Photo file verification: {"exists": true, "fileSize": 589757, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg"}
+ (NOBRIDGE) LOG  Photo file verified successfully: {"path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg", "size": 589757, "uri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg"}
+ (NOBRIDGE) LOG  Applying ML Kit photo processing...
+ (NOBRIDGE) LOG  Photo file read successfully, content length: 786344
+ (NOBRIDGE) LOG  ✅ Photo has valid image format header
+ (NOBRIDGE) LOG  Additional delay for file system sync...
+ (NOBRIDGE) LOG  🤖 Sending photo to ML Kit for face detection...
+ (NOBRIDGE) LOG  🔍 ML Kit detector state before detection: {"availableMethods": ["status", "error", "options"], "detectorType": "object", "isInitialized": true, "photoPath": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg", "photoUri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg"}
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  ✅ Photo captured successfully: {"height": 1200, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg", "width": 1600}
+ (NOBRIDGE) LOG  📁 Photo URI generated: file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg
+ (NOBRIDGE) LOG  Processing photo for ML Kit compatibility...
+ (NOBRIDGE) LOG  Waiting for photo file to be fully written...
+ (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS STARTED ===
+ (NOBRIDGE) LOG  🔄 processPeriodicFaceDetection called: {"hasCamera": true, "hasMLKit": true, "isDetecting": false, "isMounted": true, "timestamp": "2025-08-26T09:32:04.447Z"}
+ (NOBRIDGE) LOG  ✅ Starting periodic face detection with enhanced photo processing...
+ (NOBRIDGE) LOG  ✅ Camera is active and ready for photo capture
+ (NOBRIDGE) LOG  ✅ ML Kit detection completed successfully: {"faceCount": 1, "faces": [{"contours": [Array], "frame": [Object], "headEulerAngleX": -3.619056463241577, "headEulerAngleY": 2.4766714572906494, "headEulerAngleZ": -5.5553364753723145, "landmarks": [Array], "leftEyeOpenProbability": 0.9992077946662903, "rightEyeOpenProbability": 0.9991688132286072, "smilingProbability": 0.009467480704188347, "trackingID": 0}], "rawResult": {"faces": [[Object]], "imagePath": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy4585631260943730100.jpg"}, "success": true}
+ (NOBRIDGE) LOG  🎉 SUCCESS: Face detection completed with 1 face(s)
+ (NOBRIDGE) LOG  🎯 Processing detected faces...
+ (NOBRIDGE) LOG  👤 Detected face details: {"headAngles": {"x": -3.619056463241577, "y": 2.4766714572906494, "z": -5.5553364753723145}, "leftEyeOpen": 0.9992077946662903, "rightEyeOpen": 0.9991688132286072, "smiling": 0.009467480704188347, "trackingID": 0}
+ (NOBRIDGE) LOG  🔄 Converted face data: {"bounds": {"height": 790, "width": 789, "x": 200, "y": 359}, "faceId": "face_1756200724474", "leftEyeOpenProbability": 0.9992077946662903, "rightEyeOpenProbability": 0.9991688132286072, "rollAngle": -5.5553364753723145, "timestamp": 1756200724474, "yawAngle": 2.4766714572906494}
+ (NOBRIDGE) LOG  Face quality calculation: {"bounds": {"height": 790, "width": 789, "x": 200, "y": 359}, "faceArea": 623310, "faceRatio": 0.324640625, "maxFaceSize": 0.6, "minFaceSize": 0.05, "screenArea": 1920000}
+ (NOBRIDGE) LOG  Quality scores: {"angleQuality": 0.9074110587437948, "lightingQuality": 1, "overall": 0.7229420676231384, "sizeQuality": 0.37679687500000003, "threshold": 0.4}
+ (NOBRIDGE) LOG  ✅ Face detection state updated successfully
+ (NOBRIDGE) LOG  📊 Face quality score: 0.7229420676231384
+ (NOBRIDGE) LOG  🔄 Detection interval cleared - face found
+ (NOBRIDGE) LOG  ⏰ Detection timeout cleared - face found
+ (NOBRIDGE) LOG  🎉 Face detection completed successfully - stopping all timers
+ (NOBRIDGE) LOG  ⏱️ Face detection process completed in 1927.67ms
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS COMPLETED ===
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: false
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:04.552Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:04.573Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200724474, "hasFaceData": true, "isLivenessActive": false}
+ (NOBRIDGE) LOG  👁️ Not processing face data: {"reason": "Liveness not active"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:04.586Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  🤖 Sending photo to ML Kit for face detection...
+ (NOBRIDGE) LOG  🔍 ML Kit detector state before detection: {"availableMethods": ["status", "error", "options"], "detectorType": "object", "isInitialized": true, "photoPath": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg", "photoUri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: false
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  📸 Attempting to capture photo for face detection...
+ (NOBRIDGE) LOG  🔍 Camera state before photo capture: {"cameraMethods": ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"], "cameraRefExists": true, "hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ⚙️ Optimizing camera settings for ML Kit...
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: false
+ (NOBRIDGE) LOG  🔒 Enabling camera keep-alive to prevent native view detachment
+ (NOBRIDGE) LOG  🔒 === ENABLING CAMERA KEEP-ALIVE ===
+ (NOBRIDGE) LOG  🔒 Previous state: false
+ (NOBRIDGE) LOG  🔒 New state: true
+ (NOBRIDGE) LOG  🔄 Critical transition detected - stabilizing camera component
+ (NOBRIDGE) LOG  🔒 Monitoring camera persistence during liveness/capturing...
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  ⚠️ Liveness timeout but face detected - proceeding to capture (ultra-forgiving)
+ (NOBRIDGE) LOG  🔒 Keeping camera active during transition to prevent native view detachment
+ (NOBRIDGE) LOG  🔍 Stabilizing camera for final capture...
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Photo file verification: {"exists": true, "fileSize": 629753, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg"}
+ (NOBRIDGE) LOG  ✅ ML Kit detection completed successfully: {"faceCount": 1, "faces": [{"contours": [Array], "frame": [Object], "headEulerAngleX": -3.927832841873169, "headEulerAngleY": 2.786290168762207, "headEulerAngleZ": -4.669383525848389, "landmarks": [Array], "leftEyeOpenProbability": 0.9983530044555664, "rightEyeOpenProbability": 0.9988862872123718, "smilingProbability": 0.008071166463196278, "trackingID": 0}], "rawResult": {"faces": [[Object]], "imagePath": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy7840839698111559734.jpg"}, "success": true}
+ (NOBRIDGE) LOG  🎉 SUCCESS: Face detection completed with 1 face(s)
+ (NOBRIDGE) LOG  🎯 Processing detected faces...
+ (NOBRIDGE) LOG  👤 Detected face details: {"headAngles": {"x": -3.927832841873169, "y": 2.786290168762207, "z": -4.669383525848389}, "leftEyeOpen": 0.9983530044555664, "rightEyeOpen": 0.9988862872123718, "smiling": 0.008071166463196278, "trackingID": 0}
+ (NOBRIDGE) LOG  🔄 Converted face data: {"bounds": {"height": 775, "width": 775, "x": 194, "y": 382}, "faceId": "face_1756200724888", "leftEyeOpenProbability": 0.9983530044555664, "rightEyeOpenProbability": 0.9988862872123718, "rollAngle": -4.669383525848389, "timestamp": 1756200724888, "yawAngle": 2.786290168762207}
+ (NOBRIDGE) LOG  Face quality calculation: {"bounds": {"height": 775, "width": 775, "x": 194, "y": 382}, "faceArea": 600625, "faceRatio": 0.3128255208333333, "maxFaceSize": 0.6, "minFaceSize": 0.05, "screenArea": 1920000}
+ (NOBRIDGE) LOG  Quality scores: {"angleQuality": 0.9221769412358602, "lightingQuality": 1, "overall": 0.7510020407040915, "sizeQuality": 0.4358723958333335, "threshold": 0.4}
+ (NOBRIDGE) LOG  ✅ Face detection state updated successfully
+ (NOBRIDGE) LOG  📊 Face quality score: 0.7510020407040915
+ (NOBRIDGE) LOG  🎉 Face detection completed successfully - stopping all timers
+ (NOBRIDGE) LOG  ⏱️ Face detection process completed in 2025.89ms
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS COMPLETED ===
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Photo file verified successfully: {"path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg", "size": 629753, "uri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg"}
+ (NOBRIDGE) LOG  Applying ML Kit photo processing...
+ (NOBRIDGE) ERROR  ❌ Photo capture failed: [unknown/unknown: Camera is closed.]
+ (NOBRIDGE) LOG  Photo capture error details: {"cameraState": {"hasTakePhoto": true, "isActive": true}, "errorMessage": "Camera is closed.", "errorType": "CameraRuntimeError"}
+ (NOBRIDGE) ERROR  ❌ Photo capture failed: [unknown/unknown: Camera is closed.]
+ (NOBRIDGE) LOG  Photo capture error details: {"cameraState": {"hasTakePhoto": true, "isActive": true}, "errorMessage": "Camera is closed.", "errorType": "CameraRuntimeError"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: capturing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Photo file read successfully, content length: 839672
+ (NOBRIDGE) LOG  ✅ Photo has valid image format header
+ (NOBRIDGE) LOG  Additional delay for file system sync...
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:05.093Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200724888, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9983530044555664, "rightEye": 0.9988862872123718, "timestamp": 1756200724888}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.999", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 1, "leftEye": "0.998", "rightEye": "0.999"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 1, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 1, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.020", "timeScore": "0.100"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  Photo file verification: {"exists": true, "fileSize": 598417, "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg"}
+ (NOBRIDGE) LOG  🔍 Proactively monitoring camera state...
+ (NOBRIDGE) LOG  🔍 === CAMERA STATE MONITORING ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Persistent ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref state: valid
+ (NOBRIDGE) LOG  🔍 Camera state monitoring: {"hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ✅ Camera state is healthy - proceeding with capture
+ (NOBRIDGE) LOG  Photo file verified successfully: {"path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg", "size": 598417, "uri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg"}
+ (NOBRIDGE) LOG  Applying ML Kit photo processing...
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Photo file read successfully, content length: 797892
+ (NOBRIDGE) LOG  ✅ Photo has valid image format header
+ (NOBRIDGE) LOG  Additional delay for file system sync...
+ (NOBRIDGE) LOG  ✅ Camera component stabilized for critical transition
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  ✅ ML Kit detection completed successfully: {"faceCount": 1, "faces": [{"contours": [Array], "frame": [Object], "headEulerAngleX": -4.5492377281188965, "headEulerAngleY": 2.6347949504852295, "headEulerAngleZ": -4.665282249450684, "landmarks": [Array], "leftEyeOpenProbability": 0.9979193210601807, "rightEyeOpenProbability": 0.998312771320343, "smilingProbability": 0.00994393602013588, "trackingID": 0}], "rawResult": {"faces": [[Object]], "imagePath": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy315564882663950486.jpg"}, "success": true}
+ (NOBRIDGE) LOG  🎉 SUCCESS: Face detection completed with 1 face(s)
+ (NOBRIDGE) LOG  🎯 Processing detected faces...
+ (NOBRIDGE) LOG  👤 Detected face details: {"headAngles": {"x": -4.5492377281188965, "y": 2.6347949504852295, "z": -4.665282249450684}, "leftEyeOpen": 0.9979193210601807, "rightEyeOpen": 0.998312771320343, "smiling": 0.00994393602013588, "trackingID": 0}
+ (NOBRIDGE) LOG  🔄 Converted face data: {"bounds": {"height": 762, "width": 762, "x": 212, "y": 386}, "faceId": "face_1756200725313", "leftEyeOpenProbability": 0.9979193210601807, "rightEyeOpenProbability": 0.998312771320343, "rollAngle": -4.665282249450684, "timestamp": 1756200725313, "yawAngle": 2.6347949504852295}
+ (NOBRIDGE) LOG  Face quality calculation: {"bounds": {"height": 762, "width": 762, "x": 212, "y": 386}, "faceArea": 580644, "faceRatio": 0.30241875, "maxFaceSize": 0.6, "minFaceSize": 0.05, "screenArea": 1920000}
+ (NOBRIDGE) LOG  Quality scores: {"angleQuality": 0.9222452958424886, "lightingQuality": 1, "overall": 0.7718360887527466, "sizeQuality": 0.48790625, "threshold": 0.4}
+ (NOBRIDGE) LOG  ✅ Face detection state updated successfully
+ (NOBRIDGE) LOG  📊 Face quality score: 0.7718360887527466
+ (NOBRIDGE) LOG  🎉 Face detection completed successfully - stopping all timers
+ (NOBRIDGE) LOG  ⏱️ Face detection process completed in 2136.13ms
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS COMPLETED ===
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🤖 Sending photo to ML Kit for face detection...
+ (NOBRIDGE) LOG  🔍 ML Kit detector state before detection: {"availableMethods": ["status", "error", "options"], "detectorType": "object", "isInitialized": true, "photoPath": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg", "photoUri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg"}
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:05.415Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725313, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9979193210601807, "rightEye": 0.998312771320343, "timestamp": 1756200725313}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.998", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 2, "leftEye": "0.998", "rightEye": "0.998"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 2, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 2, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.040", "timeScore": "0.200"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === COMPREHENSIVE CAMERA STATE VALIDATION ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref type: object
+ (NOBRIDGE) LOG  🔍 Camera methods available: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera props: {"audio": false, "device": {"formats": [[Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object]], "hardwareLevel": "full", "hasFlash": false, "hasTorch": false, "id": "1", "isMultiCam": false, "maxExposure": 24, "maxZoom": 10, "minExposure": -24, "minFocusDistance": 0, "minZoom": 1, "name": "1 (FRONT) androidx.camera.camera2", "neutralZoom": 1, "physicalDevices": ["wide-angle-camera"], "position": "front", "sensorOrientation": "landscape-right", "supportsFocus": true, "supportsLowLightBoost": false, "supportsRawCapture": false}, "frameProcessor": {"frameProcessor": [Function withFrameRefCountingTs1], "type": "readonly"}, "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": {"height": "100%", "width": "100%"}, "video": false}
+ (NOBRIDGE) LOG  🔍 Camera state: {"averageFpsSamples": [], "isRecordingWithFlash": false}
+ (NOBRIDGE) LOG  🔍 Camera display name: Camera
+ (NOBRIDGE) LOG  ✅ Camera validation passed - proceeding with capture
+ (NOBRIDGE) LOG  capturePhoto called with: {"cameraRefCurrent": {"_reactInternalInstance": {}, "_reactInternals": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "actualDuration": 0.24312499165534973, "actualStartTime": 137153251.823355, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": [Function Camera], "flags": 2097157, "index": 0, "key": "stable", "lanes": 0, "memoizedProps": [Object], "memoizedState": [Object], "mode": 3, "pendingProps": [Object], "ref": [Object], "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0.18739598989486694, "sibling": [FiberNode], "stateNode": [Circular], "subtreeFlags": 2097152, "tag": 1, "treeBaseDuration": 0.20234298706054688, "type": [Function Camera], "updateQueue": [Object]}, "context": {}, "displayName": "Camera", "isNativeViewMounted": true, "lastFrameProcessor": [Function withFrameRefCountingTs1], "lastUIRotation": 0, "onAverageFpsChanged": [Function bound onAverageFpsChanged], "onCodeScanned": [Function bound onCodeScanned], "onError": [Function bound onError], "onInitialized": [Function bound onInitialized], "onOutputOrientationChanged": [Function bound onOutputOrientationChanged], "onPreviewOrientationChanged": [Function bound onPreviewOrientationChanged], "onPreviewStarted": [Function bound onPreviewStarted], "onPreviewStopped": [Function bound onPreviewStopped], "onShutter": [Function bound onShutter], "onStarted": [Function bound onStarted], "onStopped": [Function bound onStopped], "onViewReady": [Function bound onViewReady], "props": {"audio": false, "device": [Object], "frameProcessor": [Object], "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": [Object], "video": false}, "ref": {"current": [ReactFabricHostComponent]}, "refs": {}, "rotationHelper": {"outputOrientation": "portrait", "previewOrientation": "portrait"}, "state": {"averageFpsSamples": [Array], "isRecordingWithFlash": false}, "updater": {"enqueueForceUpdate": [Function enqueueForceUpdate], "enqueueReplaceState": [Function enqueueReplaceState], "enqueueSetState": [Function enqueueSetState], "isMounted": [Function isMounted]}}, "hasCameraRef": true, "hasTakePhotoMethod": true, "isInitialized": true}
+ (NOBRIDGE) LOG  Capturing photo with validated face...
+ (NOBRIDGE) LOG  🔍 Validating camera state before final capture...
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🤖 Sending photo to ML Kit for face detection...
+ (NOBRIDGE) LOG  🔍 ML Kit detector state before detection: {"availableMethods": ["status", "error", "options"], "detectorType": "object", "isInitialized": true, "photoPath": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg", "photoUri": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg"}
+ (NOBRIDGE) LOG  ✅ ML Kit detection completed successfully: {"faceCount": 1, "faces": [{"contours": [Array], "frame": [Object], "headEulerAngleX": -5.541799545288086, "headEulerAngleY": 2.371328830718994, "headEulerAngleZ": -4.327208995819092, "landmarks": [Array], "leftEyeOpenProbability": 0.9974813461303711, "rightEyeOpenProbability": 0.998312771320343, "smilingProbability": 0.017574554309248924, "trackingID": 0}], "rawResult": {"faces": [[Object]], "imagePath": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy8676271605294492835.jpg"}, "success": true}
+ (NOBRIDGE) LOG  🎉 SUCCESS: Face detection completed with 1 face(s)
+ (NOBRIDGE) LOG  🎯 Processing detected faces...
+ (NOBRIDGE) LOG  👤 Detected face details: {"headAngles": {"x": -5.541799545288086, "y": 2.371328830718994, "z": -4.327208995819092}, "leftEyeOpen": 0.9974813461303711, "rightEyeOpen": 0.998312771320343, "smiling": 0.017574554309248924, "trackingID": 0}
+ (NOBRIDGE) LOG  🔄 Converted face data: {"bounds": {"height": 761, "width": 761, "x": 223, "y": 396}, "faceId": "face_1756200725699", "leftEyeOpenProbability": 0.9974813461303711, "rightEyeOpenProbability": 0.998312771320343, "rollAngle": -4.327208995819092, "timestamp": 1756200725699, "yawAngle": 2.371328830718994}
+ (NOBRIDGE) LOG  Face quality calculation: {"bounds": {"height": 761, "width": 761, "x": 223, "y": 396}, "faceArea": 579121, "faceRatio": 0.3016255208333333, "maxFaceSize": 0.6, "minFaceSize": 0.05, "screenArea": 1920000}
+ (NOBRIDGE) LOG  Quality scores: {"angleQuality": 0.9278798500696818, "lightingQuality": 1, "overall": 0.7751129133542378, "sizeQuality": 0.4918723958333334, "threshold": 0.4}
+ (NOBRIDGE) LOG  ✅ Face detection state updated successfully
+ (NOBRIDGE) LOG  📊 Face quality score: 0.7751129133542378
+ (NOBRIDGE) LOG  🎉 Face detection completed successfully - stopping all timers
+ (NOBRIDGE) LOG  ⏱️ Face detection process completed in 2198.79ms
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS COMPLETED ===
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
  (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:57.732Z"}
- (NOBRIDGE) LOG  ML Kit Face Detection initialized successfully with config: {"classificationMode": true, "contourMode": false, "isTrackingEnabled": true, "landmarkMode": true, "minFaceSize": 0.1, "performanceMode": "fast"}
- (NOBRIDGE) LOG  Testing ML Kit detector...
- (NOBRIDGE) LOG  ML Kit detector test completed successfully
- (NOBRIDGE) LOG  Initializing camera with performance mode: fast
+ (NOBRIDGE) LOG  🔍 === CAMERA STATE MONITORING ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Persistent ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref state: valid
+ (NOBRIDGE) LOG  🔍 Camera state monitoring: {"hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  🔒 Camera health check result: true
+ (NOBRIDGE) LOG  ✅ Camera validation successful on attempt 1
+ (NOBRIDGE) LOG  📸 Final camera state validation before photo capture...
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:05.805Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725699, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9974813461303711, "rightEye": 0.998312771320343, "timestamp": 1756200725699}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.998", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 3, "leftEye": "0.997", "rightEye": "0.998"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 3, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 3, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.060", "timeScore": "0.300"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  ✅ ML Kit detection completed successfully: {"faceCount": 1, "faces": [{"contours": [Array], "frame": [Object], "headEulerAngleX": -5.30846643447876, "headEulerAngleY": 2.01458740234375, "headEulerAngleZ": -4.39629602432251, "landmarks": [Array], "leftEyeOpenProbability": 0.9965924024581909, "rightEyeOpenProbability": 0.99802166223526, "smilingProbability": 0.014574314467608929, "trackingID": 0}], "rawResult": {"faces": [[Object]], "imagePath": "file:///data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy684467960410722797.jpg"}, "success": true}
+ (NOBRIDGE) LOG  🎉 SUCCESS: Face detection completed with 1 face(s)
+ (NOBRIDGE) LOG  🎯 Processing detected faces...
+ (NOBRIDGE) LOG  👤 Detected face details: {"headAngles": {"x": -5.30846643447876, "y": 2.01458740234375, "z": -4.39629602432251}, "leftEyeOpen": 0.9965924024581909, "rightEyeOpen": 0.99802166223526, "smiling": 0.014574314467608929, "trackingID": 0}
+ (NOBRIDGE) LOG  🔄 Converted face data: {"bounds": {"height": 761, "width": 761, "x": 222, "y": 393}, "faceId": "face_1756200725927", "leftEyeOpenProbability": 0.9965924024581909, "rightEyeOpenProbability": 0.99802166223526, "rollAngle": -4.39629602432251, "timestamp": 1756200725927, "yawAngle": 2.01458740234375}
+ (NOBRIDGE) LOG  Face quality calculation: {"bounds": {"height": 761, "width": 761, "x": 222, "y": 393}, "faceArea": 579121, "faceRatio": 0.3016255208333333, "maxFaceSize": 0.6, "minFaceSize": 0.05, "screenArea": 1920000}
+ (NOBRIDGE) LOG  Quality scores: {"angleQuality": 0.9267283995946248, "lightingQuality": 1, "overall": 0.7747674782117209, "sizeQuality": 0.4918723958333334, "threshold": 0.4}
+ (NOBRIDGE) LOG  ✅ Face detection state updated successfully
+ (NOBRIDGE) LOG  📊 Face quality score: 0.7747674782117209
+ (NOBRIDGE) LOG  🎉 Face detection completed successfully - stopping all timers
+ (NOBRIDGE) LOG  ⏱️ Face detection process completed in 2121.11ms
+ (NOBRIDGE) LOG  === MAIN FACE DETECTION PROCESS COMPLETED ===
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:06.028Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725927, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9965924024581909, "rightEye": 0.99802166223526, "timestamp": 1756200725927}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.997", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 4, "leftEye": "0.997", "rightEye": "0.998"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 4, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 4, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.080", "timeScore": "0.400"}
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  ✅ Photo capture successful: {"height": 1200, "isMirrored": true, "isRawPhoto": false, "orientation": "portrait", "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy5007071727729761087.jpg", "width": 1600}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: processing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "processing"}
+ (NOBRIDGE) WARN  AES encryption failed, falling back to Expo crypto: [TypeError: 0, _reactNativeAesCrypto.encrypt is not a function (it is undefined)]
+ (NOBRIDGE) LOG  Face profile cached for user 7
+ (NOBRIDGE) LOG  Face profile stored successfully for user: 7
+ (NOBRIDGE) LOG  🛡️ Detection active flag reset - allowing cleanup
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: success
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔒 Keeping camera active for multi-angle registration...
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "success"}
+ (NOBRIDGE) LOG  Modal visible - verification already completed successfully, not restarting
+ (NOBRIDGE) LOG  Modal visible for multi-angle registration - resetting state for next angle
+ (NOBRIDGE) LOG  🔄 Resetting modal state for next angle registration...
+ (NOBRIDGE) LOG  ✅ Modal state reset complete for next angle
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting verification process for next angle...
+ (NOBRIDGE) LOG  ⚠️ Camera reference not available - starting verification anyway...
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
  (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
  (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
  (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
- (NOBRIDGE) LOG  🧹 Cleared existing detection interval
- (NOBRIDGE) LOG  🧹 Cleared existing detection timeout
- (NOBRIDGE) LOG  📊 Setting isDetecting to true...
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
  (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
  (NOBRIDGE) LOG  ⏰ Starting detection interval...
  (NOBRIDGE) LOG  ✅ Face detection interval started successfully
  (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
- (NOBRIDGE) LOG  Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.169Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.486Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:58.803Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.119Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.436Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:45:59.753Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.070Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.386Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:00.703Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.019Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.336Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.653Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:01.969Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.286Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.603Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:02.919Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:03.236Z"}
- (NOBRIDGE) LOG  🔄 Detection interval triggered - calling processPeriodicFaceDetection...
- (NOBRIDGE) LOG  🛑 processPeriodicFaceDetection early exit: {"isDetecting": false, "isMounted": true, "timestamp": "2025-08-24T14:46:03.552Z"}
- (NOBRIDGE) ERROR  Frame processor error: {}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:07.892Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:07.910Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:07.927Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:08.058Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:08.078Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+(NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Face registration successful for angle: 0 {"confidence": 1, "faceEncoding": "AAAAPmAsmT7hevw+iYgoPxXMfz+HyX8/yELGvTDMfj+1/zA9yMJ/P+iv5DxKToM93A8zPJeyeTxw2mM9Bp0KPf3uhT1qAAI9ot14O1WRij0tVYg8KWqCPSxmtT3eTtg7iUyzPYKUlT2Xc8g905ByPe0MPT1YNWc8hrY7PHCnnz2iRZ87CHHFPaQOCz2gAQE8lMOlPUaaUDxliPc8TKhgPUXEkz2Nn+w8gU6APY33qzz5zaM9QtzfPIhVWD2KbU49gPchPYIxHjwpD4A9j6+FPfpeIzxtNSM92S/OPGU+szxMaC09/0OmPbUkpjyvA6o85lCKPeTZ8Typ34E8HVpJPUxAuz1OEGw9NdimPLWVlj0i77Q9ONmcPXGOhj29Y1Y9CwebPZhlwzwcuZQ87JT/O/5UjD13QMc9dOJFPCKzITpcyRA9Z/jkPHxQRz0eNME9V4nUO43qSD1h9qQ9uougPLUcXD3mpcQ9vJLnOMtOrz2VDAw9FDqLPaRdjT01nUA985D9O9QbBD3sBzI91ycdOV4fHDw7V3c95XywPbLNiz3f17Y9/Z/HOzzvKT0meIg9RkWKPfITKD1Jd5g7U2rCPe4YkD0yt6I9Nr7vPIOttD1a05k9vea3PNlPRz3IdAM9wLMIPb2Z1jwXMrA9w32wPSxInT2sQbY8/5RfPGl+Qj0=", "isOffline": false, "livenessDetected": false, "success": true, "timestamp": 2025-08-26T09:32:06.468Z}
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: false
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: false
+ (NOBRIDGE) LOG  ⚠️ Modal being hidden during active detection - preventing cleanup
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:08.946Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:08.969Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:08.988Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:09.056Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:09.073Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725927, "hasFaceData": true, "isLivenessActive": false}
+ (NOBRIDGE) LOG  👁️ Not processing face data: {"reason": "Liveness not active"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:09.099Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:11.802Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:11.822Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:11.839Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:11.977Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:11.996Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  ⚠️ Liveness timeout but face detected - proceeding to capture (ultra-forgiving)
+ (NOBRIDGE) LOG  🔒 Keeping camera active during transition to prevent native view detachment
+ (NOBRIDGE) LOG  🔍 Stabilizing camera for final capture...
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: capturing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725927, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9965924024581909, "rightEye": 0.99802166223526, "timestamp": 1756200725927}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.997", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 1, "leftEye": "0.997", "rightEye": "0.998"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 1, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 1, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.020", "timeScore": "0.100"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 Proactively monitoring camera state...
+ (NOBRIDGE) LOG  🔍 === CAMERA STATE MONITORING ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Persistent ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref state: valid
+ (NOBRIDGE) LOG  🔍 Camera state monitoring: {"hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ✅ Camera state is healthy - proceeding with capture
+ (NOBRIDGE) LOG  🔍 === COMPREHENSIVE CAMERA STATE VALIDATION ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref type: object
+ (NOBRIDGE) LOG  🔍 Camera methods available: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera props: {"audio": false, "device": {"formats": [[Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object]], "hardwareLevel": "full", "hasFlash": false, "hasTorch": false, "id": "1", "isMultiCam": false, "maxExposure": 24, "maxZoom": 10, "minExposure": -24, "minFocusDistance": 0, "minZoom": 1, "name": "1 (FRONT) androidx.camera.camera2", "neutralZoom": 1, "physicalDevices": ["wide-angle-camera"], "position": "front", "sensorOrientation": "landscape-right", "supportsFocus": true, "supportsLowLightBoost": false, "supportsRawCapture": false}, "frameProcessor": {"frameProcessor": [Function withFrameRefCountingTs1], "type": "readonly"}, "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": {"height": "100%", "width": "100%"}, "video": false}
+ (NOBRIDGE) LOG  🔍 Camera state: {"averageFpsSamples": [], "isRecordingWithFlash": false}
+ (NOBRIDGE) LOG  🔍 Camera display name: Camera
+ (NOBRIDGE) LOG  ✅ Camera validation passed - proceeding with capture
+ (NOBRIDGE) LOG  capturePhoto called with: {"cameraRefCurrent": {"_reactInternalInstance": {}, "_reactInternals": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "actualDuration": 0.1953120231628418, "actualStartTime": 137160352.193456, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": [Function Camera], "flags": 2097157, "index": 0, "key": "1", "lanes": 0, "memoizedProps": [Object], "memoizedState": [Object], "mode": 3, "pendingProps": [Object], "ref": [Object], "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0.150937020778656, "sibling": [FiberNode], "stateNode": [Circular], "subtreeFlags": 2097152, "tag": 1, "treeBaseDuration": 0.1619260311126709, "type": [Function Camera], "updateQueue": [Object]}, "context": {}, "displayName": "Camera", "isNativeViewMounted": true, "lastFrameProcessor": [Function withFrameRefCountingTs1], "lastUIRotation": 0, "onAverageFpsChanged": [Function bound onAverageFpsChanged], "onCodeScanned": [Function bound onCodeScanned], "onError": [Function bound onError], "onInitialized": [Function bound onInitialized], "onOutputOrientationChanged": [Function bound onOutputOrientationChanged], "onPreviewOrientationChanged": [Function bound onPreviewOrientationChanged], "onPreviewStarted": [Function bound onPreviewStarted], "onPreviewStopped": [Function bound onPreviewStopped], "onShutter": [Function bound onShutter], "onStarted": [Function bound onStarted], "onStopped": [Function bound onStopped], "onViewReady": [Function bound onViewReady], "props": {"audio": false, "device": [Object], "frameProcessor": [Object], "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": [Object], "video": false}, "ref": {"current": [ReactFabricHostComponent]}, "refs": {}, "rotationHelper": {"outputOrientation": "portrait", "previewOrientation": "portrait"}, "state": {"averageFpsSamples": [Array], "isRecordingWithFlash": false}, "updater": {"enqueueForceUpdate": [Function enqueueForceUpdate], "enqueueReplaceState": [Function enqueueReplaceState], "enqueueSetState": [Function enqueueSetState], "isMounted": [Function isMounted]}}, "hasCameraRef": true, "hasTakePhotoMethod": true, "isInitialized": true}
+ (NOBRIDGE) LOG  Capturing photo with validated face...
+ (NOBRIDGE) LOG  🔍 Validating camera state before final capture...
+ (NOBRIDGE) LOG  👁️ Liveness detection timeout after 60 seconds
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  ✅ Camera validation successful on attempt 1
+ (NOBRIDGE) LOG  📸 Final camera state validation before photo capture...
+ (NOBRIDGE) LOG  ✅ Photo capture successful: {"height": 1200, "isMirrored": true, "isRawPhoto": false, "orientation": "portrait", "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy5176651807591606427.jpg", "width": 1600}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: processing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "processing"}
+ (NOBRIDGE) WARN  AES encryption failed, falling back to Expo crypto: [TypeError: 0, _reactNativeAesCrypto.encrypt is not a function (it is undefined)]
+ (NOBRIDGE) LOG  Face profile cached for user 7
+ (NOBRIDGE) LOG  Face profile stored successfully for user: 7
+ (NOBRIDGE) LOG  🛡️ Detection active flag reset - allowing cleanup
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: success
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔒 Keeping camera active for multi-angle registration...
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "success"}
+ (NOBRIDGE) LOG  Modal visible - verification already completed successfully, not restarting
+ (NOBRIDGE) LOG  Modal visible for multi-angle registration - resetting state for next angle
+ (NOBRIDGE) LOG  🔄 Resetting modal state for next angle registration...
+ (NOBRIDGE) LOG  ✅ Modal state reset complete for next angle
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting verification process for next angle...
+ (NOBRIDGE) LOG  ⚠️ Camera reference not available - starting verification anyway...
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.111Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.130Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:15.147Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.264Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.282Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face registration successful for angle: 1 {"confidence": 1, "faceEncoding": "exQOPhSupz4fhfM+v1giP64gfz9Zfn8/Ev2cvS0/fz+U/Q89ftd/P0KW5DzZOWs9Ts2sPPqQlj1lHWs6LE9vPX8HqD0r7j09A6yZPP1xKD3LFRI9ncexPUbIoj063Z09AdUjPRviCj2iBZw983SlPXBAED1Si5Q98WSjPW8WbD1BKJE9agPJPTGzTD2GooE6k4jGPYeTrjx4mL48gSNdPNB6qj3hT5E8DC47PT0Ysj1n6yE9B7YgPXWcizzfQtY8LOeBPa5PgDzfxQ89XTxkPR6jaT1PHIU9ENYxPfGWEz1srWM9ilfFPflZaj2c/LQ8/ASvPWt9Iz1AXVU9CVbaPOEwwT0eE+88JEApPcWsej3QB4k9H96EPPsOwTxUOGU9KYq3Peaffzx/7MI8BHFnPTXocD1Vplg9HaS9PeOauD1e6xo9Rcl6PZ/akz3IW689u2j+PBxkAD1H2C89N8ENPUzTozwMvow9BjF0PHYbKTxS/F48XymGPQ06ED0jf1o9W8uFPfnJhT2S2ws9P14nPaNDMjxJHQs9Y3fWPCeNcj2Dr1M9MaO/PYXj1Dr8ixs9rY6/O6QVSj16X6U98ldTPT+wwj2zLKc9f9tqPfs2KT2x7uQ7FFHPPM0uGzwzu/48kNwIPYf6fz2TUhg9/mDJPQE1Ez3gsG87aUdePLf/tDw=", "isOffline": false, "livenessDetected": false, "success": true, "timestamp": 2025-08-26T09:32:13.672Z}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: false
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: false
+ (NOBRIDGE) LOG  ⚠️ Modal being hidden during active detection - preventing cleanup
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:15.827Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725927, "hasFaceData": true, "isLivenessActive": false}
+ (NOBRIDGE) LOG  👁️ Not processing face data: {"reason": "Liveness not active"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:15.907Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: false
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: false
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.979Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:15.998Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:16.013Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:16.077Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:16.094Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:16.106Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:18.751Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:18.781Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:18.798Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:18.923Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:18.942Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  ⚠️ Liveness timeout but face detected - proceeding to capture (ultra-forgiving)
+ (NOBRIDGE) LOG  🔒 Keeping camera active during transition to prevent native view detachment
+ (NOBRIDGE) LOG  🔍 Stabilizing camera for final capture...
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: capturing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "capturing"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": 1756200725927, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing face data for liveness detection
+ (NOBRIDGE) LOG  👁️ processFaceData called: {"faceDataDetails": {"leftEye": 0.9965924024581909, "rightEye": 0.99802166223526, "timestamp": 1756200725927}, "hasFaceData": true, "isLivenessActive": true}
+ (NOBRIDGE) LOG  👁️ Processing liveness data: {"average": "0.997", "eyeClosedThreshold": 0.98, "eyeOpenThreshold": 0.995, "historyLength": 1, "leftEye": "0.997", "rightEye": "0.998"}
+ (NOBRIDGE) LOG  👁️ Analyzing blink pattern in history: {"historyLength": 1, "minRequired": 5}
+ (NOBRIDGE) LOG  👁️ Liveness score calculation: {"blinkCount": 0, "blinkScore": 0, "historyLength": 1, "minRequired": 0.1, "movementScore": "0.000", "overallScore": "0.020", "timeScore": "0.100"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: capturing
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 Proactively monitoring camera state...
+ (NOBRIDGE) LOG  🔍 === CAMERA STATE MONITORING ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Persistent ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref state: valid
+ (NOBRIDGE) LOG  🔍 Camera state monitoring: {"hasTakePhoto": true, "isActive": true}
+ (NOBRIDGE) LOG  ✅ Camera state is healthy - proceeding with capture
+ (NOBRIDGE) LOG  👁️ Liveness detection timeout after 60 seconds
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  🔍 === COMPREHENSIVE CAMERA STATE VALIDATION ===
+ (NOBRIDGE) LOG  🔍 Camera ref exists: true
+ (NOBRIDGE) LOG  🔍 Camera ref type: object
+ (NOBRIDGE) LOG  🔍 Camera methods available: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera props: {"audio": false, "device": {"formats": [[Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object], [Object]], "hardwareLevel": "full", "hasFlash": false, "hasTorch": false, "id": "1", "isMultiCam": false, "maxExposure": 24, "maxZoom": 10, "minExposure": -24, "minFocusDistance": 0, "minZoom": 1, "name": "1 (FRONT) androidx.camera.camera2", "neutralZoom": 1, "physicalDevices": ["wide-angle-camera"], "position": "front", "sensorOrientation": "landscape-right", "supportsFocus": true, "supportsLowLightBoost": false, "supportsRawCapture": false}, "frameProcessor": {"frameProcessor": [Function withFrameRefCountingTs1], "type": "readonly"}, "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": {"height": "100%", "width": "100%"}, "video": false}
+ (NOBRIDGE) LOG  🔍 Camera state: {"averageFpsSamples": [], "isRecordingWithFlash": false}
+ (NOBRIDGE) LOG  🔍 Camera display name: Camera
+ (NOBRIDGE) LOG  ✅ Camera validation passed - proceeding with capture
+ (NOBRIDGE) LOG  capturePhoto called with: {"cameraRefCurrent": {"_reactInternalInstance": {}, "_reactInternals": {"_debugHookTypes": null, "_debugInfo": null, "_debugNeedsRemount": false, "_debugOwner": [FiberNode], "actualDuration": 0.24015599489212036, "actualStartTime": 137167277.521422, "alternate": [FiberNode], "child": [FiberNode], "childLanes": 0, "deletions": null, "dependencies": null, "elementType": [Function Camera], "flags": 2097157, "index": 0, "key": "2", "lanes": 0, "memoizedProps": [Object], "memoizedState": [Object], "mode": 3, "pendingProps": [Object], "ref": [Object], "refCleanup": null, "return": [FiberNode], "selfBaseDuration": 0.18635401129722595, "sibling": [FiberNode], "stateNode": [Circular], "subtreeFlags": 2097152, "tag": 1, "treeBaseDuration": 0.19828099012374878, "type": [Function Camera], "updateQueue": [Object]}, "context": {}, "displayName": "Camera", "isNativeViewMounted": true, "lastFrameProcessor": [Function withFrameRefCountingTs1], "lastUIRotation": 0, "onAverageFpsChanged": [Function bound onAverageFpsChanged], "onCodeScanned": [Function bound onCodeScanned], "onError": [Function bound onError], "onInitialized": [Function bound onInitialized], "onOutputOrientationChanged": [Function bound onOutputOrientationChanged], "onPreviewOrientationChanged": [Function bound onPreviewOrientationChanged], "onPreviewStarted": [Function bound onPreviewStarted], "onPreviewStopped": [Function bound onPreviewStopped], "onShutter": [Function bound onShutter], "onStarted": [Function bound onStarted], "onStopped": [Function bound onStopped], "onViewReady": [Function bound onViewReady], "props": {"audio": false, "device": [Object], "frameProcessor": [Object], "isActive": true, "onError": [Function onError], "onInitialized": [Function onInitialized], "onStarted": [Function onStarted], "photo": true, "style": [Object], "video": false}, "ref": {"current": [ReactFabricHostComponent]}, "refs": {}, "rotationHelper": {"outputOrientation": "portrait", "previewOrientation": "portrait"}, "state": {"averageFpsSamples": [Array], "isRecordingWithFlash": false}, "updater": {"enqueueForceUpdate": [Function enqueueForceUpdate], "enqueueReplaceState": [Function enqueueReplaceState], "enqueueSetState": [Function enqueueSetState], "isMounted": [Function isMounted]}}, "hasCameraRef": true, "hasTakePhotoMethod": true, "isInitialized": true}
+ (NOBRIDGE) LOG  Capturing photo with validated face...
+ (NOBRIDGE) LOG  🔍 Validating camera state before final capture...
+ (NOBRIDGE) LOG  ✅ Camera validation successful on attempt 1
+ (NOBRIDGE) LOG  📸 Final camera state validation before photo capture...
+ (NOBRIDGE) LOG  ✅ Photo capture successful: {"height": 1200, "isMirrored": true, "isRawPhoto": false, "orientation": "portrait", "path": "/data/user/0/com.avyrentechnologies.avytracker/cache/mrousavy6065603729289508380.jpg", "width": 1600}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: processing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "processing"}
+ (NOBRIDGE) WARN  AES encryption failed, falling back to Expo crypto: [TypeError: 0, _reactNativeAesCrypto.encrypt is not a function (it is undefined)]
+ (NOBRIDGE) LOG  Face profile cached for user 7
+ (NOBRIDGE) LOG  Face profile stored successfully for user: 7
+ (NOBRIDGE) LOG  🛡️ Detection active flag reset - allowing cleanup
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: success
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔒 Keeping camera active for multi-angle registration...
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "success"}
+ (NOBRIDGE) LOG  Modal visible - verification already completed successfully, not restarting
+ (NOBRIDGE) LOG  Modal visible for multi-angle registration - resetting state for next angle
+ (NOBRIDGE) LOG  🔄 Resetting modal state for next angle registration...
+ (NOBRIDGE) LOG  ✅ Modal state reset complete for next angle
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "initializing"}
+ (NOBRIDGE) LOG  Modal visible - starting verification process
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting verification process for next angle...
+ (NOBRIDGE) LOG  ⚠️ Camera reference not available - starting verification anyway...
+ (NOBRIDGE) LOG  🛡️ Detection active flag set - preventing modal cleanup
+ (NOBRIDGE) LOG  🚀 Starting periodic face detection with ML Kit...
+ (NOBRIDGE) LOG  🧪 Testing ML Kit detector before starting detection...
+ (NOBRIDGE) LOG  ✅ ML Kit detector is ready and has detectFaces method
+ (NOBRIDGE) LOG  📊 Setting isDetecting to true and starting interval...
+ (NOBRIDGE) LOG  📊 Face detection state updated: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  ⏰ Starting detection interval...
+ (NOBRIDGE) LOG  ✅ Face detection interval started successfully
+ (NOBRIDGE) LOG  📊 Face detection state: {"faceData": false, "faceDetected": false, "faceQuality": undefined, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: detecting
+ (NOBRIDGE) LOG  🔍 isDetecting: true
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Has timeout: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:22.030Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: true
+ (NOBRIDGE) LOG  🔍 Has interval: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:22.049Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: detecting
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": true, "verificationStep": "detecting"}
+ (NOBRIDGE) LOG  Moving to liveness detection step - good quality face detected
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": true, "hasTimeout": true, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390698:24)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:22.065Z"}
+ (NOBRIDGE) LOG  Detection interval cleared
+ (NOBRIDGE) LOG  Detection timeout cleared
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  Camera onInitialized called
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:22.205Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: true
+ (NOBRIDGE) LOG  🔍 Face detected: true
+ (NOBRIDGE) LOG  🔍 Face quality: true
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: true
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:22.224Z
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: liveness
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: true
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face detection state: {"faceData": true, "faceDetected": true, "faceQuality": true, "isDetecting": false, "verificationStep": "liveness"}
+ (NOBRIDGE) LOG  Camera started - ensuring detection is running
+ (NOBRIDGE) LOG  👁️ Starting liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection started successfully
+ (NOBRIDGE) LOG  Camera initialized - connecting reference to face detection hook
+ (NOBRIDGE) LOG  🔍 === SETTING CAMERA REFERENCE ===
+ (NOBRIDGE) LOG  🔍 Camera component exists: true
+ (NOBRIDGE) LOG  🔍 Component type: object
+ (NOBRIDGE) LOG  🔍 Has component: true
+ (NOBRIDGE) LOG  🔍 Component methods: ["props", "context", "refs", "updater", "displayName", "isNativeViewMounted", "lastUIRotation", "rotationHelper", "onViewReady", "onAverageFpsChanged", "onInitialized", "onStarted", "onStopped", "onPreviewStarted", "onPreviewStopped", "onShutter", "onOutputOrientationChanged", "onPreviewOrientationChanged", "onError", "onCodeScanned", "ref", "lastFrameProcessor", "state", "_reactInternals", "_reactInternalInstance"]
+ (NOBRIDGE) LOG  🔍 Has takePhoto method: true
+ (NOBRIDGE) LOG  🔍 Camera reference stored in persistent ref
+ (NOBRIDGE) LOG  ✅ Camera reference set successfully: {"cameraRefType": "object", "hasCameraRef": true, "hasTakePhotoMethod": true, "persistentRefState": "valid"}
+ (NOBRIDGE) LOG  🔍 === CAMERA isActive CALCULATION ===
+ (NOBRIDGE) LOG  🔍 visible: true
+ (NOBRIDGE) LOG  🔍 verificationStep: liveness
+ (NOBRIDGE) LOG  🔍 isDetecting: false
+ (NOBRIDGE) LOG  🔍 cameraKeepAlive: true
+ (NOBRIDGE) LOG  🔍 Final isActive result: true
+ (NOBRIDGE) LOG  🔍 Camera should be active - checking persistence state...
+ (NOBRIDGE) LOG  ⏰ Starting countdown timer: 5
+ (NOBRIDGE) LOG  Face registration successful for angle: 2 {"confidence": 1, "faceEncoding": "exQOPhSupz4fhfM+v1giP64gfz9Zfn8/Ev2cvS0/fz+U/Q89ftd/P65ZqT0MIS49qWgEPYbdUj1u66w8PcaaPeRK3TzB0DA7fIVjPdOhCz38lLE9TyWbOnnwqz2DEIo896RmPaxN4zwwYQ89uD1vPdzgOj159b09/kG/PRTYez3qkKM6rJDDPaQk6DtzVYQ9nUduPQgeAz2si8U8RuWkPbd2iD0ssYI9Y8x7Pem4ATqe3Uc93jcsPSwogD1t7WM8gRWpPUaOhj2gLyE9tqizPT/GyjuoD409akdQPR6nWT0i9v08xSyzPQFwAj3mI6Q9+xejPZFsbj0L+5Q9vIDQPMOQ+TzWgZI8B7QUPBiRBz2W0rA8021BPSSEkT2kAVY99G1OPalHmj0viTA98GpmPd1icD0vt3g9zwwDPdSZHztGD3E9CqtVPMAv/jxn+JU9PNWjPecltT05EwM99LOZPd3Sgj1tCE08zpaMPe235zzN1H09O8KEPTILtz2zpsE8FRGqPMibvTzaa3o9RlF/PRrBmj0Yi3A93L6QPYngAzy9vBs9TkDMPU0OPj3EI6c9H4fMPPntIT39e/A8CPwlPVsRwD2mQ5c9DL3VPOnRSz3BhQA96shaPSggSj2be/w81fGyO0xuoz06koY9lsf6POZQpz1Pp0w9s9NRPTiKFD0=", "isOffline": false, "livenessDetected": false, "success": true, "timestamp": 2025-08-26T09:32:20.596Z}
+ (NOBRIDGE) LOG  🧹 === CLEANING UP FACE DETECTION ON UNMOUNT ===
+ (NOBRIDGE) LOG  🧹 Cleaning up main camera ref
+ (NOBRIDGE) LOG  🧹 Cleaning up persistent camera ref
+ (NOBRIDGE) LOG  ✅ Face detection cleanup completed
+ (NOBRIDGE) LOG  🛡️ Preventing cleanup during active detection
+ (NOBRIDGE) ERROR  Error processing multi-angle registration: [AxiosError: Request failed with status code 400]
+ (NOBRIDGE) ERROR  Error starting verification process: [Error: Failed to start face detection]
+ (NOBRIDGE) LOG  🔍 === isDetecting STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 New value: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Has timeout: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:23.140Z
+ (NOBRIDGE) LOG  🔍 === FACE DETECTION STATE CHANGED ===
+ (NOBRIDGE) LOG  🔍 Face data: false
+ (NOBRIDGE) LOG  🔍 Face detected: false
+ (NOBRIDGE) LOG  🔍 Face quality: false
+ (NOBRIDGE) LOG  🔍 Is detecting: false
+ (NOBRIDGE) LOG  🔍 Has interval: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive: false
+ (NOBRIDGE) LOG  🔍 Timestamp: 2025-08-26T09:32:23.157Z
+ (NOBRIDGE) LOG  👁️ Face data effect triggered: {"faceDataTimestamp": undefined, "hasFaceData": false, "isLivenessActive": false}
+ (NOBRIDGE) LOG  👁️ Not processing face data: {"reason": "No face data"}
+ (NOBRIDGE) LOG  🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===
+ (NOBRIDGE) LOG  🔍 Verification step changed to: initializing
+ (NOBRIDGE) LOG  🔍 Current camera keep-alive state: false
+ (NOBRIDGE) LOG  🔍 Camera keep-alive effect completed
+ (NOBRIDGE) LOG  Modal hidden - stopping all detection processes
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390812:22)
+    at commitHookEffectListMount (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31461:35)", "timestamp": "2025-08-26T09:32:23.174Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  Modal hidden - resetting verification state (not successful)
+ (NOBRIDGE) WARN  ⚠️ Failed to connect camera reference after timeout
+ (NOBRIDGE) LOG  🧹 === CLEANING UP FACE DETECTION ON UNMOUNT ===
+ (NOBRIDGE) LOG  ✅ Face detection cleanup completed
+ (NOBRIDGE) LOG  FaceVerificationModal cleanup - stopping all detection
+ (NOBRIDGE) LOG  🛑 stopDetection called: {"hasInterval": false, "hasTimeout": false, "isDetecting": false, "stack": "    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:392406:25)
+    at anonymous (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:390601:24)
+    at safelyCallDestroy (http://192.168.0.108:8081/node_modules/expo-router/entry.bundle//&platform=android&dev=true&hot=false&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable:31298:18)", "timestamp": "2025-08-26T09:32:25.393Z"}
+ (NOBRIDGE) LOG  🛑 Face detection stopped - isDetecting set to false
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  👁️ Liveness detection timeout after 60 seconds
+ (NOBRIDGE) LOG  👁️ Stopping liveness detection...
+ (NOBRIDGE) LOG  👁️ Liveness detection stopped
+ (NOBRIDGE) LOG  App state changed: active -> background
+ (NOBRIDGE) LOG  App went to background, keeping token refresh timer active

@@ -20,6 +20,10 @@ const checkFinalFaceTest = () => {
     router.push('/final-face-test');
 };
 
+const RunSimpleFaceTest = () => {
+    router.push('/simple-face-test');
+}
+
 const main = () => {
     const mlKitDetector = useMLKitFaceDetection();
 
@@ -106,6 +110,34 @@ const main = () => {
                             >
                                 <Text className="text-white text-center font-semibold text-lg">
                                     Final Face Test
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={RunSimpleFaceTest}
+                                className="bg-purple-600 dark:bg-purple-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    Simple Face Test
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => router.push('/(testing)/camera-test')}
+                                className="bg-blue-600 dark:bg-blue-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    📷 Camera Reference Test
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => router.push('/(testing)/multi-angle-registration-test')}
+                                className="bg-purple-600 dark:bg-purple-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    🔄 Multi-Angle Registration Test (Fixed)
                                 </Text>
                             </TouchableOpacity>
                         </View>

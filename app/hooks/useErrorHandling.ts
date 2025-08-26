@@ -1,279 +1,144 @@
 /**
- * Error Handling Hook for Face Verification
- * Provides error handling capabilities to React components
+ * Error Handling Hook
+ * 
+ * Provides error handling capabilities with retry logic
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import {
   FaceVerificationError,
   FaceVerificationErrorType,
-  ErrorContext,
   ErrorRecoveryAction,
-  RetryConfig,
-  DEFAULT_RETRY_CONFIG
+  ErrorHandlingConfig,
+  ErrorContext
 } from '../types/faceVerificationErrors';
 import ErrorHandlingService from '../services/ErrorHandlingService';
 
-interface UseErrorHandlingOptions {
-  retryConfig?: Partial<RetryConfig>;
-  onError?: (error: FaceVerificationError) => void;
-  onRetry?: (attempt: number, error: FaceVerificationError) => void;
-  onRecovery?: (action: ErrorRecoveryAction) => void;
-  sessionId?: string;
-}
-
-interface ErrorState {
-  currentError: FaceVerificationError | null;
-  isRetrying: boolean;
-  retryCount: number;
-  recoveryActions: ErrorRecoveryAction[];
-  errorHistory: FaceVerificationError[];
-}
-
 interface UseErrorHandlingReturn {
-  // Error state
   error: FaceVerificationError | null;
   isRetrying: boolean;
   retryCount: number;
   recoveryActions: ErrorRecoveryAction[];
-  errorHistory: FaceVerificationError[];
-  
-  // Error handling functions
-  handleError: (error: Error | FaceVerificationError, context?: Partial<ErrorContext>) => void;
+  handleError: (error: FaceVerificationError) => void;
   clearError: () => void;
-  retry: () => Promise<void>;
-  executeRecoveryAction: (action: ErrorRecoveryAction) => Promise<void>;
-  
-  // Utility functions
-  formatErrorForDisplay: () => string | { title: string; message: string; suggestions: string[]; actions: ErrorRecoveryAction[] } | null;
-  canRetry: () => boolean;
-  shouldShowFallback: () => boolean;
-  
-  // Async operation wrapper
+  retry: () => void;
+  executeRecoveryAction: (action: ErrorRecoveryAction) => void;
+  canRetry: boolean;
+  shouldShowFallback: boolean;
   executeWithErrorHandling: <T>(
     operation: () => Promise<T>,
     context?: Partial<ErrorContext>
   ) => Promise<T>;
+  formatErrorForDisplay?: (error: FaceVerificationError) => any;
 }
 
-export const useErrorHandling = (options: UseErrorHandlingOptions = {}): UseErrorHandlingReturn => {
-  const {
-    retryConfig = {},
-    onError,
-    onRetry,
-    onRecovery,
-    sessionId = 'default'
-  } = options;
+export function useErrorHandling(config: ErrorHandlingConfig = {}): UseErrorHandlingReturn {
+  const [error, setError] = useState<FaceVerificationError | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const [errorState, setErrorState] = useState<ErrorState>({
-    currentError: null,
-    isRetrying: false,
-    retryCount: 0,
-    recoveryActions: [],
-    errorHistory: []
-  });
+  const maxRetries = config.retryConfig?.maxAttempts || 3;
 
-  const retryOperationRef = useRef<(() => Promise<void>) | null>(null);
-  const mergedRetryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
-
-  /**
-   * Handle an error
-   */
-  const handleError = useCallback((
-    error: Error | FaceVerificationError,
-    context: Partial<ErrorContext> = {}
-  ) => {
-    const faceError: FaceVerificationError = !('type' in error)
-      ? ErrorHandlingService.mapErrorToFaceVerificationError(error)
-      : error as FaceVerificationError;
-
-    const errorContext: ErrorContext = {
-      sessionId,
-      timestamp: new Date(),
-      ...context
-    };
-
-    // Report error
-    ErrorHandlingService.reportError(faceError, errorContext);
-
-    // Get recovery actions
-    const recoveryActions = ErrorHandlingService.getRecoveryActions(faceError);
-
-    // Update state
-    setErrorState(prev => ({
-      currentError: faceError,
-      isRetrying: false,
-      retryCount: prev.retryCount + (faceError.retryable ? 1 : 0),
-      recoveryActions,
-      errorHistory: [...prev.errorHistory, faceError].slice(-10) // Keep last 10 errors
-    }));
-
-    // Call error callback
-    if (onError) {
-      onError(faceError);
+  const handleError = useCallback((newError: FaceVerificationError) => {
+    setError(newError);
+    if (config.onError) {
+      config.onError(newError);
     }
-  }, [sessionId, onError]);
+  }, [config]);
 
-  /**
-   * Clear current error
-   */
   const clearError = useCallback(() => {
-    setErrorState(prev => ({
-      ...prev,
-      currentError: null,
-      isRetrying: false,
-      recoveryActions: []
-    }));
-    ErrorHandlingService.resetErrorState(sessionId);
-  }, [sessionId]);
+    setError(null);
+    setRetryCount(0);
+    setIsRetrying(false);
+  }, []);
 
-  /**
-   * Retry the last operation
-   */
-  const retry = useCallback(async () => {
-    if (!retryOperationRef.current || !errorState.currentError?.retryable) {
+  const retry = useCallback(() => {
+    if (retryCount >= maxRetries) {
       return;
     }
 
-    setErrorState(prev => ({
-      ...prev,
-      isRetrying: true
-    }));
+    setIsRetrying(true);
+    setRetryCount(prev => prev + 1);
 
-    try {
-      await retryOperationRef.current();
-      clearError();
-    } catch (error) {
-      handleError(error as Error);
-    } finally {
-      setErrorState(prev => ({
-        ...prev,
-        isRetrying: false
-      }));
+    if (config.onRetry && error) {
+      config.onRetry(retryCount + 1, error);
     }
-  }, [errorState.currentError, clearError, handleError]);
 
-  /**
-   * Execute a recovery action
-   */
-  const executeRecoveryAction = useCallback(async (action: ErrorRecoveryAction) => {
-    try {
-      await action.action();
-      
-      if (onRecovery) {
-        onRecovery(action);
-      }
+    // Clear error after retry attempt
+    setTimeout(() => {
+      setError(null);
+      setIsRetrying(false);
+    }, 1000);
+  }, [retryCount, maxRetries, config, error]);
 
-      // Clear error if it's a successful recovery action
-      if (action.type === 'retry' || action.type === 'fallback') {
-        clearError();
-      }
-    } catch (error) {
-      handleError(error as Error, { 
-        attemptNumber: errorState.retryCount + 1 
-      });
+  const executeRecoveryAction = useCallback((action: ErrorRecoveryAction) => {
+    if (config.onRecovery) {
+      config.onRecovery(action);
     }
-  }, [onRecovery, clearError, handleError, errorState.retryCount]);
+    action.action();
+  }, [config]);
 
-  /**
-   * Format error for display
-   */
-  const formatErrorForDisplay = useCallback(() => {
-    if (!errorState.currentError) return null;
-    
-    return ErrorHandlingService.formatErrorForUser(errorState.currentError);
-  }, [errorState.currentError]);
-
-  /**
-   * Check if retry is possible
-   */
-  const canRetry = useCallback(() => {
-    return !!(
-      errorState.currentError?.retryable &&
-      errorState.retryCount < mergedRetryConfig.maxAttempts &&
-      !errorState.isRetrying
-    );
-  }, [errorState.currentError, errorState.retryCount, errorState.isRetrying, mergedRetryConfig.maxAttempts]);
-
-  /**
-   * Check if fallback should be shown
-   */
-  const shouldShowFallback = useCallback(() => {
-    if (!errorState.currentError) return false;
-    
-    return ErrorHandlingService.shouldUseFallback(
-      errorState.currentError,
-      errorState.retryCount
-    );
-  }, [errorState.currentError, errorState.retryCount]);
-
-  /**
-   * Execute operation with error handling and retry logic
-   */
   const executeWithErrorHandling = useCallback(async <T>(
     operation: () => Promise<T>,
-    context: Partial<ErrorContext> = {}
+    context?: Partial<ErrorContext>
   ): Promise<T> => {
-    // Store operation for retry
-    retryOperationRef.current = async () => {
-      await operation();
-    };
-
-    const errorContext: ErrorContext = {
-      sessionId,
-      timestamp: new Date(),
-      ...context
-    };
-
     try {
-      return await ErrorHandlingService.handleErrorWithRetry(
-        operation,
-        (attempt: number, error: Error) => {
-          setErrorState(prev => ({
-            ...prev,
-            isRetrying: true,
-            retryCount: attempt
-          }));
-
-          if (onRetry) {
-            onRetry(attempt, error as unknown as FaceVerificationError);
-          }
-        },
-        mergedRetryConfig.maxAttempts
-      );
+      return await operation();
     } catch (error) {
-      handleError(error as Error, context);
-      throw error;
-    } finally {
-      setErrorState(prev => ({
-        ...prev,
-        isRetrying: false
-      }));
+      let faceError: FaceVerificationError;
+      
+      if (error && typeof error === 'object' && 'type' in error) {
+        faceError = error as FaceVerificationError;
+      } else {
+        faceError = ErrorHandlingService.createError(
+          FaceVerificationErrorType.UNKNOWN_ERROR,
+          error as Error,
+          context
+        );
+      }
+      
+      handleError(faceError);
+      throw faceError;
     }
-  }, [sessionId, mergedRetryConfig, onRetry, handleError]);
+  }, [handleError]);
+
+  const recoveryActions: ErrorRecoveryAction[] = [
+    {
+      type: 'retry',
+      label: 'Try Again',
+      description: 'Retry the operation',
+      action: retry,
+      priority: 1
+    },
+    {
+      type: 'fallback',
+      label: 'Cancel',
+      description: 'Cancel the operation',
+      action: clearError,
+      priority: 2
+    }
+  ];
+
+  const formatErrorForDisplay = (error: FaceVerificationError) => {
+    return {
+      title: error.type || 'Error',
+      message: error.userMessage || error.message,
+      suggestions: error.suggestions || []
+    };
+  };
 
   return {
-    // Error state
-    error: errorState.currentError,
-    isRetrying: errorState.isRetrying,
-    retryCount: errorState.retryCount,
-    recoveryActions: errorState.recoveryActions,
-    errorHistory: errorState.errorHistory,
-    
-    // Error handling functions
+    error,
+    isRetrying,
+    retryCount,
+    recoveryActions,
     handleError,
     clearError,
     retry,
     executeRecoveryAction,
-    
-    // Utility functions
-    formatErrorForDisplay,
-    canRetry,
-    shouldShowFallback,
-    
-    // Async operation wrapper
-    executeWithErrorHandling
+    canRetry: retryCount < maxRetries && ErrorHandlingService.isRetryable(error),
+    shouldShowFallback: retryCount >= maxRetries,
+    executeWithErrorHandling,
+    formatErrorForDisplay
   };
-};
-
-export default useErrorHandling;
+}

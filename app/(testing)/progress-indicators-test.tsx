@@ -513,6 +513,7 @@ export default function ProgressIndicatorsTest() {
         visible={showOverlay}
         step="liveness"
         progress={progress}
+        statusMessage="Please blink naturally when the timer reaches zero"
         message="Please blink naturally when the timer reaches zero"
         countdown={5}
         onCountdownComplete={() => console.log('Countdown complete')}
@@ -523,17 +524,9 @@ export default function ProgressIndicatorsTest() {
 
       <LivenessProgressOverlay
         visible={showLivenessOverlay}
-        instruction="Blink when timer reaches zero"
-        countdown={countdown}
-        onCountdownComplete={() => {
-          setBlinkDetected(true);
-          setTimeout(() => {
-            setShowLivenessOverlay(false);
-            setBlinkDetected(false);
-          }, 2000);
-        }}
-        blinkDetected={blinkDetected}
-        livenessScore={livenessScore}
+        progress={livenessScore}
+        statusMessage="Blink when timer reaches zero"
+        guidanceMessage="Please blink naturally"
       />
     </SafeAreaView>
   );

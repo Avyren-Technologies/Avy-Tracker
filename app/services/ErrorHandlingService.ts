@@ -418,6 +418,22 @@ export class ErrorHandlingService {
     const instance = ErrorHandlingService.getInstance();
     instance.clearLogs();
   }
+
+  // Check if error is retryable (missing method that was causing the error)
+  public static isRetryable(error: FaceVerificationError | null): boolean {
+    if (!error) return false;
+    return error.retryable !== false;
+  }
+
+  // Get user message (missing method)
+  public static getUserMessage(error: FaceVerificationError): string {
+    return error.userMessage || error.message || 'An unexpected error occurred';
+  }
+
+  // Get suggestions (missing method)
+  public static getSuggestions(error: FaceVerificationError): string[] {
+    return error.suggestions || ['Try again', 'Contact support if the issue persists'];
+  }
 }
 
 export default ErrorHandlingService;

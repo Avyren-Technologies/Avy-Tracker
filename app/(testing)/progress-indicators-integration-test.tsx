@@ -226,7 +226,7 @@ export default function ProgressIndicatorsIntegrationTest() {
             isDetecting={true}
             qualityScore={qualityScore}
             feedback={mockFeedback}
-            onQualityChange={(score) => console.log('Quality changed:', score)}
+            onQualityChange={(score: number) => console.log('Quality changed:', score)}
           />
         </View>
 
@@ -369,6 +369,7 @@ export default function ProgressIndicatorsIntegrationTest() {
         visible={showOverlay}
         step="liveness"
         progress={progress}
+        statusMessage="Testing progress overlay functionality"
         message="Testing progress overlay functionality"
         countdown={5}
         onCountdownComplete={() => console.log('Countdown complete')}

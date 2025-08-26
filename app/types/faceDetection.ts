@@ -62,9 +62,15 @@ export interface UseFaceDetectionReturn {
   frameProcessor: any; // Frame processor for Camera component
   device: any; // Camera device
   setCameraRef: (cameraComponent: any) => void; // Function to set camera reference
+  refreshCameraRef: () => Promise<boolean>; // Refresh camera reference to handle native view issues
+  monitorCameraState: () => Promise<boolean>; // Monitor camera state to prevent native view issues
   getCameraInstance: () => any; // Get direct camera instance
   hasTakePhotoMethod: () => boolean; // Check if takePhoto method is available
   getGlobalCameraInstance: () => any; // Most reliable camera access method
+  
+  // CRITICAL FIX: Camera keep-alive functions to prevent native view detachment
+  enableCameraKeepAlive: () => void; // Enable camera keep-alive during critical transitions
+  disableCameraKeepAlive: () => void; // Disable camera keep-alive after completion
 }
 
 export interface FaceVerificationResult {
