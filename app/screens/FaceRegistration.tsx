@@ -207,14 +207,21 @@ export default function FaceRegistration() {
         timestamp: new Date(),
       };
 
+      // CRITICAL FIX: Backend expects faceEncoding to be a valid JSON array string
+      const registrationData = {
+        faceEncoding: JSON.stringify(angles.map(angle => angle.faceEncoding)), // ✅ JSON array string
+        consentGiven: true,                             // ✅ Required field
+        qualityScore: combinedResult.confidence,         // ✅ Correct field
+        deviceInfo: {
+          platform: 'react-native',
+          timestamp: new Date().toISOString()
+        }
+      };
+
       // Send to backend for registration
       await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/register`,
-        {
-          faceEncodings: angles.map(angle => angle.faceEncoding),
-          confidence: combinedResult.confidence,
-          captureAngles: captureAngles.length,
-        },
+        registrationData, // ✅ Use the correctly formatted data
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -226,20 +233,28 @@ export default function FaceRegistration() {
         `All ${captureAngles.length} face angles captured successfully with ${Math.round((combinedResult.confidence || 0) * 100)}% average confidence.\n\nLet's test the verification.`,
         [{ text: 'Test Verification', onPress: () => testVerification() }]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing multi-angle registration:', error);
+      
+      // Enhanced error logging
+      if (error.response) {
+        console.error('Backend error response:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
+      
       Alert.alert(
         'Registration Error',
-        'Failed to complete face registration. Please try again.',
+        `Failed to complete face registration: ${error.response?.data?.error || error.message}\n\nPlease try again.`,
         [
           {
-            text: 'Retry', onPress: () => {
-              setCapturedAngles([]);
-              setCaptureStep(0);
-              setCurrentStep(1);
+            text: 'OK',
+            onPress: () => {
+              setShowFaceModal(true);
             }
-          },
-          { text: 'Cancel', onPress: () => router.back() }
+          }
         ]
       );
     } finally {

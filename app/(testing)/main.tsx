@@ -137,7 +137,17 @@ const main = () => {
                                 activeOpacity={0.8}
                             >
                                 <Text className="text-white text-center font-semibold text-lg">
-                                    🔄 Multi-Angle Registration Test (Fixed)
+                                    🔄 Multi-Angle Registration Test
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => router.push('/(testing)/json-format-test')}
+                                className="bg-indigo-600 dark:bg-indigo-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    🧪 JSON Format Validation Test
                                 </Text>
                             </TouchableOpacity>
                         </View>
