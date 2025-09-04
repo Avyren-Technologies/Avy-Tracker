@@ -7,11 +7,16 @@ import { pool } from '../config/database';
 import { verifyToken } from '../middleware/auth';
 import { JWT_SECRET } from '../middleware/auth';
 import { CustomRequest, ResetToken } from '../types';
+import MFAService from '../services/MFAService';
 
 const router = express.Router();
+const mfaService = new MFAService();
 
 // Store reset tokens (in production, use Redis or database)
 const resetTokens = new Map<string, ResetToken>();
+
+// Store MFA session tokens (in production, use Redis)
+const mfaSessions = new Map<string, { userId: number; email: string; expires: Date }>();
 
 // Update the type definitions for request bodies
 interface LoginRequest extends Request {
@@ -42,6 +47,22 @@ interface ResetPasswordRequest extends Request {
   }
 }
 
+interface MFALoginRequest extends Request {
+  body: {
+    email: string;
+    otp: string;
+    sessionId: string;
+  }
+}
+
+interface MFASetupRequest extends Request {
+  body: {
+    userId: number;
+    enable: boolean;
+  }
+}
+
+// Modified login endpoint - now returns session ID for MFA instead of tokens
 router.post('/login', async (req: LoginRequest, res: Response) => {
   const client = await pool.connect();
   try {
@@ -92,47 +113,262 @@ router.post('/login', async (req: LoginRequest, res: Response) => {
       [user.id]
     );
 
-    // Generate access token (7 days expiry)
-    const accessToken = jwt.sign(
-      { 
-        id: user.id,
-        role: user.role,
-        company_id: user.company_id,
-        token_version: user.token_version,
-        type: 'access'
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Check if MFA is enabled for this user
+    if (user.mfa_enabled) {
+      // Generate MFA OTP
+      try {
+        const { otp, expires } = await mfaService.generateOTP(user.email);
+        
+        // Create MFA session
+        const sessionId = crypto.randomBytes(32).toString('hex');
+        const sessionExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        
+        mfaSessions.set(sessionId, {
+          userId: user.id,
+          email: user.email,
+          expires: sessionExpires
+        });
 
-    // Generate refresh token (30 days expiry)
-    const refreshToken = jwt.sign(
-      { 
-        id: user.id,
-        token_version: user.token_version,
-        type: 'refresh'
-      },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+        // Clean up expired sessions
+        for (const [key, session] of mfaSessions.entries()) {
+          if (session.expires < new Date()) {
+            mfaSessions.delete(key);
+          }
+        }
 
-    res.json({
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        company_id: user.company_id
+        return res.json({
+          requiresMFA: true,
+          sessionId,
+          message: 'MFA code sent to your email',
+          email: user.email
+        });
+      } catch (error) {
+        console.error('Error generating MFA OTP:', error);
+        return res.status(500).json({ error: 'Failed to send MFA code' });
       }
-    });
+    } else {
+      // MFA not enabled - proceed with normal login
+      // Generate access token (7 days expiry)
+      const accessToken = jwt.sign(
+        { 
+          id: user.id,
+          role: user.role,
+          company_id: user.company_id,
+          token_version: user.token_version,
+          type: 'access'
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Generate refresh token (30 days expiry)
+      const refreshToken = jwt.sign(
+        { 
+          id: user.id,
+          token_version: user.token_version,
+          type: 'refresh'
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.json({
+        requiresMFA: false,
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          company_id: user.company_id
+        }
+      });
+    }
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
   } finally {
     client.release();
+  }
+});
+
+// New endpoint for MFA verification during login
+router.post('/verify-mfa-login', async (req: MFALoginRequest, res: Response) => {
+  try {
+    const { email, otp, sessionId } = req.body;
+
+    // Validate session
+    const session = mfaSessions.get(sessionId);
+    if (!session || session.expires < new Date() || session.email !== email) {
+      return res.status(400).json({ error: 'Invalid or expired session' });
+    }
+
+    // Verify OTP
+    const verificationResult = await mfaService.verifyOTP(email, otp);
+    
+    if (!verificationResult.success) {
+      return res.status(400).json({ error: verificationResult.message });
+    }
+
+    // Clear the session
+    mfaSessions.delete(sessionId);
+
+    // Get user details
+    const client = await pool.connect();
+    try {
+      const userResult = await client.query(
+        'SELECT * FROM users WHERE id = $1',
+        [session.userId]
+      );
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const user = userResult.rows[0];
+
+      // Generate access token (7 days expiry)
+      const accessToken = jwt.sign(
+        { 
+          id: user.id,
+          role: user.role,
+          company_id: user.company_id,
+          token_version: user.token_version,
+          type: 'access'
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Generate refresh token (30 days expiry)
+      const refreshToken = jwt.sign(
+        { 
+          id: user.id,
+          token_version: user.token_version,
+          type: 'refresh'
+        },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      res.json({
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          company_id: user.company_id
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('MFA verification error:', error);
+    res.status(500).json({ error: 'Failed to verify MFA' });
+  }
+});
+
+// Endpoint to resend MFA OTP
+router.post('/resend-mfa-otp', async (req: Request, res: Response) => {
+  try {
+    const { email, sessionId } = req.body;
+
+    // Validate session
+    const session = mfaSessions.get(sessionId);
+    if (!session || session.expires < new Date() || session.email !== email) {
+      return res.status(400).json({ error: 'Invalid or expired session' });
+    }
+
+    // Generate new OTP
+    const { otp, expires } = await mfaService.generateOTP(email);
+
+    res.json({ 
+      message: 'New MFA code sent successfully',
+      expires 
+    });
+  } catch (error) {
+    console.error('Error resending MFA OTP:', error);
+    res.status(500).json({ error: 'Failed to resend MFA code' });
+  }
+});
+
+// Endpoint to setup MFA for a user
+router.post('/setup-mfa', verifyToken, async (req: MFASetupRequest, res: Response) => {
+  try {
+    const { userId, enable } = req.body;
+    const requestingUser = (req as CustomRequest).user;
+
+    // Only allow users to modify their own MFA or super admins to modify any
+    if (requestingUser?.id !== userId && requestingUser?.role !== 'super-admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    let success: boolean;
+    if (enable) {
+      success = await mfaService.enableMFA(userId);
+    } else {
+      success = await mfaService.disableMFA(userId);
+    }
+
+    if (success) {
+      res.json({ 
+        message: `MFA ${enable ? 'enabled' : 'disabled'} successfully` 
+      });
+    } else {
+      res.status(500).json({ 
+        error: `Failed to ${enable ? 'enable' : 'disable'} MFA` 
+      });
+    }
+  } catch (error) {
+    console.error('Error setting up MFA:', error);
+    res.status(500).json({ error: 'Failed to setup MFA' });
+  }
+});
+
+// Endpoint to get MFA status
+router.get('/mfa-status', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const requestingUser = (req as CustomRequest).user;
+    if (!requestingUser) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const status = await mfaService.getMFAStatus(requestingUser.id);
+    res.json(status);
+  } catch (error) {
+    console.error('Error getting MFA status:', error);
+    res.status(500).json({ error: 'Failed to get MFA status' });
+  }
+});
+
+// Endpoint to test MFA setup (send OTP without requiring login)
+router.post('/test-mfa-setup', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const requestingUser = (req as CustomRequest).user;
+    if (!requestingUser) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Only allow users to test their own MFA
+    if (requestingUser.id !== parseInt(req.body.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { otp, expires } = await mfaService.generateOTP(requestingUser.email);
+    
+    res.json({ 
+      message: 'Test MFA code sent successfully',
+      expires 
+    });
+  } catch (error) {
+    console.error('Error testing MFA setup:', error);
+    res.status(500).json({ error: 'Failed to send test MFA code' });
   }
 });
 
@@ -210,15 +446,15 @@ router.post('/reset-password', async (req: ResetPasswordRequest, res: Response) 
       return res.status(400).json({ error: 'Invalid or expired code' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await pool.query(
-      'UPDATE users SET password = $1 WHERE email = $2',
+      'UPDATE users SET password = $1, reset_token = NULL, reset_token_expires = NULL WHERE email = $2',
       [hashedPassword, email]
     );
 
     resetTokens.delete(email);
+
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Error in reset password:', error);
@@ -241,7 +477,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
       // Log decoded token for debugging
       console.log('Decoded refresh token:', {
-        ...decoded,
+        id: decoded.id,
+        type: decoded.type,
         exp: new Date(decoded.exp! * 1000).toISOString(),
         iat: new Date(decoded.iat! * 1000).toISOString()
       });
@@ -258,13 +495,14 @@ router.post('/refresh', async (req: Request, res: Response) => {
       // Check token expiration explicitly
       const now = Math.floor(Date.now() / 1000);
       if (decoded.exp && decoded.exp < now) {
-        console.log('Token expired:', {
+        console.log('Refresh token expired:', {
           expiry: new Date(decoded.exp * 1000).toISOString(),
           now: new Date(now * 1000).toISOString()
         });
         return res.status(401).json({ error: 'Refresh token expired' });
       }
 
+      // Get user details
       const result = await client.query(
         `SELECT u.*, c.status as company_status 
          FROM users u 
@@ -316,6 +554,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
         JWT_SECRET,
         { expiresIn: '30d' }
       );
+
+      console.log('Token refresh successful for user:', user.id);
 
       res.json({
         accessToken: newAccessToken,

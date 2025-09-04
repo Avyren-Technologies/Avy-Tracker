@@ -15,6 +15,31 @@ export interface CustomRequest extends Request {
   user?: User;
 }
 
+// MFA-related types
+export interface MFAToken {
+  email: string;
+  token: string;
+  expires: Date;
+  attempts: number;
+}
+
+export interface MFAVerificationRequest {
+  email: string;
+  otp: string;
+  sessionId?: string;
+}
+
+export interface MFASetupRequest {
+  userId: number;
+  enable: boolean;
+}
+
+export interface MFAStatus {
+  enabled: boolean;
+  setupDate?: Date;
+  lastUsed?: Date;
+}
+
 export interface ExpenseData {
   employeeName: string;
   employeeNumber: string;

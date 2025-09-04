@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -21,6 +22,8 @@ import BottomNav from "../../components/BottomNav";
 import { groupAdminNavItems } from "./utils/navigationItems";
 import React, { useState, useEffect, useRef } from "react";
 import { getCurrentColors } from "../../utils/themeColors";
+import biometricAuthService, { BiometricSettings } from "../../utils/biometricAuth";
+import axios from "axios";
 
 const { width, height } = Dimensions.get("window");
 
@@ -35,10 +38,18 @@ interface SettingsItem {
 
 export default function GroupAdminSettings() {
   const { theme, toggleTheme } = ThemeContext.useTheme();
-  const { logout } = AuthContext.useAuth();
+  const { logout, user, token } = AuthContext.useAuth();
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [modalAnimation] = useState(new Animated.Value(0));
+  const [biometricSettings, setBiometricSettings] = useState<BiometricSettings>({
+    enabled: false,
+    required: false,
+  });
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState<string>('');
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   // Get current theme colors
   const currentColors = getCurrentColors(theme);
@@ -70,6 +81,128 @@ export default function GroupAdminSettings() {
       }).start();
     }
   }, [showLogoutModal]);
+
+  useEffect(() => {
+    checkBiometricAvailability();
+    loadBiometricSettings();
+    fetchMFAStatus();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    try {
+      const isAvailable = await biometricAuthService.isBiometricAvailable();
+      setBiometricAvailable(isAvailable);
+      
+      if (isAvailable) {
+        const type = await biometricAuthService.getPrimaryBiometricType();
+        setBiometricType(type);
+      }
+    } catch (error) {
+      console.error('Error checking biometric availability:', error);
+    }
+  };
+
+  const loadBiometricSettings = async () => {
+    try {
+      const settings = await biometricAuthService.getBiometricSettings();
+      setBiometricSettings(settings);
+    } catch (error) {
+      console.error('Error loading biometric settings:', error);
+    }
+  };
+
+  const fetchMFAStatus = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/mfa-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMfaEnabled(response.data.enabled || false);
+    } catch (error) {
+      console.error("Error fetching MFA status:", error);
+    }
+  };
+
+  const handleMFAToggle = async (enabled: boolean) => {
+    if (!user?.id) return;
+    
+    setMfaLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/setup-mfa`,
+        {
+          userId: user.id,
+          enable: enabled
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.message) {
+        setMfaEnabled(enabled);
+        Alert.alert(
+          'Success', 
+          `MFA ${enabled ? 'enabled' : 'disabled'} successfully`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error: any) {
+      console.error('Error updating MFA:', error);
+      Alert.alert(
+        'Error', 
+        error.response?.data?.error || 'Failed to update MFA settings'
+      );
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Test biometric authentication before enabling
+        const result = await biometricAuthService.authenticateUser(
+          'Authenticate to enable biometric login'
+        );
+        
+        if (result.success) {
+          await biometricAuthService.setBiometricEnabled(true);
+          setBiometricSettings(prev => ({ ...prev, enabled: true }));
+        } else {
+          Alert.alert('Authentication Failed', result.error || 'Please try again');
+        }
+      } else {
+        await biometricAuthService.setBiometricEnabled(false);
+        setBiometricSettings(prev => ({ ...prev, enabled: false, required: false }));
+      }
+    } catch (error) {
+      console.error('Error toggling biometric:', error);
+      Alert.alert('Error', 'Failed to update biometric settings');
+    }
+  };
+
+  const handleBiometricRequiredToggle = async (required: boolean) => {
+    try {
+      if (required) {
+        // Test biometric authentication before requiring it
+        const result = await biometricAuthService.authenticateUser(
+          'Authenticate to require biometric login'
+        );
+        
+        if (result.success) {
+          await biometricAuthService.setBiometricRequired(true);
+          setBiometricSettings(prev => ({ ...prev, required: true }));
+        } else {
+          Alert.alert('Authentication Failed', result.error || 'Please try again');
+        }
+      } else {
+        await biometricAuthService.setBiometricRequired(false);
+        setBiometricSettings(prev => ({ ...prev, required: false }));
+      }
+    } catch (error) {
+      console.error('Error toggling biometric required:', error);
+      Alert.alert('Error', 'Failed to update biometric settings');
+    }
+  };
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -161,6 +294,32 @@ export default function GroupAdminSettings() {
           action: toggleTheme,
           isSwitch: true,
           switchValue: theme === "dark",
+        },
+      ],
+    },
+    {
+      title: "Security",
+      items: [
+        {
+          icon: biometricAuthService.getBiometricIconName(biometricType),
+          label: biometricAuthService.getBiometricTypeName(biometricType) + " Authentication",
+          action: () => {},
+          isSwitch: true,
+          switchValue: biometricSettings.enabled,
+        },
+        ...(biometricSettings.enabled ? [{
+          icon: "shield-checkmark-outline",
+          label: "Require Biometric Login",
+          action: () => {},
+          isSwitch: true,
+          switchValue: biometricSettings.required,
+        }] : []),
+        {
+          icon: "two-factor-authentication",
+          label: "Two-Factor Authentication",
+          action: () => {},
+          isSwitch: true,
+          switchValue: mfaEnabled,
         },
       ],
     },
@@ -425,7 +584,17 @@ export default function GroupAdminSettings() {
                     {item.isSwitch ? (
                       <Switch
                         value={item.switchValue}
-                        onValueChange={item.action}
+                        onValueChange={(value) => {
+                          if (item.label.includes("Authentication")) {
+                            handleBiometricToggle(value);
+                          } else if (item.label.includes("Require Biometric")) {
+                            handleBiometricRequiredToggle(value);
+                          } else if (item.label.includes("Two-Factor Authentication")) {
+                            handleMFAToggle(value);
+                          } else if (item.label.includes("Dark Mode")) {
+                            item.action();
+                          }
+                        }}
                         trackColor={{
                           false: theme === "dark" ? "#4B5563" : "#D1D5DB",
                           true: "#60A5FA",

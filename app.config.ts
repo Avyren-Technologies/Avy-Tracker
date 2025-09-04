@@ -111,6 +111,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         isAndroidForegroundServiceEnabled: true,
       },
     ],
+    [
+      "expo-local-authentication",
+      {
+        faceIDPermission: "Allow Avy Tracker to use Face ID for secure authentication."
+      }
+    ],
 
   ],
   experiments: {
