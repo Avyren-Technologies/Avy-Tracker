@@ -11,7 +11,10 @@ import {
   FaceDetectionOptions,
   UseFaceDetectionReturn,
   FaceQuality,
-  CameraPermissionStatus
+  CameraPermissionStatus,
+  LandmarkPoint,
+  ContourPoint,
+  FaceAttributes
 } from '../types/faceDetection';
 
 // Face quality validation thresholds
@@ -26,9 +29,9 @@ const QUALITY_THRESHOLDS = {
 // ML Kit Face Detection configuration
 const FACE_DETECTION_CONFIG = {
   performanceMode: 'fast' as const,
-  landmarkMode: true,
-  contourMode: false,
-  classificationMode: true,
+  landmarkMode: true, // Enable 468-point landmarks
+  contourMode: true,  // Enable face contours
+  classificationMode: true, // Enable age, gender, smiling detection
   minFaceSize: 0.1, // More lenient
   isTrackingEnabled: true,
 };
@@ -288,14 +291,43 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     const rollAngle = mlKitFace.headEulerAngleZ || 0;
     const yawAngle = mlKitFace.headEulerAngleY || 0;
 
+    // Extract enhanced ML Kit data
+    const landmarks = mlKitFace.landmarks || [];
+    const contours = mlKitFace.contours || [];
+    const trackingId = mlKitFace.trackingID?.toString();
+    
+    // Extract face attributes
+    const attributes: FaceAttributes = {
+      age: mlKitFace.age,
+      gender: mlKitFace.gender,
+      smiling: mlKitFace.smilingProbability,
+      headEulerAngles: {
+        x: mlKitFace.headEulerAngleX || 0,
+        y: mlKitFace.headEulerAngleY || 0,
+        z: mlKitFace.headEulerAngleZ || 0,
+      },
+      emotions: {
+        happy: mlKitFace.smilingProbability || 0,
+        sad: 0, // ML Kit doesn't provide these, default to 0
+        angry: 0,
+        surprised: 0,
+        neutral: 1 - (mlKitFace.smilingProbability || 0),
+      }
+    };
+
     return {
       bounds,
       leftEyeOpenProbability,
       rightEyeOpenProbability,
-      faceId: mlKitFace.trackingID ? mlKitFace.trackingID.toString() : `face_${Date.now()}`,
+      faceId: trackingId || `face_${Date.now()}`,
       rollAngle,
       yawAngle,
       timestamp: Date.now(),
+      // Enhanced ML Kit data
+      landmarks,
+      contours,
+      trackingId,
+      attributes,
     };
   }, []);
 
@@ -426,17 +458,18 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       timestamp: new Date().toISOString()
     });
 
-    // Check if we have the basic requirements
-    if (!mlKitDetector || !cameraRef.current || !isMountedRef.current) {
+    // CRITICAL FIX: Use getCameraInstance to get a valid camera reference
+    const validCamera = getCameraInstance();
+    if (!mlKitDetector || !validCamera || !isMountedRef.current) {
       console.log('❌ Skipping face detection - conditions not met:', {
         hasMLKit: !!mlKitDetector,
-        hasCamera: !!cameraRef.current,
+        hasCamera: !!validCamera,
         isDetecting,
         isMounted: isMountedRef.current,
       });
       
       // If camera ref is missing but we have ML Kit, log more details
-      if (mlKitDetector && !cameraRef.current) {
+      if (mlKitDetector && !validCamera) {
         console.log('🔍 Camera ref missing - detection will retry when camera is connected');
       }
       
@@ -449,7 +482,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       
       // Check if camera is still mounted and active before taking photo
       try {
-        if (!cameraRef.current.props || !cameraRef.current.props.isActive) {
+        if (!validCamera.props || !validCamera.props.isActive) {
           console.warn('⚠️ Camera is not active, skipping detection');
           return;
         }
@@ -469,10 +502,10 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       
       // Check camera state before taking photo
       console.log('🔍 Camera state before photo capture:', {
-        isActive: cameraRef.current.props?.isActive,
-        hasTakePhoto: typeof cameraRef.current.takePhoto === 'function',
-        cameraRefExists: !!cameraRef.current,
-        cameraMethods: Object.keys(cameraRef.current || {})
+        isActive: validCamera.props?.isActive,
+        hasTakePhoto: typeof validCamera.takePhoto === 'function',
+        cameraRefExists: !!validCamera,
+        cameraMethods: Object.keys(validCamera || {})
       });
       
       // Optimize camera settings for better ML Kit compatibility
@@ -480,7 +513,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       
       let tempPhoto;
       try {
-        tempPhoto = await cameraRef.current.takePhoto({
+        tempPhoto = await validCamera.takePhoto({
           flash: 'off',
           enableShutterSound: false,
         });
@@ -495,8 +528,8 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
           errorType: photoError.constructor.name,
           errorMessage: photoError.message,
           cameraState: {
-            isActive: cameraRef.current.props?.isActive,
-            hasTakePhoto: typeof cameraRef.current.takePhoto === 'function'
+            isActive: validCamera.props?.isActive,
+            hasTakePhoto: typeof validCamera.takePhoto === 'function'
           }
         });
         return;
@@ -994,10 +1027,16 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       // Final camera state check before capture
       console.log('📸 Final camera state validation before photo capture...');
       
-      // Capture photo using camera ref with error handling
+      // CRITICAL FIX: Use getCameraInstance to get a valid camera reference
+      const validCamera = getCameraInstance();
+      if (!validCamera || typeof validCamera.takePhoto !== 'function') {
+        throw new Error('No valid camera available for photo capture');
+      }
+      
+      // Capture photo using valid camera reference with error handling
       let photo: any = null;
       try {
-        photo = await cameraRef.current.takePhoto({
+        photo = await validCamera.takePhoto({
           flash: 'off',
           enableShutterSound: false,
         });
@@ -1012,21 +1051,35 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
           // Try multiple recovery strategies
           let recoverySuccess = false;
           
-          // Strategy 1: Wait and retry with existing camera
+          // Strategy 1: Force camera reference refresh and retry
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-              console.log(`🔄 Recovery attempt ${attempt}: Waiting for camera stabilization...`);
-              await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+              console.log(`🔄 Recovery attempt ${attempt}: Forcing camera reference refresh...`);
               
-              if (cameraRef.current && typeof cameraRef.current.takePhoto === 'function') {
+              // Force refresh camera reference
+              await refreshCameraRef();
+              await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+              
+              // Get fresh camera instance
+              const refreshedCamera = getCameraInstance();
+              if (refreshedCamera && typeof refreshedCamera.takePhoto === 'function') {
                 console.log(`🔄 Recovery attempt ${attempt}: Testing camera responsiveness...`);
-                photo = await cameraRef.current.takePhoto({
-                  flash: 'off',
-                  enableShutterSound: false,
-                });
-                console.log(`✅ Photo capture successful on recovery attempt ${attempt}:`, photo);
-                recoverySuccess = true;
-                break;
+                
+                // Test camera before actual capture
+                try {
+                  photo = await refreshedCamera.takePhoto({
+                    flash: 'off',
+                    enableShutterSound: false,
+                  });
+                  console.log(`✅ Photo capture successful on recovery attempt ${attempt}:`, photo);
+                  recoverySuccess = true;
+                  break;
+                } catch (testError: any) {
+                  console.warn(`⚠️ Recovery attempt ${attempt} test failed:`, testError.message);
+                  // Continue to next attempt
+                }
+              } else {
+                console.warn(`⚠️ Recovery attempt ${attempt}: Camera still invalid after refresh`);
               }
             } catch (recoveryError: any) {
               console.warn(`⚠️ Recovery attempt ${attempt} failed:`, recoveryError.message);
@@ -1038,20 +1091,29 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
             console.log('🔄 All recovery attempts failed - trying camera reconnection...');
             
             // Wait longer for camera to fully stabilize
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Final attempt with refreshed camera state
-            if (cameraRef.current && typeof cameraRef.current.takePhoto === 'function') {
-              try {
-                photo = await cameraRef.current.takePhoto({
-                  flash: 'off',
-                  enableShutterSound: false,
-                });
-                console.log('✅ Photo capture successful after camera reconnection:', photo);
-                recoverySuccess = true;
-              } catch (finalError: any) {
-                console.error('❌ Final camera recovery attempt failed:', finalError.message);
+            // Force camera reconnection
+            try {
+              await refreshCameraRef();
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Final attempt with reconnected camera
+              const finalCamera = getCameraInstance();
+              if (finalCamera && typeof finalCamera.takePhoto === 'function') {
+                try {
+                  photo = await finalCamera.takePhoto({
+                    flash: 'off',
+                    enableShutterSound: false,
+                  });
+                  console.log('✅ Photo capture successful after camera reconnection:', photo);
+                  recoverySuccess = true;
+                } catch (finalError: any) {
+                  console.error('❌ Final camera recovery attempt failed:', finalError.message);
+                }
               }
+            } catch (reconnectionError: any) {
+              console.error('❌ Camera reconnection failed:', reconnectionError.message);
             }
           }
           
@@ -1170,31 +1232,69 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     console.log('🔍 Current camera ref state:', cameraRefStateRef.current);
     console.log('🔍 Persistent ref exists:', !!persistentCameraRef.current);
     
-    // FINAL FIX: Try to recover from persistent ref first
+    // Strategy 1: Try to recover from persistent ref first
     if (persistentCameraRef.current && typeof persistentCameraRef.current.takePhoto === 'function') {
       console.log('🔍 Persistent camera ref is valid - attempting recovery...');
       
-      // Restore from persistent ref
-      (cameraRef as any).current = persistentCameraRef.current;
-      cameraRefStateRef.current = 'valid';
-      
-      console.log('✅ Camera reference recovered from persistent ref');
-      return true;
+      // Test the persistent ref before restoring
+      try {
+        // Quick test to ensure camera is responsive
+        const testResult = await persistentCameraRef.current.takePhoto({
+          flash: 'off',
+          enableShutterSound: false,
+        });
+        
+        if (testResult && testResult.path) {
+          // Restore from persistent ref
+          (cameraRef as any).current = persistentCameraRef.current;
+          cameraRefStateRef.current = 'valid';
+          
+          console.log('✅ Camera reference recovered from persistent ref');
+          return true;
+        } else {
+          console.warn('⚠️ Persistent ref test failed - invalid photo result');
+        }
+      } catch (testError: any) {
+        console.warn('⚠️ Persistent ref test failed:', testError.message);
+        // Clear invalid persistent ref
+        persistentCameraRef.current = null;
+      }
     }
     
-    // Wait for camera to stabilize
+    // Strategy 2: Wait for camera to stabilize and retry
     console.log('🔄 Waiting for camera to stabilize...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Check if camera ref is valid
     if (cameraRef.current && typeof cameraRef.current.takePhoto === 'function') {
-      console.log('✅ Camera reference is valid after refresh');
-      cameraRefStateRef.current = 'valid';
-      return true;
+      try {
+        // Test camera responsiveness
+        const testResult = await cameraRef.current.takePhoto({
+          flash: 'off',
+          enableShutterSound: false,
+        });
+        
+        if (testResult && testResult.path) {
+          console.log('✅ Camera reference is valid after refresh');
+          cameraRefStateRef.current = 'valid';
+          return true;
+        }
+      } catch (testError: any) {
+        console.warn('⚠️ Camera ref test failed:', testError.message);
+      }
     }
     
-    console.log('❌ Camera reference is still invalid after refresh');
+    // Strategy 3: Force camera state reset
+    console.log('🔄 Forcing camera state reset...');
     cameraRefStateRef.current = 'detached';
+    
+    // Clear invalid references
+    (cameraRef as any).current = null;
+    if (persistentCameraRef.current) {
+      persistentCameraRef.current = null;
+    }
+    
+    console.log('❌ Camera reference is still invalid after refresh - reset to detached state');
     return false;
   }, []);
 

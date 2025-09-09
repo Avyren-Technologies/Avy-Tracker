@@ -74,6 +74,7 @@ interface LiveTrackingMapProps {
   userRoutes?: Record<string, Array<{latitude: number, longitude: number}>>;
   routeCoordinates?: Array<{latitude: number, longitude: number}>;
   markerRefreshToggle?: boolean;
+  defaultFullscreen?: boolean;
 }
 
 /**
@@ -118,6 +119,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   userRoutes,
   routeCoordinates,
   markerRefreshToggle,
+  defaultFullscreen = false,
 }) => {
   // Theming
   const colorScheme = useColorScheme();
@@ -742,7 +744,7 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
   }, [getCurrentLocation]);
 
   // Add this state for the fullscreen toggle
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen);
 
   // Add state for fullscreen mode related adjustments
   const [headerHeight, setHeaderHeight] = useState(0);

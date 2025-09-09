@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS otp_records (
   id VARCHAR(36) PRIMARY KEY,
   phone_number VARCHAR(20) NOT NULL,
   otp_hash VARCHAR(64) NOT NULL, -- SHA-256 hash of OTP for security
-  purpose VARCHAR(50) NOT NULL CHECK (purpose IN ('shift_start', 'shift_end', 'face_verification', 'account_verification')),
+  purpose VARCHAR(50) NOT NULL CHECK (purpose IN ('shift_start', 'shift_end', 'face_verification', 'account_verification', 'face-settings-access', 'profile-update', 'security-verification', 'password-reset', 'manager_override')),
   expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
   attempts INTEGER DEFAULT 0,
   max_attempts INTEGER DEFAULT 3,
@@ -102,8 +102,8 @@ $$ LANGUAGE plpgsql;
 -- Schedule cleanup to run daily (requires pg_cron extension)
 -- SELECT cron.schedule('cleanup-otp-records', '0 2 * * *', 'SELECT cleanup_expired_otp_records();');
 
--- Grant permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON otp_records TO shift_tracker_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON sms_delivery_log TO shift_tracker_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON otp_rate_limits TO shift_tracker_user;
-GRANT USAGE ON SEQUENCE sms_delivery_log_id_seq TO shift_tracker_user;
+-- Grant permissions (commented out as shift_tracker_user role doesn't exist)
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON otp_records TO shift_tracker_user;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON sms_delivery_log TO shift_tracker_user;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON otp_rate_limits TO shift_tracker_user;
+-- GRANT USAGE ON SEQUENCE sms_delivery_log_id_seq TO shift_tracker_user;

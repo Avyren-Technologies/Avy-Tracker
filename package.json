@@ -9,15 +9,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "jest --watchAll",
-    "lint": "expo lint",
-    "setup": "node setup.js",
-    "validate-config": "cd backend && npx ts-node src/scripts/validateConfig.ts",
-    "backend:dev": "cd backend && npm run dev",
-    "backend:build": "cd backend && npm run build",
-    "backend:start": "cd backend && npm start",
-    "migrate": "cd backend && npm run migrate",
-    "seed": "cd backend && npm run seed"
+    "test": "jest --watchAll --verbose",
+    "lint": "expo lint"
   },
   "jest": {
     "preset": "jest-expo"
@@ -127,6 +120,8 @@
     "@babel/preset-env": "^7.22.20",
     "@babel/runtime": "^7.22.15",
     "@expo/config-types": "^52.0.5",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/react-native": "^13.3.3",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -138,9 +133,10 @@
     "@types/react-test-renderer": "^18.0.28",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
-    "jest": "^29.2.1",
+    "jest": "~29.7.0",
     "jest-expo": "~52.0.5",
     "react-test-renderer": "18.2.0",
+    "supertest": "^7.1.4",
     "tailwindcss": "^3.3.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",

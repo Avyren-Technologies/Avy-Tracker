@@ -70,7 +70,7 @@ const logResponse = (endpoint: string, success: boolean, data?: any, error?: any
   });
 };
 
-// Validation middleware
+// Validation middleware - Enhanced to handle both base64 and JSON formats
 const validateFaceEncoding = (req: Request, res: Response, next: any) => {
   const { faceEncoding } = req.body;
   
@@ -82,22 +82,35 @@ const validateFaceEncoding = (req: Request, res: Response, next: any) => {
   }
 
   try {
-    // Validate that face encoding is valid JSON array
+    // Try to validate as base64 first (new enhanced ML Kit format)
+    try {
+      const decoded = atob(faceEncoding);
+      // Check if it's a valid Float32Array (should be divisible by 4)
+      if (decoded.length % 4 === 0) {
+        // Valid base64 Float32Array format
+        next();
+        return;
+      }
+    } catch (base64Error) {
+      // Not base64, try JSON parsing (legacy format)
+    }
+
+    // Fallback to JSON validation (legacy format)
     const parsed = JSON.parse(faceEncoding);
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return res.status(400).json({
-        error: 'Face encoding must be a valid JSON array',
+        error: 'Face encoding must be a valid JSON array or base64 string',
         code: 'INVALID_FACE_ENCODING_FORMAT'
       });
     }
+    
+    next();
   } catch (error) {
     return res.status(400).json({
-      error: 'Face encoding must be valid JSON',
-      code: 'INVALID_FACE_ENCODING_JSON'
+      error: 'Face encoding must be valid base64 or JSON format',
+      code: 'INVALID_FACE_ENCODING_FORMAT'
     });
   }
-
-  next();
 };
 
 /**
@@ -348,6 +361,9 @@ router.get('/status', verifyToken, async (req: CustomRequest, res: Response) => 
       lastVerification: status.last_verification,
       qualityScore: status.quality_score,
       isLocked,
+      // Add these fields for frontend compatibility
+      face_registered: status.face_registered,
+      face_enabled: status.face_enabled,
       statistics: {
         totalAttempts: parseInt(stats.total_attempts) || 0,
         successfulAttempts: parseInt(stats.successful_attempts) || 0,

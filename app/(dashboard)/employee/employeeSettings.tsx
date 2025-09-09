@@ -112,10 +112,25 @@ export default function EmployeeSettings() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // CRITICAL FIX: Handle both old and new API response formats
+      const faceRegistered = response.data.face_registered !== undefined 
+        ? response.data.face_registered 
+        : response.data.registered || false;
+      
+      const faceEnabled = response.data.face_enabled !== undefined 
+        ? response.data.face_enabled 
+        : response.data.enabled !== false;
+
       setFaceRegistrationStatus({
-        registered: response.data.face_registered || false,
-        enabled: response.data.face_enabled !== false, // Default to true if not specified
+        registered: faceRegistered,
+        enabled: faceEnabled,
         loading: false
+      });
+      
+      console.log('✅ Face registration status updated:', {
+        registered: faceRegistered,
+        enabled: faceEnabled,
+        apiResponse: response.data
       });
     } catch (error) {
       console.error("Error fetching face registration status:", error);

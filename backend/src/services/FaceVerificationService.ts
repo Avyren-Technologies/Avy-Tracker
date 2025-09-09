@@ -28,13 +28,15 @@ interface VerificationResult {
   device_fingerprint?: string;
 }
 
-interface FaceRegistrationStatus {
+export interface FaceRegistrationStatus {
   registered: boolean;
   active: boolean;
   registration_date?: Date;
   verification_count: number;
   last_verification?: Date;
   quality_score?: number;
+  face_registered: boolean;
+  face_enabled: boolean;
 }
 
 interface DeviceFingerprint {
@@ -61,7 +63,8 @@ interface VerificationAttempt {
 
 export class FaceVerificationService {
   // Configuration constants
-  private static readonly DEFAULT_CONFIDENCE_THRESHOLD = 0.75;
+  // Enhanced confidence threshold for ML Kit face recognition
+  private static readonly DEFAULT_CONFIDENCE_THRESHOLD = 0.85; // Increased from 0.75 to 0.85 for better security
   private static readonly HIGH_CONFIDENCE_THRESHOLD = 0.85;
   private static readonly LIVENESS_THRESHOLD = 0.70;
   private static readonly QUALITY_THRESHOLD = 0.70;
@@ -86,15 +89,21 @@ export class FaceVerificationService {
     try {
       await client.query('BEGIN');
 
-      // Check if user already has a face profile
-      const existingProfile = await client.query(
-        'SELECT id FROM face_verification_profiles WHERE user_id = $1',
+      // Check if user already has an ACTIVE face profile
+      const existingActiveProfile = await client.query(
+        'SELECT id FROM face_verification_profiles WHERE user_id = $1 AND is_active = true',
         [userId]
       );
 
-      if (existingProfile.rows.length > 0) {
+      if (existingActiveProfile.rows.length > 0) {
         throw new Error('User already has a face profile registered');
       }
+
+      // Check if user has an INACTIVE profile that we can reactivate
+      const existingInactiveProfile = await client.query(
+        'SELECT id FROM face_verification_profiles WHERE user_id = $1 AND is_active = false',
+        [userId]
+      );
 
       // Generate encryption key and encrypt face data
       const encryptionKey = crypto.randomBytes(this.KEY_LENGTH);
@@ -102,14 +111,34 @@ export class FaceVerificationService {
       const faceHash = this.generateFaceHash(faceEncoding);
       const keyHash = encryptionKey.toString('hex'); // Store the actual key (in production, use secure key management)
 
-      // Insert face profile
-      const profileResult = await client.query(`
-        INSERT INTO face_verification_profiles (
-          user_id, face_encoding_hash, encrypted_face_data, encryption_key_hash,
-          quality_score, registration_device_info
-        ) VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *
-      `, [userId, faceHash, encryptedData, keyHash, qualityScore, JSON.stringify(deviceInfo || {})]);
+      let profileResult: QueryResult<FaceProfile>;
+
+      if (existingInactiveProfile.rows.length > 0) {
+        // Reactivate existing inactive profile with new data
+        profileResult = await client.query(`
+          UPDATE face_verification_profiles 
+          SET face_encoding_hash = $1,
+              encrypted_face_data = $2,
+              encryption_key_hash = $3,
+              quality_score = $4,
+              registration_device_info = $5,
+              is_active = true,
+              registration_date = CURRENT_TIMESTAMP,
+              last_updated = CURRENT_TIMESTAMP,
+              verification_count = 0
+          WHERE user_id = $6 AND is_active = false
+          RETURNING *
+        `, [faceHash, encryptedData, keyHash, qualityScore, JSON.stringify(deviceInfo || {}), userId]);
+      } else {
+        // Insert new face profile
+        profileResult = await client.query(`
+          INSERT INTO face_verification_profiles (
+            user_id, face_encoding_hash, encrypted_face_data, encryption_key_hash,
+            quality_score, registration_device_info
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `, [userId, faceHash, encryptedData, keyHash, qualityScore, JSON.stringify(deviceInfo || {})]);
+      }
 
       // Update user table
       await client.query(`
@@ -418,7 +447,9 @@ export class FaceVerificationService {
       registration_date: row.registration_date,
       verification_count: row.verification_count || 0,
       last_verification: row.last_verification_at,
-      quality_score: row.quality_score
+      quality_score: row.quality_score,
+      face_registered: row.registered || false,
+      face_enabled: row.face_enabled !== false
     };
   }
 
@@ -461,31 +492,119 @@ export class FaceVerificationService {
   }
 
   /**
-   * Compare face encodings using cosine similarity
+   * Compare enhanced face encodings using multi-factor verification
+   * This implementation handles the new 1002-dimensional feature vectors from ML Kit
+   * Features:
+   * - Landmark similarity (60% weight) - 468-point facial landmarks
+   * - Geometric similarity (25% weight) - position, size, angles
+   * - Measurement similarity (15% weight) - facial proportions and ratios
    */
   private static compareFaceEncodings(stored: string, current: string): number {
     try {
-      // Parse face encodings (assuming they're JSON arrays of numbers)
-      const storedVector = JSON.parse(stored);
-      const currentVector = JSON.parse(current);
+      // Parse face encodings (assuming they're base64 encoded Float32Array)
+      let storedVector: number[];
+      let currentVector: number[];
+
+      try {
+        // Try to parse as base64 first (new enhanced format)
+        const storedBinary = atob(stored);
+        const currentBinary = atob(current);
+        const storedBytes = new Uint8Array(storedBinary.length);
+        const currentBytes = new Uint8Array(currentBinary.length);
+        
+        for (let i = 0; i < storedBinary.length; i++) {
+          storedBytes[i] = storedBinary.charCodeAt(i);
+          currentBytes[i] = currentBinary.charCodeAt(i);
+        }
+        
+        const storedBuffer = new Float32Array(storedBytes.buffer);
+        const currentBuffer = new Float32Array(currentBytes.buffer);
+        
+        storedVector = Array.from(storedBuffer);
+        currentVector = Array.from(currentBuffer);
+      } catch (base64Error) {
+        // Fallback to JSON parsing (legacy format)
+        try {
+          storedVector = JSON.parse(stored);
+          currentVector = JSON.parse(current);
+        } catch (jsonError) {
+          throw new Error('Invalid face encoding format - neither base64 nor JSON');
+        }
+      }
 
       if (!Array.isArray(storedVector) || !Array.isArray(currentVector)) {
         throw new Error('Invalid face encoding format');
       }
 
       if (storedVector.length !== currentVector.length) {
-        throw new Error('Face encoding dimension mismatch');
+        console.warn(`Face encoding dimension mismatch: stored=${storedVector.length}, current=${currentVector.length}`);
+        // Use the smaller length for comparison
+        const minLength = Math.min(storedVector.length, currentVector.length);
+        storedVector = storedVector.slice(0, minLength);
+        currentVector = currentVector.slice(0, minLength);
       }
 
-      // Calculate cosine similarity
+      // Multi-factor similarity calculation for enhanced encodings
+      if (storedVector.length >= 1002) {
+        // Enhanced encoding with 1002+ dimensions
+        const landmarkCount = 468 * 2; // 468 points × 2 coordinates
+        const geometricCount = 10; // position, size, angles
+        const measurementCount = 50; // facial measurements
+
+        // 1. Landmark similarity (primary factor - 60% weight)
+        const landmarkFeatures1 = storedVector.slice(0, landmarkCount);
+        const landmarkFeatures2 = currentVector.slice(0, landmarkCount);
+        const landmarkSimilarity = this.calculateCosineSimilarity(landmarkFeatures1, landmarkFeatures2);
+
+        // 2. Geometric similarity (secondary factor - 25% weight)
+        const geometricFeatures1 = storedVector.slice(landmarkCount, landmarkCount + geometricCount);
+        const geometricFeatures2 = currentVector.slice(landmarkCount, landmarkCount + geometricCount);
+        const geometricSimilarity = this.calculateCosineSimilarity(geometricFeatures1, geometricFeatures2);
+
+        // 3. Measurement similarity (tertiary factor - 15% weight)
+        const measurementFeatures1 = storedVector.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
+        const measurementFeatures2 = currentVector.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
+        const measurementSimilarity = this.calculateCosineSimilarity(measurementFeatures1, measurementFeatures2);
+
+        // Weighted combination for final similarity score
+        const overallSimilarity = (
+          landmarkSimilarity * 0.6 +      // 60% weight for landmarks
+          geometricSimilarity * 0.25 +    // 25% weight for geometric features
+          measurementSimilarity * 0.15    // 15% weight for measurements
+        );
+
+        console.log('Enhanced face comparison results:', {
+          landmarkSimilarity: landmarkSimilarity.toFixed(4),
+          geometricSimilarity: geometricSimilarity.toFixed(4),
+          measurementSimilarity: measurementSimilarity.toFixed(4),
+          overallSimilarity: overallSimilarity.toFixed(4),
+          dimensions: storedVector.length
+        });
+
+        return Math.max(0, Math.min(1, overallSimilarity));
+      } else {
+        // Legacy encoding - use simple cosine similarity
+        return this.calculateCosineSimilarity(storedVector, currentVector);
+      }
+
+    } catch (error) {
+      console.error('Error comparing face encodings:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate cosine similarity between two feature vectors
+   */
+  private static calculateCosineSimilarity(vectorA: number[], vectorB: number[]): number {
       let dotProduct = 0;
       let normA = 0;
       let normB = 0;
 
-      for (let i = 0; i < storedVector.length; i++) {
-        dotProduct += storedVector[i] * currentVector[i];
-        normA += storedVector[i] * storedVector[i];
-        normB += currentVector[i] * currentVector[i];
+    for (let i = 0; i < Math.min(vectorA.length, vectorB.length); i++) {
+      dotProduct += vectorA[i] * vectorB[i];
+      normA += vectorA[i] * vectorA[i];
+      normB += vectorB[i] * vectorB[i];
       }
 
       normA = Math.sqrt(normA);
@@ -499,11 +618,6 @@ export class FaceVerificationService {
       
       // Convert similarity to confidence score (0-1)
       return Math.max(0, Math.min(1, (similarity + 1) / 2));
-
-    } catch (error) {
-      console.error('Error comparing face encodings:', error);
-      return 0;
-    }
   }
 
   /**

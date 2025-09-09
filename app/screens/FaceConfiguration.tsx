@@ -9,15 +9,19 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
 import { useAuth } from '../context/AuthContext';
 import OTPVerification from '../components/OTPVerification';
 import FaceVerificationModal from '../components/FaceVerificationModal';
 import { FaceVerificationResult } from '../types/faceDetection';
+import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface FaceProfileStatus {
   isRegistered: boolean;
@@ -154,7 +158,22 @@ export default function FaceConfiguration() {
 
       if (response.ok) {
         const data = await response.json();
-        setFaceProfileStatus(data);
+        
+        // Map backend response to frontend interface
+        const mappedStatus: FaceProfileStatus = {
+          isRegistered: data.face_registered || data.registered || false,
+          isActive: data.active || false,
+          registrationDate: data.registrationDate,
+          lastVerification: data.lastVerification,
+          verificationCount: data.verificationCount || 0,
+        };
+        
+        console.log('✅ Face profile status mapped:', {
+          original: data,
+          mapped: mappedStatus
+        });
+        
+        setFaceProfileStatus(mappedStatus);
       } else {
         console.error('Failed to load face profile status');
         setFaceProfileStatus({
@@ -190,15 +209,28 @@ export default function FaceConfiguration() {
   const handleFaceSuccess = useCallback(async (result: FaceVerificationResult) => {
     setShowFaceModal(false);
     
+    // CRITICAL FIX: Update user's face_registered status in the database
+    try {
+      await axios.patch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile`,
+        { face_registered: true },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('✅ User face_registered status updated successfully');
+    } catch (updateError) {
+      console.warn('⚠️ Failed to update user face_registered status:', updateError);
+      // Don't fail the operation if this update fails
+    }
+    
     Alert.alert(
       'Success',
       'Face profile updated successfully!',
-      [{ text: 'OK' }]
+      [{ text: 'OK', onPress: () => router.replace("/(dashboard)/employee/employeeSettings" as any) }]
     );
 
     // Reload profile status
     await loadFaceProfileStatus();
-  }, [faceModalMode, loadFaceProfileStatus]);
+  }, [faceModalMode, loadFaceProfileStatus, token]);
 
   // Handle face registration/update error
   const handleFaceError = useCallback((error: any) => {
@@ -248,6 +280,16 @@ export default function FaceConfiguration() {
           );
 
           if (response.ok) {
+            // Clear any cached face data on the frontend
+            try {
+              const { deleteFaceProfile } = await import('../services/FaceVerificationService');
+              await deleteFaceProfile(Number(user?.id));
+              console.log('✅ Frontend face data cleared successfully');
+            } catch (clearError) {
+              console.warn('⚠️ Failed to clear frontend face data:', clearError);
+              // Don't fail the operation if frontend cleanup fails
+            }
+
             Alert.alert(
               'Success',
               'Face profile deleted successfully.',
@@ -268,7 +310,7 @@ export default function FaceConfiguration() {
       },
       isDestructive: true,
     });
-  }, [showConfirmation, token, loadFaceProfileStatus]);
+  }, [showConfirmation, token, loadFaceProfileStatus, user?.id]);
 
   // Handle initial face registration
   const handleInitialRegistration = useCallback(() => {
@@ -280,14 +322,28 @@ export default function FaceConfiguration() {
   if (!isOTPVerified) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        <Stack.Screen
-          options={{
-            title: 'Face Configuration',
-            headerStyle: { backgroundColor: cardColor },
-            headerTintColor: textColor,
-          }}
-        />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+
+        {/* Header */}
+        <LinearGradient
+          colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+          className="pb-4"
+          style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+        >
+          <View className="flex-row items-center justify-between px-6">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="mr-4 p-2 rounded-full"
+              style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+            </TouchableOpacity>
+            <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Face Configuration
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
 
         <View style={styles.otpGateContainer}>
           <View style={[styles.otpGateCard, { backgroundColor: cardColor, borderColor }]}>
@@ -312,12 +368,13 @@ export default function FaceConfiguration() {
 
         <OTPVerification
           visible={showOTPModal}
-          purpose="face_configuration_access"
+          purpose="face-settings-access"
           onSuccess={handleOTPSuccess}
           onCancel={() => setShowOTPModal(false)}
           onError={(error) => {
             console.error('OTP verification error:', error);
-            setShowOTPModal(false);
+            // Don't close the modal automatically - let OTPVerification handle error display
+            // The OTPErrorModal inside OTPVerification will show the user-friendly error message
           }}
         />
       </View>
@@ -327,34 +384,64 @@ export default function FaceConfiguration() {
   // Show loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor }]}>
-        <Stack.Screen
-          options={{
-            title: 'Face Configuration',
-            headerStyle: { backgroundColor: cardColor },
-            headerTintColor: textColor,
-          }}
-        />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={[styles.loadingText, { color: secondaryTextColor }]}>
-          Loading face profile...
-        </Text>
+      <View style={[styles.container, { backgroundColor }]}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+
+        {/* Header */}
+        <LinearGradient
+          colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+          className="pb-4"
+          style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+        >
+          <View className="flex-row items-center justify-between px-6">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="mr-4 p-2 rounded-full"
+              style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+            </TouchableOpacity>
+            <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Face Configuration
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
+
+        <View style={[styles.centered, { flex: 1 }]}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={[styles.loadingText, { color: secondaryTextColor }]}>
+            Loading face profile...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <Stack.Screen
-        options={{
-          title: 'Face Configuration',
-          headerStyle: { backgroundColor: cardColor },
-          headerTintColor: textColor,
-        }}
-      />
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+
+      {/* Header */}
+      <LinearGradient
+        colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+        className="pb-4"
+        style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+      >
+        <View className="flex-row items-center justify-between px-6">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 p-2 rounded-full"
+            style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+          >
+            <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+          </TouchableOpacity>
+          <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Face Configuration
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Face Profile Status Card */}
@@ -577,6 +664,13 @@ export default function FaceConfiguration() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   centered: {
     justifyContent: 'center',

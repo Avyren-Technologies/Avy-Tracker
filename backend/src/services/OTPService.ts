@@ -7,7 +7,7 @@ interface OTPRecord {
   id: string;
   phoneNumber: string;
   otp: string;
-  purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification';
+  purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification' | 'face-settings-access' | 'profile-update' | 'security-verification' | 'password-reset' | 'manager_override';
   expiresAt: Date;
   attempts: number;
   isUsed: boolean;
@@ -152,7 +152,7 @@ export class OTPService {
   // Generate and send OTP
   public async generateAndSendOTP(
     phoneNumber: string,
-    purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification',
+    purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification' | 'face-settings-access' | 'profile-update' | 'security-verification' | 'password-reset' | 'manager_override',
     deviceFingerprint?: string,
     ipAddress?: string
   ): Promise<{ success: boolean; message: string; otpId?: string }> {
@@ -211,14 +211,19 @@ export class OTPService {
         'shift_start': 'start your shift',
         'shift_end': 'end your shift',
         'face_verification': 'verify your identity',
-        'account_verification': 'verify your account'
-      }[purpose];
+        'account_verification': 'verify your account',
+        'face-settings-access': 'access face settings',
+        'profile-update': 'update your profile',
+        'security-verification': 'verify your security',
+        'password-reset': 'reset your password',
+        'manager_override': 'manager override'
+      }[purpose] || 'verify your identity';
 
       // Send SMS using SMS service
       const smsResult = await this.smsService.sendOTPSMS(
         phoneNumber,
         otp,
-        purposeText
+        purposeText || 'verify your identity'
       );
 
       if (!smsResult.success) {
@@ -404,8 +409,15 @@ export class OTPService {
   }>): Promise<void> {
     const client = await pool.connect();
     try {
+      // Map JavaScript property names to database column names
+      const columnMapping: { [key: string]: string } = {
+        attempts: 'attempts',
+        isUsed: 'is_used',
+        verifiedAt: 'verified_at'
+      };
+
       const setClause = Object.keys(updates).map((key, index) => 
-        `${key} = $${index + 2}`
+        `${columnMapping[key] || key} = $${index + 2}`
       ).join(', ');
 
       if (setClause) {

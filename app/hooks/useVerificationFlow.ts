@@ -109,12 +109,18 @@ export const useVerificationFlow = ({
       if (metrics) {
         onPerformanceMetrics?.(metrics);
       }
+      
+      // Don't continue processing if flow is completed
+      return;
     } else if (flowState.overallStatus === 'failed') {
       onFlowFailed?.(newSummary);
       
       if (flowState.canOverride) {
         onOverrideRequired?.(newSummary);
       }
+      
+      // Don't continue processing if flow has failed
+      return;
     }
 
     // Set up performance monitoring timer

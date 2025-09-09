@@ -15,6 +15,61 @@ export interface FaceDetectionData {
   rollAngle: number;
   yawAngle: number;
   timestamp?: number;
+  // Enhanced ML Kit data
+  landmarks?: LandmarkPoint[];
+  contours?: ContourPoint[];
+  trackingId?: string;
+  attributes?: FaceAttributes;
+}
+
+export interface LandmarkPoint {
+  x: number;
+  y: number;
+  z?: number;
+}
+
+export interface ContourPoint {
+  x: number;
+  y: number;
+}
+
+export interface FaceAttributes {
+  age?: number;
+  gender?: string;
+  smiling?: number;
+  headEulerAngles?: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  emotions?: {
+    happy: number;
+    sad: number;
+    angry: number;
+    surprised: number;
+    neutral: number;
+  };
+}
+
+// Enhanced face detection data as per documentation
+export interface EnhancedFaceDetectionData extends FaceDetectionData {
+  landmarks: LandmarkPoint[];
+  contours: ContourPoint[];
+  trackingId?: string;
+  attributes: FaceAttributes;
+}
+
+// Enhanced verification result as per documentation  
+export interface EnhancedFaceVerificationResult extends FaceVerificationResult {
+  factors: VerificationFactors;
+  metadata: VerificationMetadata;
+  isEnhanced: boolean;
+}
+
+export interface VerificationMetadata {
+  quality: number;
+  liveness: number;
+  spoofing: number;
 }
 
 export interface CapturedPhoto {
@@ -82,6 +137,17 @@ export interface FaceVerificationResult {
   isOffline?: boolean;
   cached?: boolean;
   queuedForSync?: boolean;
+  // Enhanced verification details
+  factors?: VerificationFactors;
+  landmarkCount?: number;
+  qualityScore?: number;
+}
+
+export interface VerificationFactors {
+  landmarks: number;
+  geometric: number;
+  measurements: number;
+  overall: number;
 }
 
 export interface FaceVerificationError {

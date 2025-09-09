@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFaceDetection as useMLKitFaceDetection } from "@infinitered/react-native-mlkit-face-detection";
 import { Asset } from "expo-asset";
 
+
 const checkCameraPhotoTest = () => {
     router.push('/camera-photo-test');
 };
@@ -22,6 +23,14 @@ const checkFinalFaceTest = () => {
 
 const RunSimpleFaceTest = () => {
     router.push('/simple-face-test');
+}
+
+const checkFaceProfileDeletionTest = () => {
+    router.push('/face-profile-deletion-test');
+}
+
+const checkFaceVerificationFixTest = () => {
+    router.push('/face-verification-fix-test');
 }
 
 const main = () => {
@@ -150,7 +159,35 @@ const main = () => {
                                     🧪 JSON Format Validation Test
                                 </Text>
                             </TouchableOpacity>
-                        </View>
+
+                            <TouchableOpacity
+                                onPress={() => router.push('/(dashboard)/employee/face-registration')}
+                                className="bg-indigo-600 dark:bg-indigo-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    Face Registration Page
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={checkFaceProfileDeletionTest}
+                                className="bg-indigo-600 dark:bg-indigo-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    Face Profile Deletion Test
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={checkFaceVerificationFixTest}
+                                className="bg-indigo-600 dark:bg-indigo-500 py-4 px-6 rounded-xl mb-4 shadow-lg active:scale-95 transition-transform"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-center font-semibold text-lg">
+                                    Face Verification Fix Test
+                                </Text>
+                            </TouchableOpacity>
+                            </View>
                     </View>
                     <View className="flex-1 items-center justify-center p-4 bg-gray-100">
                         <TouchableOpacity

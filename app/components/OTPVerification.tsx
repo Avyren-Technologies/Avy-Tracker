@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
 import { useAuth } from '../context/AuthContext';
+import OTPErrorModal from './OTPErrorModal';
 import {
   OTPVerificationProps,
   OTPState,
@@ -68,6 +69,18 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
     isLocked: false,
     lockoutUntil: null,
   });
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalData, setErrorModalData] = useState<{
+    code: string;
+    message: string;
+    error?: string;
+  } | null>(null);
+  const [isErrorModalLocked, setIsErrorModalLocked] = useState(false);
+
+  // Store OTP ID for verification
+  const [currentOtpId, setCurrentOtpId] = useState<string | null>(null);
 
   // Refs
   const otpInputRefs = useRef<(TextInput | null)[]>([]);
@@ -141,6 +154,8 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
       isLocked: false,
       lockoutUntil: null,
     });
+    // Clear OTP ID when resetting
+    setCurrentOtpId(null);
   }, [expiryMinutes, maxAttempts]);
 
   const updateState = useCallback((updates: Partial<OTPState>) => {
@@ -174,6 +189,9 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
       const data: OTPGenerationResponse = await response.json();
 
       if (data.success) {
+        // Store the OTP ID for verification
+        setCurrentOtpId(data.otpId || null);
+        
         updateState({
           isLoading: false,
           timeRemaining: expiryMinutes * 60,
@@ -190,10 +208,26 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
           error: data.message,
         });
         
+        // Show error modal
+        const errorData = {
+          code: data.code || 'GENERATION_FAILED',
+          message: data.message,
+          error: data.error,
+        };
+        console.log('🔴 Setting error modal data:', errorData);
+        
+        // Use setTimeout to ensure state updates are processed correctly
+        setTimeout(() => {
+          setErrorModalData(errorData);
+          setShowErrorModal(true);
+          setIsErrorModalLocked(true); // Lock the modal to prevent auto-closing
+          console.log('🔴 Error modal should now be visible and locked');
+        }, 100);
+        
         onError({
           error: 'OTP generation failed',
           message: data.message,
-          code: 'GENERATION_FAILED',
+          code: data.code || 'GENERATION_FAILED',
         });
       }
     } catch (error) {
@@ -202,6 +236,22 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
         isLoading: false,
         error: 'Failed to send OTP. Please check your connection and try again.',
       });
+      
+      // Show error modal
+      const errorData = {
+        code: 'NETWORK_ERROR',
+        message: 'Failed to send OTP. Please check your connection and try again.',
+        error: 'Network error',
+      };
+      console.log('🔴 Setting network error modal data:', errorData);
+      
+      // Use setTimeout to ensure state updates are processed correctly
+      setTimeout(() => {
+        setErrorModalData(errorData);
+        setShowErrorModal(true);
+        setIsErrorModalLocked(true); // Lock the modal to prevent auto-closing
+        console.log('🔴 Network error modal should now be visible and locked');
+      }, 100);
       
       onError({
         error: 'Network error',
@@ -213,6 +263,15 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
 
   const verifyOTP = async (otpCode: string) => {
     if (!token || otpCode.length !== 6) return;
+
+    // Check if we have an OTP ID
+    if (!currentOtpId) {
+      updateState({
+        isVerifying: false,
+        error: 'No OTP session found. Please request a new OTP.',
+      });
+      return;
+    }
 
     updateState({ isVerifying: true, error: null });
 
@@ -226,6 +285,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
         body: JSON.stringify({
           otp: otpCode,
           purpose,
+          otpId: currentOtpId,
         }),
       });
 
@@ -323,6 +383,9 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
       const data: OTPResendResponse = await response.json();
 
       if (data.success) {
+        // Store the new OTP ID for verification
+        setCurrentOtpId(data.otpId || null);
+        
         updateState({
           isResending: false,
           timeRemaining: expiryMinutes * 60,
@@ -545,14 +608,15 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleCancel}
-      accessible={true}
-      accessibilityViewIsModal={true}
-    >
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancel}
+        accessible={true}
+        accessibilityViewIsModal={true}
+      >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -644,6 +708,27 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
         </View>
       </KeyboardAvoidingView>
     </Modal>
+
+    {/* Error Modal */}
+    <OTPErrorModal
+      visible={showErrorModal}
+      error={errorModalData}
+      isLocked={isErrorModalLocked}
+      onClose={() => {
+        console.log('🔴 Error modal close button pressed');
+        setShowErrorModal(false);
+        setErrorModalData(null);
+        setIsErrorModalLocked(false); // Unlock the modal
+      }}
+      onRetry={() => {
+        console.log('🔴 Error modal retry button pressed');
+        setShowErrorModal(false);
+        setErrorModalData(null);
+        setIsErrorModalLocked(false); // Unlock the modal
+        requestOTP();
+      }}
+    />
+    </>
   );
 };
 

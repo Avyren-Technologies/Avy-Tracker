@@ -60,7 +60,8 @@ const validateOTPRequest = (req: Request, res: Response, next: NextFunction) => 
     'profile-update',
     'security-verification',
     'password-reset',
-    'account-verification'
+    'account-verification',
+    'manager_override'
   ];
   
   if (!allowedPurposes.includes(purpose)) {
@@ -76,7 +77,7 @@ const validateOTPRequest = (req: Request, res: Response, next: NextFunction) => 
 
 // Validation middleware for OTP verification
 const validateOTPVerification = (req: Request, res: Response, next: NextFunction) => {
-  const { otp, purpose } = req.body;
+  const { otp, purpose, otpId } = req.body;
   
   if (!otp || typeof otp !== 'string') {
     return res.status(400).json({
@@ -99,6 +100,14 @@ const validateOTPVerification = (req: Request, res: Response, next: NextFunction
       error: 'Purpose is required',
       message: 'OTP purpose must be specified',
       code: 'MISSING_PURPOSE'
+    });
+  }
+  
+  if (!otpId || typeof otpId !== 'string') {
+    return res.status(400).json({
+      error: 'OTP ID is required',
+      message: 'OTP session ID must be provided',
+      code: 'MISSING_OTP_ID'
     });
   }
   

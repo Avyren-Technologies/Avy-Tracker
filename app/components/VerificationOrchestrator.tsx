@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -127,6 +127,16 @@ export default function VerificationOrchestrator({
   const [isProcessing, setIsProcessing] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
 
+
+
+  // Stable callback references
+  const onStepCompletedRef = useRef<(step: string, success: boolean) => void>();
+  const onFlowCompletedRef = useRef<(summary: any) => void>();
+  const onFlowFailedRef = useRef<(summary: any) => void>();
+  const onOverrideRequiredRef = useRef<(summary: any) => void>();
+  const onPerformanceMetricsRef = useRef<(metrics: any) => void>();
+  const proceedToNextStepRef = useRef<() => void>();
+
   // Verification flow hook
   const {
     flowState,
@@ -146,43 +156,54 @@ export default function VerificationOrchestrator({
   } = useVerificationFlow({
     userId,
     token,
-    onStepCompleted: (step, success) => {
-      console.log(`Step ${step} ${success ? 'completed' : 'failed'}`);
-      if (!success && step === 'location' && canOverrideGeofence) {
-        // Show option to continue with face verification only
-        Alert.alert(
-          'Location Verification Failed',
-          'You are not in a designated work area. Would you like to continue with face verification only?',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: onCancel },
-            { text: 'Continue', onPress: () => proceedToNextStep() },
-          ]
-        );
-      }
-    },
-    onFlowCompleted: (summary) => {
-      console.log('Verification flow completed:', summary);
-      onSuccess(summary);
-    },
-    onFlowFailed: (summary) => {
-      console.log('Verification flow failed:', summary);
-      if (canOverride) {
-        showOverrideOptions();
-      } else {
-        onError('Verification failed. Please try again.');
-      }
-    },
-    onOverrideRequired: (summary) => {
-      console.log('Override required:', summary);
-      showOverrideOptions();
-    },
-    onPerformanceMetrics: (metrics) => {
-      // Log performance metrics for monitoring
-      if (metrics.totalLatency > 30000) {
-        console.warn('Verification taking longer than expected:', metrics);
-      }
-    },
+    onStepCompleted: (step, success) => onStepCompletedRef.current?.(step, success),
+    onFlowCompleted: (summary) => onFlowCompletedRef.current?.(summary),
+    onFlowFailed: (summary) => onFlowFailedRef.current?.(summary),
+    onOverrideRequired: (summary) => onOverrideRequiredRef.current?.(summary),
+    onPerformanceMetrics: (metrics) => onPerformanceMetricsRef.current?.(metrics),
   });
+
+  // Update refs with current values
+  onStepCompletedRef.current = (step, success) => {
+    console.log(`Step ${step} ${success ? 'completed' : 'failed'}`);
+    if (!success && step === 'location' && canOverrideGeofence) {
+      // Show option to continue with face verification only
+      Alert.alert(
+        'Location Verification Failed',
+        'You are not in a designated work area. Would you like to continue with face verification only?',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: onCancel },
+          { text: 'Continue', onPress: () => proceedToNextStepRef.current?.() },
+        ]
+      );
+    }
+  };
+
+  onFlowCompletedRef.current = (summary) => {
+    console.log('Verification flow completed:', summary);
+    onSuccess(summary);
+  };
+
+  onFlowFailedRef.current = (summary) => {
+    console.log('Verification flow failed:', summary);
+    if (canOverride) {
+      showOverrideOptions();
+    } else {
+      onError('Verification failed. Please try again.');
+    }
+  };
+
+  onOverrideRequiredRef.current = (summary) => {
+    console.log('Override required:', summary);
+    showOverrideOptions();
+  };
+
+  onPerformanceMetricsRef.current = (metrics) => {
+    // Log performance metrics for monitoring
+    if (metrics.totalLatency > 30000) {
+      console.warn('Verification taking longer than expected:', metrics);
+    }
+  };
 
   // Initialize verification flow when modal becomes visible
   useEffect(() => {
@@ -195,10 +216,19 @@ export default function VerificationOrchestrator({
 
   // Auto-proceed with verification steps
   useEffect(() => {
-    if (isInitialized && currentStep && !isProcessing) {
-      proceedToNextStep();
+    if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed') {
+      // Use a timeout to avoid immediate execution
+      const timer = setTimeout(() => {
+        if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed') {
+          // Use a ref to avoid dependency issues
+          if (proceedToNextStepRef.current) {
+            proceedToNextStepRef.current();
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [isInitialized, currentStep, isProcessing]);
+  }, [isInitialized, currentStep, isProcessing, summary?.status]);
 
   const initializeFlow = useCallback(async () => {
     try {
@@ -229,6 +259,9 @@ export default function VerificationOrchestrator({
       setIsProcessing(false);
     }
   }, [currentStep, isProcessing, executeLocationVerification, locationVerificationFn]);
+
+  // Store the function in the ref for useEffect access
+  proceedToNextStepRef.current = proceedToNextStep;
 
   const handleFaceVerificationSuccess = useCallback(async (result: FaceVerificationResult) => {
     setShowFaceModal(false);
@@ -288,8 +321,8 @@ export default function VerificationOrchestrator({
 
   const handleRetry = useCallback(() => {
     setCurrentError(null);
-    proceedToNextStep();
-  }, [proceedToNextStep]);
+    proceedToNextStepRef.current?.();
+  }, []);
 
   // Prepare step indicator data
   const stepIndicatorData = flowState?.steps.map((step, index) => ({

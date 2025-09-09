@@ -18,6 +18,7 @@ import { FaceVerificationResult, FaceVerificationError } from '../types/faceDete
 import { useFaceDetection } from '../hooks/useFaceDetection';
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 
 
@@ -43,7 +44,7 @@ interface RegistrationStep {
 export default function FaceRegistration() {
   const colorScheme = useColorScheme();
   const router = useRouter();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   // Face detection hook
   // const { device } = useFaceDetection({
@@ -69,6 +70,7 @@ export default function FaceRegistration() {
   const [registrationData, setRegistrationData] = useState<FaceVerificationResult | null>(null);
   const [captureStep, setCaptureStep] = useState(0);
   const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
   // CRITICAL: Component lifecycle management for multi-angle registration
   const isMountedRef = useRef(true);
@@ -107,6 +109,18 @@ export default function FaceRegistration() {
     checkExistingRegistration();
   }, []);
 
+  // CRITICAL FIX: Prevent face modal from opening if user already has a profile
+  useEffect(() => {
+    if (hasExistingProfile && showFaceModal) {
+      setShowFaceModal(false);
+      Alert.alert(
+        'Profile Already Exists',
+        'You already have a face profile. Please use it for verification.',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [hasExistingProfile, showFaceModal]);
+
   // CRITICAL: Component cleanup effect
   useEffect(() => {
     isMountedRef.current = true;
@@ -125,15 +139,36 @@ export default function FaceRegistration() {
       );
 
       if (response.data?.isRegistered) {
-        // User already registered, redirect to dashboard
+        setHasExistingProfile(true);
+        // User already registered, show options
         Alert.alert(
-          'Already Registered',
-          'You have already completed face registration. Redirecting to dashboard.',
-          [{ text: 'OK', onPress: () => router.replace('/(dashboard)' as any) }]
+          'Face Profile Already Exists',
+          'You have already completed face registration. What would you like to do?',
+          [
+            {
+              text: 'Go to Dashboard',
+              onPress: routeToDashboard
+            },
+            {
+              text: 'Test Verification',
+              onPress: () => {
+                setRegistrationData({
+                  success: true,
+                  confidence: 1.0,
+                  livenessDetected: true,
+                  faceEncoding: 'existing_profile',
+                  timestamp: new Date(),
+                });
+                setCurrentStep(2); // Skip to verification test
+              }
+            }
+          ]
         );
       }
     } catch (error) {
       console.error('Error checking registration status:', error);
+      // If we can't check status, allow registration to proceed
+      console.log('Proceeding with registration due to status check failure');
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +178,28 @@ export default function FaceRegistration() {
     setConsentGiven(true);
     setCurrentStep(1);
   };
+
+  const routeToDashboard = () => {
+    const userRole = user?.role;
+    switch (userRole) {
+      case 'employee':
+        router.replace('/(dashboard)/employee/employee');
+        break;
+      case 'group-admin':
+        router.replace('/(dashboard)/Group-Admin/group-admin');
+        break;
+      case 'management':
+        router.replace('/(dashboard)/management/management');
+        break;
+      case 'super-admin':
+        router.replace('/(dashboard)/super-admin/super-admin');
+        break;
+      default:
+        console.error('Invalid user role:', userRole);
+        break;
+    }
+
+  }
 
   const handleFaceRegistrationTest = () => {
     router.push('/(testing)/face-registration-test');
@@ -167,6 +224,16 @@ export default function FaceRegistration() {
 
   const handleFaceRegistrationSuccess = async (result: FaceVerificationResult) => {
     console.log('Face registration successful for angle:', captureStep, result);
+
+    // CRITICAL FIX: Prevent processing if user already has a profile
+    if (hasExistingProfile) {
+      Alert.alert(
+        'Profile Already Exists',
+        'You already have a face profile. Please use the existing profile for verification.',
+        [{ text: 'OK', onPress: () => setShowFaceModal(false) }]
+      );
+      return;
+    }
 
     // Add this capture to our collection
     const newCapturedAngles = [...capturedAngles, result];
@@ -198,6 +265,47 @@ export default function FaceRegistration() {
     try {
       setIsLoading(true);
 
+      // CRITICAL FIX: Check if user already has a face profile before attempting registration
+      try {
+        const statusResponse = await axios.get(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (statusResponse.data.isRegistered) {
+          // User already has a face profile - handle gracefully
+          Alert.alert(
+            'Face Profile Already Exists',
+            'You already have a face profile registered. You can either:\n\n• Use your existing profile for verification\n• Update your existing profile with new data',
+            [
+              {
+                text: 'Use Existing Profile',
+                onPress: () => {
+                  setRegistrationData({
+                    success: true,
+                    confidence: 1.0,
+                    livenessDetected: true,
+                    faceEncoding: 'existing_profile',
+                    timestamp: new Date(),
+                  });
+                  setCurrentStep(2);
+                }
+              },
+              {
+                text: 'Update Profile',
+                onPress: () => {
+                  // Proceed with registration to update existing profile
+                  console.log('Proceeding with profile update...');
+                }
+              }
+            ]
+          );
+          return;
+        }
+      } catch (statusError) {
+        console.warn('Could not check face profile status, proceeding with registration:', statusError);
+      }
+
       // Combine all face encodings for better accuracy
       const combinedResult: FaceVerificationResult = {
         success: true,
@@ -213,17 +321,30 @@ export default function FaceRegistration() {
         consentGiven: true,                             // ✅ Required field
         qualityScore: combinedResult.confidence,         // ✅ Correct field
         deviceInfo: {
-          platform: 'react-native',
+          platform: Platform.OS,
           timestamp: new Date().toISOString()
         }
       };
 
       // Send to backend for registration
-      await axios.post(
+      const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/register`,
         registrationData, // ✅ Use the correctly formatted data
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // CRITICAL FIX: Update user's face_registered status in the database
+      try {
+        await axios.patch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile`,
+          { face_registered: true },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('✅ User face_registered status updated successfully');
+      } catch (updateError) {
+        console.warn('⚠️ Failed to update user face_registered status:', updateError);
+        // Don't fail the registration if this update fails
+      }
 
       setRegistrationData(combinedResult);
       setCurrentStep(2);
@@ -245,14 +366,36 @@ export default function FaceRegistration() {
         });
       }
       
+      // CRITICAL FIX: Handle specific error cases gracefully
+      let errorMessage = 'Failed to complete face registration.';
+      let showRetry = true;
+      
+      if (error.response?.status === 409) {
+        // Profile already exists - this shouldn't happen with our check above, but handle it gracefully
+        errorMessage = 'A face profile already exists for your account. Please contact support if you need to update it.';
+        showRetry = false;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       Alert.alert(
         'Registration Error',
-        `Failed to complete face registration: ${error.response?.data?.error || error.message}\n\nPlease try again.`,
-        [
+        errorMessage,
+        showRetry ? [
           {
             text: 'OK',
             onPress: () => {
               setShowFaceModal(true);
+            }
+          }
+        ] : [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate back or to dashboard since we can't retry
+              router.back();
             }
           }
         ]
@@ -299,7 +442,7 @@ export default function FaceRegistration() {
     Alert.alert(
       'Setup Complete!',
       'Face verification has been set up successfully. You can now use face verification for shift operations.',
-      [{ text: 'Get Started', onPress: () => router.replace('/(dashboard)' as any) }]
+      [{ text: 'Get Started', onPress: routeToDashboard}]
     );
   };
 
@@ -311,7 +454,7 @@ export default function FaceRegistration() {
       'Verification Test Failed',
       `The verification test failed: ${error.message}\n\nYou may need to re-register your face.`,
       [
-        { text: 'Skip for Now', onPress: () => router.replace('/(dashboard)' as any) },
+        { text: 'Skip for Now', onPress: routeToDashboard },
         {
           text: 'Re-register', onPress: () => {
             setRegistrationData(null);
@@ -563,15 +706,27 @@ export default function FaceRegistration() {
       </View>
 
       <TouchableOpacity
-        onPress={() => setShowFaceModal(true)}
+        onPress={() => {
+          if (hasExistingProfile) {
+            Alert.alert(
+              'Profile Already Exists',
+              'You already have a face profile registered. Please use it for verification.',
+              [{ text: 'OK' }]
+            );
+            return;
+          }
+          setShowFaceModal(true);
+        }}
         className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: captureStep < captureAngles.length ? primaryColor : successColor }}
-        disabled={capturedAngles.length === captureAngles.length}
+        style={{ backgroundColor: hasExistingProfile ? borderColor : (captureStep < captureAngles.length ? primaryColor : successColor) }}
+        disabled={hasExistingProfile || capturedAngles.length === captureAngles.length}
       >
         <Text className="text-white text-center font-semibold text-lg">
-          {captureStep < captureAngles.length
-            ? `Capture ${captureAngles[captureStep].name}`
-            : 'All Angles Captured!'
+          {hasExistingProfile 
+            ? 'Profile Already Exists'
+            : captureStep < captureAngles.length
+              ? `Capture ${captureAngles[captureStep].name}`
+              : 'All Angles Captured!'
           }
         </Text>
       </TouchableOpacity>
@@ -634,7 +789,7 @@ export default function FaceRegistration() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => router.replace('/(dashboard)' as any)}
+        onPress={routeToDashboard}
         className={`py-3 px-6 rounded-lg`}
         style={{ backgroundColor: borderColor }}
       >

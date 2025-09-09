@@ -37,9 +37,9 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Import new components
 import FaceVerificationModal from "../../components/FaceVerificationModal";
-import EmbeddedMap from "../../components/EmbeddedMap";
 import OTPVerification from "../../components/OTPVerification";
 import VerificationOrchestrator from "../../components/VerificationOrchestrator";
+import LiveTrackingMap from "../shared/components/map/LiveTrackingMap";
 
 // Import deep link utilities
 import { promptFaceConfiguration } from "../../utils/deepLinkUtils";
@@ -649,7 +649,7 @@ export default function EmployeeShiftTracker() {
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [offlineVerificationQueue, setOfflineVerificationQueue] = useState<OfflineVerificationData[]>([]);
   const [faceRegistrationRequired, setFaceRegistrationRequired] = useState(false);
-  const [showEmbeddedMap, setShowEmbeddedMap] = useState(true);
+
 
   // Get the API endpoint based on user role
   const apiEndpoint = getApiEndpoint(user?.role || "employee");
@@ -671,7 +671,7 @@ export default function EmployeeShiftTracker() {
     },
   });
 
-  const { isLocationInAnyGeofence, getCurrentGeofence } = useGeofencing();
+  const { isLocationInAnyGeofence, getCurrentGeofence, geofences } = useGeofencing();
 
   // Check if the user can override geofence restrictions
   const [canOverrideGeofence, setCanOverrideGeofence] = useState(false);
@@ -878,7 +878,6 @@ export default function EmployeeShiftTracker() {
       canOverride: false,
     });
     setShowFaceVerificationModal(false);
-    setShowEmbeddedMap(false);
     setShowOTPVerification(false);
     setShowManagerOverride(false);
     setPendingShiftAction(null);
@@ -2449,8 +2448,7 @@ export default function EmployeeShiftTracker() {
       currentStep: 'face',
     }));
     
-    // Close map and show face verification
-    setShowEmbeddedMap(false);
+    // Show face verification
     setShowFaceVerificationModal(true);
   }, []);
 
@@ -3551,34 +3549,29 @@ export default function EmployeeShiftTracker() {
               </View>
             </View>
 
-            {/* Embedded Map Section */}
-            {showEmbeddedMap && (
-              <View className="flex-row mb-4">
-                <View className="flex-1 mr-4">
-                  <EmbeddedMap
-                    size={{ width: 150, height: 150 }}
-                    currentLocation={convertToLocation(currentLocation)}
-                    onLocationUpdate={handleMapLocationUpdate}
-                    onGeofenceStatusChange={handleGeofenceStatusChange}
-                    showCurrentLocation={true}
-                    showGeofences={true}
-                    style={{
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: isDark ? '#374151' : '#e5e7eb',
-                    }}
-                  />
-                </View>
-                <View className="flex-1 justify-center">
-                  <View className="mb-3">
-                    <Text
-                      className={`text-xs ${
-                        isDark ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
+            {/* Small Integrated Map Section */}
+            <View className="mb-2">
+              <View style={styles.mapContainer}>
+                <LiveTrackingMap
+                  containerStyle={styles.smallMap}
+                  geofences={geofences}
+                  currentGeofence={getCurrentGeofence()}
+                  routeCoordinates={[]}
+                  showControls={true}
+                  showUserPaths={true}
+                  showGeofences={true}
+                  defaultFullscreen={true}
+                />
+              </View>
+              
+              {/* Location Info Panel */}
+              <View className={`mt-3 p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                       Current Position
                     </Text>
-                    <View className="flex-row items-center">
+                    <View className="flex-row items-center mt-1">
                       <Text className={`text-sm ${isDark ? "text-white" : "text-gray-800"}`} numberOfLines={2}>
                         {currentAddress}
                       </Text>
@@ -3597,16 +3590,12 @@ export default function EmployeeShiftTracker() {
                       </TouchableOpacity>
                     </View>
                   </View>
-
-                  <View className="mb-3">
-                    <Text
-                      className={`text-xs ${
-                        isDark ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      Battery Level
+                  
+                  <View className="ml-4">
+                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                      Battery
                     </Text>
-                    <View className="flex-row items-center">
+                    <View className="flex-row items-center mt-1">
                       <Ionicons
                         name={
                           batteryLevel > 75
@@ -3628,7 +3617,7 @@ export default function EmployeeShiftTracker() {
                         style={{ marginRight: 4 }}
                       />
                       <Text
-                        className={`${
+                        className={`text-sm ${
                           batteryLevel > 20
                             ? isDark
                               ? "text-green-400"
@@ -3640,51 +3629,19 @@ export default function EmployeeShiftTracker() {
                       </Text>
                     </View>
                   </View>
-
-                  {/* Location accuracy indicator */}
-                  {currentLocation?.coords?.accuracy && (
-                    <View>
-                      <Text
-                        className={`text-xs ${
-                          isDark ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        GPS Accuracy
-                      </Text>
-                      <View className="flex-row items-center">
-                        <Ionicons
-                          name="radio-outline"
-                          size={16}
-                          color={
-                            currentLocation.coords.accuracy < 10
-                              ? "#10B981"
-                              : currentLocation.coords.accuracy < 50
-                              ? "#F59E0B"
-                              : "#EF4444"
-                          }
-                          style={{ marginRight: 4 }}
-                        />
-                        <Text
-                          className={`text-sm ${
-                            currentLocation.coords.accuracy < 10
-                              ? isDark ? "text-green-400" : "text-green-600"
-                              : currentLocation.coords.accuracy < 50
-                              ? isDark ? "text-yellow-400" : "text-yellow-600"
-                              : "text-red-500"
-                          }`}
-                        >
-                          ±{Math.round(currentLocation.coords.accuracy)}m
-                        </Text>
-                      </View>
-                    </View>
-                  )}
                 </View>
+                
+                {/* Location accuracy indicator */}
+                {currentLocation?.coords?.accuracy && (
+                  <View className="mt-2">
+                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                      Accuracy: {Math.round(currentLocation.coords.accuracy)}m
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
-
-            {/* Fallback location display when map is hidden */}
-            {!showEmbeddedMap && (
-              <View className="flex-row justify-between items-center mb-2">
+            </View>
+              {/* <View className="flex-row justify-between items-center mb-2">
                 <View>
                   <Text
                     className={`text-xs ${
@@ -3755,11 +3712,10 @@ export default function EmployeeShiftTracker() {
                     </Text>
                   </View>
                 </View>
-              </View>
-            )}
+              </View> */}
 
             {/* Geofence status indicators */}
-            <View className="flex-row justify-between items-center mb-2">
+            {/* <View className="flex-row justify-between items-center mb-2">
               <View className="flex-row items-center">
                 <Ionicons
                   name={isInGeofence ? "location" : "location-outline"}
@@ -3779,22 +3735,8 @@ export default function EmployeeShiftTracker() {
                 </Text>
               </View>
               
-              {/* Map toggle button */}
-              <TouchableOpacity
-                onPress={() => setShowEmbeddedMap(!showEmbeddedMap)}
-                className={`px-3 py-1 rounded-full ${
-                  isDark ? "bg-gray-700" : "bg-gray-100"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  {showEmbeddedMap ? "Hide Map" : "Show Map"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+
+            </View> */}
 
             {/* Add geofence override indicator */}
             {canOverrideGeofence && (
@@ -4470,48 +4412,7 @@ export default function EmployeeShiftTracker() {
         maxRetries={verificationState.maxRetries}
       />
 
-      {/* Embedded Map for Location Verification */}
-      <Modal visible={showEmbeddedMap} transparent animationType="slide">
-        <View className="flex-1 bg-black/50">
-          <View className={`flex-1 m-4 rounded-xl overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
-              <Text className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Location Verification
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowEmbeddedMap(false);
-                  resetVerificationState();
-                }}
-                className="p-2"
-              >
-                <Ionicons name="close" size={24} color={isDark ? "#9CA3AF" : "#6B7280"} />
-              </TouchableOpacity>
-            </View>
-            <EmbeddedMap
-              onLocationUpdate={(location) => {
-                // Handle location update and verification
-                const locationResult: LocationResult = {
-                  success: true,
-                  latitude: location.latitude,
-                  longitude: location.longitude,
-                  accuracy: location.accuracy || 0,
-                  isInGeofence: isLocationInAnyGeofence(location),
-                  geofenceName: getCurrentGeofence?.name,
-                };
-                handleLocationVerificationSuccess(locationResult);
-              }}
-              onGeofenceStatusChange={(isInside, geofenceName) => {
-                // Update geofence status
-                console.log('Geofence status changed:', { isInside, geofenceName });
-              }}
-              showCurrentLocation={true}
-              showGeofences={true}
-              size={{ width: screenWidth - 32, height: screenHeight - 200 }}
-            />
-          </View>
-        </View>
-      </Modal>
+
 
 
 
@@ -4587,5 +4488,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.1)",
+  },
+  smallMap: {
+    flex: 1,
+    borderRadius: 12,
   },
 });

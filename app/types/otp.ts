@@ -31,10 +31,13 @@ export interface OTPError {
 export interface OTPGenerationResponse {
   success: boolean;
   message: string;
+  code?: string;
+  error?: string;
   expiresAt?: string;
   phoneNumber?: string;
   purpose: string;
   processingTime?: number;
+  otpId?: string;
 }
 
 export interface OTPVerificationResponse {
@@ -54,6 +57,7 @@ export interface OTPResendResponse {
   purpose: string;
   resentAt: string;
   processingTime?: number;
+  otpId?: string;
 }
 
 export interface OTPState {

@@ -246,6 +246,79 @@ router.get('/profile-image/:id', async (req: CustomRequest, res: Response) => {
   }
 });
 
+// Add PATCH endpoint for updating user profile fields (including face_registered)
+router.patch('/profile', verifyToken, async (req: CustomRequest, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const userId = req.user?.id;
+    const { face_registered, face_enabled, ...otherFields } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Build dynamic update query
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    // Handle face_registered field
+    if (face_registered !== undefined) {
+      updateFields.push(`face_registered = $${paramIndex}`);
+      values.push(face_registered);
+      paramIndex++;
+    }
+
+    // Handle face_enabled field
+    if (face_enabled !== undefined) {
+      updateFields.push(`face_enabled = $${paramIndex}`);
+      values.push(face_enabled);
+      paramIndex++;
+    }
+
+    // Handle other fields if needed
+    Object.entries(otherFields).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    // Add user ID to values
+    values.push(userId);
+
+    const query = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, name, email, face_registered, face_enabled
+    `;
+
+    const result = await client.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  } finally {
+    client.release();
+  }
+});
+
 // Add this endpoint for support messages
 router.post('/support-message', verifyToken, async (req: CustomRequest, res: Response) => {
   try {

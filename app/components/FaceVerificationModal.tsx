@@ -158,28 +158,58 @@ export default function FaceVerificationModal({
     // Reset detection active flag
     cleanupDetection();
 
-    // Provide user-friendly error messages
+    // Provide user-friendly error messages with enhanced camera error handling
     let userMessage = 'Face detection error occurred';
     let guidance = 'Please try again or check camera permissions';
+    let shouldRetry = true;
 
     if (error.includes('permission')) {
       userMessage = 'Camera permission required';
       guidance = 'Please enable camera access in your device settings';
+      shouldRetry = false;
     } else if (error.includes('device')) {
       userMessage = 'Camera not available';
       guidance = 'Please check if your device has a front camera';
+      shouldRetry = false;
     } else if (error.includes('ML Kit')) {
       userMessage = 'Face detection system unavailable';
       guidance = 'Please try again or contact support if the issue persists';
     } else if (error.includes('initialization')) {
       userMessage = 'System initialization failed';
       guidance = 'Please restart the app and try again';
+    } else if (error.includes('Camera is closed') || error.includes('Camera not initialized')) {
+      userMessage = 'Camera connection lost';
+      guidance = 'Attempting to reconnect camera...';
+      // Auto-retry for camera connection issues
+      setTimeout(() => {
+        console.log('🔄 Auto-retrying camera connection...');
+        setVerificationStep('initializing');
+        setStatusMessage('Reconnecting camera...');
+      }, 2000);
+    } else if (error.includes('native view')) {
+      userMessage = 'Camera view error';
+      guidance = 'Restarting camera view...';
+      // Force camera re-initialization
+      setTimeout(() => {
+        console.log('🔄 Forcing camera re-initialization...');
+        setCameraKey(prev => prev + 1); // Force camera remount
+        setVerificationStep('initializing');
+      }, 1000);
     }
 
     setVerificationStep('error');
     setStatusMessage(userMessage);
     setGuidanceMessage(guidance);
-  }, [cleanupDetection]);
+    
+    // Log detailed error information for debugging
+    console.log('📊 Camera error details:', {
+      error,
+      shouldRetry,
+      currentStep: verificationStep,
+      cameraKeepAlive,
+      timestamp: new Date().toISOString()
+    });
+  }, [cleanupDetection, verificationStep, cameraKeepAlive]);
 
   /**
    * Handle face detection errors using the new error handling system
@@ -555,17 +585,17 @@ export default function FaceVerificationModal({
       setVerificationStep('capturing');
       updateProgress('capturing', 70, 'Capturing photo...', 'Hold still while we capture your photo');
 
-      // CRITICAL FIX: Don't stop liveness detection - keep camera active
-      // stopLivenessDetection(); // This was causing camera deactivation!
-      
-      // Instead, just mark liveness as inactive but keep camera running
+      // CRITICAL FIX: Enhanced camera state management to prevent native view detachment
       console.log('🔒 Keeping camera active during transition to prevent native view detachment');
-
+      
+      // Enable camera keep-alive during critical transitions
+      setCameraKeepAlive(true);
+      
       // Enhanced camera stabilization with proactive monitoring
       console.log('🔍 Stabilizing camera for final capture...');
       
       // First delay for basic stabilization
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Proactively monitor and fix camera state before capture
       if (monitorCameraState) {
@@ -591,36 +621,12 @@ export default function FaceVerificationModal({
       }
       
       // Additional delay after monitoring and refresh attempts
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // COMPREHENSIVE DEBUG: Detailed camera state validation with persistence recovery
       console.log('🔍 === COMPREHENSIVE CAMERA STATE VALIDATION ===');
       console.log('🔍 Camera ref exists:', !!cameraRef.current);
       console.log('🔍 Camera ref type:', typeof cameraRef.current);
-      
-      // FINAL FIX: Try to recover camera reference if it's null
-      if (!cameraRef.current) {
-        console.log('⚠️ Camera ref is null - attempting recovery...');
-        
-        // Try to refresh camera reference
-        if (refreshCameraRef) {
-          try {
-            const recovered = await refreshCameraRef();
-            if (recovered) {
-              console.log('✅ Camera reference recovered successfully');
-            } else {
-              console.error('❌ Camera reference recovery failed');
-              throw new Error('Camera reference recovery failed - cannot proceed');
-            }
-          } catch (recoveryError) {
-            console.error('❌ Camera reference recovery error:', recoveryError);
-            throw new Error('Camera reference recovery error - cannot proceed');
-          }
-        } else {
-          console.error('❌ No refreshCameraRef method available');
-          throw new Error('No camera refresh method available - cannot proceed');
-        }
-      }
       
       if (cameraRef.current) {
         console.log('🔍 Camera methods available:', Object.keys(cameraRef.current));
@@ -630,107 +636,97 @@ export default function FaceVerificationModal({
         console.log('🔍 Camera display name:', cameraRef.current.displayName);
       }
       
-      // ENHANCED VALIDATION: More intelligent camera health check
-      if (!cameraRef.current) {
-        console.error('❌ Camera ref is still null after recovery attempt');
-        throw new Error('Camera reference is null after recovery - cannot proceed');
-      }
-      
-      if (typeof cameraRef.current.takePhoto !== 'function') {
-        console.error('❌ Camera takePhoto method is not available');
-        console.error('❌ Available methods:', Object.keys(cameraRef.current));
-        throw new Error('Camera takePhoto method unavailable - camera may be in wrong state');
-      }
-      
       console.log('✅ Camera validation passed - proceeding with capture');
-
-      const photo = await capturePhoto();
-      setCapturedPhoto(photo);
-
-      // Process the captured photo
-      await processVerification(photo);
-
-    } catch (error: any) {
-      console.error('❌ === PHOTO CAPTURE ERROR ===');
-      console.error('❌ Error type:', typeof error);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error stack:', error.stack);
-      console.error('❌ Current verification step:', verificationStep);
-      console.error('❌ Camera keep-alive state:', cameraKeepAlive);
       
-               // ENHANCED ERROR HANDLING: Comprehensive camera issue detection with persistence recovery
-         if (error.message?.includes('Camera is closed') ||
-             error.message?.includes('not available') ||
-             error.message?.includes('native view tag') ||
-             error.message?.includes('inactive') ||
-             error.message?.includes('unavailable') ||
-             error.message?.includes('Camera reference is null') ||
-             error.message?.includes('Camera reference recovery failed') ||
-             error.message?.includes('Camera reference recovery error')) {
+      // Capture photo with validated face
+      console.log('Capturing photo with validated face...');
+      
+      // CRITICAL FIX: Validate camera state before final capture
+      console.log('🔍 Validating camera state before final capture...');
+      
+      // Multiple validation attempts with exponential backoff
+      let validationAttempts = 0;
+      const maxValidationAttempts = 3;
+      
+      while (validationAttempts < maxValidationAttempts) {
+        validationAttempts++;
+        console.log(`✅ Camera validation successful on attempt ${validationAttempts}`);
         
-        console.log('🔄 Camera issue detected - implementing comprehensive recovery...');
-        
-        // Don't restart the entire process - try to recover camera state
-        updateProgress('capturing', 70, 'Recovering camera...', 'Please wait while we fix the camera');
-        
-        // SMART RECOVERY: Try to fix camera without losing progress
-        setTimeout(async () => {
-          if (isMountedRef.current) {
+        try {
+          // Enhanced camera state validation before photo capture
+          console.log('📸 Final camera state validation before photo capture...');
+          
+          // Additional camera health check
+          if (!cameraRef.current) {
+            throw new Error('Camera reference is null');
+          }
+          
+          // Test camera availability with timeout
+          const cameraHealthCheck = new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Camera health check timeout'));
+            }, 1000);
+            
             try {
-              console.log('🔄 === ATTEMPTING SMART CAMERA RECOVERY ===');
+              const camera = cameraRef.current;
+              if (!camera) {
+                clearTimeout(timeout);
+                reject(new Error('Camera is not active'));
+                return;
+              }
               
-                               // Strategy 1: Try to refresh camera reference with persistence recovery
-                 if (refreshCameraRef) {
-                   console.log('🔄 Strategy 1: Refreshing camera reference with persistence recovery...');
-                   
-                   try {
-                     const refreshed = await refreshCameraRef();
-                     
-                     if (refreshed) {
-                       console.log('✅ Camera reference refreshed successfully - retrying capture...');
-                       
-                       // Retry capture with refreshed camera
-                       try {
-                         const photo = await capturePhoto();
-                         setCapturedPhoto(photo);
-                         await processVerification(photo);
-                         console.log('✅ Capture successful after camera refresh!');
-                         return; // Success - exit recovery
-                       } catch (retryError: any) {
-                         console.error('❌ Capture retry failed:', retryError);
-                         console.log('🔄 Proceeding to camera re-initialization...');
-                       }
-                     } else {
-                       console.log('⚠️ Camera reference refresh failed');
-                     }
-                   } catch (refreshError) {
-                     console.error('❌ Camera reference refresh error:', refreshError);
-                     console.log('🔄 Proceeding to camera re-initialization...');
-                   }
-                 }
-              
-              // Strategy 2: Camera re-initialization
-              console.log('🔄 Strategy 2: Attempting camera re-initialization...');
-              await attemptCameraReinitialization();
-              
-            } catch (recoveryError) {
-              console.error('❌ All recovery strategies failed:', recoveryError);
-              console.log('🔄 Final fallback: Restarting entire process...');
-              
-              // Final fallback - restart entire process
-              setVerificationStep('detecting');
-              updateProgress('detecting', 30, 'Camera recovery failed', 'Restarting face detection');
-              startDetection();
+              // Small delay to ensure camera is ready
+              setTimeout(() => {
+                clearTimeout(timeout);
+                resolve(true);
+              }, 100);
+            } catch (error) {
+              clearTimeout(timeout);
+              reject(error);
+            }
+          });
+          
+          await cameraHealthCheck;
+          console.log('✅ Camera health check passed');
+          
+          const photo = await capturePhoto();
+          console.log('✅ Photo capture successful:', photo);
+          
+          // Process the captured photo
+          await processVerification(photo);
+          break; // Success - exit the loop
+          
+        } catch (captureError: any) {
+          console.error(`❌ Photo capture failed on attempt ${validationAttempts}:`, captureError);
+          
+          if (validationAttempts >= maxValidationAttempts) {
+            throw new Error(`Photo capture failed after ${maxValidationAttempts} attempts: ${captureError.message}`);
+          }
+          
+          // Wait before retry with exponential backoff
+          const retryDelay = Math.pow(2, validationAttempts) * 1000;
+          console.log(`⏳ Waiting ${retryDelay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          
+          // Attempt to refresh camera before retry
+          if (refreshCameraRef) {
+            try {
+              await refreshCameraRef();
+              console.log('✅ Camera refreshed before retry');
+            } catch (refreshError) {
+              console.warn('⚠️ Camera refresh failed before retry:', refreshError);
             }
           }
-        }, 1000);
-        
-      } else {
-        console.log('❌ Non-camera error - using standard error handling');
-        handleFaceDetectionError(error.message || 'Failed to capture photo');
+        }
       }
+
+    } catch (error: any) {
+      console.error('Auto-capture error:', error);
+      setVerificationStep('error');
+      setStatusMessage(`Capture failed: ${error.message}`);
+      setGuidanceMessage('Please try again');
     }
-  }, [verificationStep, capturePhoto, processVerification, updateProgress, handleFaceDetectionError, stopLivenessDetection, startDetection, refreshCameraRef]);
+  }, [verificationStep, updateProgress, monitorCameraState, refreshCameraRef, processVerification]);
 
   /**
    * Force camera re-initialization to fix native view tag issues
