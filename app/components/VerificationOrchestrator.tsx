@@ -210,24 +210,58 @@ export default function VerificationOrchestrator({
     if (visible && !isInitialized) {
       initializeFlow();
     } else if (!visible && isInitialized) {
+      // CRITICAL FIX: Clear all timeouts and reset refs when modal is closed
+      if (autoProceedTimeoutRef.current) {
+        clearTimeout(autoProceedTimeoutRef.current);
+        autoProceedTimeoutRef.current = null;
+      }
+      hasAutoProceededRef.current = false;
       resetFlow();
     }
-  }, [visible, isInitialized]);
+  }, [visible, isInitialized, initializeFlow, resetFlow]);
+
+  // CRITICAL FIX: Add ref to prevent infinite auto-proceed loops
+  const autoProceedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasAutoProceededRef = useRef(false);
 
   // Auto-proceed with verification steps
   useEffect(() => {
-    if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed') {
-      // Use a timeout to avoid immediate execution
-      const timer = setTimeout(() => {
-        if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed') {
-          // Use a ref to avoid dependency issues
-          if (proceedToNextStepRef.current) {
-            proceedToNextStepRef.current();
-          }
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+    // CRITICAL FIX: Clear existing timeout to prevent multiple auto-proceeds
+    if (autoProceedTimeoutRef.current) {
+      clearTimeout(autoProceedTimeoutRef.current);
+      autoProceedTimeoutRef.current = null;
     }
+
+    // CRITICAL FIX: Add guards to prevent infinite loops
+    if (!isInitialized || !currentStep || isProcessing || summary?.status === 'completed') {
+      hasAutoProceededRef.current = false;
+      return;
+    }
+
+    // CRITICAL FIX: Prevent multiple auto-proceeds for the same step
+    if (hasAutoProceededRef.current) {
+      return;
+    }
+
+    // Use a timeout to avoid immediate execution
+    autoProceedTimeoutRef.current = setTimeout(() => {
+      if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed' && !hasAutoProceededRef.current) {
+        hasAutoProceededRef.current = true;
+        console.log('Auto-proceeding to next verification step:', currentStep);
+        
+        // Use a ref to avoid dependency issues
+        if (proceedToNextStepRef.current) {
+          proceedToNextStepRef.current();
+        }
+      }
+    }, 100);
+
+    return () => {
+      if (autoProceedTimeoutRef.current) {
+        clearTimeout(autoProceedTimeoutRef.current);
+        autoProceedTimeoutRef.current = null;
+      }
+    };
   }, [isInitialized, currentStep, isProcessing, summary?.status]);
 
   const initializeFlow = useCallback(async () => {
@@ -241,21 +275,27 @@ export default function VerificationOrchestrator({
   }, [shiftAction, config, startVerificationFlow, onError]);
 
   const proceedToNextStep = useCallback(async () => {
+    // CRITICAL FIX: Add guards to prevent recursive calls
     if (!currentStep || isProcessing) return;
 
+    console.log('Proceeding to next step:', currentStep);
     setIsProcessing(true);
     setCurrentError(null);
 
     try {
       if (currentStep === 'location') {
+        console.log('Executing location verification...');
         await executeLocationVerification(locationVerificationFn);
       } else if (currentStep === 'face') {
+        console.log('Showing face verification modal...');
         setShowFaceModal(true);
       }
     } catch (error) {
       console.error(`Error in ${currentStep} verification:`, error);
       setCurrentError(`${currentStep} verification failed. Please try again.`);
     } finally {
+      // CRITICAL FIX: Reset auto-proceed flag when processing is complete
+      hasAutoProceededRef.current = false;
       setIsProcessing(false);
     }
   }, [currentStep, isProcessing, executeLocationVerification, locationVerificationFn]);

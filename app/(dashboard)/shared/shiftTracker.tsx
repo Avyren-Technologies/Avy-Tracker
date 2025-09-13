@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -702,17 +702,29 @@ export default function EmployeeShiftTracker() {
 
 
 
-  const setShiftCooldown = async () => {
+  // CRITICAL FIX: Add ref to prevent multiple cooldown timers
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setShiftCooldown = useCallback(async () => {
+    // CRITICAL FIX: Clear existing cooldown timer
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
+      cooldownIntervalRef.current = null;
+    }
+
     const cooldownDuration = 30000; // 30 seconds
     const cooldownEnd = new Date(Date.now() + cooldownDuration);
     setShiftCooldownUntil(cooldownEnd);
     setCooldownTimeLeft(cooldownDuration / 1000);
     
     // Start countdown timer
-    const countdownInterval = setInterval(() => {
+    cooldownIntervalRef.current = setInterval(() => {
       setCooldownTimeLeft(prev => {
         if (prev <= 1) {
-          clearInterval(countdownInterval);
+          if (cooldownIntervalRef.current) {
+            clearInterval(cooldownIntervalRef.current);
+            cooldownIntervalRef.current = null;
+          }
           setShiftCooldownUntil(null);
           setCooldownTimeLeft(0);
           return 0;
@@ -720,7 +732,7 @@ export default function EmployeeShiftTracker() {
         return prev - 1;
       });
     }, 1000);
-  };
+  }, []);
 
 
 
@@ -1157,6 +1169,22 @@ export default function EmployeeShiftTracker() {
     loadShiftHistoryFromBackend();
     checkIfShiftAutoEnded(); // Add this line
     loadShiftCooldown(); // Load any existing cooldown
+
+    // CRITICAL FIX: Cleanup function to clear all timers on unmount
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+      }
+      if (dashboardUpdateTimeoutRef.current) {
+        clearTimeout(dashboardUpdateTimeoutRef.current);
+        dashboardUpdateTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   // Load cooldown state from AsyncStorage
@@ -1180,15 +1208,21 @@ export default function EmployeeShiftTracker() {
 
 
   // Clear cooldown state
-  const clearShiftCooldown = async () => {
+  const clearShiftCooldown = useCallback(async () => {
     try {
+      // CRITICAL FIX: Clear cooldown timer
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+      }
+      
       setShiftCooldownUntil(null);
       setCooldownTimeLeft(0);
       await AsyncStorage.removeItem(`${user?.role}-shiftCooldown`);
     } catch (error) {
       console.error("Error clearing cooldown state:", error);
     }
-  };
+  }, [user?.role]);
 
   // Animation effects
   useEffect(() => {
@@ -1246,30 +1280,96 @@ export default function EmployeeShiftTracker() {
     outputRange: ['0deg', '360deg'],
   });
 
+  // CRITICAL FIX: Add ref to prevent timer recreation on every render
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // CRITICAL FIX: Add debouncing to prevent excessive dashboard updates
+  const dashboardUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDashboardUpdateRef = useRef<number>(0);
+
+  const updateEmployeeDashboard = useCallback(async () => {
+    // CRITICAL FIX: Debounce dashboard updates to prevent excessive calls
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastDashboardUpdateRef.current;
+    
+    // Only update if at least 5 seconds have passed since last update
+    if (timeSinceLastUpdate < 5000) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (dashboardUpdateTimeoutRef.current) {
+      clearTimeout(dashboardUpdateTimeoutRef.current);
+    }
+
+    // Debounce the actual update
+    dashboardUpdateTimeoutRef.current = setTimeout(async () => {
+      try {
+        const dashboardData = {
+          shiftStatus: isShiftActive ? "Active Shift" : "No Active Shift",
+          attendanceStatus: isShiftActive ? "Present" : "Not Marked",
+          currentShiftDuration: formatTime(elapsedTime),
+        };
+        await AsyncStorage.setItem(
+          `${user?.role}-dashboardStatus`,
+          JSON.stringify(dashboardData)
+        );
+        lastDashboardUpdateRef.current = Date.now();
+      } catch (error) {
+        console.error("Error updating dashboard:", error);
+      }
+    }, 1000); // 1 second debounce
+  }, [isShiftActive, elapsedTime, user?.role]);
+
+  // Format elapsed time helper function
+  const formatTime = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }, []);
+
   // Timer effect with cooldown countdown
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      
-      if (isShiftActive && shiftStart) {
-        setElapsedTime(differenceInSeconds(now, shiftStart));
-        updateEmployeeDashboard();
-      }
+    // CRITICAL FIX: Clear existing timer to prevent multiple timers
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
 
-      // Update cooldown countdown
-      if (shiftCooldownUntil) {
-        const timeLeft = Math.max(0, Math.ceil((shiftCooldownUntil.getTime() - now.getTime()) / 1000));
-        setCooldownTimeLeft(timeLeft);
+    // CRITICAL FIX: Only create timer if we need it
+    if (isShiftActive || shiftCooldownUntil) {
+      timerIntervalRef.current = setInterval(() => {
+        const now = new Date();
+        setCurrentTime(now);
         
-        if (timeLeft === 0) {
-          clearShiftCooldown();
+        if (isShiftActive && shiftStart) {
+          setElapsedTime(differenceInSeconds(now, shiftStart));
+          // CRITICAL FIX: Debounce dashboard updates to prevent excessive calls
+          updateEmployeeDashboard();
         }
-      }
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [isShiftActive, shiftStart, shiftCooldownUntil]);
+        // Update cooldown countdown
+        if (shiftCooldownUntil) {
+          const timeLeft = Math.max(0, Math.ceil((shiftCooldownUntil.getTime() - now.getTime()) / 1000));
+          setCooldownTimeLeft(timeLeft);
+          
+          if (timeLeft === 0) {
+            clearShiftCooldown();
+          }
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isShiftActive, shiftStart, shiftCooldownUntil, updateEmployeeDashboard, clearShiftCooldown]);
 
   const loadShiftStatus = async () => {
     try {
@@ -1339,7 +1439,7 @@ export default function EmployeeShiftTracker() {
               startTime: format(startTime, "HH:mm:ss"),
               endTime: endTime ? format(endTime, "HH:mm:ss") : null,
               duration: shift.total_hours
-                ? formatElapsedTime(
+                ? formatTime(
                     parseFloat(shift.total_hours.toString()) * 3600
                   )
                 : null,
@@ -1358,31 +1458,6 @@ export default function EmployeeShiftTracker() {
     }
   };
 
-  const updateEmployeeDashboard = async () => {
-    try {
-      const dashboardData = {
-        shiftStatus: isShiftActive ? "Active Shift" : "No Active Shift",
-        attendanceStatus: isShiftActive ? "Present" : "Not Marked",
-        currentShiftDuration: formatElapsedTime(elapsedTime),
-      };
-      await AsyncStorage.setItem(
-        `${user?.role}-dashboardStatus`,
-        JSON.stringify(dashboardData)
-      );
-    } catch (error) {
-      console.error("Error updating dashboard:", error);
-    }
-  };
-
-  // Format elapsed time
-  const formatElapsedTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
 
 
 
@@ -3940,7 +4015,7 @@ export default function EmployeeShiftTracker() {
                   isDark ? "text-blue-400" : "text-blue-500"
                 }`}
               >
-                {formatElapsedTime(elapsedTime)}
+                {formatTime(elapsedTime)}
               </Text>
             </View>
           )}

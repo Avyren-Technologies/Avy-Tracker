@@ -810,19 +810,32 @@ export default function FaceVerificationModal({
 
   /**
    * CRITICAL FIX: Camera keep-alive effect to prevent native view detachment
+   * Optimized to prevent cascading updates and infinite loops
    */
   useEffect(() => {
+    // CRITICAL FIX: Add guards to prevent unnecessary updates
+    if (!visible || !isMountedRef.current) return;
+    
     console.log('🔍 === CAMERA KEEP-ALIVE EFFECT TRIGGERED ===');
     console.log('🔍 Verification step changed to:', verificationStep);
     console.log('🔍 Current camera keep-alive state:', cameraKeepAlive);
     
-    // NEW FIX: Check if this is a critical transition that requires camera stabilization
-    const isCriticalTransition = shouldStabilizeCamera(lastVerificationStepRef.current, verificationStep);
+    // CRITICAL FIX: Use refs to track state changes without triggering re-renders
+    const currentStep = verificationStep;
+    const previousStep = lastVerificationStepRef.current;
     
-    if (verificationStep === 'liveness' || verificationStep === 'capturing') {
+    // Only process if step actually changed
+    if (currentStep === previousStep) return;
+    
+    // Check if this is a critical transition that requires camera stabilization
+    const isCriticalTransition = shouldStabilizeCamera(previousStep, currentStep);
+    
+    if (currentStep === 'liveness' || currentStep === 'capturing') {
       // Enable camera keep-alive during critical transitions
       if (!cameraKeepAlive) {
         console.log('🔒 Enabling camera keep-alive to prevent native view detachment');
+        
+        // CRITICAL FIX: Batch state updates to prevent cascading effects
         setCameraKeepAlive(true);
         cameraTransitionRef.current = 'transitioning';
         cameraMountCountRef.current++;
@@ -861,7 +874,7 @@ export default function FaceVerificationModal({
           }, 1000);
         }
       }
-    } else if (verificationStep === 'success') {
+    } else if (currentStep === 'success') {
       // CRITICAL FIX: Don't immediately disable camera keep-alive for multi-angle registration
       // Only disable if we're truly done (not in multi-angle mode)
       if (mode === 'register' && cameraKeepAlive) {
@@ -872,17 +885,17 @@ export default function FaceVerificationModal({
         setCameraKeepAlive(false);
         disableCameraKeepAlive(); // Disable in the hook as well
       }
-    } else if (verificationStep === 'error') {
+    } else if (currentStep === 'error') {
       console.log('🔓 Disabling camera keep-alive - verification failed');
       setCameraKeepAlive(false);
       disableCameraKeepAlive(); // Disable in the hook as well
     }
     
     // Update last verification step for next transition check
-    lastVerificationStepRef.current = verificationStep;
+    lastVerificationStepRef.current = currentStep;
     
     console.log('🔍 Camera keep-alive effect completed');
-  }, [verificationStep, enableCameraKeepAlive, disableCameraKeepAlive, cameraKeepAlive, shouldStabilizeCamera, mode]);
+  }, [verificationStep, enableCameraKeepAlive, disableCameraKeepAlive, cameraKeepAlive, shouldStabilizeCamera, mode, visible]);
 
   /**
    * Handle countdown completion for liveness detection
@@ -914,16 +927,17 @@ export default function FaceVerificationModal({
 
   /**
    * Reset modal state for next angle in multi-angle registration
+   * CRITICAL FIX: Prevent infinite loops and ensure proper state management
    */
   const resetModalStateForNextAngle = useCallback(() => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || isResettingRef.current) return;
 
     console.log('🔄 Resetting modal state for next angle registration...');
     
-    // CRITICAL FIX: Don't immediately reset camera states - preserve camera reference
-    // Only reset verification-specific states, keep camera stable
+    // CRITICAL FIX: Set resetting flag to prevent concurrent resets
+    isResettingRef.current = true;
     
-    // Reset verification states
+    // Reset verification states without triggering effects
     setVerificationStep('initializing');
     setProgress(0);
     setStatusMessage('');
@@ -936,21 +950,22 @@ export default function FaceVerificationModal({
     setCountdown(5);
     setShowProgressOverlay(false);
     
-    // CRITICAL: Don't reset camera keep-alive immediately - let it stabilize
-    // setCameraKeepAlive(false); // REMOVED - this was causing camera unmounting
-    
-    // Reset camera-related states but preserve stability
-    setCameraKey(prev => prev + 1); // Force camera remount
+    // CRITICAL FIX: Reset camera states safely
+    setCameraKey(prev => prev + 1);
     cameraStableRef.current = false;
     lastVerificationStepRef.current = 'initializing';
     
-    // Reset detection states but keep camera active
+    // Reset detection states
     isDetectionActiveRef.current = false;
     
-    // CRITICAL: Don't stop detection immediately - let camera stabilize first
-    // stopDetection(); // REMOVED - this was causing camera deactivation
-    // stopLivenessDetection(); // REMOVED - this was causing camera deactivation
-    // resetLivenessState(); // REMOVED - this was causing camera deactivation
+    // CRITICAL FIX: Stop detection processes safely
+    try {
+      stopDetection();
+      stopLivenessDetection();
+      resetLivenessState();
+    } catch (error) {
+      console.warn('Error stopping detection processes:', error);
+    }
     
     // Clear any pending timeouts
     if (verificationTimeoutRef.current) {
@@ -964,19 +979,22 @@ export default function FaceVerificationModal({
     
     console.log('✅ Modal state reset complete for next angle');
     
+    // CRITICAL FIX: Reset the hasStartedVerificationRef to allow new verification
+    hasStartedVerificationRef.current = false;
+    
     // CRITICAL FIX: Wait for camera to stabilize before starting new verification
     setTimeout(() => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && visible) {
         console.log('🚀 Starting verification process for next angle...');
         
-        // CRITICAL: Ensure camera is stable before starting detection
+        // Ensure camera is stable before starting detection
         if (cameraRef.current && setCameraRef) {
           console.log('🔗 Reconnecting camera reference for next angle...');
           setCameraRef(cameraRef.current);
           
           // Additional delay to ensure camera is fully connected
           setTimeout(() => {
-            if (isMountedRef.current) {
+            if (isMountedRef.current && visible) {
               startVerificationProcess();
             }
           }, 500);
@@ -985,8 +1003,8 @@ export default function FaceVerificationModal({
           startVerificationProcess();
         }
       }
-    }, 1000); // Increased delay for better camera stabilization
-  }, [startVerificationProcess]);
+    }, 1000);
+  }, [startVerificationProcess, visible, stopDetection, stopLivenessDetection, resetLivenessState]);
 
   /**
    * Handle retry verification
@@ -1138,9 +1156,17 @@ export default function FaceVerificationModal({
     }
   }, [device, setCameraRef]); // Keep minimal dependencies
 
+  // CRITICAL FIX: Add refs to prevent cascading updates in face detection
+  const faceDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const qualityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTransitioningRef = useRef(false);
+
   // Effect to handle face detection state changes
   useEffect(() => {
     if (!visible || !isMountedRef.current) return;
+
+    // CRITICAL FIX: Prevent concurrent transitions
+    if (isTransitioningRef.current) return;
 
     if (faceDetectionError) {
       handleFaceDetectionError(faceDetectionError);
@@ -1156,67 +1182,93 @@ export default function FaceVerificationModal({
       faceData: !!faceData
     });
 
+    // CRITICAL FIX: Clear existing timeouts to prevent multiple transitions
+    if (faceDetectionTimeoutRef.current) {
+      clearTimeout(faceDetectionTimeoutRef.current);
+      faceDetectionTimeoutRef.current = null;
+    }
+    if (qualityTimeoutRef.current) {
+      clearTimeout(qualityTimeoutRef.current);
+      qualityTimeoutRef.current = null;
+    }
+
     // Move to liveness when face is detected with good quality OR after some time with any face
     if (verificationStep === 'detecting' && faceDetected) {
       if (faceQuality?.isValid) {
         console.log('Moving to liveness detection step - good quality face detected');
+        isTransitioningRef.current = true;
+        
         // CRITICAL: Stop face detection before transitioning
         stopDetection();
         setVerificationStep('liveness');
         setCountdown(5);
         setShowProgressOverlay(true);
         updateProgress('liveness', 50, 'Blink naturally', 'Please blink your eyes naturally to verify liveness');
+        
         // Start liveness detection after a small delay to ensure face detection is fully stopped
         setTimeout(() => {
           startLivenessDetection();
+          isTransitioningRef.current = false;
         }, 200);
       } else {
         // If face is detected but quality is poor, still proceed after a delay
         console.log('Face detected but quality is poor, will proceed anyway after delay');
-        const qualityTimeout = setTimeout(() => {
-          if (verificationStep === 'detecting' && faceDetected) {
+        qualityTimeoutRef.current = setTimeout(() => {
+          if (verificationStep === 'detecting' && faceDetected && !isTransitioningRef.current) {
             console.log('Proceeding to liveness despite poor quality');
+            isTransitioningRef.current = true;
+            
             // CRITICAL: Stop face detection before transitioning
             stopDetection();
             setVerificationStep('liveness');
             setCountdown(5);
             setShowProgressOverlay(true);
             updateProgress('liveness', 50, 'Blink naturally', 'Please blink your eyes naturally to verify liveness');
+            
             // Start liveness detection after a small delay
             setTimeout(() => {
               startLivenessDetection();
+              isTransitioningRef.current = false;
             }, 200);
           }
         }, 2000); // Reduced from 3 seconds to 2 seconds for better UX
-
-        return () => clearTimeout(qualityTimeout);
       }
     }
 
-    // REMOVED: Automatic restart logic that was causing multi-angle registration loop
-    // This was automatically restarting face detection after successful registration
-    // Now the system will only restart when explicitly requested by user
-
     // Auto-advance if face detection takes too long (fallback)
     if (verificationStep === 'detecting' && !faceDetected) {
-      const detectionTimeout = setTimeout(() => {
-        if (verificationStep === 'detecting' && !faceDetected) {
+      faceDetectionTimeoutRef.current = setTimeout(() => {
+        if (verificationStep === 'detecting' && !faceDetected && !isTransitioningRef.current) {
           console.log('Face detection timeout - advancing to liveness anyway');
+          isTransitioningRef.current = true;
+          
           // CRITICAL: Stop face detection before transitioning
           stopDetection();
           setVerificationStep('liveness');
           setCountdown(5);
           setShowProgressOverlay(true);
           updateProgress('liveness', 50, 'Blink naturally', 'Please blink your eyes naturally to verify liveness');
+          
           // Start liveness detection after a small delay
           setTimeout(() => {
             startLivenessDetection();
+            isTransitioningRef.current = false;
           }, 200);
         }
       }, 10000); // Reduced from 15 seconds to 10 seconds for better UX
-
-      return () => clearTimeout(detectionTimeout);
     }
+
+    // CRITICAL FIX: Cleanup function to clear timeouts
+    return () => {
+      if (faceDetectionTimeoutRef.current) {
+        clearTimeout(faceDetectionTimeoutRef.current);
+        faceDetectionTimeoutRef.current = null;
+      }
+      if (qualityTimeoutRef.current) {
+        clearTimeout(qualityTimeoutRef.current);
+        qualityTimeoutRef.current = null;
+      }
+    };
   }, [visible, faceDetectionError, verificationStep, faceDetected, faceQuality, faceData, device, handleFaceDetectionError, updateProgress, startLivenessDetection, startDetection, stopDetection]);
 
   // Effect to handle liveness detection completion
@@ -1248,23 +1300,40 @@ export default function FaceVerificationModal({
     }
   }, [visible, verificationStep, blinkDetected, isLive, livenessScore, blinkCount, isLivenessActive, handleAutoCapture]);
 
+  // CRITICAL FIX: Add ref to prevent infinite loops in multi-angle registration
+  const isResettingRef = useRef(false);
+  const hasStartedVerificationRef = useRef(false);
+
   // Effect to start verification when modal becomes visible
   useEffect(() => {
-    // FIXED: Don't automatically start verification if we're already successful
-    if (visible && isMountedRef.current && verificationStep === 'initializing' && !verificationResult?.success) {
+    // CRITICAL FIX: Prevent infinite loops with proper guards
+    if (!visible || !isMountedRef.current) return;
+    
+    // Don't start if we're already in the process of resetting
+    if (isResettingRef.current) return;
+    
+    // Don't start if we've already started verification for this modal instance
+    if (hasStartedVerificationRef.current && verificationStep !== 'initializing') return;
+    
+    if (verificationStep === 'initializing' && !verificationResult?.success) {
       console.log('Modal visible - starting verification process');
+      hasStartedVerificationRef.current = true;
       startVerificationProcess();
-    } else if (visible && verificationResult?.success) {
-      console.log('Modal visible - verification already completed successfully, not restarting');
+    } else if (verificationResult?.success && mode === 'register') {
+      console.log('Modal visible - verification completed, checking for multi-angle registration');
       
-      // NEW FIX: If this is a multi-angle registration, we need to reset state for next angle
-      // Check if we're in registration mode and need to continue with next angle
-      if (mode === 'register') {
-        console.log('Modal visible for multi-angle registration - resetting state for next angle');
-        // Small delay to ensure the modal is fully visible before resetting
+      // CRITICAL FIX: Only reset if we haven't already reset for this success
+      if (!isResettingRef.current) {
+        isResettingRef.current = true;
+        console.log('Starting multi-angle registration reset');
+        
         setTimeout(() => {
           if (isMountedRef.current && visible) {
             resetModalStateForNextAngle();
+            // Reset the flag after reset is complete
+            setTimeout(() => {
+              isResettingRef.current = false;
+            }, 1000);
           }
         }, 100);
       }
@@ -1275,6 +1344,13 @@ export default function FaceVerificationModal({
   useEffect(() => {
     if (!visible) {
       console.log('Modal hidden - stopping all detection processes');
+      
+      // CRITICAL FIX: Reset all refs to prevent stale state
+      isResettingRef.current = false;
+      hasStartedVerificationRef.current = false;
+      isTransitioningRef.current = false;
+      
+      // Stop all detection processes
       stopDetection();
       stopLivenessDetection();
       
@@ -1289,7 +1365,7 @@ export default function FaceVerificationModal({
         console.log('Modal hidden - keeping success state (verification completed)');
       }
       
-      // Clear any pending timeouts
+      // CRITICAL FIX: Clear all timeouts and intervals
       if (verificationTimeoutRef.current) {
         clearTimeout(verificationTimeoutRef.current);
         verificationTimeoutRef.current = null;
@@ -1297,6 +1373,18 @@ export default function FaceVerificationModal({
       if (autoRetryTimeoutRef.current) {
         clearTimeout(autoRetryTimeoutRef.current);
         autoRetryTimeoutRef.current = null;
+      }
+      if (faceDetectionTimeoutRef.current) {
+        clearTimeout(faceDetectionTimeoutRef.current);
+        faceDetectionTimeoutRef.current = null;
+      }
+      if (qualityTimeoutRef.current) {
+        clearTimeout(qualityTimeoutRef.current);
+        qualityTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
     }
   }, [visible, stopDetection, stopLivenessDetection, verificationStep]);
