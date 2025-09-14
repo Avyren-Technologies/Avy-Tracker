@@ -39,9 +39,9 @@ export default function ErrorDisplay({
       </View>
       
       <Text style={styles.title}>Verification Error</Text>
-      <Text style={styles.message}>{error.userMessage}</Text>
+      <Text style={styles.message}>{error.userMessage || error.message || 'An error occurred during verification'}</Text>
       
-      {error.suggestions.length > 0 && (
+      {error.suggestions && error.suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>Suggestions:</Text>
           {error.suggestions.map((suggestion, index) => (

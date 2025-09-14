@@ -28,7 +28,7 @@ const QUALITY_THRESHOLDS = {
 
 // ML Kit Face Detection configuration
 const FACE_DETECTION_CONFIG = {
-  performanceMode: 'fast' as const,
+  performanceMode: 'accurate' as const,
   landmarkMode: true, // Enable 468-point landmarks
   contourMode: true,  // Enable face contours
   classificationMode: true, // Enable age, gender, smiling detection
@@ -38,7 +38,7 @@ const FACE_DETECTION_CONFIG = {
 
 export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDetectionReturn {
   const {
-    performanceMode = 'fast',
+    performanceMode = 'accurate',
     enableLivenessDetection = true,
     minFaceSize = QUALITY_THRESHOLDS.MIN_FACE_SIZE,
     maxFaceSize = QUALITY_THRESHOLDS.MAX_FACE_SIZE,

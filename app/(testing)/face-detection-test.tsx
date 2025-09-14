@@ -13,7 +13,7 @@ import { FaceDetectionOptions } from '../types/faceDetection';
 
 export default function FaceDetectionTest() {
   const [options, setOptions] = useState<FaceDetectionOptions>({
-    performanceMode: 'fast',
+    performanceMode: 'accurate',
     enableLivenessDetection: true,
     qualityThreshold: 0.7,
   });
@@ -64,7 +64,7 @@ export default function FaceDetectionTest() {
   const togglePerformanceMode = () => {
     setOptions(prev => ({
       ...prev,
-      performanceMode: prev.performanceMode === 'fast' ? 'accurate' : 'fast'
+      performanceMode: prev.performanceMode === 'accurate' ? 'fast' : 'accurate'
     }));
   };
 

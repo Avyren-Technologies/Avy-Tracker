@@ -140,6 +140,24 @@ export default function EmployeeDashboard() {
     return baseActions;
   };
 
+  // Get shift management action based on current shift status
+  const getShiftManagementAction = () => {
+    const isActiveShift = shiftStatus === 'Active Shift';
+    
+    return {
+      id: 'shift-management',
+      title: isActiveShift ? "End Shift" : "Start Shift",
+      icon: isActiveShift ? "stop-circle-outline" : "play-circle-outline",
+      color: isActiveShift ? "#EF4444" : "#10B981",
+      action: () => router.push("/(dashboard)/shared/shiftTracker"),
+      subtitle: isActiveShift 
+        ? currentShiftDuration 
+          ? `Duration: ${currentShiftDuration}`
+          : "Click to end your shift"
+        : "Click to start your shift"
+    };
+  };
+
   // Add isFocused hook
   const isFocused = useIsFocused();
 
@@ -654,6 +672,37 @@ export default function EmployeeDashboard() {
             />
           }
         >
+          {/* Shift Management Section */}
+          <View style={styles.shiftManagementSection}>
+            <Text style={[styles.shiftManagementTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
+              Shift Management
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.shiftManagementCard,
+                { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }
+              ]}
+              onPress={getShiftManagementAction().action}
+            >
+              <View style={[styles.shiftIconCircle, { backgroundColor: `${getShiftManagementAction().color}20` }]}>
+                <Ionicons name={getShiftManagementAction().icon as any} size={32} color={getShiftManagementAction().color} />
+              </View>
+              <View style={styles.shiftManagementContent}>
+                <Text style={[styles.shiftManagementText, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
+                  {getShiftManagementAction().title}
+                </Text>
+                <Text style={[styles.shiftManagementSubtext, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
+                  {getShiftManagementAction().subtitle}
+                </Text>
+              </View>
+              <Ionicons 
+                name="chevron-forward" 
+                size={20} 
+                color={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* Quick Actions Section */}
           <View style={styles.quickActionsSection}>
             <Text style={[styles.quickActionsTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
@@ -930,9 +979,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  quickActionsSection: {
+  shiftManagementSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    paddingBottom: 8,
+  },
+  shiftManagementTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    marginLeft: 6,
+  },
+  shiftManagementCard: {
+    width: '100%',
+    padding: 20,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  shiftIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  shiftManagementContent: {
+    flex: 1,
+  },
+  shiftManagementText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  shiftManagementSubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  quickActionsSection: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 8,
   },
   quickActionsTitle: {

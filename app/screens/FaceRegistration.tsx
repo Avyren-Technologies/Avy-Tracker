@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
 import { useAuth } from '../context/AuthContext';
 import FaceVerificationModal from '../components/FaceVerificationModal';
 import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
-import { useFaceDetection } from '../hooks/useFaceDetection';
+// import { useFaceDetection } from '../hooks/useFaceDetection';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -72,6 +72,7 @@ export default function FaceRegistration() {
   const [captureStep, setCaptureStep] = useState(0);
   const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
+  const [isModalTransitioning, setIsModalTransitioning] = useState(false);
   
   // Modal state for existing profile warning
   const [showExistingProfileModal, setShowExistingProfileModal] = useState(false);
@@ -108,10 +109,32 @@ export default function FaceRegistration() {
     },
   ];
 
+  const checkExistingRegistration = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data?.isRegistered) {
+        setHasExistingProfile(true);
+        // User already registered, show modal with options
+        setShowExistingProfileModal(true);
+      }
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+      // If we can't check status, allow registration to proceed
+      console.log('Proceeding with registration due to status check failure');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
   // Check if user already has face registration
   useEffect(() => {
     checkExistingRegistration();
-  }, []);
+  }, [checkExistingRegistration]);
 
   // CRITICAL FIX: Prevent face modal from opening if user already has a profile
   useEffect(() => {
@@ -133,28 +156,6 @@ export default function FaceRegistration() {
       isMountedRef.current = false;
     };
   }, []);
-
-  const checkExistingRegistration = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data?.isRegistered) {
-        setHasExistingProfile(true);
-        // User already registered, show modal with options
-        setShowExistingProfileModal(true);
-      }
-    } catch (error) {
-      console.error('Error checking registration status:', error);
-      // If we can't check status, allow registration to proceed
-      console.log('Proceeding with registration due to status check failure');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleConsentAccept = () => {
     setConsentGiven(true);
@@ -203,7 +204,10 @@ export default function FaceRegistration() {
     // Add this capture to our collection
     const newCapturedAngles = [...capturedAngles, result];
     setCapturedAngles(newCapturedAngles);
+    
+    // Close modal and reset transition state
     setShowFaceModal(false);
+    setIsModalTransitioning(false);
 
     // Check if we've captured all required angles
     if (newCapturedAngles.length < captureAngles.length) {
@@ -211,13 +215,23 @@ export default function FaceRegistration() {
       const nextStep = captureStep + 1;
       setCaptureStep(nextStep);
 
-      // FIXED: Don't automatically restart - let user choose when to continue
+      // FIXED: Add delay before opening next capture to ensure camera is ready
       Alert.alert(
         'Capture Complete',
         `${captureAngles[captureStep].name} captured successfully!\n\nNext: ${captureAngles[nextStep].name}`,
         [
           { text: 'Continue Later', style: 'cancel' },
-          { text: 'Continue Now', onPress: () => setShowFaceModal(true) }
+          { 
+            text: 'Continue Now', 
+            onPress: () => {
+              // Add delay to ensure camera is properly reset before next capture
+              setIsModalTransitioning(true);
+              setTimeout(() => {
+                setShowFaceModal(true);
+                setIsModalTransitioning(false);
+              }, 1000);
+            }
+          }
         ]
       );
     } else {
@@ -292,7 +306,7 @@ export default function FaceRegistration() {
       };
 
       // Send to backend for registration
-      const response = await axios.post(
+      await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/register`,
         registrationData, // ✅ Use the correctly formatted data
         { headers: { Authorization: `Bearer ${token}` } }
@@ -375,12 +389,33 @@ export default function FaceRegistration() {
     setShowFaceModal(false);
 
     const currentAngle = captureAngles[captureStep];
+    
+    // Check if it's a camera initialization error
+    const isCameraError = error.message?.includes('camera') || 
+                         error.message?.includes('Camera') ||
+                         error.message?.includes('timeout') ||
+                         error.message?.includes('initialization');
+    
+    const errorMessage = isCameraError 
+      ? `Camera failed to initialize for ${currentAngle?.name}. This might be due to:\n\n• Camera permission issues\n• App backgrounding during capture\n• Device camera being used by another app\n\nPlease try again.`
+      : `Failed to capture ${currentAngle?.name}: ${error.message}`;
+    
     Alert.alert(
       'Capture Failed',
-      `Failed to capture ${currentAngle?.name}: ${error.message}\n\nWould you like to try again?`,
+      errorMessage,
       [
         { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
-        { text: 'Retry', onPress: () => setShowFaceModal(true) },
+        { 
+          text: 'Retry', 
+          onPress: () => {
+            // Add delay before retry to ensure camera is ready
+            setIsModalTransitioning(true);
+            setTimeout(() => {
+              setShowFaceModal(true);
+              setIsModalTransitioning(false);
+            }, 1500);
+          }
+        },
         { text: 'Start Over', onPress: resetRegistration },
       ]
     );
@@ -607,18 +642,22 @@ export default function FaceRegistration() {
             setShowExistingProfileModal(true);
             return;
           }
-          setShowFaceModal(true);
+          if (!isModalTransitioning) {
+            setShowFaceModal(true);
+          }
         }}
         className={`py-4 px-6 rounded-lg mb-4`}
         style={{ backgroundColor: hasExistingProfile ? borderColor : (captureStep < captureAngles.length ? primaryColor : successColor) }}
-        disabled={capturedAngles.length === captureAngles.length}
+        disabled={capturedAngles.length === captureAngles.length || isModalTransitioning}
       >
         <Text className="text-white text-center font-semibold text-lg">
-          {hasExistingProfile 
-            ? 'Profile Already Exists - Click to Manage'
-            : captureStep < captureAngles.length
-              ? `Capture ${captureAngles[captureStep].name}`
-              : 'All Angles Captured!'
+          {isModalTransitioning
+            ? 'Preparing Camera...'
+            : hasExistingProfile 
+              ? 'Profile Already Exists - Click to Manage'
+              : captureStep < captureAngles.length
+                ? `Capture ${captureAngles[captureStep].name}`
+                : 'All Angles Captured!'
           }
         </Text>
       </TouchableOpacity>
@@ -783,11 +822,15 @@ export default function FaceRegistration() {
 
       {/* Face Verification Modal */}
       <FaceVerificationModal
+        key={`face-modal-${captureStep}-${showFaceModal}`} // Force re-mount for each capture
         visible={showFaceModal}
         mode={currentStep === 1 ? 'register' : 'verify'}
         onSuccess={currentStep === 1 ? handleFaceRegistrationSuccess : handleVerificationTestSuccess}
         onError={currentStep === 1 ? handleFaceRegistrationError : handleVerificationTestError}
-        onCancel={() => setShowFaceModal(false)}
+        onCancel={() => {
+          setShowFaceModal(false);
+          setIsModalTransitioning(false);
+        }}
         title={currentStep === 1
           ? `Register: ${captureAngles[captureStep]?.name || 'Face'}`
           : 'Test Face Verification'

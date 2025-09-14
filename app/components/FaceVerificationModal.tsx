@@ -275,7 +275,7 @@ export default function FaceVerificationModal({
     enableCameraKeepAlive,
     disableCameraKeepAlive,
   } = useFaceDetection({
-    performanceMode: 'fast',
+    performanceMode: 'accurate',
     enableLivenessDetection: true,
     qualityThreshold: 0.4, // Lower threshold for better success rate
   });

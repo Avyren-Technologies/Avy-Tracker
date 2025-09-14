@@ -187,23 +187,56 @@ export default function SplashScreen() {
         }).start();
       }
 
-      // Navigate based on auth state
-      const timer = setTimeout(() => {
+      // Navigate based on auth state and app open count
+      const timer = setTimeout(async () => {
         if (user) {
-          // User is already logged in, navigate to their dashboard
-          switch (user.role) {
-            case "employee":
-              router.replace("/(dashboard)/employee/employee");
-              break;
-            case "group-admin":
-              router.replace("/(dashboard)/Group-Admin/group-admin");
-              break;
-            case "management":
-              router.replace("/(dashboard)/management/management");
-              break;
-            case "super-admin":
-              router.replace("/(dashboard)/super-admin/super-admin");
-              break;
+          // Check if we need to reset the counter for a new day (IST 12:00 AM)
+          const now = new Date();
+          const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+          const istTime = new Date(now.getTime() + istOffset);
+          const todayIST = istTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+          
+          const lastResetDate = await AsyncStorage.getItem('appOpenCounterResetDate');
+          const appOpenCount = await AsyncStorage.getItem('appOpenCount');
+          
+          let count = 0;
+          
+          // Reset counter if it's a new day in IST
+          if (lastResetDate !== todayIST) {
+            console.log(`New day detected (IST): ${todayIST}, resetting app open counter`);
+            await AsyncStorage.setItem('appOpenCounterResetDate', todayIST);
+            await AsyncStorage.setItem('appOpenCount', '0');
+            count = 0;
+          } else {
+            count = appOpenCount ? parseInt(appOpenCount) : 0;
+          }
+          
+          const maxShiftTrackerOpens = 4; // Show shift tracker for first 4 opens each day
+          
+          // Increment app open count
+          await AsyncStorage.setItem('appOpenCount', (count + 1).toString());
+          
+          // For first few opens of the day, show shift tracker instead of dashboard
+          if (count < maxShiftTrackerOpens) {
+            console.log(`Daily app open count: ${count + 1}/${maxShiftTrackerOpens} - Showing shift tracker (IST: ${todayIST})`);
+            router.replace("/(dashboard)/shared/shiftTracker");
+          } else {
+            // After max opens for the day, show normal dashboard
+            console.log(`Daily app open count: ${count + 1} - Showing normal dashboard (IST: ${todayIST})`);
+            switch (user.role) {
+              case "employee":
+                router.replace("/(dashboard)/employee/employee");
+                break;
+              case "group-admin":
+                router.replace("/(dashboard)/Group-Admin/group-admin");
+                break;
+              case "management":
+                router.replace("/(dashboard)/management/management");
+                break;
+              case "super-admin":
+                router.replace("/(dashboard)/super-admin/super-admin");
+                break;
+            }
           }
         } else {
           // No user logged in, go to welcome screen

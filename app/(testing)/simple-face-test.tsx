@@ -21,7 +21,7 @@ export default function SimpleFaceTest() {
     isInitialized,
     device
   } = useFaceDetection({
-    performanceMode: 'fast',
+    performanceMode: 'accurate',
     enableLivenessDetection: true,
     qualityThreshold: 0.4,
   });
