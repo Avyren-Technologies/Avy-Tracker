@@ -31,9 +31,9 @@ import useLocationStore from "../../store/locationStore";
 import * as Location from "expo-location";
 import { useFocusEffect } from "@react-navigation/native";
 import { Location as AppLocation } from "../../types/liveTracking";
-import { AppState, Dimensions } from "react-native";
+import { AppState } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Import new components
 import FaceVerificationModal from "../../components/FaceVerificationModal";
@@ -342,41 +342,131 @@ const getRoleSpecificTitle = (role: string) => {
   }
 };
 
+// Format elapsed time from seconds to hours and minutes
+const formatElapsedTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
+};
+
 // Add this function to format coordinates for display
 const formatCoordinates = (latitude?: number, longitude?: number) => {
   if (latitude === undefined || longitude === undefined) return "Unknown";
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 };
 
-// Add a new function to get address from coordinates
+// Rate limiting for Nominatim API
+let lastRequestTime = 0;
+const REQUEST_INTERVAL = 1000; // 1 second between requests
+
+// Enhanced function to get address from coordinates using OpenStreetMap Nominatim API
 const getLocationAddress = async (latitude: number, longitude: number): Promise<string> => {
   try {
-    const results = await Location.reverseGeocodeAsync({
-      latitude,
-      longitude
-    });
-    
-    if (results && results.length > 0) {
-      const location = results[0];
-      // Format the address based on available data
+    // Check if we have valid coordinates
+    if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+      console.log('Invalid coordinates provided for geocoding');
+      return 'Unknown Location';
+    }
+
+    // Rate limiting: ensure we don't make requests too frequently
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < REQUEST_INTERVAL) {
+      await new Promise(resolve => setTimeout(resolve, REQUEST_INTERVAL - timeSinceLastRequest));
+    }
+    lastRequestTime = Date.now();
+
+    // Use OpenStreetMap Nominatim API (free, no API key required)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=en`,
+      {
+        headers: {
+          'User-Agent': 'AvyTracker/1.0 (com.avyren.avytracker; contact@avyren.com)',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data && data.display_name) {
+      // Extract address components from Nominatim response
+      const address = data.address || {};
+      
+      // Build concise address from available components
       const addressParts = [];
       
-      if (location.name) addressParts.push(location.name);
-      if (location.street) addressParts.push(location.street);
-      if (location.district) addressParts.push(location.district);
-      if (location.city) addressParts.push(location.city);
-      if (location.region) addressParts.push(location.region);
+      // Try to get street-level information first
+      if (address.house_number && address.road) {
+        addressParts.push(`${address.house_number} ${address.road}`);
+      } else if (address.road) {
+        addressParts.push(address.road);
+      } else if (address.pedestrian) {
+        addressParts.push(address.pedestrian);
+      } else if (address.footway) {
+        addressParts.push(address.footway);
+      }
       
-      // Return first 2 parts for a concise display
+      // Add locality information
+      if (address.city) {
+        addressParts.push(address.city);
+      } else if (address.town) {
+        addressParts.push(address.town);
+      } else if (address.village) {
+        addressParts.push(address.village);
+      } else if (address.hamlet) {
+        addressParts.push(address.hamlet);
+      } else if (address.suburb) {
+        addressParts.push(address.suburb);
+      }
+      
+      // Add administrative area
+      if (address.state) {
+        addressParts.push(address.state);
+      } else if (address.county) {
+        addressParts.push(address.county);
+      } else if (address.region) {
+        addressParts.push(address.region);
+      }
+
+      // Return concise address if we have components
       if (addressParts.length > 0) {
-        return addressParts.slice(0, 2).join(', ');
+        return addressParts.join(', ');
+      }
+      
+      // Fallback to display_name if no components found
+      const displayName = data.display_name;
+      if (displayName) {
+        // Split by comma and take first 2 parts for brevity
+        const parts = displayName.split(',').map((part: string) => part.trim());
+        return parts.slice(0, 2).join(', ');
       }
     }
-    
+
     // Fallback to coordinates if geocoding fails
+    console.log('No geocoding results found, using coordinates');
     return formatCoordinates(latitude, longitude);
   } catch (error) {
     console.error('Error getting address:', error);
+    
+    // Provide more specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes('HTTP error')) {
+        console.log('Nominatim API error, using coordinates fallback');
+      } else if (error.message.includes('fetch')) {
+        console.log('Network error during geocoding, using coordinates fallback');
+      }
+    }
+    
+    // Always fallback to coordinates
     return formatCoordinates(latitude, longitude);
   }
 };
@@ -574,6 +664,10 @@ export default function EmployeeShiftTracker() {
     message: string;
     type: "success" | "info";
     showCancel?: boolean;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
   }>({
     title: "",
     message: "",
@@ -666,7 +760,7 @@ export default function EmployeeShiftTracker() {
   const { getCurrentLocation, startTracking, stopTracking } = useLocationTracking({
     onError: (error) => {
       console.error("Location tracking error:", error);
-      setLocationErrorMessage(error);
+      setLocationErrorMessage("Location tracking encountered an error. Please check your device settings and try again.");
       setShowLocationError(true);
     },
   });
@@ -782,9 +876,11 @@ export default function EmployeeShiftTracker() {
       }
 
       if (!appLocation) {
+        console.error('Location verification failed: Unable to get current location');
         return {
           success: false,
-          error: 'Unable to get current location'
+          error: 'Unable to determine your current location. Please check that location services are enabled and try again.',
+          confidence: 0
         };
       }
 
@@ -792,22 +888,62 @@ export default function EmployeeShiftTracker() {
       const isInside = isLocationInAnyGeofence(appLocation);
       const currentGeofence = getCurrentGeofence();
       
+      // Log detailed information for debugging
+      console.log('Location verification details:', {
+        location: {
+          latitude: appLocation.latitude,
+          longitude: appLocation.longitude,
+          accuracy: appLocation.accuracy
+        },
+        isInsideGeofence: isInside,
+        currentGeofence: currentGeofence?.name || 'None',
+        canOverride: canOverrideGeofence
+      });
+
+      // If not inside geofence and no override permission, fail verification
+      if (!isInside && !canOverrideGeofence) {
+        console.error('Location verification failed: Not inside any geofence and no override permission');
+        return {
+          success: false,
+          latitude: appLocation.latitude || 0,
+          longitude: appLocation.longitude || 0,
+          accuracy: appLocation.accuracy || 0,
+          isInGeofence: false,
+          error: `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to work from this location.`,
+          confidence: 0
+        };
+      }
+
+      // If inside geofence or has override permission, succeed
+      console.log('Location verification successful:', isInside ? 'Inside geofence' : 'Override allowed');
       return {
         success: true,
-        latitude: appLocation.latitude,
-        longitude: appLocation.longitude,
-        accuracy: appLocation.accuracy || undefined,
+        latitude: appLocation.latitude || 0,
+        longitude: appLocation.longitude || 0,
+        accuracy: appLocation.accuracy || 0,
         isInGeofence: isInside,
         geofenceName: currentGeofence?.name,
+        confidence: isInside ? 1.0 : 0.8 // Higher confidence when inside geofence
       };
     } catch (error) {
       console.error('Location verification failed:', error);
       return {
         success: false,
-        error: 'Location verification failed'
+        error: 'Location verification encountered an unexpected error. Please try again or contact support if the issue persists.',
+        confidence: 0
       };
     }
-  }, [currentLocation, getCurrentLocation, isLocationInAnyGeofence]);
+  }, [currentLocation, getCurrentLocation, isLocationInAnyGeofence, getCurrentGeofence, canOverrideGeofence]);
+
+  // Wrapper function for VerificationOrchestrator that returns boolean but handles detailed errors
+  const performLocationVerificationBoolean = useCallback(async (): Promise<boolean> => {
+    const result = await performLocationVerification();
+    if (!result.success && result.error) {
+      setLocationErrorMessage(result.error);
+      setShowLocationError(true);
+    }
+    return result.success;
+  }, [performLocationVerification]);
 
   const queueOfflineVerification = useCallback(async (data: Omit<OfflineVerificationData, 'id' | 'timestamp' | 'synced'>) => {
     const offlineData: OfflineVerificationData = {
@@ -1918,7 +2054,7 @@ export default function EmployeeShiftTracker() {
         if (!locationEnabled) {
           // Immediately show location prompt
           setLocationErrorMessage(
-            "Location services are required for shift tracking. Please enable location services to continue."
+            "Location services are required for shift tracking. Please enable location services in your device settings to continue."
           );
           setShowLocationError(true);
           setIsLocationServiceEnabled(false);
@@ -1953,14 +2089,14 @@ export default function EmployeeShiftTracker() {
         } catch (locationError) {
           console.error("Location initialization failed:", locationError);
           setLocationErrorMessage(
-            "Unable to determine your current location. Please ensure location permissions are granted."
+            "Unable to determine your current location. Please ensure location permissions are granted and try again."
           );
           setShowLocationError(true);
         }
       } catch (error: any) {
         console.error("Error initializing location:", error);
         setLocationErrorMessage(
-          error.message || "Failed to initialize location services"
+          error.message || "Failed to initialize location services. Please check your device settings and try again."
         );
         setShowLocationError(true);
       }
@@ -2268,7 +2404,7 @@ export default function EmployeeShiftTracker() {
       const locationEnabled = await Location.hasServicesEnabledAsync();
       if (!locationEnabled) {
         setLocationErrorMessage(
-          "Location services are turned off. Please enable location services to start or end your shift."
+          "Location services are currently disabled on your device. Please enable location services in your device settings to continue with shift tracking."
         );
         setShowLocationError(true);
         return false;
@@ -2300,13 +2436,13 @@ export default function EmployeeShiftTracker() {
           if (appLocation) {
             console.log("Using cached location due to fresh location timeout");
           } else {
-            throw new Error("Unable to determine your current location");
+            throw new Error("Unable to determine your current location. Please check your internet connection and location permissions.");
           }
         }
       }
 
       if (!appLocation) {
-        throw new Error("Unable to determine your current location");
+        throw new Error("Unable to determine your current location. Please check your internet connection and location permissions.");
       }
 
       // Quick geofence check
@@ -2333,13 +2469,14 @@ export default function EmployeeShiftTracker() {
       }
 
       // 3. If user is outside geofence and doesn't have override permission: Block
+      const currentGeofence = getCurrentGeofence();
       setLocationErrorMessage(
-        "You don't have permission to start or end your shift outside designated work areas. Please move to a work area or contact your administrator for override permission."
+        `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to work from this location.`
       );
       setShowLocationError(true);
       return false;
     } catch (error: any) {
-      setLocationErrorMessage(error.message || "Location validation failed");
+      setLocationErrorMessage(error.message || "Location validation encountered an error. Please try again or contact support if the issue persists.");
       setShowLocationError(true);
       return false;
     }
@@ -2366,29 +2503,23 @@ export default function EmployeeShiftTracker() {
         setIsProcessingShift(false);
         
         // Show user-friendly prompt to set up face verification
-        Alert.alert(
-          'Face Verification Setup Required',
-          'To start your shift securely, you need to set up face verification first. This helps ensure only you can start and end your shifts.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Set Up Now',
-              onPress: async () => {
-                await promptFaceConfiguration('shift-start-required');
-              },
-            },
-            {
-              text: 'Register Here',
-              onPress: () => {
-                setFaceVerificationMode('register');
-                setShowFaceVerificationModal(true);
-              },
-            },
-          ]
-        );
+        // Show user-friendly modal to set up face verification
+        setModalData({
+          title: "Face Verification Setup Required",
+          message: "To start your shift securely, you need to set up face verification first. This helps ensure only you can start and end your shifts.",
+          type: "info",
+          showCancel: true,
+          confirmText: "Set Up Now",
+          cancelText: "Cancel",
+          onConfirm: async () => {
+            // Navigate directly to face registration page
+            router.push('/(dashboard)/employee/face-registration');
+          },
+          onCancel: () => {
+            console.log('User cancelled face verification setup');
+          }
+        });
+        setShowModal(true);
         return;
       }
 
@@ -2407,18 +2538,7 @@ export default function EmployeeShiftTracker() {
       
       // Check location requirements for employees
       if (user?.role === 'employee' && !locationResult.success) {
-        setLocationErrorMessage(locationResult.error || 'Location verification failed');
-        setShowLocationError(true);
-        setIsProcessingShift(false);
-        resetVerificationState();
-        return;
-      }
-
-      // Check geofence requirements for employees
-      if (user?.role === 'employee' && locationResult.success && !locationResult.isInGeofence && !canOverrideGeofence) {
-        setLocationErrorMessage(
-          "You don't have permission to start your shift outside designated work areas. Please move to a work area or contact your administrator."
-        );
+        setLocationErrorMessage(locationResult.error || 'Location verification failed. Please try again.');
         setShowLocationError(true);
         setIsProcessingShift(false);
         resetVerificationState();
@@ -2487,6 +2607,32 @@ export default function EmployeeShiftTracker() {
     try {
       setIsProcessingShift(true);
       setPendingShiftAction(action);
+      
+      // Check if face registration is required for both start and end actions
+      const isFaceRegistered = await checkFaceRegistrationStatus();
+      
+      if (!isFaceRegistered) {
+        setIsProcessingShift(false);
+        
+        // Show user-friendly modal to set up face verification
+        setModalData({
+          title: "Face Verification Setup Required",
+          message: `To ${action} your shift securely, you need to set up face verification first. This helps ensure only you can ${action} your shifts.`,
+          type: "info",
+          showCancel: true,
+          confirmText: "Set Up Now",
+          cancelText: "Cancel",
+          onConfirm: async () => {
+            // Navigate directly to face registration page
+            router.push('/(dashboard)/employee/face-registration');
+          },
+          onCancel: () => {
+            console.log(`User cancelled face verification setup for ${action}`);
+          }
+        });
+        setShowModal(true);
+        return;
+      }
       
       // Configure verification requirements based on shift action and user settings
       const config = {
@@ -2690,8 +2836,9 @@ export default function EmployeeShiftTracker() {
             
             // Only block if outside geofence AND no override permission
             if (!isInside && !canOverrideGeofence) {
+              const currentGeofence = getCurrentGeofence();
               setLocationErrorMessage(
-                "You don't have permission to end your shift outside designated work areas. Please move to a work area or contact your administrator."
+                `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to end your shift from this location.`
               );
               setShowLocationError(true);
               setIsProcessingShift(false);
@@ -3533,14 +3680,14 @@ export default function EmployeeShiftTracker() {
       }
     } catch (error) {
       console.error('Location retry failed:', error);
-      setLocationErrorMessage(String(error));
+      setLocationErrorMessage('Location retry failed. Please check your device settings and try again.');
       setShowLocationError(true);
-      showInAppNotification('Location retry failed', 'error');
+      showInAppNotification('Location retry failed. Please check your device settings.', 'error');
     }
   }, [getCurrentLocation, isLocationInAnyGeofence, getCurrentGeofence, setIsInGeofence]);
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+    <SafeAreaView className={`flex-1 pb-4 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       <StatusBar
         backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
         barStyle={isDark ? "light-content" : "dark-content"}
@@ -3549,15 +3696,7 @@ export default function EmployeeShiftTracker() {
       <LinearGradient
         colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
         className="pb-4"
-        style={[
-          styles.header,
-          {
-            paddingTop:
-              Platform.OS === "ios"
-                ? StatusBar.currentHeight || 44
-                : StatusBar.currentHeight || 0,
-          },
-        ]}
+        style={styles.header}
       >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
@@ -4184,17 +4323,24 @@ export default function EmployeeShiftTracker() {
             <View className={`flex-row justify-between gap-4`}>
               {modalData.showCancel && (
                 <TouchableOpacity
-                  onPress={() => setShowModal(false)}
+                  onPress={() => {
+                    if (modalData.onCancel) {
+                      modalData.onCancel();
+                    }
+                    setShowModal(false);
+                  }}
                   className="flex-1 py-3 rounded-lg bg-gray-500"
                 >
                   <Text className="text-white text-center font-semibold">
-                    Cancel
+                    {modalData.cancelText || "Cancel"}
                   </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => {
-                  if (modalData.showCancel) {
+                  if (modalData.onConfirm) {
+                    modalData.onConfirm();
+                  } else if (modalData.showCancel) {
                     confirmEndShift();
                   }
                   setShowModal(false);
@@ -4204,7 +4350,7 @@ export default function EmployeeShiftTracker() {
                 }`}
               >
                 <Text className="text-white text-center font-semibold">
-                  {modalData.showCancel ? "Confirm" : "OK"}
+                  {modalData.confirmText || (modalData.showCancel ? "Confirm" : "OK")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -4525,7 +4671,7 @@ export default function EmployeeShiftTracker() {
         onSuccess={handleVerificationSuccess}
         onCancel={handleVerificationCancel}
         onError={handleVerificationError}
-        locationVerificationFn={performLocationVerification}
+        locationVerificationFn={performLocationVerificationBoolean as () => Promise<boolean>}
         canOverrideGeofence={canOverrideGeofence}
       />
 
@@ -4536,7 +4682,7 @@ export default function EmployeeShiftTracker() {
         type={inAppNotification.type}
         onDismiss={() => setInAppNotification(prev => ({ ...prev, visible: false }))}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -4548,6 +4694,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
     paddingBottom: 16,
+    paddingTop: 16,
     paddingHorizontal: 16,
   },
   attendanceButton: {

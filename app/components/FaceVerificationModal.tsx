@@ -527,7 +527,15 @@ export default function FaceVerificationModal({
         }
 
         if (!result || !result.success) {
-          throw new Error('Verification failed - please try again');
+          // Create a more specific error message based on the result
+          const errorMessage = (result as any)?.error || 'Face verification failed. Please try again.';
+          const error = new Error(errorMessage);
+          // Preserve the original error details if available
+          if (result && typeof result === 'object') {
+            (error as any).userMessage = (result as any).userMessage || errorMessage;
+            (error as any).type = (result as any).type || 'VERIFICATION_FAILED';
+          }
+          throw error;
         }
 
         setVerificationResult(result);
@@ -564,7 +572,12 @@ export default function FaceVerificationModal({
         } else if (error.response?.data?.error) {
           throw new Error(error.response.data.error);
         } else {
-          throw new Error('Verification failed. Please try again.');
+          // Create a more specific error message
+          const errorMessage = (error as any).response?.data?.error || 'Face verification failed. Please try again.';
+          const newError = new Error(errorMessage);
+          (newError as any).userMessage = errorMessage;
+          (newError as any).type = 'VERIFICATION_FAILED';
+          throw newError;
         }
       }
 

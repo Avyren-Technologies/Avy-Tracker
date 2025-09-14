@@ -174,6 +174,9 @@ export default function EmployeeSettings() {
               handleFaceConfiguration();
             } else if (deepLinkAction === 'register' && !faceRegistrationStatus.registered) {
               handleFaceRegistration();
+            } else if (deepLinkAction === 'setup') {
+              // Handle 'setup' action by calling handleFaceSetup which determines the right action
+              handleFaceSetup();
             }
           }
         }

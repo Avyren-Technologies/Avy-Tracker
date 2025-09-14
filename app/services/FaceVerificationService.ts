@@ -193,9 +193,12 @@ const calculateFacialMeasurements = (faceData: FaceDetectionData, photo: Capture
   const measurements: number[] = [];
   
   if (!faceData.landmarks || faceData.landmarks.length === 0) {
-    // Return neutral measurements if landmarks not available
-    console.warn('No landmarks available for facial measurements, using neutral values');
-    return Array(50).fill(0.5);
+    // CRITICAL: Don't use fallback values - MLKit must provide real landmarks
+    console.error('❌ CRITICAL: No landmarks available from MLKit - cannot generate valid face encoding');
+    throw ErrorHandlingService.createError(
+      FaceVerificationErrorType.PROCESSING_ERROR,
+      new Error('MLKit failed to extract facial landmarks - face encoding cannot be generated')
+    );
   }
 
   try {
@@ -298,7 +301,11 @@ const calculateFacialMeasurements = (faceData: FaceDetectionData, photo: Capture
            faceData.landmarks[i + 1]
          );
        }
-       return 0.5; // Use neutral value instead of 0
+       // CRITICAL: Don't use neutral values - must have real measurements
+       throw ErrorHandlingService.createError(
+         FaceVerificationErrorType.PROCESSING_ERROR,
+         new Error(`Insufficient landmarks for additional measurements at index ${i}`)
+       );
      })
     );
     
@@ -310,16 +317,22 @@ const calculateFacialMeasurements = (faceData: FaceDetectionData, photo: Capture
       facialSymmetry: facialSymmetry.toFixed(4)
     });
     
-    // Ensure we have exactly 50 measurements
-    while (measurements.length < 50) {
-      measurements.push(0.5); // Use neutral values instead of zeros
+    // CRITICAL: Don't pad with neutral values - measurements must be complete
+    if (measurements.length < 50) {
+      console.error('❌ CRITICAL: Insufficient measurements calculated - cannot generate valid face encoding');
+      throw ErrorHandlingService.createError(
+        FaceVerificationErrorType.PROCESSING_ERROR,
+        new Error(`Only ${measurements.length} measurements calculated, expected 50`)
+      );
     }
     measurements.splice(50);
     
   } catch (error) {
-    console.warn('Error calculating facial measurements:', error);
-    // Return neutral measurements on error
-    return Array(50).fill(0.5);
+    console.error('❌ CRITICAL: Error calculating facial measurements:', error);
+    throw ErrorHandlingService.createError(
+      FaceVerificationErrorType.PROCESSING_ERROR,
+      new Error(`Failed to calculate facial measurements: ${error instanceof Error ? error.message : String(error)}`)
+    );
   }
   
   return measurements;
@@ -397,25 +410,31 @@ export const generateFaceEncoding = async (
           return [normalizedX, normalizedY];
         }).flat();
         
-        // Ensure we have exactly 468 * 2 = 936 landmark features
-        while (landmarkFeatures.length < 936) {
-          landmarkFeatures.push(0.5); // Fill with neutral values
+        // CRITICAL: Don't pad with neutral values - MLKit must provide complete landmarks
+        if (landmarkFeatures.length < 936) {
+          console.error('❌ CRITICAL: Insufficient landmarks from MLKit - cannot generate valid face encoding');
+          throw ErrorHandlingService.createError(
+            FaceVerificationErrorType.PROCESSING_ERROR,
+            new Error(`MLKit provided only ${landmarkFeatures.length} landmark features, expected 936`)
+          );
         }
         landmarkFeatures.splice(936); // Trim to exact size
         
       features.push(...landmarkFeatures);
         console.log('✅ Landmark features extracted:', { count: landmarkFeatures.length });
       } catch (error) {
-        console.error('❌ Error extracting landmark features:', error);
-        // Fallback: create placeholder landmarks
-        const placeholderLandmarks = Array(468 * 2).fill(0.5);
-        features.push(...placeholderLandmarks);
+        console.error('❌ CRITICAL: Error extracting landmark features:', error);
+        throw ErrorHandlingService.createError(
+          FaceVerificationErrorType.PROCESSING_ERROR,
+          new Error(`Failed to extract landmark features: ${error instanceof Error ? error.message : String(error)}`)
+        );
       }
     } else {
-      console.warn('⚠️ No landmarks available, using neutral placeholders');
-      // Fallback: create placeholder landmarks if not available
-      const placeholderLandmarks = Array(468 * 2).fill(0.5);
-      features.push(...placeholderLandmarks);
+      console.error('❌ CRITICAL: No landmarks available from MLKit - cannot generate valid face encoding');
+      throw ErrorHandlingService.createError(
+        FaceVerificationErrorType.NO_FACE_DETECTED,
+        new Error('MLKit failed to extract facial landmarks - face encoding cannot be generated')
+      );
     }
 
     // 2. Geometric features (secondary features - 25% weight)
@@ -898,60 +917,88 @@ export const compareFaceEncodings = (
       const landmarkFeatures1 = features1.slice(0, landmarkCount);
       const landmarkFeatures2 = features2.slice(0, landmarkCount);
       
-      // Check if landmarks are all zeros (placeholder)
-      const hasValidLandmarks1 = landmarkFeatures1.some(val => val !== 0);
-      const hasValidLandmarks2 = landmarkFeatures2.some(val => val !== 0);
+      // Check if landmarks are valid (not all neutral values)
+      const hasValidLandmarks1 = landmarkFeatures1.some(val => val !== 0.5 && val !== 0);
+      const hasValidLandmarks2 = landmarkFeatures2.some(val => val !== 0.5 && val !== 0);
       
       if (hasValidLandmarks1 && hasValidLandmarks2) {
         landmarkSimilarity = calculateCosineSimilarity(landmarkFeatures1, landmarkFeatures2);
       } else {
-        console.warn('Landmarks are placeholder zeros, using neutral score');
-        landmarkSimilarity = 0.5; // Neutral score for missing landmarks
+        console.warn('⚠️ CRITICAL: Landmarks are placeholder values (0.5 or 0), rejecting verification');
+        console.warn('Landmark validation failed:', {
+          encoding1Valid: hasValidLandmarks1,
+          encoding2Valid: hasValidLandmarks2,
+          sample1: landmarkFeatures1.slice(0, 10),
+          sample2: landmarkFeatures2.slice(0, 10)
+        });
+        // Return very low confidence to reject verification
+        return 0.1; // Force rejection when using placeholder values
       }
 
       // 2. Geometric similarity (secondary factor - 30% weight)
       const geometricFeatures1 = features1.slice(landmarkCount, landmarkCount + geometricCount);
       const geometricFeatures2 = features2.slice(landmarkCount, landmarkCount + geometricCount);
       
-      // Check if geometric features are valid (not all zeros)
-      const hasValidGeometric1 = geometricFeatures1.some(val => val !== 0);
-      const hasValidGeometric2 = geometricFeatures2.some(val => val !== 0);
+      // Check if geometric features are valid (not all neutral values)
+      const hasValidGeometric1 = geometricFeatures1.some(val => val !== 0.5 && val !== 0);
+      const hasValidGeometric2 = geometricFeatures2.some(val => val !== 0.5 && val !== 0);
       
       if (hasValidGeometric1 && hasValidGeometric2) {
         geometricSimilarity = calculateCosineSimilarity(geometricFeatures1, geometricFeatures2);
       } else {
-        console.warn('Geometric features are zeros, using neutral score');
-        geometricSimilarity = 0.5; // Neutral score for missing geometric features
+        console.warn('⚠️ CRITICAL: Geometric features are placeholder values, rejecting verification');
+        console.warn('Geometric validation failed:', {
+          encoding1Valid: hasValidGeometric1,
+          encoding2Valid: hasValidGeometric2,
+          sample1: geometricFeatures1.slice(0, 5),
+          sample2: geometricFeatures2.slice(0, 5)
+        });
+        // Return very low confidence to reject verification
+        return 0.1; // Force rejection when using placeholder values
       }
 
       // 3. Measurement similarity (tertiary factor - 15% weight)
       const measurementFeatures1 = features1.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
       const measurementFeatures2 = features2.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
       
-      // Check if measurement features are valid (not all zeros)
-      const hasValidMeasurements1 = measurementFeatures1.some(val => val !== 0);
-      const hasValidMeasurements2 = measurementFeatures2.some(val => val !== 0);
+      // Check if measurement features are valid (not all neutral values)
+      const hasValidMeasurements1 = measurementFeatures1.some(val => val !== 0.5 && val !== 0);
+      const hasValidMeasurements2 = measurementFeatures2.some(val => val !== 0.5 && val !== 0);
       
       if (hasValidMeasurements1 && hasValidMeasurements2) {
         measurementSimilarity = calculateCosineSimilarity(measurementFeatures1, measurementFeatures2);
       } else {
-        console.warn('Measurement features are zeros, using neutral score');
-        measurementSimilarity = 0.5; // Neutral score for missing measurements
+        console.warn('⚠️ CRITICAL: Measurement features are placeholder values, rejecting verification');
+        console.warn('Measurement validation failed:', {
+          encoding1Valid: hasValidMeasurements1,
+          encoding2Valid: hasValidMeasurements2,
+          sample1: measurementFeatures1.slice(0, 5),
+          sample2: measurementFeatures2.slice(0, 5)
+        });
+        // Return very low confidence to reject verification
+        return 0.1; // Force rejection when using placeholder values
       }
 
       // 4. Attribute similarity (additional factor - 5% weight)
       const attributeFeatures1 = features1.slice(landmarkCount + geometricCount + measurementCount, landmarkCount + geometricCount + measurementCount + attributeCount);
       const attributeFeatures2 = features2.slice(landmarkCount + geometricCount + measurementCount, landmarkCount + geometricCount + measurementCount + attributeCount);
       
-      // Check if attribute features are valid (not all zeros)
-      const hasValidAttributes1 = attributeFeatures1.some(val => val !== 0);
-      const hasValidAttributes2 = attributeFeatures2.some(val => val !== 0);
+      // Check if attribute features are valid (not all neutral values)
+      const hasValidAttributes1 = attributeFeatures1.some(val => val !== 0.5 && val !== 0);
+      const hasValidAttributes2 = attributeFeatures2.some(val => val !== 0.5 && val !== 0);
       
       if (hasValidAttributes1 && hasValidAttributes2) {
         attributeSimilarity = calculateCosineSimilarity(attributeFeatures1, attributeFeatures2);
       } else {
-        console.warn('Attribute features are zeros, using neutral score');
-        attributeSimilarity = 0.5; // Neutral score for missing attributes
+        console.warn('⚠️ CRITICAL: Attribute features are placeholder values, rejecting verification');
+        console.warn('Attribute validation failed:', {
+          encoding1Valid: hasValidAttributes1,
+          encoding2Valid: hasValidAttributes2,
+          sample1: attributeFeatures1.slice(0, 5),
+          sample2: attributeFeatures2.slice(0, 5)
+        });
+        // Return very low confidence to reject verification
+        return 0.1; // Force rejection when using placeholder values
       }
 
       // Log detailed feature validity for debugging
@@ -1007,12 +1054,16 @@ export const compareFaceEncodings = (
         safeAttributeSimilarity * attributeWeight
       );
       
-      // Apply confidence boost if landmark similarity is very high
-      if (safeLandmarkSimilarity > 0.99 && (!geometricValid || !measurementValid)) {
+      // Apply confidence boost if landmark similarity is very high AND features are real (not placeholders)
+      const hasRealFeatures = hasValidLandmarks1 && hasValidLandmarks2 && hasValidGeometric1 && hasValidGeometric2;
+      if (safeLandmarkSimilarity > 0.99 && hasRealFeatures && (!geometricValid || !measurementValid)) {
         // Boost confidence when landmarks are excellent but other features failed
         const boost = Math.min(0.02, 1.0 - overallSimilarity);
         overallSimilarity += boost;
         console.log(`🚀 Confidence boosted due to excellent landmarks: ${(overallSimilarity - boost).toFixed(4)} → ${overallSimilarity.toFixed(4)}`);
+      } else if (safeLandmarkSimilarity > 0.99 && !hasRealFeatures) {
+        console.warn('⚠️ CRITICAL: High landmark similarity detected but features are placeholders - rejecting verification');
+        return 0.1; // Force rejection for placeholder-based high similarity
       }
       
       console.log('📊 Enhanced confidence calculation:', {
@@ -1574,10 +1625,13 @@ const performOnlineVerification = async (
     });
     
     if (!storedEncoding) {
-      throw ErrorHandlingService.createError(
+      const error = ErrorHandlingService.createError(
         FaceVerificationErrorType.FACE_NOT_REGISTERED,
         new Error('No face profile found for user')
       );
+      // Override with more user-friendly message
+      error.userMessage = "No face profile found. Please register your face first before starting a shift.";
+      throw error;
     }
 
     // CRITICAL FIX: Validate encoding formats before comparison
@@ -1679,15 +1733,26 @@ const performOnlineVerification = async (
     if (confidence <= (VERIFICATION_CONFIDENCE_THRESHOLD - tolerance)) {
       console.log(`Verification attempt failed: Verification confidence (${confidence.toFixed(2)}) below threshold (${VERIFICATION_CONFIDENCE_THRESHOLD})`);
       
-      // Create a more user-friendly error message
-      const userMessage = confidence < 0.3 
-        ? "Face not recognized. Please ensure you're looking directly at the camera with good lighting."
-        : confidence < 0.5
-        ? "Low confidence in face recognition. Please try again with better lighting and position your face in the center."
-        : "Face verification failed. Please try again.";
+      // Create a more user-friendly error message based on confidence level
+      let userMessage: string;
+      let errorType: FaceVerificationErrorType;
+      
+      if (confidence < 0.2) {
+        userMessage = "Face not recognized. Please ensure you're looking directly at the camera with good lighting and your face is clearly visible.";
+        errorType = FaceVerificationErrorType.FACE_NOT_REGISTERED;
+      } else if (confidence < 0.4) {
+        userMessage = "Low confidence in face recognition. Please try again with better lighting and position your face in the center of the frame.";
+        errorType = FaceVerificationErrorType.LOW_CONFIDENCE;
+      } else if (confidence < 0.6) {
+        userMessage = "Face verification failed. Please ensure you're looking directly at the camera and try again.";
+        errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
+      } else {
+        userMessage = "Face verification failed. Please try again.";
+        errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
+      }
       
       const error = ErrorHandlingService.createError(
-        FaceVerificationErrorType.LOW_CONFIDENCE,
+        errorType,
         new Error(`Verification confidence (${confidence.toFixed(2)}) below threshold (${VERIFICATION_CONFIDENCE_THRESHOLD})`),
         context
       );

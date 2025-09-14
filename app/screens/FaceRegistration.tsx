@@ -6,6 +6,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -71,6 +72,9 @@ export default function FaceRegistration() {
   const [captureStep, setCaptureStep] = useState(0);
   const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
+  
+  // Modal state for existing profile warning
+  const [showExistingProfileModal, setShowExistingProfileModal] = useState(false);
 
   // CRITICAL: Component lifecycle management for multi-angle registration
   const isMountedRef = useRef(true);
@@ -140,30 +144,8 @@ export default function FaceRegistration() {
 
       if (response.data?.isRegistered) {
         setHasExistingProfile(true);
-        // User already registered, show options
-        Alert.alert(
-          'Face Profile Already Exists',
-          'You have already completed face registration. What would you like to do?',
-          [
-            {
-              text: 'Go to Dashboard',
-              onPress: routeToDashboard
-            },
-            {
-              text: 'Test Verification',
-              onPress: () => {
-                setRegistrationData({
-                  success: true,
-                  confidence: 1.0,
-                  livenessDetected: true,
-                  faceEncoding: 'existing_profile',
-                  timestamp: new Date(),
-                });
-                setCurrentStep(2); // Skip to verification test
-              }
-            }
-          ]
-        );
+        // User already registered, show modal with options
+        setShowExistingProfileModal(true);
       }
     } catch (error) {
       console.error('Error checking registration status:', error);
@@ -198,27 +180,10 @@ export default function FaceRegistration() {
         console.error('Invalid user role:', userRole);
         break;
     }
-
   }
 
-  const handleFaceRegistrationTest = () => {
-    router.push('/(testing)/face-registration-test');
-  }
-
-  const handlecameraLivenessTest = () => {
-    router.push('/(testing)/camera-liveness-test');
-  }
-
-  const checkFaceDetectionBug = () => {
-    router.push('/(testing)/face-detection-debug');
-  }
-
-  const checkFaceVerificationTest = () => {
-    router.push('/(testing)/face-verification-test');
-  }
-
-  const checkFinalTest = () => {
-    router.push('/(testing)/final-face-test');
+  const routeToFaceConfiguration = () => {
+    router.push('/(dashboard)/employee/face-configuration');
   }
 
 
@@ -517,75 +482,6 @@ export default function FaceRegistration() {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={handleFaceRegistrationTest}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          Test Face Registration First
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={handlecameraLivenessTest}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          Test Camera Liveness Test
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={checkFaceDetectionBug}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          Check Face Detection Bug (Debug)
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={checkFaceVerificationTest}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          Check Face Verification Test
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={checkFinalTest}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: primaryColor }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          Check Face Verification Final Test
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => router.push('/(testing)/simple-face-test')}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: '#27ae60' }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          🧪 Simple Face Detection Test (Fixed)
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => router.push('/(testing)/camera-test')}
-        className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: '#3498db' }}
-      >
-        <Text className="text-white text-center font-semibold text-lg">
-          📷 Camera Reference Test
-        </Text>
-      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => router.back()}
@@ -708,22 +604,18 @@ export default function FaceRegistration() {
       <TouchableOpacity
         onPress={() => {
           if (hasExistingProfile) {
-            Alert.alert(
-              'Profile Already Exists',
-              'You already have a face profile registered. Please use it for verification.',
-              [{ text: 'OK' }]
-            );
+            setShowExistingProfileModal(true);
             return;
           }
           setShowFaceModal(true);
         }}
         className={`py-4 px-6 rounded-lg mb-4`}
         style={{ backgroundColor: hasExistingProfile ? borderColor : (captureStep < captureAngles.length ? primaryColor : successColor) }}
-        disabled={hasExistingProfile || capturedAngles.length === captureAngles.length}
+        disabled={capturedAngles.length === captureAngles.length}
       >
         <Text className="text-white text-center font-semibold text-lg">
           {hasExistingProfile 
-            ? 'Profile Already Exists'
+            ? 'Profile Already Exists - Click to Manage'
             : captureStep < captureAngles.length
               ? `Capture ${captureAngles[captureStep].name}`
               : 'All Angles Captured!'
@@ -906,6 +798,84 @@ export default function FaceRegistration() {
         }
         maxRetries={3}
       />
+
+      {/* Existing Profile Warning Modal */}
+      <Modal visible={showExistingProfileModal} transparent animationType="fade">
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View
+            className={`m-5 p-6 rounded-xl ${
+              colorScheme === 'dark' ? "bg-gray-800" : "bg-white"
+            } w-5/6`}
+          >
+            <View className="items-center mb-4">
+              <View className={`w-16 h-16 rounded-full items-center justify-center mb-4`}
+                style={{ backgroundColor: primaryColor }}>
+                <Ionicons name="shield-checkmark" size={32} color="white" />
+              </View>
+              <Text
+                className={`text-xl font-bold text-center mb-2`}
+                style={{ color: textColor }}
+              >
+                Face Profile Already Exists
+              </Text>
+              <Text
+                className={`text-base text-center`}
+                style={{ color: textColor }}
+              >
+                You have already completed face registration. What would you like to do?
+              </Text>
+            </View>
+
+            <View className="space-y-3">
+              <TouchableOpacity
+                onPress={() => {
+                  setShowExistingProfileModal(false);
+                  routeToFaceConfiguration();
+                }}
+                className={`py-3 px-4 rounded-lg`}
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Manage Face Settings
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowExistingProfileModal(false);
+                  setRegistrationData({
+                    success: true,
+                    confidence: 1.0,
+                    livenessDetected: true,
+                    faceEncoding: 'existing_profile',
+                    timestamp: new Date(),
+                  });
+                  setCurrentStep(2); // Skip to verification test
+                }}
+                className={`py-3 px-4 rounded-lg`}
+                style={{ backgroundColor: successColor }}
+              >
+                <Text className="text-white text-center font-semibold">
+                  Test Verification
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowExistingProfileModal(false);
+                  routeToDashboard();
+                }}
+                className={`py-3 px-4 rounded-lg`}
+                style={{ backgroundColor: borderColor }}
+              >
+                <Text className={`text-center font-medium`} style={{ color: textColor }}>
+                  Go to Dashboard
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

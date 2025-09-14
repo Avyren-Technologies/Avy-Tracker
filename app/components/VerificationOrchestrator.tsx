@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import FaceVerificationModal from './FaceVerificationModal';
 import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
+import ThemeContext from '../context/ThemeContext';
 
 const { height } = Dimensions.get('window');
 
@@ -31,6 +32,7 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
   locationVerificationFn,
   canOverrideGeofence = false,
 }) => {
+  const { theme } = ThemeContext.useTheme();
   // Core state - keep it simple and stable
   const [currentStep, setCurrentStep] = useState<'location' | 'face' | null>(null);
   const [showFaceModal, setShowFaceModal] = useState(false);
@@ -235,14 +237,199 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
   const handleFaceVerificationError = useCallback((error: FaceVerificationError) => {
     console.error('Face verification error:', error);
     setShowFaceModal(false);
-    setCurrentError(error.message);
+    // Use user-friendly message instead of technical error message
+    const userMessage = (error as any).userMessage || error.message;
+    setCurrentError(userMessage);
     setFaceStatus({ 
       status: 'failed', 
       message: 'Face verification failed', 
-      details: error.message 
+      details: userMessage 
     });
-    onError(error.message);
+    onError(userMessage);
   }, [onError]);
+
+  // Get theme-aware styles
+  const getThemeStyles = () => {
+    const isDark = theme === 'dark';
+    return {
+      modalOverlay: {
+        flex: 1,
+        backgroundColor: isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center' as const,
+        alignItems: 'center' as const,
+        padding: 20,
+      },
+      modalContainer: {
+        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+        borderRadius: 16,
+        width: '100%' as const,
+        maxWidth: 400,
+        maxHeight: height * 0.8,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 10,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+      headerTitle: {
+        fontSize: 24,
+        fontWeight: '700' as const,
+        color: isDark ? '#f9fafb' : '#1f2937',
+        marginBottom: 4,
+      },
+      headerSubtitle: {
+        fontSize: 16,
+        color: isDark ? '#d1d5db' : '#6b7280',
+        textAlign: 'center' as const,
+      },
+      progressText: {
+        fontSize: 14,
+        fontWeight: '600' as const,
+        color: isDark ? '#e5e7eb' : '#374151',
+      },
+      progressPercentage: {
+        fontSize: 14,
+        fontWeight: '600' as const,
+        color: '#3b82f6',
+      },
+      progressBar: {
+        height: 6,
+        backgroundColor: isDark ? '#374151' : '#e5e7eb',
+        borderRadius: 3,
+        overflow: 'hidden' as const,
+      },
+      stepCard: {
+        backgroundColor: isDark ? '#374151' : '#f8fafc',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: isDark ? '#4b5563' : '#e2e8f0',
+      },
+      stepCardSuccess: {
+        backgroundColor: isDark ? '#064e3b' : '#f0fdf4',
+        borderColor: isDark ? '#065f46' : '#bbf7d0',
+      },
+      stepCardFailed: {
+        backgroundColor: isDark ? '#7f1d1d' : '#fef2f2',
+        borderColor: isDark ? '#991b1b' : '#fecaca',
+      },
+      stepIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: isDark ? '#4b5563' : '#e5e7eb',
+        justifyContent: 'center' as const,
+        alignItems: 'center' as const,
+        marginRight: 12,
+      },
+      stepIconActive: {
+        backgroundColor: '#3b82f6',
+      },
+      stepIconSuccess: {
+        backgroundColor: '#10b981',
+      },
+      stepIconFailed: {
+        backgroundColor: '#ef4444',
+      },
+      stepTitle: {
+        fontSize: 16,
+        fontWeight: '600' as const,
+        color: isDark ? '#f9fafb' : '#1f2937',
+        marginBottom: 4,
+      },
+      stepMessage: {
+        fontSize: 14,
+        color: isDark ? '#e5e7eb' : '#374151',
+        marginBottom: 2,
+      },
+      stepDetails: {
+        fontSize: 12,
+        color: isDark ? '#9ca3af' : '#6b7280',
+        fontStyle: 'italic' as const,
+      },
+      successContainer: {
+        alignItems: 'center' as const,
+        padding: 24,
+        backgroundColor: isDark ? '#064e3b' : '#f0fdf4',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: isDark ? '#065f46' : '#bbf7d0',
+        marginBottom: 24,
+      },
+      successTitle: {
+        fontSize: 20,
+        fontWeight: '700' as const,
+        color: '#10b981',
+        marginTop: 12,
+        marginBottom: 8,
+      },
+      successMessage: {
+        fontSize: 16,
+        color: isDark ? '#e5e7eb' : '#374151',
+        textAlign: 'center' as const,
+        marginBottom: 8,
+      },
+      confidenceText: {
+        fontSize: 14,
+        fontWeight: '600' as const,
+        color: '#10b981',
+      },
+      errorContainer: {
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        padding: 16,
+        backgroundColor: isDark ? '#7f1d1d' : '#fef2f2',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: isDark ? '#991b1b' : '#fecaca',
+        marginBottom: 24,
+      },
+      errorText: {
+        marginLeft: 12,
+        fontSize: 14,
+        fontWeight: '500' as const,
+        color: '#ef4444',
+        flex: 1,
+      },
+      retryButton: {
+        marginTop: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
+        alignSelf: 'center' as const,
+      },
+      retryButtonText: {
+        fontSize: 14,
+        fontWeight: '500' as const,
+        color: '#ffffff',
+      },
+      actionButtons: {
+        alignItems: 'center' as const,
+      },
+      cancelButton: {
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        backgroundColor: isDark ? '#4b5563' : '#f3f4f6',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: isDark ? '#6b7280' : '#d1d5db',
+      },
+      cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '500' as const,
+        color: isDark ? '#e5e7eb' : '#6b7280',
+        textAlign: 'center' as const,
+      },
+    };
+  };
+
+  const themeStyles = getThemeStyles();
 
   // Don't render anything if not visible
   if (!visible) {
@@ -256,12 +443,12 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
       transparent={true}
       statusBarTranslucent={true}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+      <View style={themeStyles.modalOverlay}>
+        <View style={themeStyles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Shift Verification</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={themeStyles.headerTitle}>Shift Verification</Text>
+            <Text style={themeStyles.headerSubtitle}>
               {shiftAction === 'start' ? 'Starting your shift' : 'Ending your shift'}
             </Text>
           </View>
@@ -269,12 +456,12 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
           {/* Progress Indicator */}
           <View style={styles.progressContainer}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>
+              <Text style={themeStyles.progressText}>
                 Step {progress.current} of {progress.total}
-              </Text>
-              <Text style={styles.progressPercentage}>{progress.percentage}%</Text>
+            </Text>
+              <Text style={themeStyles.progressPercentage}>{progress.percentage}%</Text>
             </View>
-            <View style={styles.progressBar}>
+            <View style={themeStyles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress.percentage}%` }]} />
             </View>
           </View>
@@ -283,16 +470,16 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
           <View style={styles.stepsContainer}>
             {/* Location Verification Step */}
             <View style={[
-              styles.stepCard,
-              locationStatus.status === 'success' && styles.stepCardSuccess,
-              locationStatus.status === 'failed' && styles.stepCardFailed
+              themeStyles.stepCard,
+              locationStatus.status === 'success' && themeStyles.stepCardSuccess,
+              locationStatus.status === 'failed' && themeStyles.stepCardFailed
             ]}>
               <View style={styles.stepHeader}>
                 <View style={[
-                  styles.stepIcon,
-                  locationStatus.status === 'success' && styles.stepIconSuccess,
-                  locationStatus.status === 'failed' && styles.stepIconFailed,
-                  locationStatus.status === 'checking' && styles.stepIconActive
+                  themeStyles.stepIcon,
+                  locationStatus.status === 'success' && themeStyles.stepIconSuccess,
+                  locationStatus.status === 'failed' && themeStyles.stepIconFailed,
+                  locationStatus.status === 'checking' && themeStyles.stepIconActive
                 ]}>
                   {locationStatus.status === 'success' ? (
                     <Ionicons name="checkmark" size={20} color="#ffffff" />
@@ -301,31 +488,31 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
                   ) : locationStatus.status === 'checking' ? (
                     <Ionicons name="location" size={20} color="#ffffff" />
                   ) : (
-                    <Ionicons name="location-outline" size={20} color="#6b7280" />
+                    <Ionicons name="location-outline" size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
                   )}
-                </View>
+            </View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Location Verification</Text>
-                  <Text style={styles.stepMessage}>{locationStatus.message}</Text>
+                  <Text style={themeStyles.stepTitle}>Location Verification</Text>
+                  <Text style={themeStyles.stepMessage}>{locationStatus.message}</Text>
                   {locationStatus.details && (
-                    <Text style={styles.stepDetails}>{locationStatus.details}</Text>
+                    <Text style={themeStyles.stepDetails}>{locationStatus.details}</Text>
                   )}
                 </View>
               </View>
-            </View>
+          </View>
 
             {/* Face Verification Step */}
             <View style={[
-              styles.stepCard,
-              faceStatus.status === 'success' && styles.stepCardSuccess,
-              faceStatus.status === 'failed' && styles.stepCardFailed
+              themeStyles.stepCard,
+              faceStatus.status === 'success' && themeStyles.stepCardSuccess,
+              faceStatus.status === 'failed' && themeStyles.stepCardFailed
             ]}>
               <View style={styles.stepHeader}>
                 <View style={[
-                  styles.stepIcon,
-                  faceStatus.status === 'success' && styles.stepIconSuccess,
-                  faceStatus.status === 'failed' && styles.stepIconFailed,
-                  (faceStatus.status === 'preparing' || faceStatus.status === 'detecting' || faceStatus.status === 'processing') && styles.stepIconActive
+                  themeStyles.stepIcon,
+                  faceStatus.status === 'success' && themeStyles.stepIconSuccess,
+                  faceStatus.status === 'failed' && themeStyles.stepIconFailed,
+                  (faceStatus.status === 'preparing' || faceStatus.status === 'detecting' || faceStatus.status === 'processing') && themeStyles.stepIconActive
                 ]}>
                   {faceStatus.status === 'success' ? (
                     <Ionicons name="checkmark" size={20} color="#ffffff" />
@@ -334,53 +521,53 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
                   ) : (faceStatus.status === 'preparing' || faceStatus.status === 'detecting' || faceStatus.status === 'processing') ? (
                     <Ionicons name="camera" size={20} color="#ffffff" />
                   ) : (
-                    <Ionicons name="camera-outline" size={20} color="#6b7280" />
+                    <Ionicons name="camera-outline" size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
                   )}
-                </View>
+              </View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Face Verification</Text>
-                  <Text style={styles.stepMessage}>{faceStatus.message}</Text>
+                  <Text style={themeStyles.stepTitle}>Face Verification</Text>
+                  <Text style={themeStyles.stepMessage}>{faceStatus.message}</Text>
                   {faceStatus.details && (
-                    <Text style={styles.stepDetails}>{faceStatus.details}</Text>
-                  )}
-                </View>
+                    <Text style={themeStyles.stepDetails}>{faceStatus.details}</Text>
+                )}
+              </View>
               </View>
             </View>
-          </View>
+              </View>
 
           {/* Success State */}
           {isCompleted && (
-            <View style={styles.successContainer}>
+            <View style={themeStyles.successContainer}>
               <Ionicons name="checkmark-circle" size={48} color="#10b981" />
-              <Text style={styles.successTitle}>Verification Complete!</Text>
-              <Text style={styles.successMessage}>
+              <Text style={themeStyles.successTitle}>Verification Complete!</Text>
+              <Text style={themeStyles.successMessage}>
                 Your shift has been {shiftAction === 'start' ? 'started' : 'ended'} successfully.
               </Text>
               {confidenceScore > 0 && (
-                <Text style={styles.confidenceText}>Face Confidence: {confidenceScore}%</Text>
-              )}
-            </View>
+                <Text style={themeStyles.confidenceText}>Face Confidence: {confidenceScore}%</Text>
+            )}
+          </View>
           )}
 
           {/* Error State */}
           {currentError && (
-            <View style={styles.errorContainer}>
+            <View style={themeStyles.errorContainer}>
               <Ionicons name="alert-circle" size={24} color="#ef4444" />
-              <Text style={styles.errorText}>{currentError}</Text>
+              <Text style={themeStyles.errorText}>{currentError}</Text>
               <TouchableOpacity 
-                style={styles.retryButton} 
+                style={themeStyles.retryButton} 
                 onPress={() => processCurrentStep()}
               >
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={themeStyles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
+          <View style={themeStyles.actionButtons}>
             {!isCompleted && (
-              <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+              <TouchableOpacity style={themeStyles.cancelButton} onPress={onCancel}>
+                <Text style={themeStyles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             )}
           </View>

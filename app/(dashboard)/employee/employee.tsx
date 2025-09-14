@@ -124,13 +124,6 @@ export default function EmployeeDashboard() {
         color: "#8B5CF6",
         action: () => router.push("/(dashboard)/employee/leave-insights"),
       },
-      {
-        id: 6,
-        title: "Testing Component",
-        icon: "airplane-outline",
-        color: "#8B5CF6",
-        action: () => router.push("/(testing)/main"),
-      },
     ];
 
     // Add face setup action if not registered or if there are issues
