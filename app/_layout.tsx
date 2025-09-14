@@ -138,7 +138,8 @@ function RootLayout() {
               <TrackingProvider>
                 <FaceDetectionProvider 
                   options={{
-                    performanceMode: 'fast',
+                    performanceMode: 'accurate',
+                    contourMode: true,
                     landmarkMode: true,
                     classificationMode: true,
                     minFaceSize: 0.15,

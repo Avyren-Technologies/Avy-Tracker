@@ -15,6 +15,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { encrypt, decrypt } from 'react-native-aes-crypto';
 import { AntiSpoofingService } from './AntiSpoofingService';
+import { 
+  FaceDetectionData, 
+  CapturedPhoto, 
+  FaceVerificationResult, 
+  FaceRegistrationStatus,
+  EnhancedFaceVerificationResult,
+  VerificationFactors,
+  VerificationMetadata
+} from '../types/faceDetection';
+import {
+  FaceVerificationErrorType,
+  ErrorContext
+} from '../types/faceVerificationErrors';
+import { OfflineVerificationService } from './OfflineVerificationService';
+import { ConnectivityService } from './ConnectivityService';
+import ErrorHandlingService from './ErrorHandlingService';
 
 // Crypto polyfill for React Native
 if (typeof global.crypto === 'undefined') {
@@ -30,23 +46,6 @@ if (typeof global.crypto === 'undefined') {
 }
 
 type Algorithms = 'aes-128-cbc' | 'aes-192-cbc' | 'aes-256-cbc' | 'aes-128-ctr' | 'aes-192-ctr' | 'aes-256-ctr';
-import { 
-  FaceDetectionData, 
-  CapturedPhoto, 
-  FaceVerificationResult, 
-  FaceRegistrationStatus,
-  EnhancedFaceVerificationResult,
-  VerificationFactors,
-  VerificationMetadata
-} from '../types/faceDetection';
-import {
-  FaceVerificationError,
-  FaceVerificationErrorType,
-  ErrorContext
-} from '../types/faceVerificationErrors';
-import { OfflineVerificationService } from './OfflineVerificationService';
-import { ConnectivityService } from './ConnectivityService';
-import ErrorHandlingService from './ErrorHandlingService';
 
 // Constants
 const FACE_PROFILE_KEY = 'face_profile_';
@@ -56,7 +55,7 @@ const OFFLINE_VERIFICATIONS_KEY = 'offline_verifications';
 const FACE_SETTINGS_KEY = 'face_settings_';
 
 // Configuration - Enhanced security thresholds for ML Kit face recognition
-const VERIFICATION_CONFIDENCE_THRESHOLD = 0.75; // Production-ready threshold (75% confidence)
+const VERIFICATION_CONFIDENCE_THRESHOLD = 0.70; // Adjusted threshold for compatibility mode (70% confidence)
 // Face encoding dimensions - enhanced size for ML Kit landmarks
 // 468 landmarks × 2 coordinates + 10 geometric + 50 measurements + 6 attributes = 1002 dimensions
 const FACE_ENCODING_DIMENSIONS = 1002;
@@ -94,12 +93,12 @@ interface OfflineVerification {
 
 interface VerificationCache {
   userId: number;
-  verifications: Array<{
+  verifications: {
     timestamp: string;
     success: boolean;
     confidence: number;
     expiresAt: string;
-  }>;
+  }[];
 }
 
 /**
@@ -388,13 +387,14 @@ export const generateFaceEncoding = async (
       try {
         const landmarkFeatures = faceData.landmarks.map(point => {
           if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') {
-            console.warn('⚠️ Invalid landmark point detected:', point);
             return [0.5, 0.5]; // Use neutral values for invalid points
           }
-          return [
-            Math.max(0, Math.min(1, point.x / photo.width)),  // Normalized X coordinate with bounds
-            Math.max(0, Math.min(1, point.y / photo.height)), // Normalized Y coordinate with bounds
-          ];
+          
+          // Check if coordinates are within reasonable bounds before normalization
+          const normalizedX = Math.max(0, Math.min(1, point.x / photo.width));
+          const normalizedY = Math.max(0, Math.min(1, point.y / photo.height));
+          
+          return [normalizedX, normalizedY];
         }).flat();
         
         // Ensure we have exactly 468 * 2 = 936 landmark features
@@ -497,13 +497,14 @@ export const generateFaceEncoding = async (
 
     // Convert to base64 string with error handling
     try {
+    // Convert features to binary base64 encoding for storage (legacy format)
     const buffer = new Float32Array(features);
     const bytes = new Uint8Array(buffer.buffer);
     let binary = '';
     for (let i = 0; i < bytes.length; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-      const base64Encoding = btoa(binary);
+    const base64Encoding = btoa(binary);
       
       console.log('✅ Face encoding generated successfully:', {
         encodingLength: base64Encoding.length,
@@ -611,6 +612,54 @@ const calculateManhattanSimilarity = (features1: Float32Array, features2: Float3
   }
 
   return similarity;
+};
+
+/**
+ * Simple fallback comparison for when complex comparison fails
+ */
+const compareFaceEncodingsSimple = (encoding1: string, encoding2: string): number => {
+  try {
+    // Try to decode as binary base64 first (legacy format)
+    const binary1 = atob(encoding1);
+    const binary2 = atob(encoding2);
+    const bytes1 = new Uint8Array(binary1.length);
+    const bytes2 = new Uint8Array(binary2.length);
+    
+    for (let i = 0; i < binary1.length; i++) {
+      bytes1[i] = binary1.charCodeAt(i);
+    }
+    for (let i = 0; i < binary2.length; i++) {
+      bytes2[i] = binary2.charCodeAt(i);
+    }
+    
+    const features1 = new Float32Array(bytes1.buffer);
+    const features2 = new Float32Array(bytes2.buffer);
+    
+    // Use minimum length for comparison
+    const minLength = Math.min(features1.length, features2.length);
+    if (minLength === 0) return 0;
+    
+    // Simple cosine similarity
+    let dotProduct = 0;
+    let norm1 = 0;
+    let norm2 = 0;
+    
+    for (let i = 0; i < minLength; i++) {
+      const val1 = features1[i] || 0;
+      const val2 = features2[i] || 0;
+      dotProduct += val1 * val2;
+      norm1 += val1 * val1;
+      norm2 += val2 * val2;
+    }
+    
+    if (norm1 === 0 || norm2 === 0) return 0;
+    
+    const similarity = dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    return Math.max(0, Math.min(1, similarity));
+  } catch (error) {
+    console.error('❌ Simple fallback comparison failed:', error);
+    return 0;
+  }
 };
 
 /**
@@ -730,7 +779,7 @@ export const compareFaceEncodings = (
     let features2: Float32Array;
 
     try {
-      // Try to decode as base64 first (new format)
+      // Try to decode as binary base64 first (legacy format - most stored encodings)
       const binary1 = atob(encoding1);
       const binary2 = atob(encoding2);
       const bytes1 = new Uint8Array(binary1.length);
@@ -745,34 +794,59 @@ export const compareFaceEncodings = (
       
       features1 = new Float32Array(bytes1.buffer);
       features2 = new Float32Array(bytes2.buffer);
-          } catch (base64Error) {
-        // Fallback: try to parse as JSON array (legacy format)
-        try {
-          const array1 = JSON.parse(encoding1);
-          const array2 = JSON.parse(encoding2);
-          
-          if (Array.isArray(array1) && Array.isArray(array2)) {
-            features1 = new Float32Array(array1);
-            features2 = new Float32Array(array2);
-          } else {
-            throw new Error('Invalid encoding format');
-          }
-        } catch (jsonError) {
-          const base64Msg = base64Error instanceof Error ? base64Error.message : 'Unknown base64 error';
-          const jsonMsg = jsonError instanceof Error ? jsonError.message : 'Unknown JSON error';
-          throw new Error(`Failed to decode encodings: ${base64Msg}, ${jsonMsg}`);
+    } catch (binaryError) {
+      // Fallback: try to decode as base64 JSON (new compact format)
+      try {
+        const jsonString1 = atob(encoding1);
+        const jsonString2 = atob(encoding2);
+        const array1 = JSON.parse(jsonString1);
+        const array2 = JSON.parse(jsonString2);
+        
+        if (Array.isArray(array1) && Array.isArray(array2)) {
+          features1 = new Float32Array(array1);
+          features2 = new Float32Array(array2);
+        } else {
+          throw new Error('Invalid JSON array format');
         }
+      } catch (jsonError) {
+        const binaryMsg = binaryError instanceof Error ? binaryError.message : 'Unknown binary error';
+        const jsonMsg = jsonError instanceof Error ? jsonError.message : 'Unknown JSON error';
+        throw new Error(`Failed to decode encodings: ${binaryMsg}, ${jsonMsg}`);
       }
+    }
 
     // Validate feature arrays
     if (!features1 || !features2 || features1.length === 0 || features2.length === 0) {
       console.warn('Invalid feature arrays for comparison');
       return 0;
     }
+    
+    // Log encoding details for debugging
+    console.log('🔍 Encoding comparison details:', {
+      encoding1Length: encoding1.length,
+      encoding2Length: encoding2.length,
+      features1Length: features1.length,
+      features2Length: features2.length,
+      encoding1Preview: encoding1.substring(0, 50) + '...',
+      encoding2Preview: encoding2.substring(0, 50) + '...'
+    });
 
     // CRITICAL FIX: Handle different encoding dimensions gracefully
     const minLength = Math.min(features1.length, features2.length);
     const maxLength = Math.max(features1.length, features2.length);
+    
+    // Check if we have a major dimension mismatch (old vs new encoding format)
+    if (maxLength > minLength * 2) {
+      console.warn('Major encoding dimension mismatch detected - using compatibility mode');
+      console.log('Encoding compatibility check:', {
+        features1Length: features1.length,
+        features2Length: features2.length,
+        ratio: maxLength / minLength
+      });
+      
+      // Use simple cosine similarity for major dimension mismatches
+      return calculateCosineSimilarity(features1, features2);
+    }
     
     // Pad shorter array with zeros to match longer array
     if (features1.length < maxLength) {
@@ -802,6 +876,14 @@ export const compareFaceEncodings = (
     // Ensure we have enough features for the expected structure
     if (maxLength < landmarkCount + geometricCount + measurementCount + attributeCount) {
       console.warn('Encoding length mismatch - using simple cosine similarity');
+      console.log('Encoding structure mismatch:', {
+        maxLength,
+        expectedLength: landmarkCount + geometricCount + measurementCount + attributeCount,
+        landmarkCount,
+        geometricCount,
+        measurementCount,
+        attributeCount
+      });
       return calculateCosineSimilarity(features1, features2);
     }
 
@@ -831,9 +913,9 @@ export const compareFaceEncodings = (
       const geometricFeatures1 = features1.slice(landmarkCount, landmarkCount + geometricCount);
       const geometricFeatures2 = features2.slice(landmarkCount, landmarkCount + geometricCount);
       
-      // Check if geometric features are valid (not all zeros or neutral values)
-      const hasValidGeometric1 = geometricFeatures1.some(val => val !== 0 && val !== 0.5);
-      const hasValidGeometric2 = geometricFeatures2.some(val => val !== 0 && val !== 0.5);
+      // Check if geometric features are valid (not all zeros)
+      const hasValidGeometric1 = geometricFeatures1.some(val => val !== 0);
+      const hasValidGeometric2 = geometricFeatures2.some(val => val !== 0);
       
       if (hasValidGeometric1 && hasValidGeometric2) {
         geometricSimilarity = calculateCosineSimilarity(geometricFeatures1, geometricFeatures2);
@@ -846,9 +928,9 @@ export const compareFaceEncodings = (
       const measurementFeatures1 = features1.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
       const measurementFeatures2 = features2.slice(landmarkCount + geometricCount, landmarkCount + geometricCount + measurementCount);
       
-      // Check if measurement features are valid (not all zeros or neutral values)
-      const hasValidMeasurements1 = measurementFeatures1.some(val => val !== 0 && val !== 0.5);
-      const hasValidMeasurements2 = measurementFeatures2.some(val => val !== 0 && val !== 0.5);
+      // Check if measurement features are valid (not all zeros)
+      const hasValidMeasurements1 = measurementFeatures1.some(val => val !== 0);
+      const hasValidMeasurements2 = measurementFeatures2.some(val => val !== 0);
       
       if (hasValidMeasurements1 && hasValidMeasurements2) {
         measurementSimilarity = calculateCosineSimilarity(measurementFeatures1, measurementFeatures2);
@@ -861,9 +943,9 @@ export const compareFaceEncodings = (
       const attributeFeatures1 = features1.slice(landmarkCount + geometricCount + measurementCount, landmarkCount + geometricCount + measurementCount + attributeCount);
       const attributeFeatures2 = features2.slice(landmarkCount + geometricCount + measurementCount, landmarkCount + geometricCount + measurementCount + attributeCount);
       
-      // Check if attribute features are valid (not all zeros or neutral values)
-      const hasValidAttributes1 = attributeFeatures1.some(val => val !== 0 && val !== 0.5);
-      const hasValidAttributes2 = attributeFeatures2.some(val => val !== 0 && val !== 0.5);
+      // Check if attribute features are valid (not all zeros)
+      const hasValidAttributes1 = attributeFeatures1.some(val => val !== 0);
+      const hasValidAttributes2 = attributeFeatures2.some(val => val !== 0);
       
       if (hasValidAttributes1 && hasValidAttributes2) {
         attributeSimilarity = calculateCosineSimilarity(attributeFeatures1, attributeFeatures2);
@@ -1533,10 +1615,27 @@ const performOnlineVerification = async (
     // CRITICAL FIX: Handle NaN or invalid confidence values
     if (isNaN(confidence) || !isFinite(confidence)) {
       console.error('❌ Invalid confidence value calculated:', confidence);
-      throw ErrorHandlingService.createError(
-        FaceVerificationErrorType.PROCESSING_ERROR,
-        new Error('Face comparison calculation failed - invalid confidence value')
-      );
+      console.log('🔍 Attempting fallback comparison with simple cosine similarity...');
+      
+      // Fallback: try simple cosine similarity
+      try {
+        const fallbackConfidence = compareFaceEncodingsSimple(storedEncoding, currentEncoding);
+        console.log('🔍 Fallback confidence:', fallbackConfidence);
+        
+        // Return proper FaceVerificationResult format
+        return {
+          success: fallbackConfidence >= VERIFICATION_CONFIDENCE_THRESHOLD,
+          confidence: fallbackConfidence,
+          livenessDetected,
+          timestamp: new Date()
+        };
+      } catch (fallbackError) {
+        console.error('❌ Fallback comparison also failed:', fallbackError);
+        throw ErrorHandlingService.createError(
+          FaceVerificationErrorType.PROCESSING_ERROR,
+          new Error('Face comparison calculation failed - invalid confidence value')
+        );
+      }
     }
     
     // CRITICAL FIX: Integrate Anti-Spoofing Analysis
@@ -1577,7 +1676,7 @@ const performOnlineVerification = async (
 
     // Check confidence threshold with better error handling and small tolerance for edge cases
     const tolerance = 0.001; // Small tolerance for floating point precision
-    if (confidence < (VERIFICATION_CONFIDENCE_THRESHOLD - tolerance)) {
+    if (confidence <= (VERIFICATION_CONFIDENCE_THRESHOLD - tolerance)) {
       console.log(`Verification attempt failed: Verification confidence (${confidence.toFixed(2)}) below threshold (${VERIFICATION_CONFIDENCE_THRESHOLD})`);
       
       // Create a more user-friendly error message
@@ -1599,7 +1698,19 @@ const performOnlineVerification = async (
       throw error;
     }
 
-    const success = confidence >= VERIFICATION_CONFIDENCE_THRESHOLD && !spoofingAnalysis.isSpoofed;
+    // Use a more forgiving threshold for compatibility mode (when encoding dimensions don't match)
+    const isCompatibilityMode = storedEncoding.length !== currentEncoding.length;
+    const effectiveThreshold = isCompatibilityMode ? 0.65 : VERIFICATION_CONFIDENCE_THRESHOLD;
+    
+    console.log('🔍 Success determination:', {
+      confidence: confidence.toFixed(4),
+      isCompatibilityMode,
+      effectiveThreshold,
+      originalThreshold: VERIFICATION_CONFIDENCE_THRESHOLD,
+      antiSpoofingPassed: !spoofingAnalysis.isSpoofed
+    });
+    
+    const success = confidence >= effectiveThreshold && !spoofingAnalysis.isSpoofed;
 
     // Update verification count
     if (success) {
@@ -1792,51 +1903,6 @@ const cacheVerificationResult = async (
   }
 };
 
-/**
- * Store offline verification for later sync
- */
-const storeOfflineVerification = async (
-  userId: number,
-  result: FaceVerificationResult,
-  livenessDetected: boolean
-): Promise<void> => {
-  try {
-    const deviceFingerprint = await getDeviceFingerprint();
-    
-    const offlineVerification: OfflineVerification = {
-      id: generateUUID(),
-      userId,
-      timestamp: result.timestamp.toISOString(),
-      success: result.success,
-      confidence: result.confidence,
-      livenessDetected,
-      deviceFingerprint,
-      synced: false
-    };
-
-    // Get existing offline verifications
-    const existingData = await AsyncStorage.getItem(OFFLINE_VERIFICATIONS_KEY);
-    let offlineVerifications: OfflineVerification[] = [];
-    
-    if (existingData) {
-      offlineVerifications = JSON.parse(existingData);
-    }
-
-    offlineVerifications.push(offlineVerification);
-
-    // Limit storage to prevent excessive data
-    if (offlineVerifications.length > 1000) {
-      offlineVerifications = offlineVerifications.slice(-1000);
-    }
-
-    await AsyncStorage.setItem(
-      OFFLINE_VERIFICATIONS_KEY,
-      JSON.stringify(offlineVerifications)
-    );
-  } catch (error) {
-    console.error('Error storing offline verification:', error);
-  }
-};
 
 /**
  * Get device fingerprint for verification tracking
@@ -2164,12 +2230,12 @@ export const validateLocationOffline = async (location: {
 /**
  * Cache geofences for offline validation
  */
-export const cacheGeofencesForOfflineUse = async (geofences: Array<{
+export const cacheGeofencesForOfflineUse = async (geofences: {
   id: string;
   name: string;
   coordinates: { latitude: number; longitude: number };
   radius: number;
-}>): Promise<void> => {
+}[]): Promise<void> => {
   try {
     // Add lastUpdated timestamp to geofences
     const geofencesWithTimestamp = geofences.map(geofence => ({

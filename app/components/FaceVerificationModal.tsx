@@ -1487,18 +1487,8 @@ export default function FaceVerificationModal({
            cameraKeepAlive
          );
          
-         // DEBUG LOGGING for camera isActive state with persistence check
-         console.log('🔍 === CAMERA isActive CALCULATION ===');
-         console.log('🔍 visible:', visible);
-         console.log('🔍 verificationStep:', verificationStep);
-         console.log('🔍 isDetecting:', isDetecting);
-         console.log('🔍 cameraKeepAlive:', cameraKeepAlive);
-         console.log('🔍 Final isActive result:', shouldBeActive);
-         
-         // FINAL FIX: Additional logging for camera persistence state
+         // Simplified camera state management
          if (shouldBeActive) {
-           console.log('🔍 Camera should be active - checking persistence state...');
-           // This will help debug if the camera ref is being lost during active state
          }
          
          return shouldBeActive;

@@ -70,10 +70,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // CRITICAL FIX: Camera keep-alive mechanism
-  const cameraKeepAliveRef = useRef(false);
-  
-  // FINAL FIX: Camera reference persistence to prevent detachment during state transitions
+  // Simplified camera reference management
   const persistentCameraRef = useRef<any>(null);
   const cameraRefStateRef = useRef<'null' | 'valid' | 'detached'>('null');
 
@@ -83,20 +80,68 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
   // Get ML Kit face detector instance
   const mlKitDetector = useMLKitFaceDetection();
 
-  // CRITICAL FIX: Enable camera keep-alive to prevent native view detachment
+  // Enhanced camera keep-alive functions
   const enableCameraKeepAlive = useCallback(() => {
-    console.log('🔒 === ENABLING CAMERA KEEP-ALIVE ===');
-    console.log('🔒 Previous state:', cameraKeepAliveRef.current);
-    cameraKeepAliveRef.current = true;
-    console.log('🔒 New state:', cameraKeepAliveRef.current);
+    console.log('🔒 Enabling camera keep-alive');
+    cameraRefStateRef.current = 'valid';
   }, []);
 
   const disableCameraKeepAlive = useCallback(() => {
-    console.log('🔓 === DISABLING CAMERA KEEP-ALIVE ===');
-    console.log('🔓 Previous state:', cameraKeepAliveRef.current);
-    cameraKeepAliveRef.current = false;
-    console.log('🔓 New state:', cameraKeepAliveRef.current);
+    console.log('🔓 Disabling camera keep-alive');
+    cameraRefStateRef.current = 'detached';
   }, []);
+
+  // Camera validation function
+  const validateCameraRef = useCallback((cameraRef: any): boolean => {
+    try {
+      if (!cameraRef || !cameraRef.current) {
+        return false;
+      }
+      // Check if the native view is mounted (specific to vision-camera)
+      if (typeof cameraRef.current.isNativeViewMounted === 'function' && !cameraRef.current.isNativeViewMounted()) {
+        console.warn('⚠️ Camera native view is not mounted!');
+        cameraRefStateRef.current = 'detached';
+        return false;
+      }
+      // Check if takePhoto method exists
+      if (typeof cameraRef.current.takePhoto !== 'function') {
+        console.warn('⚠️ Camera does not have takePhoto method!');
+        return false;
+      }
+      // Check if camera is active
+      if (cameraRef.current.props && cameraRef.current.props.isActive === false) {
+        console.warn('⚠️ Camera is not active!');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Error validating camera ref:', e);
+      return false;
+    }
+  }, []);
+
+  // Proactive camera recovery function
+  const refreshCameraReference = useCallback(() => {
+    console.log('🔄 === REFRESHING CAMERA REFERENCE ===');
+    console.log('🔍 Current camera ref state:', cameraRefStateRef.current);
+    console.log('🔍 Persistent ref exists:', !!persistentCameraRef.current);
+    
+    if (persistentCameraRef.current && validateCameraRef(persistentCameraRef)) {
+      console.log('🔍 Persistent camera ref is valid - attempting recovery...');
+      
+      // Restore main ref from persistent ref
+      (cameraRef as any).current = persistentCameraRef.current;
+      cameraRefStateRef.current = 'valid';
+      
+      console.log('✅ Camera reference refreshed successfully');
+      return true;
+    } else {
+      console.warn('⚠️ Persistent ref test failed: Could not get the Camera\'s native view tag! Does the Camera View exist in the native view-tree?');
+      console.log('🔄 Waiting for camera to stabilize...');
+      return false;
+    }
+  }, [validateCameraRef]);
+
 
   // Request camera permissions
   const requestCameraPermissions = useCallback(async (): Promise<boolean> => {
@@ -944,24 +989,27 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     console.log('🛑 Face detection stopped - isDetecting set to false');
   }, []); // Remove isDetecting from dependencies to prevent recreation
 
-  // Capture photo with face validation
+  // Capture photo with face validation and enhanced camera management
   const capturePhoto = useCallback(async (): Promise<CapturedPhoto> => {
     try {
       console.log('capturePhoto called with:', {
         isInitialized,
         hasCameraRef: !!cameraRef.current,
         cameraRefCurrent: cameraRef.current,
-        hasTakePhotoMethod: cameraRef.current ? typeof cameraRef.current.takePhoto === 'function' : false
+        hasTakePhotoMethod: cameraRef.current ? typeof cameraRef.current.takePhoto === 'function' : false,
+        cameraRefState: cameraRefStateRef.current
       });
 
-      if (!isInitialized || !cameraRef.current) {
-        throw new Error('Camera not initialized');
+      // Get camera instance with validation and fallback
+      const cameraInstance = getCameraInstance();
+      if (!cameraInstance) {
+        throw new Error('Camera not initialized - no valid camera instance available');
       }
 
       // Check if camera is still active and mounted
       try {
         // Test if camera is still responsive by checking if takePhoto method exists
-        if (!cameraRef.current || typeof cameraRef.current.takePhoto !== 'function') {
+        if (!cameraInstance || typeof cameraInstance.takePhoto !== 'function') {
           throw new Error('Camera is not ready for capture');
         }
       } catch (stateError) {
@@ -970,11 +1018,11 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       }
 
       // Check if takePhoto method is available
-      if (!cameraRef.current || typeof cameraRef.current.takePhoto !== 'function') {
+      if (!cameraInstance || typeof cameraInstance.takePhoto !== 'function') {
         console.error('Camera component does not have takePhoto method:', {
-          hasRefCamera: !!cameraRef.current,
-          refCameraType: cameraRef.current ? typeof cameraRef.current : 'no ref',
-          availableMethods: cameraRef.current ? Object.keys(cameraRef.current) : 'no methods'
+          hasRefCamera: !!cameraInstance,
+          refCameraType: cameraInstance ? typeof cameraInstance : 'no ref',
+          availableMethods: cameraInstance ? Object.keys(cameraInstance) : 'no methods'
         });
         throw new Error('Camera takePhoto method not available');
       }
@@ -1321,7 +1369,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
       const hasTakePhoto = typeof cameraRef.current.takePhoto === 'function';
       const isActive = cameraRef.current.props?.isActive !== false;
       
-      console.log('🔍 Camera state monitoring:', { hasTakePhoto, isActive });
+      // Camera state monitoring (reduced logging for performance)
       
       // If camera seems unresponsive, try to refresh it
       if (!hasTakePhoto || !isActive) {
@@ -1370,20 +1418,21 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     }
   }, []);
 
-  // Get camera instance with persistence fallback
+  // Get camera instance with persistence fallback and validation
   const getCameraInstance = useCallback(() => {
     console.log('🔍 === GET CAMERA INSTANCE ===');
     console.log('🔍 Main ref exists:', !!cameraRef.current);
     console.log('🔍 Persistent ref exists:', !!persistentCameraRef.current);
     
-    if (cameraRef.current) {
+    // Try main ref first with validation
+    if (cameraRef.current && validateCameraRef(cameraRef)) {
       console.log('✅ getCameraInstance: returning main ref camera instance');
       return cameraRef.current;
     }
     
-    // FINAL FIX: Fallback to persistent ref if main ref is null
-    if (persistentCameraRef.current) {
-      console.log('🔄 getCameraInstance: main ref is null, using persistent ref');
+    // FINAL FIX: Fallback to persistent ref if main ref is null or invalid
+    if (persistentCameraRef.current && validateCameraRef(persistentCameraRef)) {
+      console.log('🔄 getCameraInstance: main ref is null/invalid, using persistent ref');
       
       // Restore main ref from persistent ref
       (cameraRef as any).current = persistentCameraRef.current;
@@ -1395,7 +1444,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     
     console.warn('❌ getCameraInstance: no camera available');
     return null;
-  }, []);
+  }, [validateCameraRef]);
 
   // Check if camera has takePhoto method with persistence fallback
   const hasTakePhotoMethod = useCallback(() => {
@@ -1436,7 +1485,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     console.log('🔍 New value:', isDetecting);
     console.log('🔍 Has interval:', !!detectionIntervalRef.current);
     console.log('🔍 Has timeout:', !!detectionTimeoutRef.current);
-    console.log('🔍 Camera keep-alive:', cameraKeepAliveRef.current);
+    console.log('🔍 Camera state: active');
     console.log('🔍 Timestamp:', new Date().toISOString());
   }, [isDetecting]);
 
@@ -1448,7 +1497,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     console.log('🔍 Face quality:', !!faceQuality);
     console.log('🔍 Is detecting:', isDetecting);
     console.log('🔍 Has interval:', !!detectionIntervalRef.current);
-    console.log('🔍 Camera keep-alive:', cameraKeepAliveRef.current);
+    console.log('🔍 Camera state: active');
     console.log('🔍 Timestamp:', new Date().toISOString());
   }, [faceData, faceDetected, faceQuality, isDetecting]);
 
@@ -1477,6 +1526,7 @@ export function useFaceDetection(options: FaceDetectionOptions = {}): UseFaceDet
     // CRITICAL FIX: Camera keep-alive functions
     enableCameraKeepAlive,
     disableCameraKeepAlive,
+    refreshCameraReference,
     
     // Camera and ML Kit
     frameProcessor,

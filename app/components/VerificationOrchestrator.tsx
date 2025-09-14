@@ -1,108 +1,25 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-} from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVerificationFlow } from '../hooks/useVerificationFlow';
-import { VerificationConfig, LocationResult, VerificationFlowSummary } from '../types/verification';
-import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
 import FaceVerificationModal from './FaceVerificationModal';
-import OTPVerification from './OTPVerification';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
+import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
+
+const { height } = Dimensions.get('window');
 
 interface VerificationOrchestratorProps {
   visible: boolean;
   userId: number;
   token: string;
   shiftAction: 'start' | 'end';
-  config?: Partial<VerificationConfig>;
-  onSuccess: (summary: VerificationFlowSummary) => void;
+  config: any;
+  onSuccess: (result: any) => void;
   onCancel: () => void;
   onError: (error: string) => void;
-  locationVerificationFn: () => Promise<LocationResult>;
+  locationVerificationFn: () => Promise<boolean>;
   canOverrideGeofence?: boolean;
 }
 
-interface VerificationStepIndicatorProps {
-  steps: Array<{ type: string; completed: boolean; current: boolean; failed: boolean }>;
-  isDark: boolean;
-}
-
-const VerificationStepIndicator: React.FC<VerificationStepIndicatorProps> = ({ steps, isDark }) => {
-  return (
-    <View style={styles.stepIndicatorContainer}>
-      {steps.map((step, index) => (
-        <React.Fragment key={step.type}>
-          <View style={[
-            styles.stepCircle,
-            {
-              backgroundColor: step.completed 
-                ? '#10b981' 
-                : step.current 
-                  ? '#3b82f6' 
-                  : step.failed 
-                    ? '#ef4444' 
-                    : isDark ? '#374151' : '#e5e7eb'
-            }
-          ]}>
-            {step.completed ? (
-              <Ionicons name="checkmark" size={16} color="white" />
-            ) : step.failed ? (
-              <Ionicons name="close" size={16} color="white" />
-            ) : step.current ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={[styles.stepNumber, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-                {index + 1}
-              </Text>
-            )}
-          </View>
-          
-          <View style={styles.stepInfo}>
-            <Text style={[
-              styles.stepTitle,
-              { 
-                color: step.completed 
-                  ? '#10b981' 
-                  : step.current 
-                    ? '#3b82f6' 
-                    : step.failed 
-                      ? '#ef4444' 
-                      : isDark ? '#9ca3af' : '#6b7280'
-              }
-            ]}>
-              {step.type === 'location' ? 'Location' : 'Face'} Verification
-            </Text>
-            <Text style={[styles.stepStatus, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-              {step.completed 
-                ? 'Completed' 
-                : step.current 
-                  ? 'In Progress' 
-                  : step.failed 
-                    ? 'Failed' 
-                    : 'Pending'}
-            </Text>
-          </View>
-          
-          {index < steps.length - 1 && (
-            <View style={[
-              styles.stepConnector,
-              { backgroundColor: step.completed ? '#10b981' : isDark ? '#374151' : '#e5e7eb' }
-            ]} />
-          )}
-        </React.Fragment>
-      ))}
-    </View>
-  );
-};
-
-export default function VerificationOrchestrator({
+const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
   visible,
   userId,
   token,
@@ -113,363 +30,360 @@ export default function VerificationOrchestrator({
   onError,
   locationVerificationFn,
   canOverrideGeofence = false,
-}: VerificationOrchestratorProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const backgroundColor = useThemeColor('#ffffff', '#1f2937');
-  const textColor = useThemeColor('#111827', '#f9fafb');
-  const borderColor = useThemeColor('#e5e7eb', '#374151');
-
-  // State
+}) => {
+  // Core state - keep it simple and stable
+  const [currentStep, setCurrentStep] = useState<'location' | 'face' | null>(null);
   const [showFaceModal, setShowFaceModal] = useState(false);
-  const [showOTPModal, setShowOTPModal] = useState(false);
   const [currentError, setCurrentError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [overrideReason, setOverrideReason] = useState('');
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 2, percentage: 0 });
+  const [confidenceScore, setConfidenceScore] = useState(0);
+  
+  // Detailed status tracking
+  const [locationStatus, setLocationStatus] = useState<{
+    status: 'pending' | 'checking' | 'success' | 'failed';
+    message: string;
+    details?: string;
+  }>({ status: 'pending', message: 'Waiting to start...' });
+  
+  const [faceStatus, setFaceStatus] = useState<{
+    status: 'pending' | 'preparing' | 'detecting' | 'processing' | 'success' | 'failed';
+    message: string;
+    details?: string;
+  }>({ status: 'pending', message: 'Waiting for location verification...' });
 
+  // Refs for stable references
+  const isInitializedRef = useRef(false);
+  const processingRef = useRef(false);
+  const completedRef = useRef(false);
+  const stepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
 
-
-  // Stable callback references
-  const onStepCompletedRef = useRef<(step: string, success: boolean) => void>();
-  const onFlowCompletedRef = useRef<(summary: any) => void>();
-  const onFlowFailedRef = useRef<(summary: any) => void>();
-  const onOverrideRequiredRef = useRef<(summary: any) => void>();
-  const onPerformanceMetricsRef = useRef<(metrics: any) => void>();
-  const proceedToNextStepRef = useRef<() => void>();
-
-  // Verification flow hook
-  const {
-    flowState,
-    isInitialized,
-    isInProgress,
-    currentStep,
-    canOverride,
-    summary,
-    startVerificationFlow,
-    executeLocationVerification,
-    executeFaceVerification,
-    applyOverride,
-    resetFlow,
-    getStepProgress,
-    getConfidenceScore,
-    canRetryCurrentStep,
-  } = useVerificationFlow({
-    userId,
-    token,
-    onStepCompleted: (step, success) => onStepCompletedRef.current?.(step, success),
-    onFlowCompleted: (summary) => onFlowCompletedRef.current?.(summary),
-    onFlowFailed: (summary) => onFlowFailedRef.current?.(summary),
-    onOverrideRequired: (summary) => onOverrideRequiredRef.current?.(summary),
-    onPerformanceMetrics: (metrics) => onPerformanceMetricsRef.current?.(metrics),
-  });
-
-  // Update refs with current values
-  onStepCompletedRef.current = (step, success) => {
-    console.log(`Step ${step} ${success ? 'completed' : 'failed'}`);
-    if (!success && step === 'location' && canOverrideGeofence) {
-      // Show option to continue with face verification only
-      Alert.alert(
-        'Location Verification Failed',
-        'You are not in a designated work area. Would you like to continue with face verification only?',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: onCancel },
-          { text: 'Continue', onPress: () => proceedToNextStepRef.current?.() },
-        ]
-      );
-    }
-  };
-
-  onFlowCompletedRef.current = (summary) => {
-    console.log('Verification flow completed:', summary);
-    onSuccess(summary);
-  };
-
-  onFlowFailedRef.current = (summary) => {
-    console.log('Verification flow failed:', summary);
-    if (canOverride) {
-      showOverrideOptions();
-    } else {
-      onError('Verification failed. Please try again.');
-    }
-  };
-
-  onOverrideRequiredRef.current = (summary) => {
-    console.log('Override required:', summary);
-    showOverrideOptions();
-  };
-
-  onPerformanceMetricsRef.current = (metrics) => {
-    // Log performance metrics for monitoring
-    if (metrics.totalLatency > 30000) {
-      console.warn('Verification taking longer than expected:', metrics);
-    }
-  };
-
-  // Initialize verification flow when modal becomes visible
+  // Initialize flow when modal becomes visible - SIMPLE AND STABLE
   useEffect(() => {
-    if (visible && !isInitialized) {
-      initializeFlow();
-    } else if (!visible && isInitialized) {
-      // CRITICAL FIX: Clear all timeouts and reset refs when modal is closed
-      if (autoProceedTimeoutRef.current) {
-        clearTimeout(autoProceedTimeoutRef.current);
-        autoProceedTimeoutRef.current = null;
-      }
-      hasAutoProceededRef.current = false;
-      resetFlow();
-    }
-  }, [visible, isInitialized, initializeFlow, resetFlow]);
-
-  // CRITICAL FIX: Add ref to prevent infinite auto-proceed loops
-  const autoProceedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasAutoProceededRef = useRef(false);
-
-  // Auto-proceed with verification steps
-  useEffect(() => {
-    // CRITICAL FIX: Clear existing timeout to prevent multiple auto-proceeds
-    if (autoProceedTimeoutRef.current) {
-      clearTimeout(autoProceedTimeoutRef.current);
-      autoProceedTimeoutRef.current = null;
-    }
-
-    // CRITICAL FIX: Add guards to prevent infinite loops
-    if (!isInitialized || !currentStep || isProcessing || summary?.status === 'completed') {
-      hasAutoProceededRef.current = false;
-      return;
-    }
-
-    // CRITICAL FIX: Prevent multiple auto-proceeds for the same step
-    if (hasAutoProceededRef.current) {
-      return;
-    }
-
-    // Use a timeout to avoid immediate execution
-    autoProceedTimeoutRef.current = setTimeout(() => {
-      if (isInitialized && currentStep && !isProcessing && summary?.status !== 'completed' && !hasAutoProceededRef.current) {
-        hasAutoProceededRef.current = true;
-        console.log('Auto-proceeding to next verification step:', currentStep);
-        
-        // Use a ref to avoid dependency issues
-        if (proceedToNextStepRef.current) {
-          proceedToNextStepRef.current();
-        }
-      }
-    }, 100);
-
-    return () => {
-      if (autoProceedTimeoutRef.current) {
-        clearTimeout(autoProceedTimeoutRef.current);
-        autoProceedTimeoutRef.current = null;
-      }
-    };
-  }, [isInitialized, currentStep, isProcessing, summary?.status]);
-
-  const initializeFlow = useCallback(async () => {
-    try {
+    if (visible && !isInitializedRef.current) {
+      console.log('Initializing verification flow...');
+      isInitializedRef.current = true;
+      completedRef.current = false;
+      processingRef.current = false;
+      startTimeRef.current = Date.now();
       setCurrentError(null);
-      await startVerificationFlow(shiftAction, config);
-    } catch (error) {
-      console.error('Error initializing verification flow:', error);
-      onError('Failed to initialize verification. Please try again.');
+      setIsCompleted(false);
+      setCurrentStep('location');
+      setProgress({ current: 1, total: 2, percentage: 50 });
+      
+      // Reset detailed status
+      setLocationStatus({ status: 'checking', message: 'Verifying your location...', details: 'Checking GPS coordinates and geofence status' });
+      setFaceStatus({ status: 'pending', message: 'Waiting for location verification...' });
+    } else if (!visible && isInitializedRef.current) {
+      console.log('Resetting verification flow...');
+      isInitializedRef.current = false;
+      completedRef.current = false;
+      processingRef.current = false;
+      setCurrentStep(null);
+      setShowFaceModal(false);
+      setCurrentError(null);
+      setIsCompleted(false);
+      setProgress({ current: 0, total: 2, percentage: 0 });
+      setConfidenceScore(0);
+      
+      // Reset detailed status
+      setLocationStatus({ status: 'pending', message: 'Waiting to start...' });
+      setFaceStatus({ status: 'pending', message: 'Waiting for location verification...' });
+      
+      // Clear any pending timeouts
+      if (stepTimeoutRef.current) {
+        clearTimeout(stepTimeoutRef.current);
+        stepTimeoutRef.current = null;
+      }
     }
-  }, [shiftAction, config, startVerificationFlow, onError]);
+  }, [visible]);
 
-  const proceedToNextStep = useCallback(async () => {
-    // CRITICAL FIX: Add guards to prevent recursive calls
-    if (!currentStep || isProcessing) return;
+  // Process current step - SIMPLE AND STABLE
+  const processCurrentStep = useCallback(async () => {
+    if (!currentStep || processingRef.current || completedRef.current) {
+      return;
+    }
 
-    console.log('Proceeding to next step:', currentStep);
-    setIsProcessing(true);
+    console.log('Processing step:', currentStep);
+    processingRef.current = true;
     setCurrentError(null);
 
     try {
       if (currentStep === 'location') {
         console.log('Executing location verification...');
-        await executeLocationVerification(locationVerificationFn);
+        setLocationStatus({ 
+          status: 'checking', 
+          message: 'Verifying your location...', 
+          details: 'Checking GPS coordinates and geofence status' 
+        });
+        
+        const locationSuccess = await locationVerificationFn();
+        
+        if (locationSuccess) {
+          console.log('Location verification successful, moving to face verification');
+          setLocationStatus({ 
+            status: 'success', 
+            message: 'Location verified successfully!', 
+            details: 'You are within the required geofence area' 
+          });
+          setFaceStatus({ 
+            status: 'preparing', 
+            message: 'Preparing face verification...', 
+            details: 'Initializing camera and face detection' 
+          });
+          setCurrentStep('face');
+          setProgress({ current: 2, total: 2, percentage: 100 });
+        } else {
+          throw new Error('Location verification failed');
+        }
       } else if (currentStep === 'face') {
         console.log('Showing face verification modal...');
+        setFaceStatus({ 
+          status: 'detecting', 
+          message: 'Starting face verification...', 
+          details: 'Please look at the camera and follow the instructions' 
+        });
         setShowFaceModal(true);
       }
     } catch (error) {
       console.error(`Error in ${currentStep} verification:`, error);
-      setCurrentError(`${currentStep} verification failed. Please try again.`);
+      const errorMessage = `${currentStep} verification failed. Please try again.`;
+      setCurrentError(errorMessage);
+      onError(errorMessage);
+      
+      // Update status based on which step failed
+      if (currentStep === 'location') {
+        setLocationStatus({ 
+          status: 'failed', 
+          message: 'Location verification failed', 
+          details: 'Unable to verify your location. Please check your GPS settings.' 
+        });
+      } else if (currentStep === 'face') {
+        setFaceStatus({ 
+          status: 'failed', 
+          message: 'Face verification failed', 
+          details: 'Unable to complete face verification. Please try again.' 
+        });
+      }
     } finally {
-      // CRITICAL FIX: Reset auto-proceed flag when processing is complete
-      hasAutoProceededRef.current = false;
-      setIsProcessing(false);
+      processingRef.current = false;
     }
-  }, [currentStep, isProcessing, executeLocationVerification, locationVerificationFn]);
+  }, [currentStep, locationVerificationFn, onError]);
 
-  // Store the function in the ref for useEffect access
-  proceedToNextStepRef.current = proceedToNextStep;
+  // Auto-process steps with timeout - SIMPLE AND STABLE
+  useEffect(() => {
+    if (!visible || !currentStep || processingRef.current || completedRef.current) {
+      return;
+    }
 
+    // Clear any existing timeout
+    if (stepTimeoutRef.current) {
+      clearTimeout(stepTimeoutRef.current);
+    }
+
+    // Set new timeout to process step
+    stepTimeoutRef.current = setTimeout(() => {
+      processCurrentStep();
+    }, 500);
+
+    return () => {
+      if (stepTimeoutRef.current) {
+        clearTimeout(stepTimeoutRef.current);
+        stepTimeoutRef.current = null;
+      }
+    };
+  }, [visible, currentStep, processCurrentStep]);
+
+  // Handle face verification success - SIMPLE AND STABLE
   const handleFaceVerificationSuccess = useCallback(async (result: FaceVerificationResult) => {
+    console.log('Face verification successful:', result);
+    
+    // Close face modal
     setShowFaceModal(false);
     
-    try {
-      await executeFaceVerification(async () => result);
-    } catch (error) {
-      console.error('Error processing face verification result:', error);
-      setCurrentError('Failed to process face verification. Please try again.');
-    }
-  }, [executeFaceVerification]);
+    // Update face status
+    setFaceStatus({ 
+      status: 'success', 
+      message: 'Face verification completed!', 
+      details: `Confidence: ${Math.round((result.confidence || 0) * 100)}%` 
+    });
+    
+    // Mark as completed
+    completedRef.current = true;
+    setIsCompleted(true);
+    setConfidenceScore(Math.round((result.confidence || 0) * 100));
+    
+    // Call success callback after a short delay
+    setTimeout(() => {
+      onSuccess({
+        status: 'completed',
+        completedSteps: ['location', 'face'],
+        sessionId: `session_${Date.now()}`,
+        confidenceScore: Math.round((result.confidence || 0) * 100),
+        fallbackMode: false,
+        totalLatency: Date.now() - startTimeRef.current,
+        steps: {
+          location: { status: 'completed' },
+          face: { status: 'completed', result }
+        }
+      });
+    }, 300);
+  }, [onSuccess]);
 
+  // Handle face verification error
   const handleFaceVerificationError = useCallback((error: FaceVerificationError) => {
+    console.error('Face verification error:', error);
     setShowFaceModal(false);
-    
-    if (canRetryCurrentStep()) {
-      Alert.alert(
-        'Face Verification Failed',
-        `${error.message}\n\nWould you like to try again?`,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: onCancel },
-          { text: 'Retry', onPress: () => setShowFaceModal(true) },
-        ]
-      );
-    } else {
-      setCurrentError('Face verification failed after maximum attempts.');
-    }
-  }, [canRetryCurrentStep, onCancel]);
+    setCurrentError(error.message);
+    setFaceStatus({ 
+      status: 'failed', 
+      message: 'Face verification failed', 
+      details: error.message 
+    });
+    onError(error.message);
+  }, [onError]);
 
-  const showOverrideOptions = useCallback(() => {
-    Alert.alert(
-      'Verification Failed',
-      'Would you like to request manager override?',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: onCancel },
-        { 
-          text: 'Request Override', 
-          onPress: () => {
-            setOverrideReason('Verification failed - manager override requested');
-            setShowOTPModal(true);
-          }
-        },
-      ]
-    );
-  }, [onCancel]);
-
-  const handleOTPSuccess = useCallback(async () => {
-    setShowOTPModal(false);
-    
-    try {
-      await applyOverride(overrideReason, userId);
-    } catch (error) {
-      console.error('Error applying override:', error);
-      onError('Failed to apply override. Please try again.');
-    }
-  }, [applyOverride, overrideReason, userId, onError]);
-
-  const handleRetry = useCallback(() => {
-    setCurrentError(null);
-    proceedToNextStepRef.current?.();
-  }, []);
-
-  // Prepare step indicator data
-  const stepIndicatorData = flowState?.steps.map((step, index) => ({
-    type: step.type,
-    completed: step.completed,
-    current: index === flowState.currentStepIndex,
-    failed: !step.completed && step.retryCount >= step.maxRetries,
-  })) || [];
-
-  const progress = getStepProgress();
-  const confidenceScore = Math.round(getConfidenceScore() * 100);
-
-  if (!visible) return null;
+  // Don't render anything if not visible
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
+      animationType="slide"
+      transparent={true}
+      statusBarTranslucent={true}
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor, borderColor }]}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: textColor }]}>
-              Shift {shiftAction === 'start' ? 'Start' : 'End'} Verification
+            <Text style={styles.headerTitle}>Shift Verification</Text>
+            <Text style={styles.headerSubtitle}>
+              {shiftAction === 'start' ? 'Starting your shift' : 'Ending your shift'}
             </Text>
-            <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={textColor} />
-            </TouchableOpacity>
           </View>
 
-          {/* Progress */}
-          <View style={styles.progressSection}>
-            <Text style={[styles.progressText, { color: textColor }]}>
-              Progress: {progress.current}/{progress.total} ({progress.percentage}%)
-            </Text>
-            <View style={[styles.progressBar, { backgroundColor: isDark ? '#374151' : '#e5e7eb' }]}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { width: `${progress.percentage}%`, backgroundColor: '#10b981' }
-                ]} 
-              />
+          {/* Progress Indicator */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressText}>
+                Step {progress.current} of {progress.total}
+              </Text>
+              <Text style={styles.progressPercentage}>{progress.percentage}%</Text>
             </View>
-            {confidenceScore > 0 && (
-              <Text style={[styles.confidenceText, { color: textColor }]}>
-                Confidence: {confidenceScore}%
-              </Text>
-            )}
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress.percentage}%` }]} />
+            </View>
           </View>
 
-          {/* Step Indicator */}
-          <VerificationStepIndicator steps={stepIndicatorData} isDark={isDark} />
+          {/* Verification Steps */}
+          <View style={styles.stepsContainer}>
+            {/* Location Verification Step */}
+            <View style={[
+              styles.stepCard,
+              locationStatus.status === 'success' && styles.stepCardSuccess,
+              locationStatus.status === 'failed' && styles.stepCardFailed
+            ]}>
+              <View style={styles.stepHeader}>
+                <View style={[
+                  styles.stepIcon,
+                  locationStatus.status === 'success' && styles.stepIconSuccess,
+                  locationStatus.status === 'failed' && styles.stepIconFailed,
+                  locationStatus.status === 'checking' && styles.stepIconActive
+                ]}>
+                  {locationStatus.status === 'success' ? (
+                    <Ionicons name="checkmark" size={20} color="#ffffff" />
+                  ) : locationStatus.status === 'failed' ? (
+                    <Ionicons name="close" size={20} color="#ffffff" />
+                  ) : locationStatus.status === 'checking' ? (
+                    <Ionicons name="location" size={20} color="#ffffff" />
+                  ) : (
+                    <Ionicons name="location-outline" size={20} color="#6b7280" />
+                  )}
+                </View>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepTitle}>Location Verification</Text>
+                  <Text style={styles.stepMessage}>{locationStatus.message}</Text>
+                  {locationStatus.details && (
+                    <Text style={styles.stepDetails}>{locationStatus.details}</Text>
+                  )}
+                </View>
+              </View>
+            </View>
 
-          {/* Current Status */}
-          <View style={styles.statusSection}>
-            {isProcessing ? (
-              <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-                <Text style={[styles.processingText, { color: textColor }]}>
-                  {currentStep === 'location' ? 'Verifying location...' : 'Processing...'}
-                </Text>
+            {/* Face Verification Step */}
+            <View style={[
+              styles.stepCard,
+              faceStatus.status === 'success' && styles.stepCardSuccess,
+              faceStatus.status === 'failed' && styles.stepCardFailed
+            ]}>
+              <View style={styles.stepHeader}>
+                <View style={[
+                  styles.stepIcon,
+                  faceStatus.status === 'success' && styles.stepIconSuccess,
+                  faceStatus.status === 'failed' && styles.stepIconFailed,
+                  (faceStatus.status === 'preparing' || faceStatus.status === 'detecting' || faceStatus.status === 'processing') && styles.stepIconActive
+                ]}>
+                  {faceStatus.status === 'success' ? (
+                    <Ionicons name="checkmark" size={20} color="#ffffff" />
+                  ) : faceStatus.status === 'failed' ? (
+                    <Ionicons name="close" size={20} color="#ffffff" />
+                  ) : (faceStatus.status === 'preparing' || faceStatus.status === 'detecting' || faceStatus.status === 'processing') ? (
+                    <Ionicons name="camera" size={20} color="#ffffff" />
+                  ) : (
+                    <Ionicons name="camera-outline" size={20} color="#6b7280" />
+                  )}
+                </View>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepTitle}>Face Verification</Text>
+                  <Text style={styles.stepMessage}>{faceStatus.message}</Text>
+                  {faceStatus.details && (
+                    <Text style={styles.stepDetails}>{faceStatus.details}</Text>
+                  )}
+                </View>
               </View>
-            ) : currentError ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={24} color="#ef4444" />
-                <Text style={[styles.errorText, { color: '#ef4444' }]}>
-                  {currentError}
-                </Text>
-                {canRetryCurrentStep() && (
-                  <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : summary?.status === 'completed' ? (
-              <View style={styles.successContainer}>
-                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                <Text style={[styles.successText, { color: '#10b981' }]}>
-                  Verification completed successfully!
-                </Text>
-              </View>
-            ) : (
-              <Text style={[styles.statusText, { color: textColor }]}>
-                {currentStep ? `Preparing ${currentStep} verification...` : 'Initializing...'}
-              </Text>
-            )}
+            </View>
           </View>
 
-          {/* Override Option */}
-          {canOverride && (
-            <View style={styles.overrideSection}>
-              <Text style={[styles.overrideText, { color: textColor }]}>
-                Having trouble? You can request manager override.
+          {/* Success State */}
+          {isCompleted && (
+            <View style={styles.successContainer}>
+              <Ionicons name="checkmark-circle" size={48} color="#10b981" />
+              <Text style={styles.successTitle}>Verification Complete!</Text>
+              <Text style={styles.successMessage}>
+                Your shift has been {shiftAction === 'start' ? 'started' : 'ended'} successfully.
               </Text>
+              {confidenceScore > 0 && (
+                <Text style={styles.confidenceText}>Face Confidence: {confidenceScore}%</Text>
+              )}
+            </View>
+          )}
+
+          {/* Error State */}
+          {currentError && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={24} color="#ef4444" />
+              <Text style={styles.errorText}>{currentError}</Text>
               <TouchableOpacity 
-                onPress={showOverrideOptions}
-                style={[styles.overrideButton, { borderColor }]}
+                style={styles.retryButton} 
+                onPress={() => processCurrentStep()}
               >
-                <Text style={[styles.overrideButtonText, { color: textColor }]}>
-                  Request Override
-                </Text>
+                <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            {!isCompleted && (
+              <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -479,168 +393,220 @@ export default function VerificationOrchestrator({
         mode="verify"
         onSuccess={handleFaceVerificationSuccess}
         onError={handleFaceVerificationError}
-        onCancel={() => setShowFaceModal(false)}
-        maxRetries={3}
-      />
-
-      {/* OTP Verification Modal */}
-      <OTPVerification
-        visible={showOTPModal}
-        phoneNumber="" // Will be fetched from user profile
-        purpose="manager_override"
-        onSuccess={handleOTPSuccess}
-        onCancel={() => setShowOTPModal(false)}
-        onError={(error) => {
-          setShowOTPModal(false);
-          onError(error.message || error.error || 'OTP verification failed');
+        onCancel={() => {
+          setShowFaceModal(false);
+          setCurrentError('Face verification was cancelled');
+          onCancel();
         }}
       />
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
-  container: {
-    width: '90%',
-    maxWidth: 400,
+  modalContainer: {
+    backgroundColor: '#ffffff',
     borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: height * 0.8,
     padding: 24,
-    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
   header: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  progressContainer: {
+    marginBottom: 24,
+  },
+  progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  progressSection: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
   progressText: {
     fontSize: 14,
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    backgroundColor: '#3b82f6',
+    borderRadius: 3,
   },
-  confidenceText: {
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: 'right',
+  stepsContainer: {
+    marginBottom: 24,
   },
-  stepIndicatorContainer: {
-    marginBottom: 20,
+  stepCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  stepCardSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  stepCardFailed: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e5e7eb',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 12,
   },
-  stepNumber: {
-    fontSize: 14,
-    fontWeight: '600',
+  stepIconActive: {
+    backgroundColor: '#3b82f6',
   },
-  stepInfo: {
-    marginBottom: 16,
+  stepIconSuccess: {
+    backgroundColor: '#10b981',
+  },
+  stepIconFailed: {
+    backgroundColor: '#ef4444',
+  },
+  stepContent: {
+    flex: 1,
   },
   stepTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  stepMessage: {
+    fontSize: 14,
+    color: '#374151',
     marginBottom: 2,
   },
-  stepStatus: {
+  stepDetails: {
     fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
-  stepConnector: {
-    width: 2,
-    height: 16,
-    marginLeft: 15,
+  successContainer: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#10b981',
+    marginTop: 12,
     marginBottom: 8,
   },
-  statusSection: {
-    marginBottom: 20,
-    minHeight: 60,
-    justifyContent: 'center',
-  },
-  processingContainer: {
-    alignItems: 'center',
-  },
-  processingText: {
-    marginTop: 12,
+  successMessage: {
     fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  confidenceText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10b981',
   },
   errorContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    marginBottom: 24,
   },
   errorText: {
-    marginTop: 8,
+    marginLeft: 12,
     fontSize: 14,
-    textAlign: 'center',
+    fontWeight: '500',
+    color: '#ef4444',
+    flex: 1,
   },
   retryButton: {
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#3b82f6',
-    borderRadius: 8,
+    borderRadius: 6,
+    alignSelf: 'center',
   },
   retryButtonText: {
-    color: 'white',
     fontSize: 14,
     fontWeight: '500',
+    color: '#ffffff',
   },
-  successContainer: {
+  actionButtons: {
     alignItems: 'center',
   },
-  successText: {
-    marginTop: 8,
+  cancelButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  cancelButtonText: {
     fontSize: 16,
     fontWeight: '500',
-  },
-  statusText: {
-    fontSize: 14,
+    color: '#6b7280',
     textAlign: 'center',
-  },
-  overrideSection: {
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-  },
-  overrideText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  overrideButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  overrideButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
+
+export default VerificationOrchestrator;

@@ -97,9 +97,9 @@ export function CountdownTimer({
           {seconds}
         </Text>
       </View>
-      {showText && (
+      {/* {showText && (
         <Text style={styles.countdownLabel}>Blink when ready</Text>
-      )}
+      )} */}
     </View>
   );
 }

@@ -126,6 +126,7 @@ export interface UseFaceDetectionReturn {
   // CRITICAL FIX: Camera keep-alive functions to prevent native view detachment
   enableCameraKeepAlive: () => void; // Enable camera keep-alive during critical transitions
   disableCameraKeepAlive: () => void; // Disable camera keep-alive after completion
+  refreshCameraReference: () => boolean; // Proactive camera recovery function
 }
 
 export interface FaceVerificationResult {
