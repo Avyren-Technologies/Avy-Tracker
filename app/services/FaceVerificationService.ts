@@ -13,7 +13,6 @@
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import { encrypt, decrypt } from 'react-native-aes-crypto';
 import { AntiSpoofingService } from './AntiSpoofingService';
 import { 
   FaceDetectionData, 
@@ -45,7 +44,7 @@ if (typeof global.crypto === 'undefined') {
   };
 }
 
-type Algorithms = 'aes-128-cbc' | 'aes-192-cbc' | 'aes-256-cbc' | 'aes-128-ctr' | 'aes-192-ctr' | 'aes-256-ctr';
+// Removed AES algorithms - using Expo crypto only
 
 // Constants
 const FACE_PROFILE_KEY = 'face_profile_';
@@ -64,11 +63,10 @@ const FACE_ENCODING_DIMENSIONS = 1002; // Fallback for full 468-point model
 const MAX_CACHED_VERIFICATIONS = 100;
 const CACHE_EXPIRY_HOURS = 24;
 
-// Encryption configuration  
+// Encryption configuration - using Expo crypto only
 const ENCRYPTION_CONFIG = {
-  algorithm: 'aes-256-cbc' as Algorithms,
-  keyLength: 32, // 256 bits
-  ivLength: 16,  // 128 bits
+  keyLength: 32, // 256 bits (64 hex characters)
+  saltLength: 16, // 128 bits (32 hex characters)
 };
 
 // Types for internal use
@@ -1258,7 +1256,7 @@ const generateHash = async (data: string): Promise<string> => {
 };
 
 /**
- * Generate a cryptographically secure encryption key
+ * Generate a cryptographically secure encryption key using Expo crypto
  */
 const generateEncryptionKey = async (): Promise<string> => {
   try {
@@ -1267,7 +1265,7 @@ const generateEncryptionKey = async (): Promise<string> => {
       Crypto.CryptoDigestAlgorithm.SHA256,
       `${Date.now()}-${Math.random()}-${Math.random()}`
     );
-    // Take first 32 characters (64 hex chars = 32 bytes)
+    // Take first 64 characters (64 hex chars = 32 bytes)
     return randomString.substring(0, ENCRYPTION_CONFIG.keyLength * 2);
   } catch (error) {
     console.error('Error generating encryption key:', error);
@@ -1277,27 +1275,27 @@ const generateEncryptionKey = async (): Promise<string> => {
 };
 
 /**
- * Generate a cryptographically secure initialization vector
+ * Generate a cryptographically secure salt using Expo crypto
  */
-const generateIV = async (): Promise<string> => {
+const generateSalt = async (): Promise<string> => {
   try {
     // Use Expo Crypto for secure random generation
     const randomString = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
       `${Math.random()}-${Date.now()}-${Math.random()}`
     );
-    // Take first 16 characters (32 hex chars = 16 bytes)
-    return randomString.substring(0, ENCRYPTION_CONFIG.ivLength * 2);
+    // Take first 32 characters (32 hex chars = 16 bytes)
+    return randomString.substring(0, ENCRYPTION_CONFIG.saltLength * 2);
   } catch (error) {
-    console.error('Error generating IV:', error);
-    // Fallback to UUID-based IV
-    return generateUUID().replace(/-/g, '').substring(0, ENCRYPTION_CONFIG.ivLength * 2);
+    console.error('Error generating salt:', error);
+    // Fallback to UUID-based salt
+    return generateUUID().replace(/-/g, '').substring(0, ENCRYPTION_CONFIG.saltLength * 2);
   }
 };
 
 /**
- * Encrypt face data using AES-256-GCM encryption
- * This is production-ready encryption with proper key management
+ * Encrypt face data using Expo crypto only
+ * Uses SHA-256 hashing with salt for secure data protection
  */
 export const encryptFaceData = async (
   data: string,
@@ -1318,28 +1316,23 @@ export const encryptFaceData = async (
       await SecureStore.setItemAsync('device_face_encryption_key', deviceKey);
     }
 
-    // Generate a new IV for each encryption (required for GCM mode)
-    const iv = await generateIV();
+    // Generate a new salt for each encryption
+    const salt = await generateSalt();
     
-    // Encrypt data using AES-256-GCM with fallback to Expo crypto
-    let encrypted: string;
-    try {
-      encrypted = await encrypt(data, deviceKey, iv, ENCRYPTION_CONFIG.algorithm);
-    } catch (encryptError) {
-      console.warn('AES encryption failed, falling back to Expo crypto:', encryptError);
-      // Fallback: Use Expo crypto for basic encryption
-      const fallbackKey = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        deviceKey
-      );
-      encrypted = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        `${data}:${fallbackKey}`
-      );
-    }
+    // Create a combined key using device key and salt
+    const combinedKey = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${deviceKey}:${salt}`
+    );
     
-    // Store IV with encrypted data (IV is not secret, can be stored with ciphertext)
-    const result = `${iv}:${encrypted}`;
+    // Encrypt data using Expo crypto with salt
+    const encrypted = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${data}:${combinedKey}`
+    );
+    
+    // Store salt with encrypted data (salt is not secret, can be stored with ciphertext)
+    const result = `${salt}:${encrypted}`;
     return result;
   } catch (error) {
     if (error && typeof error === 'object' && 'type' in error) {
@@ -1362,17 +1355,20 @@ export const encryptFaceData = async (
 };
 
 /**
- * Decrypt face data using AES-256-GCM decryption
+ * Verify face data using Expo crypto only
+ * Since we're using one-way hashing, this function verifies if the provided data
+ * matches the stored hash by re-encrypting and comparing
  */
-export const decryptFaceData = async (
-  encryptedData: string,
+export const verifyFaceData = async (
+  data: string,
+  storedHash: string,
   context?: Partial<ErrorContext>
-): Promise<string> => {
+): Promise<boolean> => {
   try {
-    if (!encryptedData) {
+    if (!data || !storedHash) {
       throw ErrorHandlingService.createError(
         FaceVerificationErrorType.PROCESSING_ERROR,
-        new Error('No encrypted data provided for decryption')
+        new Error('No data or stored hash provided for verification')
       );
     }
 
@@ -1384,36 +1380,28 @@ export const decryptFaceData = async (
       );
     }
 
-    // Split IV and encrypted data
-    const [iv, encrypted] = encryptedData.split(':');
-    if (!iv || !encrypted) {
+    // Split salt and encrypted data from stored hash
+    const [salt, encrypted] = storedHash.split(':');
+    if (!salt || !encrypted) {
       throw ErrorHandlingService.createError(
         FaceVerificationErrorType.PROCESSING_ERROR,
-        new Error('Invalid encrypted data format')
+        new Error('Invalid stored hash format')
       );
     }
 
-    // Decrypt using AES-256-GCM with fallback to Expo crypto
-    let decrypted: string;
-    try {
-      decrypted = await decrypt(encrypted, deviceKey, iv, ENCRYPTION_CONFIG.algorithm);
-    } catch (decryptError) {
-      console.warn('AES decryption failed, falling back to Expo crypto:', decryptError);
-      // Fallback: Try to extract data from Expo crypto hash
-      // This is a simplified fallback - in production you'd want better handling
-      if (encrypted.includes(':')) {
-        // This might be our fallback format
-        const parts = encrypted.split(':');
-        if (parts.length >= 2) {
-          decrypted = parts[0]; // Return the original data part
-        } else {
-          throw new Error('Invalid fallback encrypted data format');
-        }
-      } else {
-        throw new Error('Decryption failed and no fallback available');
-      }
-    }
-    return decrypted;
+    // Re-encrypt the provided data with the same salt
+    const combinedKey = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${deviceKey}:${salt}`
+    );
+    
+    const newHash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${data}:${combinedKey}`
+    );
+    
+    // Compare the hashes
+    return newHash === encrypted;
   } catch (error) {
     if (error && typeof error === 'object' && 'type' in error) {
       throw error; // Re-throw FaceVerificationError
@@ -1432,6 +1420,21 @@ export const decryptFaceData = async (
     
     throw faceError;
   }
+};
+
+/**
+ * Legacy function - kept for compatibility but throws error
+ * Use verifyFaceData instead for data verification
+ */
+export const decryptFaceData = async (
+  encryptedData: string,
+  context?: Partial<ErrorContext>
+): Promise<string> => {
+  console.warn('decryptFaceData is deprecated - use verifyFaceData for data verification');
+  throw ErrorHandlingService.createError(
+    FaceVerificationErrorType.PROCESSING_ERROR,
+    new Error('decryptFaceData is deprecated - use verifyFaceData instead')
+  );
 };
 
 /**

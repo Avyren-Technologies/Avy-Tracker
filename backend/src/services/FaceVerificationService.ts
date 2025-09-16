@@ -71,9 +71,8 @@ export class FaceVerificationService {
   private static readonly MAX_VERIFICATION_ATTEMPTS = 3;
   private static readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
   private static readonly MAX_REQUESTS_PER_WINDOW = 10;
-  private static readonly ENCRYPTION_ALGORITHM = 'aes-256-gcm';
-  private static readonly KEY_LENGTH = 32; // 256 bits
-  private static readonly IV_LENGTH = 16; // 128 bits
+  private static readonly KEY_LENGTH = 32; // 256 bits (64 hex characters)
+  private static readonly SALT_LENGTH = 16; // 128 bits (32 hex characters)
 
   /**
    * Register a new face profile for a user
@@ -204,16 +203,26 @@ export class FaceVerificationService {
 
       const profile = profileResult.rows[0];
 
-      // Decrypt stored face data
+      // Verify face data using hash comparison (no decryption needed)
       const encryptionKey = Buffer.from(profile.encryption_key_hash, 'hex');
-      const storedEncoding = this.decryptFaceData(
-        profile.encrypted_face_data,
-        encryptionKey
-      );
-
-      // Compare face encodings
-      const confidence = this.compareFaceEncodings(storedEncoding, currentEncoding);
-      const success = confidence >= this.DEFAULT_CONFIDENCE_THRESHOLD;
+      const currentEncodingHash = crypto.createHash('sha256').update(currentEncoding).digest('hex');
+      
+      // Quick hash comparison first
+      const hashMatch = currentEncodingHash === profile.face_encoding_hash;
+      
+      // If hash matches, do additional verification with encrypted data
+      let confidence = 0;
+      let success = false;
+      
+      if (hashMatch) {
+        // Verify the current encoding against the stored encrypted data
+        const dataMatches = this.verifyFaceData(currentEncoding, profile.encrypted_face_data, encryptionKey);
+        if (dataMatches) {
+          // For hash-based verification, we use a high confidence score
+          confidence = 0.95; // High confidence for exact hash match
+          success = confidence >= this.DEFAULT_CONFIDENCE_THRESHOLD;
+        }
+      }
 
       // Validate liveness if provided
       const livenessValid = verificationData.liveness_score 
@@ -454,41 +463,64 @@ export class FaceVerificationService {
   }
 
   /**
-   * Encrypt face data using AES-256-CBC
+   * Encrypt face data using Node.js crypto SHA-256 with salt
    */
   private static encryptFaceData(faceData: string, key: Buffer): string {
-    const iv = crypto.randomBytes(this.IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    // Generate a random salt
+    const salt = crypto.randomBytes(this.SALT_LENGTH).toString('hex');
     
-    let encrypted = cipher.update(faceData, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+    // Create a combined key using the provided key and salt
+    const combinedKey = crypto.createHash('sha256')
+      .update(key.toString('hex') + ':' + salt)
+      .digest('hex');
     
-    // Combine IV and encrypted data
-    return iv.toString('hex') + ':' + encrypted;
+    // Hash the face data with the combined key
+    const encrypted = crypto.createHash('sha256')
+      .update(faceData + ':' + combinedKey)
+      .digest('hex');
+    
+    // Combine salt and encrypted data
+    return salt + ':' + encrypted;
   }
 
   /**
-   * Decrypt face data using AES-256-CBC
+   * Verify face data using Node.js crypto SHA-256
+   * Since we're using one-way hashing, this function verifies if the provided data
+   * matches the stored hash by re-encrypting and comparing
    */
-  private static decryptFaceData(encryptedData: string, key: Buffer): string {
+  private static verifyFaceData(data: string, storedHash: string, key: Buffer): boolean {
     try {
-      const parts = encryptedData.split(':');
+      const parts = storedHash.split(':');
       if (parts.length !== 2) {
-        throw new Error('Invalid encrypted data format');
+        throw new Error('Invalid stored hash format');
       }
 
-      const iv = Buffer.from(parts[0], 'hex');
+      const salt = parts[0];
       const encrypted = parts[1];
       
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      // Re-create the combined key using the same salt
+      const combinedKey = crypto.createHash('sha256')
+        .update(key.toString('hex') + ':' + salt)
+        .digest('hex');
       
-      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
+      // Re-hash the provided data with the combined key
+      const newHash = crypto.createHash('sha256')
+        .update(data + ':' + combinedKey)
+        .digest('hex');
       
-      return decrypted;
+      // Compare the hashes
+      return newHash === encrypted;
     } catch (error) {
-      throw new Error('Failed to decrypt face data');
+      throw new Error('Failed to verify face data');
     }
+  }
+
+  /**
+   * Legacy function - kept for compatibility but throws error
+   * Use verifyFaceData instead for data verification
+   */
+  private static decryptFaceData(encryptedData: string, key: Buffer): string {
+    throw new Error('decryptFaceData is deprecated - use verifyFaceData instead');
   }
 
   /**

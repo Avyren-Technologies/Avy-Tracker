@@ -197,7 +197,7 @@ COMMENT ON TABLE biometric_audit_logs IS 'Compliance and security audit trail fo
 COMMENT ON TABLE device_fingerprints IS 'Device tracking and validation for fraud detection and security';
 
 -- 12. Add column comments for important fields
-COMMENT ON COLUMN face_verification_profiles.encrypted_face_data IS 'AES-256 encrypted face encoding data using device-specific keys';
+COMMENT ON COLUMN face_verification_profiles.encrypted_face_data IS 'SHA-256 hashed face encoding data with salt using device-specific keys';
 COMMENT ON COLUMN face_verification_profiles.face_encoding_hash IS 'SHA-256 hash for quick face encoding comparison without decryption';
 COMMENT ON COLUMN face_verification_logs.confidence_score IS 'Face verification confidence score (0.0-1.0), higher is more confident';
 COMMENT ON COLUMN face_verification_logs.liveness_score IS 'Liveness detection confidence (0.0-1.0), higher indicates real person';

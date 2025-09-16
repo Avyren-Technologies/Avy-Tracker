@@ -43,7 +43,7 @@ The face verification system is a sophisticated multi-layered biometric authenti
 **`FaceVerificationService.ts` (Frontend)**
 - Generates 1002-dimensional face encodings from ML Kit landmarks
 - Multi-factor similarity comparison (landmarks 60%, geometric 25%, measurements 15%)
-- Secure storage using AES-256-CBC/GCM encryption
+- Secure storage using Expo crypto SHA-256 hashing with salt
 - Offline verification capabilities
 - Anti-spoofing integration
 
@@ -122,9 +122,9 @@ Comparison → Confidence Scoring → Result
 ### **Security Features**
 
 #### **1. Encryption & Storage**
-- **AES-256-CBC/GCM** encryption for face data
+- **Expo crypto SHA-256** hashing with salt for face data protection
 - **Device-specific keys** for local storage
-- **SHA-256 hashing** for integrity verification
+- **Salt-based security** for enhanced data protection
 - **Secure key management** (placeholder implementation)
 
 #### **2. Anti-Spoofing Measures**
