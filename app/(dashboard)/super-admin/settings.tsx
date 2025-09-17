@@ -18,6 +18,7 @@ import AuthContext from "../../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
+import biometricAuthService, { BiometricSettings } from "../../utils/biometricAuth";
 
 interface SettingItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -34,6 +35,12 @@ export default function SuperAdminSettings() {
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   const [modalAnimation] = React.useState(new Animated.Value(0));
+  const [biometricSettings, setBiometricSettings] = React.useState<BiometricSettings>({
+    enabled: false,
+    required: false,
+  });
+  const [biometricAvailable, setBiometricAvailable] = React.useState(false);
+  const [biometricType, setBiometricType] = React.useState<string>('');
 
   React.useEffect(() => {
     if (showLogoutModal) {
@@ -50,6 +57,82 @@ export default function SuperAdminSettings() {
       }).start();
     }
   }, [showLogoutModal]);
+
+  React.useEffect(() => {
+    checkBiometricAvailability();
+    loadBiometricSettings();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    try {
+      const isAvailable = await biometricAuthService.isBiometricAvailable();
+      setBiometricAvailable(isAvailable);
+      
+      if (isAvailable) {
+        const type = await biometricAuthService.getPrimaryBiometricType();
+        setBiometricType(type);
+      }
+    } catch (error) {
+      console.error('Error checking biometric availability:', error);
+    }
+  };
+
+  const loadBiometricSettings = async () => {
+    try {
+      const settings = await biometricAuthService.getBiometricSettings();
+      setBiometricSettings(settings);
+    } catch (error) {
+      console.error('Error loading biometric settings:', error);
+    }
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        // Test biometric authentication before enabling
+        const result = await biometricAuthService.authenticateUser(
+          'Authenticate to enable biometric login'
+        );
+        
+        if (result.success) {
+          await biometricAuthService.setBiometricEnabled(true);
+          setBiometricSettings(prev => ({ ...prev, enabled: true }));
+        } else {
+          Alert.alert('Authentication Failed', result.error || 'Please try again');
+        }
+      } else {
+        await biometricAuthService.setBiometricEnabled(false);
+        setBiometricSettings(prev => ({ ...prev, enabled: false, required: false }));
+      }
+    } catch (error) {
+      console.error('Error toggling biometric:', error);
+      Alert.alert('Error', 'Failed to update biometric settings');
+    }
+  };
+
+  const handleBiometricRequiredToggle = async (required: boolean) => {
+    try {
+      if (required) {
+        // Test biometric authentication before requiring it
+        const result = await biometricAuthService.authenticateUser(
+          'Authenticate to require biometric login'
+        );
+        
+        if (result.success) {
+          await biometricAuthService.setBiometricRequired(true);
+          setBiometricSettings(prev => ({ ...prev, required: true }));
+        } else {
+          Alert.alert('Authentication Failed', result.error || 'Please try again');
+        }
+      } else {
+        await biometricAuthService.setBiometricRequired(false);
+        setBiometricSettings(prev => ({ ...prev, required: false }));
+      }
+    } catch (error) {
+      console.error('Error toggling biometric required:', error);
+      Alert.alert('Error', 'Failed to update biometric settings');
+    }
+  };
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -138,6 +221,25 @@ export default function SuperAdminSettings() {
           isSwitch: true,
           value: theme === "dark",
         },
+      ],
+    },
+    {
+      title: "Security",
+      items: [
+        {
+          icon: biometricAuthService.getBiometricIconName(biometricType) as keyof typeof Ionicons.glyphMap,
+          label: biometricAuthService.getBiometricTypeName(biometricType) + " Authentication",
+          action: () => {},
+          isSwitch: true,
+          value: biometricSettings.enabled,
+        },
+        ...(biometricSettings.enabled ? [{
+          icon: "shield-checkmark-outline" as keyof typeof Ionicons.glyphMap,
+          label: "Require Biometric Login",
+          action: () => {},
+          isSwitch: true,
+          value: biometricSettings.required,
+        }] : []),
       ],
     },
   ];
@@ -234,7 +336,15 @@ export default function SuperAdminSettings() {
                   {item.isSwitch ? (
                     <Switch
                       value={item.value}
-                      onValueChange={item.action}
+                      onValueChange={(value) => {
+                        if (item.label.includes("Authentication")) {
+                          handleBiometricToggle(value);
+                        } else if (item.label.includes("Require Biometric")) {
+                          handleBiometricRequiredToggle(value);
+                        } else if (item.label.includes("Dark Mode")) {
+                          item.action();
+                        }
+                      }}
                       trackColor={{
                         false: theme === "dark" ? "#4B5563" : "#D1D5DB",
                         true: "#60A5FA",

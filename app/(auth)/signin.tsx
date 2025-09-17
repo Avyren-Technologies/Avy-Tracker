@@ -10,6 +10,8 @@ import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTokenDebugInfo, repairTokenIssues } from '../utils/tokenDebugger';
+import MFAVerification from './components/MFAVerification';
+import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,6 +20,9 @@ const AUTH_TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const USER_DATA_KEY = "user_data";
 const LAST_ONLINE_LOGIN_KEY = "last_online_login";
+
+// API URL
+const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 export default function SignIn() {
     const { theme } = ThemeContext.useTheme();
@@ -37,6 +42,11 @@ export default function SignIn() {
     });
     const [offlineLoginAvailable, setOfflineLoginAvailable] = useState(false);
     const [checkingOfflineLogin, setCheckingOfflineLogin] = useState(false);
+
+    // MFA-related state
+    const [showMFA, setShowMFA] = useState(false);
+    const [mfaSessionId, setMfaSessionId] = useState('');
+    const [mfaEmail, setMfaEmail] = useState('');
 
     // Animation values
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -344,9 +354,24 @@ export default function SignIn() {
         }
 
         try {
+            console.log('Attempting login with identifier:', identifier);
+            console.log('API URL:', API_URL);
+            
+            // Use the login function from AuthContext which now handles MFA
             const result = await login(identifier, password);
-
+            
             if (result.error) {
+                console.log('Login error:', result.error, 'Type:', result.errorType);
+                
+                // Handle MFA requirement
+                if (result.errorType === "MFA_REQUIRED") {
+                    setMfaSessionId(result.sessionId || '');
+                    setMfaEmail(result.email || '');
+                    setShowMFA(true);
+                    setError(null);
+                    return;
+                }
+                
                 // Handle known error types
                 switch (result.errorType) {
                     case "COMPANY_DISABLED":
@@ -420,8 +445,17 @@ export default function SignIn() {
                             details: "Please try again or contact support if the issue persists"
                         });
                 }
+            } else {
+                console.log('Login successful, no errors');
             }
         } catch (error: any) {
+            console.error('Sign in error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                response: error.response?.status,
+                responseData: error.response?.data
+            });
             console.error("Sign in error:", error);
             
             // Handle various error types
@@ -531,6 +565,62 @@ export default function SignIn() {
         }
     };
 
+    // MFA verification handlers
+    const handleMFASuccess = async (tokens: { accessToken: string; refreshToken: string; user: any }) => {
+        try {
+            // Store tokens and user data
+            await Promise.all([
+                AsyncStorage.setItem(AUTH_TOKEN_KEY, tokens.accessToken),
+                AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken),
+                AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(tokens.user)),
+                AsyncStorage.setItem(LAST_ONLINE_LOGIN_KEY, Date.now().toString()),
+            ]);
+
+            // Also store in SecureStore for better security
+            if (Platform.OS !== 'web') {
+                try {
+                    await Promise.all([
+                        SecureStore.setItemAsync(AUTH_TOKEN_KEY, tokens.accessToken),
+                        SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refreshToken),
+                        SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(tokens.user)),
+                    ]);
+                } catch (secureError) {
+                    console.error("Error storing in SecureStore:", secureError);
+                }
+            }
+
+            // Navigate to appropriate dashboard
+            switch (tokens.user.role) {
+                case "employee":
+                    router.replace("/(dashboard)/employee/employee");
+                    break;
+                case "group-admin":
+                    router.replace("/(dashboard)/Group-Admin/group-admin");
+                    break;
+                case "management":
+                    router.replace("/(dashboard)/management/management");
+                    break;
+                case "super-admin":
+                    router.replace("/(dashboard)/super-admin/super-admin");
+                    break;
+            }
+        } catch (error) {
+            console.error("Error handling MFA success:", error);
+            setError({
+                message: "Failed to complete login",
+                type: "MFA_ERROR",
+                details: "Please try again"
+            });
+        }
+    };
+
+    const handleMFABack = () => {
+        setShowMFA(false);
+        setMfaSessionId('');
+        setMfaEmail('');
+        setError(null);
+    };
+
     // Mount animation
     useState(() => {
         Animated.parallel([
@@ -558,310 +648,273 @@ export default function SignIn() {
                 barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
                 backgroundColor={currentColors.background}
             />
-            <TouchableOpacity
-                activeOpacity={1}
-                onPress={Keyboard.dismiss}
-                style={{
-                    flex: 1,
-                }}
-            >
-                {/* Main background */}
-                <View style={{
-                    flex: 1,
-                    backgroundColor: currentColors.background,
-                }}>
-                    {/* Subtle gradient overlay */}
-                <LinearGradient
-                        colors={[
-                            currentColors.background,
-                            theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.02)',
-                            currentColors.background
-                        ]}
-                        style={{ 
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                        }}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    />
-                    
-                    {/* Floating geometric shapes */}
-                    <View style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                        {/* Blue circle */}
-                        <Animated.View
-                            style={{
+            
+            {/* Show MFA verification if needed */}
+            {showMFA ? (
+                <MFAVerification
+                    email={mfaEmail}
+                    sessionId={mfaSessionId}
+                    onVerificationSuccess={handleMFASuccess}
+                    onBack={handleMFABack}
+                />
+            ) : (
+                <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={Keyboard.dismiss}
+                    style={{
+                        flex: 1,
+                    }}
+                >
+                    {/* Main background */}
+                    <View style={{
+                        flex: 1,
+                        backgroundColor: currentColors.background,
+                    }}>
+                        {/* Subtle gradient overlay */}
+                    <LinearGradient
+                            colors={[
+                                currentColors.background,
+                                theme === 'dark' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.02)',
+                                currentColors.background
+                            ]}
+                            style={{ 
                                 position: 'absolute',
-                                top: height * 0.1,
-                                right: width * 0.1,
-                                width: 60,
-                                height: 60,
-                                borderRadius: 30,
-                                backgroundColor: currentColors.primary,
-                                opacity: 0.15,
-                                transform: [{ translateY: floatingOffset }],
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
                             }}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
                         />
                         
-                        {/* Sky square */}
-                        <Animated.View
-                            style={{
-                                position: 'absolute',
-                                bottom: height * 0.3,
-                                left: width * 0.1,
-                                width: 40,
-                                height: 40,
-                                borderRadius: 8,
-                                backgroundColor: currentColors.secondary,
-                                opacity: 0.2,
-                                transform: [{ translateY: floatingOffset.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, -15],
-                                }) }],
-                            }}
-                        />
-                        
-                        {/* Indigo triangle */}
-                        <Animated.View
-                            style={{
-                                position: 'absolute',
-                                top: height * 0.7,
-                                right: width * 0.2,
-                                width: 0,
-                                height: 0,
-                                borderLeftWidth: 20,
-                                borderRightWidth: 20,
-                                borderBottomWidth: 35,
-                                borderLeftColor: 'transparent',
-                                borderRightColor: 'transparent',
-                                borderBottomColor: currentColors.accent,
-                                opacity: 0.1,
-                                transform: [{ translateY: floatingOffset.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, 10],
-                                }) }],
-                            }}
-                        />
-                    </View>
-                    
-                    <ScrollView
-                        contentContainerStyle={{ flexGrow: 1 }}
-                        keyboardShouldPersistTaps="handled"
-                        showsVerticalScrollIndicator={false}
-                    >
-                        <Animated.View
-                            style={{
-                                flex: 1,
-                                padding: 24,
-                                opacity: fadeAnim,
-                                transform: [{ translateY: slideAnim }],
-                            }}
-                        >
-                            {/* Logo Section */}
-                            <View style={{
-                                alignItems: 'center',
-                                marginTop: 60,
-                                marginBottom: 40,
-                            }}>
-                                {/* Glow effect */}
-                                <View style={{
+                        {/* Floating geometric shapes */}
+                        <View style={{ position: 'absolute', width: '100%', height: '100%' }}>
+                            {/* Blue circle */}
+                            <Animated.View
+                                style={{
                                     position: 'absolute',
-                                    width: 200,
-                                    height: 200,
-                                    borderRadius: 100,
+                                    top: height * 0.1,
+                                    right: width * 0.1,
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 30,
                                     backgroundColor: currentColors.primary,
+                                    opacity: 0.15,
+                                    transform: [{ translateY: floatingOffset }],
+                                }}
+                            />
+                            
+                            {/* Sky square */}
+                            <Animated.View
+                                style={{
+                                    position: 'absolute',
+                                    bottom: height * 0.3,
+                                    left: width * 0.1,
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: 8,
+                                    backgroundColor: currentColors.secondary,
                                     opacity: 0.2,
-                                    transform: [{ scale: 1.2 }],
-                                }} />
-                                
-                                {/* Main logo container */}
+                                    transform: [{ translateY: floatingOffset.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, -15],
+                                    }) }],
+                                }}
+                            />
+                            
+                            {/* Indigo triangle */}
+                            <Animated.View
+                                style={{
+                                    position: 'absolute',
+                                    top: height * 0.7,
+                                    right: width * 0.2,
+                                    width: 0,
+                                    height: 0,
+                                    borderLeftWidth: 20,
+                                    borderRightWidth: 20,
+                                    borderBottomWidth: 35,
+                                    borderLeftColor: 'transparent',
+                                    borderRightColor: 'transparent',
+                                    borderBottomColor: currentColors.accent,
+                                    opacity: 0.1,
+                                    transform: [{ translateY: floatingOffset.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, 10],
+                                    }) }],
+                                }}
+                            />
+                        </View>
+                        
+                        <ScrollView
+                            contentContainerStyle={{ flexGrow: 1 }}
+                            keyboardShouldPersistTaps="handled"
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <Animated.View
+                                style={{
+                                    flex: 1,
+                                    padding: 24,
+                                    opacity: fadeAnim,
+                                    transform: [{ translateY: slideAnim }],
+                                }}
+                            >
+                                {/* Logo Section */}
                                 <View style={{
-                                    width: 140,
-                                    height: 140,
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: 70,
-                                    backgroundColor: currentColors.surface,
-                                    marginBottom: 24,
-                                    shadowColor: currentColors.primary,
-                                    shadowOffset: { width: 0, height: 8 },
-                                    shadowOpacity: 0.2,
-                                    shadowRadius: 16,
-                                    elevation: 8,
-                                    borderWidth: 3,
-                                    borderColor: currentColors.primary,
+                                    marginTop: 60,
+                                    marginBottom: 40,
                                 }}>
-                                    <Image
-                                        source={require('../../assets/images/adaptive-icon.png')}
-                                        style={{
-                                            width: 100,
-                                            height: 100,
-                                        }}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                                <Text style={{
-                                    fontSize: 32,
-                                    fontWeight: '800',
-                                    color: currentColors.text,
-                                    marginBottom: 8,
-                                    textShadowColor: theme === 'dark' 
-                                        ? 'rgba(0, 0, 0, 0.5)' 
-                                        : 'rgba(255, 255, 255, 0.8)',
-                                    textShadowOffset: { width: 0, height: 2 },
-                                    textShadowRadius: 4,
-                                    letterSpacing: 1,
-                                }}>
-                                    Welcome Back
-                                </Text>
-                                <Text style={{
-                                    fontSize: 16,
-                                    color: currentColors.textSecondary,
-                                    textAlign: 'center',
-                                    letterSpacing: 0.5,
-                                    fontWeight: '500',
-                                }}>
-                                    Sign in to continue to Avy Tracker
-                                </Text>
-                            </View>
-
-                            {/* Network Status Indicator */}
-                            {(!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
-                                <View style={[styles.networkErrorContainer, {
-                                    backgroundColor: theme === 'dark' 
-                                        ? 'rgba(239, 68, 68, 0.1)' 
-                                        : 'rgba(239, 68, 68, 0.05)',
-                                    borderColor: currentColors.error,
-                                }]}>
-                                    <Ionicons name="wifi" size={24} color={currentColors.error} />
-                                    <Text style={[styles.networkErrorText, { color: currentColors.error }]}>
-                                        No internet connection. {offlineLoginAvailable ? 'Offline login available.' : ''}
+                                    {/* Glow effect */}
+                                    <View style={{
+                                        position: 'absolute',
+                                        width: 200,
+                                        height: 200,
+                                        borderRadius: 100,
+                                        backgroundColor: currentColors.primary,
+                                        opacity: 0.2,
+                                        transform: [{ scale: 1.2 }],
+                                    }} />
+                                    
+                                    {/* Main logo container */}
+                                    <View style={{
+                                        width: 140,
+                                        height: 140,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: 70,
+                                        backgroundColor: currentColors.surface,
+                                        marginBottom: 24,
+                                        shadowColor: currentColors.primary,
+                                        shadowOffset: { width: 0, height: 8 },
+                                        shadowOpacity: 0.2,
+                                        shadowRadius: 16,
+                                        elevation: 8,
+                                        borderWidth: 3,
+                                        borderColor: currentColors.primary,
+                                    }}>
+                                        <Image
+                                            source={require('../../assets/images/adaptive-icon.png')}
+                                            style={{
+                                                width: 100,
+                                                height: 100,
+                                            }}
+                                            resizeMode="contain"
+                                        />
+                                    </View>
+                                    <Text style={{
+                                        fontSize: 32,
+                                        fontWeight: '800',
+                                        color: currentColors.text,
+                                        marginBottom: 8,
+                                        textShadowColor: theme === 'dark' 
+                                            ? 'rgba(0, 0, 0, 0.5)' 
+                                            : 'rgba(255, 255, 255, 0.8)',
+                                        textShadowOffset: { width: 0, height: 2 },
+                                        textShadowRadius: 4,
+                                        letterSpacing: 1,
+                                    }}>
+                                        Welcome Back
+                                    </Text>
+                                    <Text style={{
+                                        fontSize: 16,
+                                        color: currentColors.textSecondary,
+                                        textAlign: 'center',
+                                        letterSpacing: 0.5,
+                                        fontWeight: '500',
+                                    }}>
+                                        Sign in to continue to Avy Tracker
                                     </Text>
                                 </View>
-                            )}
 
-                            {/* Offline Mode Banner */}
-                            {isOffline && (
-                                <View style={[
-                                    styles.offlineBanner,
-                                    { 
+                                {/* Network Status Indicator */}
+                                {(!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
+                                    <View style={[styles.networkErrorContainer, {
                                         backgroundColor: theme === 'dark' 
                                             ? 'rgba(239, 68, 68, 0.1)' 
                                             : 'rgba(239, 68, 68, 0.05)',
                                         borderColor: currentColors.error,
-                                    }
-                                ]}>
-                                    <Ionicons name="cloud-offline" size={22} color={currentColors.error} />
-                                    <Text style={[
-                                        styles.offlineBannerText,
-                                        { color: currentColors.error }
-                                    ]}>
-                                        App is in offline mode. Some features may be limited.
-                                    </Text>
-                                </View>
-                            )}
-
-                            {/* Form Section */}
-                            <Animated.View style={{
-                                transform: [{ translateX: inputFocusAnim }]
-                            }}>
-                                {/* Show offline login option if available */}
-                                {offlineLoginAvailable && (!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
-                                    <TouchableOpacity
-                                        style={[styles.offlineLoginButton, {
-                                            backgroundColor: theme === 'dark' 
-                                                ? 'rgba(59, 130, 246, 0.2)' 
-                                                : 'rgba(59, 130, 246, 0.1)',
-                                            borderColor: currentColors.primary,
-                                        }]}
-                                        onPress={handleOfflineLogin}
-                                    >
-                                        <Ionicons 
-                                            name="cloud-offline-outline" 
-                                            size={24} 
-                                            color={currentColors.primary} 
-                                            style={{ marginRight: 8 }}
-                                        />
-                                        <Text style={[styles.offlineLoginButtonText, { color: currentColors.primary }]}>
-                                            Continue with Saved Credentials
+                                    }]}>
+                                        <Ionicons name="wifi" size={24} color={currentColors.error} />
+                                        <Text style={[styles.networkErrorText, { color: currentColors.error }]}>
+                                            No internet connection. {offlineLoginAvailable ? 'Offline login available.' : ''}
                                         </Text>
-                                    </TouchableOpacity>
+                                    </View>
                                 )}
-                                
-                                <View style={{ marginBottom: 16 }}>
-                                    <Text style={{
-                                        marginBottom: 8,
-                                        color: currentColors.text,
-                                        fontSize: 14,
-                                        fontWeight: '600',
-                                    }}>
-                                        Email or Phone Number
-                                    </Text>
-                                    <TextInput
-                                        value={identifier}
-                                        onChangeText={handleIdentifierChange}
-                                        keyboardType={identifierType === 'phone' ? 'phone-pad' : 'email-address'}
-                                        autoCapitalize="none"
-                                        style={{
-                                            backgroundColor: currentColors.inputBackground,
-                                            padding: 16,
-                                            borderRadius: 12,
-                                            color: currentColors.text,
-                                            borderWidth: 2,
-                                            borderColor: isValidIdentifier
-                                                ? currentColors.inputBorderSuccess
-                                                : identifier
-                                                    ? currentColors.inputBorderError
-                                                    : currentColors.inputBorder,
-                                            shadowColor: currentColors.primary,
-                                            shadowOffset: { width: 0, height: 2 },
-                                            shadowOpacity: 0.1,
-                                            shadowRadius: 4,
-                                            elevation: 3,
-                                        }}
-                                        placeholderTextColor={currentColors.textSecondary}
-                                        placeholder="Enter your email or phone"
-                                    />
-                                    {identifier && (
-                                        <Text style={{
-                                            marginTop: 4,
-                                            fontSize: 12,
-                                            color: isValidIdentifier ? currentColors.success : currentColors.error,
-                                        }}>
-                                            {isValidIdentifier
-                                                ? `Valid ${identifierType}`
-                                                : `Invalid ${identifierType || 'format'}`}
-                                        </Text>
-                                    )}
-                                </View>
 
-                                <View style={{ marginBottom: 16 }}>
-                                    <Text style={{
-                                        marginBottom: 8,
-                                        color: currentColors.text,
-                                        fontSize: 14,
-                                        fontWeight: '600',
-                                    }}>
-                                        Password
-                                    </Text>
-                                    <View style={{ position: 'relative' }}>
+                                {/* Offline Mode Banner */}
+                                {isOffline && (
+                                    <View style={[
+                                        styles.offlineBanner,
+                                        { 
+                                            backgroundColor: theme === 'dark' 
+                                                ? 'rgba(239, 68, 68, 0.1)' 
+                                                : 'rgba(239, 68, 68, 0.05)',
+                                            borderColor: currentColors.error,
+                                        }
+                                    ]}>
+                                        <Ionicons name="cloud-offline" size={22} color={currentColors.error} />
+                                        <Text style={[
+                                            styles.offlineBannerText,
+                                            { color: currentColors.error }
+                                        ]}>
+                                            App is in offline mode. Some features may be limited.
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {/* Form Section */}
+                                <Animated.View style={{
+                                    transform: [{ translateX: inputFocusAnim }]
+                                }}>
+                                    {/* Show offline login option if available */}
+                                    {offlineLoginAvailable && (!networkStatus.isConnected || networkStatus.isInternetReachable === false) && (
+                                        <TouchableOpacity
+                                            style={[styles.offlineLoginButton, {
+                                                backgroundColor: theme === 'dark' 
+                                                    ? 'rgba(59, 130, 246, 0.2)' 
+                                                    : 'rgba(59, 130, 246, 0.1)',
+                                                borderColor: currentColors.primary,
+                                            }]}
+                                            onPress={handleOfflineLogin}
+                                        >
+                                            <Ionicons 
+                                                name="cloud-offline-outline" 
+                                                size={24} 
+                                                color={currentColors.primary} 
+                                                style={{ marginRight: 8 }}
+                                            />
+                                            <Text style={[styles.offlineLoginButtonText, { color: currentColors.primary }]}>
+                                                Continue with Saved Credentials
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    
+                                    <View style={{ marginBottom: 16 }}>
+                                        <Text style={{
+                                            marginBottom: 8,
+                                            color: currentColors.text,
+                                            fontSize: 14,
+                                            fontWeight: '600',
+                                        }}>
+                                            Email or Phone Number
+                                        </Text>
                                         <TextInput
-                                            value={password}
-                                            onChangeText={(text) => {
-                                                setPassword(text);
-                                                setError(null);
-                                            }}
-                                            secureTextEntry={!showPassword}
+                                            value={identifier}
+                                            onChangeText={handleIdentifierChange}
+                                            keyboardType={identifierType === 'phone' ? 'phone-pad' : 'email-address'}
+                                            autoCapitalize="none"
                                             style={{
                                                 backgroundColor: currentColors.inputBackground,
                                                 padding: 16,
-                                                paddingRight: 48,
                                                 borderRadius: 12,
                                                 color: currentColors.text,
                                                 borderWidth: 2,
-                                                borderColor: currentColors.inputBorder,
+                                                borderColor: isValidIdentifier
+                                                    ? currentColors.inputBorderSuccess
+                                                    : identifier
+                                                        ? currentColors.inputBorderError
+                                                        : currentColors.inputBorder,
                                                 shadowColor: currentColors.primary,
                                                 shadowOffset: { width: 0, height: 2 },
                                                 shadowOpacity: 0.1,
@@ -869,167 +922,215 @@ export default function SignIn() {
                                                 elevation: 3,
                                             }}
                                             placeholderTextColor={currentColors.textSecondary}
-                                            placeholder="Enter your password"
+                                            placeholder="Enter your email or phone"
                                         />
-                                        <TouchableOpacity
-                                            onPress={() => setShowPassword(!showPassword)}
-                                            style={{
-                                                position: 'absolute',
-                                                right: 16,
-                                                top: 16,
-                                            }}
-                                        >
-                                            <Ionicons
-                                                name={showPassword ? 'eye-off' : 'eye'}
-                                                size={24}
-                                                color={currentColors.textSecondary}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                    {password && !validatePassword(password) && (
-                                        <Text style={{
-                                            marginTop: 4,
-                                            fontSize: 12,
-                                            color: currentColors.error,
-                                        }}>
-                                            Password must be at least 6 characters
-                                        </Text>
-                                    )}
-                                </View>
-
-                                <TouchableOpacity
-                                    onPress={() => router.push('/(auth)/forgot-password')}
-                                    style={{ alignSelf: 'flex-end', marginBottom: 24 }}
-                                >
-                                    <Text style={{
-                                        color: currentColors.secondary,
-                                        fontSize: 14,
-                                        fontWeight: '600',
-                                    }}>
-                                        Forgot Password?
-                                    </Text>
-                                </TouchableOpacity>
-
-                                {error && (
-                                    <View style={[
-                                        styles.errorContainer,
-                                        error.type === 'COMPANY_DISABLED' ? styles.companyDisabledError : 
-                                        error.type === 'NETWORK_ERROR' ? styles.networkError :
-                                        error.type === 'SERVER_ERROR' ? styles.serverError :
-                                        error.type === 'OFFLINE_AVAILABLE' ? styles.offlineAvailableError :
-                                        styles.generalError
-                                    ]}>
-                                        <Text style={[styles.errorText, { color: currentColors.error }]}>{error.message}</Text>
-                                        {error.details && (
-                                            <Text style={[styles.errorSubText, { color: currentColors.textSecondary }]}>
-                                                {error.details}
+                                        {identifier && (
+                                            <Text style={{
+                                                marginTop: 4,
+                                                fontSize: 12,
+                                                color: isValidIdentifier ? currentColors.success : currentColors.error,
+                                            }}>
+                                                {isValidIdentifier
+                                                    ? `Valid ${identifierType}`
+                                                    : `Invalid ${identifierType || 'format'}`}
                                             </Text>
                                         )}
-                                        {error.type === 'TOKEN_STORAGE_ISSUE' && (
-                                            <TouchableOpacity 
-                                                style={[styles.errorActionButton, { backgroundColor: currentColors.error }]}
-                                                onPress={resetStorageAndLogout}
+                                    </View>
+
+                                    <View style={{ marginBottom: 16 }}>
+                                        <Text style={{
+                                            marginBottom: 8,
+                                            color: currentColors.text,
+                                            fontSize: 14,
+                                            fontWeight: '600',
+                                        }}>
+                                            Password
+                                        </Text>
+                                        <View style={{ position: 'relative' }}>
+                                            <TextInput
+                                                value={password}
+                                                onChangeText={(text) => {
+                                                    setPassword(text);
+                                                    setError(null);
+                                                }}
+                                                secureTextEntry={!showPassword}
+                                                style={{
+                                                    backgroundColor: currentColors.inputBackground,
+                                                    padding: 16,
+                                                    paddingRight: 48,
+                                                    borderRadius: 12,
+                                                    color: currentColors.text,
+                                                    borderWidth: 2,
+                                                    borderColor: currentColors.inputBorder,
+                                                    shadowColor: currentColors.primary,
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.1,
+                                                    shadowRadius: 4,
+                                                    elevation: 3,
+                                                }}
+                                                placeholderTextColor={currentColors.textSecondary}
+                                                placeholder="Enter your password"
+                                            />
+                                            <TouchableOpacity
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    right: 16,
+                                                    top: 16,
+                                                }}
                                             >
-                                                <Text style={styles.errorActionButtonText}>Reset Storage</Text>
+                                                <Ionicons
+                                                    name={showPassword ? 'eye-off' : 'eye'}
+                                                    size={24}
+                                                    color={currentColors.textSecondary}
+                                                />
                                             </TouchableOpacity>
-                                        )}
-                                        {error.type === 'OFFLINE_AVAILABLE' && (
-                                            <TouchableOpacity 
-                                                style={[styles.offlineActionButton, { backgroundColor: currentColors.secondary }]}
-                                                onPress={handleOfflineLogin}
-                                            >
-                                                <Text style={styles.offlineActionButtonText}>Continue Offline</Text>
-                                            </TouchableOpacity>
+                                        </View>
+                                        {password && !validatePassword(password) && (
+                                            <Text style={{
+                                                marginTop: 4,
+                                                fontSize: 12,
+                                                color: currentColors.error,
+                                            }}>
+                                                Password must be at least 6 characters
+                                            </Text>
                                         )}
                                     </View>
-                                )}
 
-                                <TouchableOpacity
-                                    onPress={handleSignIn}
-                                    disabled={isLoading || isCheckingStorage}
-                                    style={{
-                                        backgroundColor: currentColors.primary,
-                                        paddingVertical: 16,
-                                        paddingHorizontal: 32,
-                                        borderRadius: 16,
-                                        opacity: (isLoading || isCheckingStorage) ? 0.7 : 1,
-                                        shadowColor: currentColors.primary,
-                                        shadowOffset: { width: 0, height: 6 },
-                                        shadowOpacity: 0.3,
-                                        shadowRadius: 12,
-                                        elevation: 8,
-                                        borderWidth: 2,
-                                        borderColor: currentColors.secondary,
-                                    }}
-                                >
-                                    {isLoading ? (
-                                        <ActivityIndicator color={currentColors.surface} />
-                                    ) : isCheckingStorage ? (
-                                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                                            <ActivityIndicator color={currentColors.surface} size="small" style={{ marginRight: 8 }} />
+                                    <TouchableOpacity
+                                        onPress={() => router.push('/(auth)/forgot-password')}
+                                        style={{ alignSelf: 'flex-end', marginBottom: 24 }}
+                                    >
+                                        <Text style={{
+                                            color: currentColors.secondary,
+                                            fontSize: 14,
+                                            fontWeight: '600',
+                                        }}>
+                                            Forgot Password?
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    {error && (
+                                        <View style={[
+                                            styles.errorContainer,
+                                            error.type === 'COMPANY_DISABLED' ? styles.companyDisabledError : 
+                                            error.type === 'NETWORK_ERROR' ? styles.networkError :
+                                            error.type === 'SERVER_ERROR' ? styles.serverError :
+                                            error.type === 'OFFLINE_AVAILABLE' ? styles.offlineAvailableError :
+                                            styles.generalError
+                                        ]}>
+                                            <Text style={[styles.errorText, { color: currentColors.error }]}>{error.message}</Text>
+                                            {error.details && (
+                                                <Text style={[styles.errorSubText, { color: currentColors.textSecondary }]}>
+                                                    {error.details}
+                                                </Text>
+                                            )}
+                                            {error.type === 'TOKEN_STORAGE_ISSUE' && (
+                                                <TouchableOpacity 
+                                                    style={[styles.errorActionButton, { backgroundColor: currentColors.error }]}
+                                                    onPress={resetStorageAndLogout}
+                                                >
+                                                    <Text style={styles.errorActionButtonText}>Reset Storage</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            {error.type === 'OFFLINE_AVAILABLE' && (
+                                                <TouchableOpacity 
+                                                    style={[styles.offlineActionButton, { backgroundColor: currentColors.secondary }]}
+                                                    onPress={handleOfflineLogin}
+                                                >
+                                                    <Text style={styles.offlineActionButtonText}>Continue Offline</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    )}
+
+                                    <TouchableOpacity
+                                        onPress={handleSignIn}
+                                        disabled={isLoading || isCheckingStorage}
+                                        style={{
+                                            backgroundColor: currentColors.primary,
+                                            paddingVertical: 16,
+                                            paddingHorizontal: 32,
+                                            borderRadius: 16,
+                                            opacity: (isLoading || isCheckingStorage) ? 0.7 : 1,
+                                            shadowColor: currentColors.primary,
+                                            shadowOffset: { width: 0, height: 6 },
+                                            shadowOpacity: 0.3,
+                                            shadowRadius: 12,
+                                            elevation: 8,
+                                            borderWidth: 2,
+                                            borderColor: currentColors.secondary,
+                                        }}
+                                    >
+                                        {isLoading ? (
+                                            <ActivityIndicator color={currentColors.surface} />
+                                        ) : isCheckingStorage ? (
+                                            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                                                <ActivityIndicator color={currentColors.surface} size="small" style={{ marginRight: 8 }} />
+                                                <Text style={{
+                                                    color: currentColors.surface,
+                                                    textAlign: 'center',
+                                                    fontSize: 16,
+                                                    fontWeight: 'bold',
+                                                    letterSpacing: 0.5,
+                                                }}>
+                                                    Preparing...
+                                                </Text>
+                                            </View>
+                                        ) : (
                                             <Text style={{
                                                 color: currentColors.surface,
                                                 textAlign: 'center',
-                                                fontSize: 16,
+                                                fontSize: 18,
                                                 fontWeight: 'bold',
                                                 letterSpacing: 0.5,
                                             }}>
-                                                Preparing...
+                                                Sign In
                                             </Text>
-                                        </View>
-                                    ) : (
-                                        <Text style={{
-                                            color: currentColors.surface,
-                                            textAlign: 'center',
-                                            fontSize: 18,
-                                            fontWeight: 'bold',
-                                            letterSpacing: 0.5,
-                                        }}>
-                                            Sign In
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
+                                        )}
+                                    </TouchableOpacity>
 
-                                {/* Storage health checker button */}
-                                <TouchableOpacity
-                                    onPress={resetStorageAndLogout}
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        alignSelf: 'center',
-                                        marginTop: 16,
-                                        paddingVertical: 8,
-                                        paddingHorizontal: 12,
-                                        backgroundColor: theme === 'dark' 
-                                            ? 'rgba(59, 130, 246, 0.1)' 
-                                            : 'rgba(59, 130, 246, 0.05)',
-                                        borderRadius: 20,
-                                        borderWidth: 1,
-                                        borderColor: currentColors.primary,
-                                        maxWidth: '80%',
-                                    }}
-                                >
-                                    <Ionicons 
-                                        name="refresh-outline" 
-                                        size={16} 
-                                        color={currentColors.primary} 
-                                        style={{ marginRight: 6 }}
-                                    />
-                                    <Text style={{
-                                        color: currentColors.primary,
-                                        fontSize: 12,
-                                        fontWeight: '500',
-                                        textAlign: 'center',
-                                    }}>
-                                        Reset App Data
-                                    </Text>
-                                </TouchableOpacity>
+                                    {/* Storage health checker button */}
+                                    <TouchableOpacity
+                                        onPress={resetStorageAndLogout}
+                                        style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            alignSelf: 'center',
+                                            marginTop: 16,
+                                            paddingVertical: 8,
+                                            paddingHorizontal: 12,
+                                            backgroundColor: theme === 'dark' 
+                                                ? 'rgba(59, 130, 246, 0.1)' 
+                                                : 'rgba(59, 130, 246, 0.05)',
+                                            borderRadius: 20,
+                                            borderWidth: 1,
+                                            borderColor: currentColors.primary,
+                                            maxWidth: '80%',
+                                        }}
+                                    >
+                                        <Ionicons 
+                                            name="refresh-outline" 
+                                            size={16} 
+                                            color={currentColors.primary} 
+                                            style={{ marginRight: 6 }}
+                                        />
+                                        <Text style={{
+                                            color: currentColors.primary,
+                                            fontSize: 12,
+                                            fontWeight: '500',
+                                            textAlign: 'center',
+                                        }}>
+                                            Reset App Data
+                                        </Text>
+                                    </TouchableOpacity>
+                                </Animated.View>
                             </Animated.View>
-                        </Animated.View>
-                    </ScrollView>
-                </View>
-            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            )}
         </>
     );
 }

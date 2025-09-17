@@ -16,6 +16,7 @@ import { TrackingProvider } from './context/TrackingContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Network from 'expo-network';
 import { FaceDetectionProvider } from '@infinitered/react-native-mlkit-face-detection';
+import BiometricAuthWrapper from './components/BiometricAuthWrapper';
 
 // Note: The background location task is defined in app/utils/backgroundLocationTask.ts
 // We don't define it here to avoid duplicate task definitions which can cause issues
@@ -146,37 +147,71 @@ function RootLayout() {
                     isTrackingEnabled: true,
                   }}
                 >
-                  <Stack
-                  screenOptions={{
-                    headerShown: false,
-                  }}
-                >
-                  <Stack.Screen
-                    name="index"
-                    options={{
-                      headerShown: false,
+                  <BiometricAuthWrapper
+                    onAuthenticationSuccess={() => {
+                      // Biometric authentication successful, app can proceed
+                      console.log('Biometric authentication successful');
                     }}
-                  />
-                  <Stack.Screen
-                    name="welcome"
-                    options={{
-                      headerShown: false,
+                    onAuthenticationFailure={() => {
+                      // Biometric authentication failed, handle accordingly
+                      console.log('Biometric authentication failed');
                     }}
-                  />
-                  <Stack.Screen
-                    name="(auth)"
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="(dashboard)"
-                    options={{
-                      headerShown: false,
-                    }}
-                  />
-                  {/* Dashboard routes are handled by (dashboard)/_layout.tsx */}
-                  </Stack>
+                  >
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                      }}
+                    >
+                      <Stack.Screen
+                        name="index"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="welcome"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(auth)"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(dashboard)"
+                        options={{
+                          headerShown: false,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(dashboard)/employee/notifications"
+                        options={{
+                          title: "Notifications",
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(dashboard)/Group-Admin/notifications"
+                        options={{
+                          title: "Notifications",
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(dashboard)/management/notifications"
+                        options={{
+                          title: "Notifications",
+                        }}
+                      />
+                      <Stack.Screen
+                        name="(dashboard)/test-notifications"
+                        options={{
+                          title: "Test Notifications",
+                        }}
+                      />
+                    </Stack>
+                  </BiometricAuthWrapper>
                 </FaceDetectionProvider>
               </TrackingProvider>
             </NotificationProvider>

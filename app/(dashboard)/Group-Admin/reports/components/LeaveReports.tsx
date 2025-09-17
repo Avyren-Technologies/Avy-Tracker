@@ -624,7 +624,7 @@ export default function LeaveReports({ section, isDark }: { section: ReportSecti
         <GraphSelector
           options={graphOptions}
           selectedType={graphType}
-          onSelect={setGraphType}
+          onSelect={(type: string) => setGraphType(type)}
           isDark={isDark}
         />
         {renderGraph()}

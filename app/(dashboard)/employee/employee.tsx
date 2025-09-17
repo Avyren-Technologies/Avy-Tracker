@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,12 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
-} from 'react-native';
+  Dimensions,
+  Animated,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AuthContext from '../../context/AuthContext';
@@ -28,13 +33,15 @@ import Constants from 'expo-constants';
 import { promptFaceConfiguration } from '../../utils/deepLinkUtils';
 // import PushNotificationService from '../../utils/pushNotificationService';
 
+const { width, height } = Dimensions.get("window");
+
 // Add Task interface
 interface Task {
   id: number;
   title: string;
   description: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
+  status: "pending" | "in_progress" | "completed";
+  priority: "low" | "medium" | "high";
   due_date: string;
   assigned_by_name: string;
 }
@@ -49,7 +56,10 @@ interface TaskStats {
   currentMonth: string;
 }
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL =
+  Constants.expoConfig?.extra?.apiUrl ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://localhost:3000";
 
 export default function EmployeeDashboard() {
   const { theme } = ThemeContext.useTheme();
@@ -57,13 +67,13 @@ export default function EmployeeDashboard() {
   const router = useRouter();
 
   // State management
-  const [activeTab, setActiveTab] = useState('home');
-  const [greeting, setGreeting] = useState('');
-  const [lastLogin, setLastLogin] = useState('');
-  const [shiftStatus, setShiftStatus] = useState('No Active Shift');
-  const [attendanceStatus, setAttendanceStatus] = useState('Not Marked');
-  const [activeTaskType, setActiveTaskType] = useState('All Tasks');
-  const [taskPriority, setTaskPriority] = useState('Medium');
+  const [activeTab, setActiveTab] = useState("home");
+  const [greeting, setGreeting] = useState("");
+  const [lastLogin, setLastLogin] = useState("");
+  const [shiftStatus, setShiftStatus] = useState("No Active Shift");
+  const [attendanceStatus, setAttendanceStatus] = useState("Not Marked");
+  const [activeTaskType, setActiveTaskType] = useState("All Tasks");
+  const [taskPriority, setTaskPriority] = useState("Medium");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -171,6 +181,49 @@ export default function EmployeeDashboard() {
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
 
+  // Animation refs
+  const floatingShapesAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme-based colors
+  const colors = {
+    // Light theme colors
+    light: {
+      primary: "#3B82F6", // Blue-500
+      secondary: "#0EA5E9", // Sky-500
+      accent: "#6366F1", // Indigo-500
+      background: "#F8FAFC", // Slate-50
+      surface: "#FFFFFF", // White
+      card: "#FFFFFF", // White
+      text: "#0F172A", // Slate-900
+      textSecondary: "#475569", // Slate-600
+      textTertiary: "#64748B", // Slate-500
+      border: "#E2E8F0", // Slate-200
+      success: "#10B981", // Emerald-500
+      warning: "#F59E0B", // Amber-500
+      error: "#EF4444", // Red-500
+      info: "#3B82F6", // Blue-500
+    },
+    // Dark theme colors
+    dark: {
+      primary: "#60A5FA", // Blue-400
+      secondary: "#38BDF8", // Sky-400
+      accent: "#818CF8", // Indigo-400
+      background: "#0F172A", // Slate-900
+      surface: "#1E293B", // Slate-800
+      card: "#1E293B", // Slate-800
+      text: "#F8FAFC", // Slate-50
+      textSecondary: "#CBD5E1", // Slate-300
+      textTertiary: "#94A3B8", // Slate-400
+      border: "#334155", // Slate-700
+      success: "#34D399", // Emerald-400
+      warning: "#FBBF24", // Amber-400
+      error: "#F87171", // Red-400
+      info: "#60A5FA", // Blue-400
+    },
+  };
+
+  const currentColors = colors[theme];
+
   // Set greeting based on time of day
   useEffect(() => {
     const hour = new Date().getHours();
@@ -180,6 +233,15 @@ export default function EmployeeDashboard() {
 
     // Simulate fetching last login
     setLastLogin(new Date().toLocaleString());
+
+    // Floating shapes animation
+    Animated.loop(
+      Animated.timing(floatingShapesAnim, {
+        toValue: 1,
+        duration: 12000,
+        useNativeDriver: true,
+      })
+    ).start();
   }, []);
 
   // Add effect for real-time updates
@@ -248,27 +310,29 @@ export default function EmployeeDashboard() {
   // Add this helper function
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'Low':
-        return '#10B981';
-      case 'Medium':
-        return '#F59E0B';
-      case 'High':
-        return '#EF4444';
+      case "Low":
+        return "#10B981";
+      case "Medium":
+        return "#F59E0B";
+      case "High":
+        return "#EF4444";
       default:
-        return '#6B7280';
+        return "#6B7280";
     }
   };
 
   // Add this function to filter tasks
   const getFilteredTasks = () => {
-    if (activeTaskType === 'All Tasks') return tasks;
-    return tasks.filter(task => task.status.toLowerCase() === activeTaskType.toLowerCase());
+    if (activeTaskType === "All Tasks") return tasks;
+    return tasks.filter(
+      (task) => task.status.toLowerCase() === activeTaskType.toLowerCase()
+    );
   };
 
   // Add this function to check if a task is from today
   const isToday = (dateString: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    return dateString.split('T')[0] === today;
+    const today = new Date().toISOString().split("T")[0];
+    return dateString.split("T")[0] === today;
   };
 
   // Update the fetchTasks function
@@ -278,18 +342,15 @@ export default function EmployeeDashboard() {
       console.log("Current user:", user);
       console.log("Token:", token);
 
-      const response = await axios.get(
-        `${API_URL}/api/tasks/employee`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.get(`${API_URL}/api/tasks/employee`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       // console.log('API Response:', response);
       setTasks(response.data);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error("Error fetching tasks:", error);
       if (axios.isAxiosError(error)) {
-        console.log('Error response:', error.response?.data);
+        console.log("Error response:", error.response?.data);
       }
     } finally {
       setIsLoading(false);
@@ -319,14 +380,18 @@ export default function EmployeeDashboard() {
   const fetchTaskStats = async (forceRefresh = false) => {
     try {
       setStatsLoading(true);
-      
+
       // Check cache first, unless forceRefresh is true
       if (!forceRefresh) {
-        const cachedStats = await AsyncStorage.getItem('taskStats');
-        const cachedTimestamp = await AsyncStorage.getItem('taskStatsTimestamp');
-        
+        const cachedStats = await AsyncStorage.getItem("taskStats");
+        const cachedTimestamp = await AsyncStorage.getItem(
+          "taskStatsTimestamp"
+        );
+
         const now = new Date().getTime();
-        const cacheAge = cachedTimestamp ? now - parseInt(cachedTimestamp) : Infinity;
+        const cacheAge = cachedTimestamp
+          ? now - parseInt(cachedTimestamp)
+          : Infinity;
         const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
         // Use cached data if it's less than 5 minutes old
@@ -337,18 +402,20 @@ export default function EmployeeDashboard() {
         }
       }
 
-      const response = await axios.get(
-        `${API_URL}/api/tasks/stats`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
+      const response = await axios.get(`${API_URL}/api/tasks/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       // Update cache
-      await AsyncStorage.setItem('taskStats', JSON.stringify(response.data));
-      await AsyncStorage.setItem('taskStatsTimestamp', new Date().getTime().toString());
-      
+      await AsyncStorage.setItem("taskStats", JSON.stringify(response.data));
+      await AsyncStorage.setItem(
+        "taskStatsTimestamp",
+        new Date().getTime().toString()
+      );
+
       setTaskStats(response.data);
     } catch (error) {
-      console.error('Error fetching task stats:', error);
+      console.error("Error fetching task stats:", error);
     } finally {
       setStatsLoading(false);
     }
@@ -432,9 +499,6 @@ export default function EmployeeDashboard() {
 
   // Modify TaskProgressBar component to use props
   const TaskProgressBar = () => {
-    const { theme } = ThemeContext.useTheme();
-    const isDark = theme === "dark";
-
     // Set up auto-refresh interval
     useEffect(() => {
       const intervalId = setInterval(() => {
@@ -446,8 +510,8 @@ export default function EmployeeDashboard() {
 
     if (statsLoading && !taskStats) {
       return (
-        <View className="mx-4 mt-4">
-          <ActivityIndicator size="small" color="#3B82F6" />
+        <View style={{ margin: 16, marginTop: 16 }}>
+          <ActivityIndicator size="small" color={currentColors.primary} />
         </View>
       );
     }
@@ -464,29 +528,44 @@ export default function EmployeeDashboard() {
       <View
         style={[
           styles.mainContainer,
-          { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+          {
+            backgroundColor: currentColors.surface,
+            borderWidth: 1,
+            borderColor: currentColors.border,
+            shadowColor: currentColors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+            margin: 16,
+            marginTop: 16,
+          },
         ]}
-        className="mx-4 mt-4"
       >
-        <View
-          className={`p-4 rounded-xl ${
-            isDark ? "bg-gray-800" : "bg-white"
-          } shadow-md`}
-        >
+        <View style={{ padding: 16, borderRadius: 16 }}>
           {/* Header */}
-          <View className="flex-row items-center mb-4">
-            <View className="flex-1">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <View style={{ flex: 1 }}>
               <Text
-                className={`text-lg font-semibold ${
-                  isDark ? "text-white" : "text-gray-900"
-                }`}
+                style={{
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: currentColors.text,
+                }}
               >
                 Task Progress
               </Text>
               <Text
-                className={`text-sm ${
-                  isDark ? "text-gray-400" : "text-gray-500"
-                }`}
+                style={{
+                  fontSize: 14,
+                  color: currentColors.textSecondary,
+                }}
               >
                 {taskStats.currentMonth} •{" "}
                 {taskStats.total === 0
@@ -495,44 +574,65 @@ export default function EmployeeDashboard() {
               </Text>
             </View>
             <View
-              className={`px-3 py-1 rounded-full ${
-                isDark ? "bg-blue-500/20" : "bg-blue-50"
-              }`}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 20,
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(59, 130, 246, 0.2)"
+                    : "rgba(59, 130, 246, 0.1)",
+                borderWidth: 1,
+                borderColor: currentColors.primary,
+              }}
             >
-              <Text className="text-blue-600 font-medium">
+              <Text style={{ color: currentColors.primary, fontWeight: "500" }}>
                 {taskStats.total === 0 ? "0" : taskStats.completionRate}%
               </Text>
             </View>
           </View>
 
           {/* Progress bars container */}
-          <View className="space-y-3">
+          <View style={{ gap: 12 }}>
             {/* Completed Tasks */}
             <View>
-              <View className="flex-row justify-between mb-1.5">
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   Completed
                 </Text>
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   {taskStats.completed}/{taskStats.total}
                 </Text>
               </View>
               <View
-                className={`h-2 ${
-                  isDark ? "bg-gray-700" : "bg-gray-100"
-                } rounded-full overflow-hidden`}
+                style={{
+                  height: 8,
+                  backgroundColor: currentColors.border,
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
               >
                 <View
-                  className="h-full bg-green-500 rounded-full"
                   style={{
+                    height: "100%",
+                    backgroundColor: currentColors.success,
+                    borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.completed,
                       taskStats.total
@@ -544,30 +644,43 @@ export default function EmployeeDashboard() {
 
             {/* In Progress Tasks */}
             <View>
-              <View className="flex-row justify-between mb-1.5">
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   In Progress
                 </Text>
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   {taskStats.inProgress}/{taskStats.total}
                 </Text>
               </View>
               <View
-                className={`h-2 ${
-                  isDark ? "bg-gray-700" : "bg-gray-100"
-                } rounded-full overflow-hidden`}
+                style={{
+                  height: 8,
+                  backgroundColor: currentColors.border,
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
               >
                 <View
-                  className="h-full bg-blue-500 rounded-full"
                   style={{
+                    height: "100%",
+                    backgroundColor: currentColors.primary,
+                    borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.inProgress,
                       taskStats.total
@@ -579,30 +692,43 @@ export default function EmployeeDashboard() {
 
             {/* Pending Tasks */}
             <View>
-              <View className="flex-row justify-between mb-1.5">
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   Pending
                 </Text>
                 <Text
-                  className={`text-sm ${
-                    isDark ? "text-gray-300" : "text-gray-600"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    color: currentColors.textSecondary,
+                  }}
                 >
                   {taskStats.pending}/{taskStats.total}
                 </Text>
               </View>
               <View
-                className={`h-2 ${
-                  isDark ? "bg-gray-700" : "bg-gray-100"
-                } rounded-full overflow-hidden`}
+                style={{
+                  height: 8,
+                  backgroundColor: currentColors.border,
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
               >
                 <View
-                  className="h-full bg-yellow-500 rounded-full"
                   style={{
+                    height: "100%",
+                    backgroundColor: currentColors.warning,
+                    borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.pending,
                       taskStats.total
@@ -617,61 +743,237 @@ export default function EmployeeDashboard() {
     );
   };
 
+  const floatingOffset = floatingShapesAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
+  });
+
   return (
-    <View className="flex-1">
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.container, { backgroundColor: theme === 'dark' ? '#111827' : '#F3F4F6' }]}
+    <>
+      <StatusBar
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={currentColors.background}
+        translucent={false}
+        animated={true}
+      />
+
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: currentColors.background }}
       >
-        <StatusBar 
-          backgroundColor={theme === 'dark' ? '#1F2937' : '#FFFFFF'}
-          barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-        />
-
-        {/* Header */}
-        <View style={[
-          styles.header,
-          { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }
-        ]}>
-          <TouchableOpacity onPress={() => router.replace('/(dashboard)/employee/employee')}>
-            <Image
-              source={require('./../../../assets/images/icon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <Text 
-              numberOfLines={1} 
-              style={[styles.welcomeText, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}
-            >
-              {greeting}, {user?.name}
-            </Text>
-            <Text style={[styles.subText, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
-              Last login: {lastLogin}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/(dashboard)/employee/employeeSettings')}>
-            <Ionicons
-              name="settings-outline"
-              size={24}
-              color={theme === 'dark' ? '#FFFFFF' : '#111827'}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Main Content */}
-        <ScrollView
-          style={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={[theme === 'dark' ? '#60A5FA' : '#3B82F6']} // Blue color for refresh spinner
-              tintColor={theme === 'dark' ? '#60A5FA' : '#3B82F6'}
-            />
-          }
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={[
+            styles.container,
+            { backgroundColor: currentColors.background },
+          ]}
         >
+          {/* Main background */}
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          >
+            {/* Subtle gradient overlay */}
+            <LinearGradient
+              colors={[
+                currentColors.background,
+                theme === "dark"
+                  ? "rgba(59, 130, 246, 0.05)"
+                  : "rgba(59, 130, 246, 0.02)",
+                currentColors.background,
+              ]}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+
+            {/* Floating geometric shapes */}
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            >
+              {/* Blue circle */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: height * 0.1,
+                  right: width * 0.1,
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: currentColors.primary,
+                  opacity: 0.15,
+                  transform: [{ translateY: floatingOffset }],
+                }}
+              />
+
+              {/* Sky square */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  bottom: height * 0.3,
+                  left: width * 0.1,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  backgroundColor: currentColors.secondary,
+                  opacity: 0.2,
+                  transform: [
+                    {
+                      translateY: floatingOffset.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -15],
+                      }),
+                    },
+                  ],
+                }}
+              />
+
+              {/* Indigo triangle */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: height * 0.7,
+                  right: width * 0.2,
+                  width: 0,
+                  height: 0,
+                  borderLeftWidth: 20,
+                  borderRightWidth: 20,
+                  borderBottomWidth: 35,
+                  borderLeftColor: "transparent",
+                  borderRightColor: "transparent",
+                  borderBottomColor: currentColors.accent,
+                  opacity: 0.1,
+                  transform: [
+                    {
+                      translateY: floatingOffset.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 10],
+                      }),
+                    },
+                  ],
+                }}
+              />
+            </View>
+          </View>
+
+          {/* Header */}
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: currentColors.surface,
+                borderBottomColor: currentColors.border,
+                shadowColor: currentColors.primary,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => router.replace("/(dashboard)/employee/employee")}
+            >
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor:
+                    theme === "dark"
+                      ? "rgba(59, 130, 246, 0.2)"
+                      : "rgba(59, 130, 246, 0.1)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 2,
+                  borderColor: currentColors.primary,
+                }}
+              >
+                <Image
+                  source={require("./../../../assets/images/adaptive-icon.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.welcomeText,
+                  {
+                    color: currentColors.text,
+                    textShadowColor:
+                      theme === "dark"
+                        ? "rgba(0, 0, 0, 0.5)"
+                        : "rgba(255, 255, 255, 0.8)",
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 2,
+                  },
+                ]}
+              >
+                {greeting}, {user?.name}
+              </Text>
+              <Text
+                style={[styles.subText, { color: currentColors.textSecondary }]}
+              >
+                Last login: {lastLogin}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/(dashboard)/employee/employeeSettings")
+              }
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(59, 130, 246, 0.2)"
+                    : "rgba(59, 130, 246, 0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: currentColors.border,
+              }}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={20}
+                color={currentColors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Main Content */}
+          <ScrollView
+            style={styles.content}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                colors={[theme === "dark" ? "#60A5FA" : "#3B82F6"]} // Blue color for refresh spinner
+                tintColor={theme === "dark" ? "#60A5FA" : "#3B82F6"}
+              />
+            }
+          >
           {/* Shift Management Section */}
           <View style={styles.shiftManagementSection}>
             <Text style={[styles.shiftManagementTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
@@ -729,119 +1031,195 @@ export default function EmployeeDashboard() {
             </View>
           </View>
 
-          {/* Status and Tasks Container */}
-          <View style={[
-            styles.mainContainer,
-            { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }
-          ]}>
-            {/* Today's Status */}
-            <View style={styles.statusSection}>
-              <Text style={[
-                styles.sectionTitle,
-                { color: theme === 'dark' ? '#FFFFFF' : '#111827' }
-              ]}>
-                Today's Status
-              </Text>
-              <View style={styles.enhancedStatusRow}>
-                <View style={styles.statusItem}>
-                  <View style={[
-                    styles.statusIconCircle,
-                    { backgroundColor: shiftStatus === 'Active Shift' ? '#10B98120' : '#9CA3AF20' }
-                  ]}>
-                    <Ionicons
-                      name="time-outline"
-                      size={20}
-                      color={shiftStatus === 'Active Shift' ? '#10B981' : '#9CA3AF'}
-                    />
-                  </View>
-                  <View>
-                    <Text style={[styles.statusLabel, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
-                      Shift Status
-                    </Text>
-                    <Text style={[styles.statusValue, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-                      {shiftStatus}
-                    </Text>
-                    {currentShiftDuration && (
-                      <Text style={[styles.statusSubValue, { color: theme === 'dark' ? '#60A5FA' : '#3B82F6' }]}>
-                        Duration: {currentShiftDuration}
+            {/* Status and Tasks Container */}
+            <View
+              style={[
+                styles.mainContainer,
+                {
+                  backgroundColor: currentColors.surface,
+                  borderWidth: 1,
+                  borderColor: currentColors.border,
+                  shadowColor: currentColors.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 5,
+                },
+              ]}
+            >
+              {/* Today's Status */}
+              <View style={styles.statusSection}>
+                <Text
+                  style={[styles.sectionTitle, { color: currentColors.text }]}
+                >
+                  Today's Status
+                </Text>
+                <View style={styles.enhancedStatusRow}>
+                  <View style={styles.statusItem}>
+                    <View
+                      style={[
+                        styles.statusIconCircle,
+                        {
+                          backgroundColor:
+                            shiftStatus === "Active Shift"
+                              ? "#10B98120"
+                              : "#9CA3AF20",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="time-outline"
+                        size={20}
+                        color={
+                          shiftStatus === "Active Shift" ? "#10B981" : "#9CA3AF"
+                        }
+                      />
+                    </View>
+                    <View>
+                      <Text
+                        style={[
+                          styles.statusLabel,
+                          { color: currentColors.textSecondary },
+                        ]}
+                      >
+                        Shift Status
                       </Text>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.statusItem}>
-                  <View style={[
-                    styles.statusIconCircle,
-                    { backgroundColor: attendanceStatus === 'Present' ? '#10B98120' : '#9CA3AF20' }
-                  ]}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={20}
-                      color={attendanceStatus === 'Present' ? '#10B981' : '#9CA3AF'}
-                    />
-                  </View>
-                  <View>
-                    <View style={styles.attendanceHeader}>
-                      <Text style={[styles.statusLabel, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
-                        Attendance
+                      <Text
+                        style={[
+                          styles.statusValue,
+                          { color: currentColors.text },
+                        ]}
+                      >
+                        {shiftStatus}
                       </Text>
-                      {attendanceStatus === 'Present' && (
-                        <View style={styles.liveIndicator}>
-                          <Text style={styles.liveText}>LIVE <Ionicons name="flash-outline" size={8} color={theme === 'dark' ? "#10B981" : "#FFFFFF" } /></Text>
-                        </View>
+                      {currentShiftDuration && (
+                        <Text
+                          style={[
+                            styles.statusSubValue,
+                            { color: currentColors.primary },
+                          ]}
+                        >
+                          Duration: {currentShiftDuration}
+                        </Text>
                       )}
                     </View>
-                    <Text style={[styles.statusValue, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-                      {attendanceStatus}
-                    </Text>
+                  </View>
+
+                  <View style={styles.statusItem}>
+                    <View
+                      style={[
+                        styles.statusIconCircle,
+                        {
+                          backgroundColor:
+                            attendanceStatus === "Present"
+                              ? "#10B98120"
+                              : "#9CA3AF20",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="calendar-outline"
+                        size={20}
+                        color={
+                          attendanceStatus === "Present" ? "#10B981" : "#9CA3AF"
+                        }
+                      />
+                    </View>
+                    <View>
+                      <View style={styles.attendanceHeader}>
+                        <Text
+                          style={[
+                            styles.statusLabel,
+                            { color: currentColors.textSecondary },
+                          ]}
+                        >
+                          Attendance
+                        </Text>
+                        {attendanceStatus === "Present" && (
+                          <View style={styles.liveIndicator}>
+                            <Text style={styles.liveText}>
+                              LIVE{" "}
+                              <Ionicons
+                                name="flash-outline"
+                                size={8}
+                                color={theme === "dark" ? "#10B981" : "#FFFFFF"}
+                              />
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.statusValue,
+                          { color: currentColors.text },
+                        ]}
+                      >
+                        {attendanceStatus}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
 
-            {/* Divider */}
-            <View style={[
-              styles.divider,
-              { backgroundColor: theme === 'dark' ? '#374151' : '#E5E7EB' }
-            ]} />
-
-            {/* My Tasks Section */}
-            <View style={styles.tasksSection}>
-              <View style={styles.taskHeader}>
-                <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-                  My Tasks
-                </Text>
-                <View style={styles.taskCount}>
-                  <View style={[styles.dot, { backgroundColor: theme === 'dark' ? '#60A5FA' : '#3B82F6' }]} />
-                  <Text style={[styles.taskCountText, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
-                    {tasks.length} {tasks.length === 1 ? 'Task' : 'Tasks'} for Today
-                  </Text>
-                </View>
-              </View>
-
-              <TaskList
-                tasks={tasks}
-                isDark={theme === 'dark'}
-                onUpdateStatus={handleUpdateTaskStatus}
-                activeTaskType={activeTaskType}
-                onChangeTaskType={setActiveTaskType}
-                onRefresh={handleRefresh}
-                refreshing={isRefreshing}
+              {/* Divider */}
+              <View
+                style={[
+                  styles.divider,
+                  { backgroundColor: currentColors.border },
+                ]}
               />
-            </View>
-          </View>
 
-          {/* Task Progress Bar */}
-          <TaskProgressBar />
-          {/* <TouchableOpacity onPress={() => router.push('/(testing)/notification-test')} className="flex justify-center items-center bg-blue-500 p-3 w-1/2 mb-5 rounded-md text-center mx-auto">
+              {/* My Tasks Section */}
+              <View style={styles.tasksSection}>
+                <View style={styles.taskHeader}>
+                  <Text
+                    style={[styles.sectionTitle, { color: currentColors.text }]}
+                  >
+                    My Tasks
+                  </Text>
+                  <View style={styles.taskCount}>
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: currentColors.primary },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.taskCountText,
+                        { color: currentColors.textSecondary },
+                      ]}
+                    >
+                      {tasks.length} {tasks.length === 1 ? "Task" : "Tasks"} for
+                      Today
+                    </Text>
+                  </View>
+                </View>
+
+                <TaskList
+                  tasks={tasks}
+                  isDark={theme === "dark"}
+                  onUpdateStatus={handleUpdateTaskStatus}
+                  activeTaskType={activeTaskType}
+                  onChangeTaskType={setActiveTaskType}
+                  onRefresh={handleRefresh}
+                  refreshing={isRefreshing}
+                />
+              </View>
+            </View>
+
+            {/* Task Progress Bar */}
+            <TaskProgressBar />
+            {/* <TouchableOpacity onPress={() => router.push('/(testing)/notification-test')} className="flex justify-center items-center bg-blue-500 p-3 w-1/2 mb-5 rounded-md text-center mx-auto">
             <Text className="text-white">Send Test Notification</Text>
           </TouchableOpacity> */}
-        </ScrollView>
+          </ScrollView>
 
-        {/* Bottom Navigation */}
-        <BottomNav items={employeeNavItems} />
-      </KeyboardAvoidingView>
-    </View>
+          {/* Bottom Navigation */}
+          <BottomNav items={employeeNavItems} />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -850,26 +1228,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   headerTextContainer: {
     flex: 1,
     marginHorizontal: 12,
   },
   logo: {
-    width: 50,
-    height: 50,
-    borderRadius: 100,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   welcomeText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   subText: {
     fontSize: 12,
@@ -882,7 +1260,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -890,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
   },
   input: {
@@ -901,32 +1279,32 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    textAlign: 'right',
+    textAlign: "right",
     marginBottom: 16,
   },
   pickerContainer: {
     borderRadius: 8,
     marginBottom: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   submitButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   statusText: {
     marginLeft: 8,
@@ -934,23 +1312,23 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     height: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginVertical: 8,
   },
   progressBar: {
-    height: '100%',
-    backgroundColor: '#3B82F6',
+    height: "100%",
+    backgroundColor: "#3B82F6",
   },
   progressText: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
     fontSize: 14,
   },
   notification: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: 8,
   },
   notificationContent: {
@@ -965,14 +1343,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: "#E5E7EB",
   },
   navItem: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 8,
   },
   navLabel: {
@@ -1036,45 +1414,45 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   quickActionsGrid: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 12,
   },
   quickActionCard: {
-    width: '100%',
+    width: "100%",
     padding: 16,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   quickActionText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     flex: 1,
   },
   enhancedStatusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
   },
   statusIconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   statusLabel: {
@@ -1083,38 +1461,38 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   refreshButton: {
     padding: 8,
   },
   taskTypeSelector: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
-    overflow: 'scroll',
+    overflow: "scroll",
   },
   taskTypeButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: "#F3F4F6",
     marginRight: 6,
   },
   activeTaskType: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
   },
   taskTypeText: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 13,
   },
   activeTaskTypeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   taskMetaInputs: {
     marginTop: 16,
@@ -1130,7 +1508,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   priorityButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   priorityButton: {
@@ -1143,9 +1521,9 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   priorityText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   statusSubValue: {
     fontSize: 12,
@@ -1155,27 +1533,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   activeShiftText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   section: {
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   mainContainer: {
     margin: 16,
     borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -1186,20 +1564,20 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    width: '100%',
+    width: "100%",
   },
   tasksSection: {
     padding: 16,
   },
   taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   taskCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   dot: {
     width: 8,
@@ -1211,21 +1589,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   attendanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   liveIndicator: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
     marginLeft: 0,
   },
   liveText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 7,
-    fontWeight: '600',
+    fontWeight: "600",
     lineHeight: 10,
   },
 });
