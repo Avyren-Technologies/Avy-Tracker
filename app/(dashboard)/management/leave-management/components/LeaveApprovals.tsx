@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,25 +10,25 @@ import {
   Alert,
   Platform,
   RefreshControl,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../../context/ThemeContext';
-import AuthContext from '../../../../context/AuthContext';
-import axios from 'axios';
-import Modal from 'react-native-modal';
-import { format } from 'date-fns';
-import Toast from 'react-native-toast-message';
-import * as FileSystem from 'expo-file-system';
-import * as IntentLauncher from 'expo-intent-launcher';
-import * as Sharing from 'expo-sharing';
-import * as WebBrowser from 'expo-web-browser';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../../context/ThemeContext";
+import AuthContext from "../../../../context/AuthContext";
+import axios from "axios";
+import Modal from "react-native-modal";
+import { format } from "date-fns";
+import Toast from "react-native-toast-message";
+import * as FileSystem from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
+import * as Sharing from "expo-sharing";
+import * as WebBrowser from "expo-web-browser";
 
 interface Document {
   id: number;
   file_name: string;
   file_type: string;
   file_data: string;
-  upload_method: 'camera' | 'file';
+  upload_method: "camera" | "file";
 }
 
 interface EscalationDetails {
@@ -51,7 +51,7 @@ interface LeaveRequest {
   end_date: string;
   days_requested: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'escalated';
+  status: "pending" | "approved" | "rejected" | "cancelled" | "escalated";
   rejection_reason?: string;
   contact_number: string;
   requires_documentation: boolean;
@@ -64,7 +64,7 @@ interface LeaveRequest {
     escalated_by_name: string;
     reason: string;
     escalated_at: string;
-    status: 'pending' | 'resolved';
+    status: "pending" | "resolved";
     resolution_notes?: string;
   };
 }
@@ -72,22 +72,26 @@ interface LeaveRequest {
 export default function LeaveApprovals() {
   const { theme } = ThemeContext.useTheme();
   const { token, user } = AuthContext.useAuth();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(
+    null,
+  );
   const [showActionModal, setShowActionModal] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReason, setRejectionReason] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null,
+  );
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [resolutionNotes, setResolutionNotes] = useState("");
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
   const [documentLoading, setDocumentLoading] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -104,14 +108,14 @@ export default function LeaveApprovals() {
   const fetchRequests = async () => {
     try {
       if (!user?.id) {
-        setError('User not authenticated');
+        setError("User not authenticated");
         return;
       }
 
       setLoading(true);
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/pending-requests`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data) {
@@ -121,25 +125,34 @@ export default function LeaveApprovals() {
         setRequests([]);
       }
     } catch (error: any) {
-      console.error('Error fetching requests:', error);
-      setError(error.response?.data?.error || 'Failed to fetch requests. Please try again.');
+      console.error("Error fetching requests:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to fetch requests. Please try again.",
+      );
       setRequests([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAction = async (requestId: number, action: 'approve' | 'reject') => {
+  const handleAction = async (
+    requestId: number,
+    action: "approve" | "reject",
+  ) => {
     if (!selectedRequest) return;
 
-    const isEscalated = selectedRequest.status === 'escalated';
+    const isEscalated = selectedRequest.status === "escalated";
     if (isEscalated && !resolutionNotes.trim()) {
-      Alert.alert('Error', 'Resolution notes are required for escalated requests');
+      Alert.alert(
+        "Error",
+        "Resolution notes are required for escalated requests",
+      );
       return;
     }
 
-    if (action === 'reject' && !rejectionReason.trim()) {
-      Alert.alert('Error', 'Rejection reason is required');
+    if (action === "reject" && !rejectionReason.trim()) {
+      Alert.alert("Error", "Rejection reason is required");
       return;
     }
 
@@ -148,23 +161,23 @@ export default function LeaveApprovals() {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-requests/${requestId}/${action}`,
         {
-          rejection_reason: action === 'reject' ? rejectionReason : undefined,
-          resolution_notes: isEscalated ? resolutionNotes : undefined
+          rejection_reason: action === "reject" ? rejectionReason : undefined,
+          resolution_notes: isEscalated ? resolutionNotes : undefined,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.status === 200) {
         // Send notification based on whether it's an escalated request or not
         if (isEscalated) {
           // For escalated requests, notify the employee
-          const employeeNotificationTitle = `${action === 'approve' ? '✅' : '❌'} Leave Request ${action === 'approve' ? 'Approved' : 'Rejected'} by Management`;
-          const employeeNotificationMessage = 
-            `Your escalated leave request has been ${action === 'approve' ? 'approved' : 'rejected'} by management.\n\n` +
-            `📅 Period: ${format(new Date(selectedRequest.start_date), 'MMM dd, yyyy')} to ${format(new Date(selectedRequest.end_date), 'MMM dd, yyyy')}\n` +
+          const employeeNotificationTitle = `${action === "approve" ? "✅" : "❌"} Leave Request ${action === "approve" ? "Approved" : "Rejected"} by Management`;
+          const employeeNotificationMessage =
+            `Your escalated leave request has been ${action === "approve" ? "approved" : "rejected"} by management.\n\n` +
+            `📅 Period: ${format(new Date(selectedRequest.start_date), "MMM dd, yyyy")} to ${format(new Date(selectedRequest.end_date), "MMM dd, yyyy")}\n` +
             `📝 Leave Type: ${selectedRequest.leave_type_name}\n` +
             `⏱️ Duration: ${selectedRequest.days_requested} day(s)\n` +
-            `\n📋 ${action === 'approve' ? 'Resolution' : 'Rejection'} Notes: ${action === 'approve' ? resolutionNotes : rejectionReason}`;
+            `\n📋 ${action === "approve" ? "Resolution" : "Rejection"} Notes: ${action === "approve" ? resolutionNotes : rejectionReason}`;
 
           // Send notification to employee
           await axios.post(
@@ -175,25 +188,25 @@ export default function LeaveApprovals() {
               userIds: [selectedRequest.user_id],
               type: "leave-request-resolution",
               priority: "high",
-              data: { 
+              data: {
                 screen: "/(dashboard)/employee/leave-insights",
                 action,
-                leaveId: selectedRequest.id
-              }
+                leaveId: selectedRequest.id,
+              },
             },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           // Also notify the group admin who escalated the request
           if (selectedRequest.escalation_details?.escalated_by) {
-            const groupAdminNotificationTitle = `${action === 'approve' ? '✅' : '❌'} Escalated Leave Request ${action === 'approve' ? 'Approved' : 'Rejected'}`;
-            const groupAdminNotificationMessage = 
-              `An escalated leave request you forwarded has been ${action === 'approve' ? 'approved' : 'rejected'} by management.\n\n` +
+            const groupAdminNotificationTitle = `${action === "approve" ? "✅" : "❌"} Escalated Leave Request ${action === "approve" ? "Approved" : "Rejected"}`;
+            const groupAdminNotificationMessage =
+              `An escalated leave request you forwarded has been ${action === "approve" ? "approved" : "rejected"} by management.\n\n` +
               `👤 Employee: ${selectedRequest.user_name} (${selectedRequest.employee_number})\n` +
-              `📅 Period: ${format(new Date(selectedRequest.start_date), 'MMM dd, yyyy')} to ${format(new Date(selectedRequest.end_date), 'MMM dd, yyyy')}\n` +
+              `📅 Period: ${format(new Date(selectedRequest.start_date), "MMM dd, yyyy")} to ${format(new Date(selectedRequest.end_date), "MMM dd, yyyy")}\n` +
               `📝 Leave Type: ${selectedRequest.leave_type_name}\n` +
               `⏱️ Duration: ${selectedRequest.days_requested} day(s)\n` +
-              `\n📋 ${action === 'approve' ? 'Resolution' : 'Rejection'} Notes: ${action === 'approve' ? resolutionNotes : rejectionReason}`;
+              `\n📋 ${action === "approve" ? "Resolution" : "Rejection"} Notes: ${action === "approve" ? resolutionNotes : rejectionReason}`;
 
             await axios.post(
               `${process.env.EXPO_PUBLIC_API_URL}/api/management-notifications/send-users`,
@@ -203,24 +216,26 @@ export default function LeaveApprovals() {
                 userIds: [selectedRequest.escalation_details.escalated_by],
                 type: "leave-request-resolution",
                 priority: "high",
-                data: { 
+                data: {
                   screen: "/(dashboard)/Group-Admin/leave-management",
                   action,
-                  leaveId: selectedRequest.id
-                }
+                  leaveId: selectedRequest.id,
+                },
               },
-              { headers: { Authorization: `Bearer ${token}` } }
+              { headers: { Authorization: `Bearer ${token}` } },
             );
           }
         } else {
           // For direct leave requests, notify the group admin
-          const notificationTitle = `${action === 'approve' ? '✅' : '❌'} Leave Request ${action === 'approve' ? 'Approved' : 'Rejected'} by Management`;
-          const notificationMessage = 
-            `Your leave request has been ${action === 'approve' ? 'approved' : 'rejected'} by management.\n\n` +
-            `📅 Period: ${format(new Date(selectedRequest.start_date), 'MMM dd, yyyy')} to ${format(new Date(selectedRequest.end_date), 'MMM dd, yyyy')}\n` +
+          const notificationTitle = `${action === "approve" ? "✅" : "❌"} Leave Request ${action === "approve" ? "Approved" : "Rejected"} by Management`;
+          const notificationMessage =
+            `Your leave request has been ${action === "approve" ? "approved" : "rejected"} by management.\n\n` +
+            `📅 Period: ${format(new Date(selectedRequest.start_date), "MMM dd, yyyy")} to ${format(new Date(selectedRequest.end_date), "MMM dd, yyyy")}\n` +
             `📝 Leave Type: ${selectedRequest.leave_type_name}\n` +
             `⏱️ Duration: ${selectedRequest.days_requested} day(s)` +
-            (action === 'reject' ? `\n\n📋 Rejection Reason: ${rejectionReason}` : '');
+            (action === "reject"
+              ? `\n\n📋 Rejection Reason: ${rejectionReason}`
+              : "");
 
           await axios.post(
             `${process.env.EXPO_PUBLIC_API_URL}/api/management-notifications/send-users`,
@@ -230,39 +245,42 @@ export default function LeaveApprovals() {
               userIds: [selectedRequest.user_id],
               type: "leave-request-resolution",
               priority: "high",
-              data: { 
+              data: {
                 screen: "/(dashboard)/Group-Admin/leave-management",
                 action,
-                leaveId: selectedRequest.id
-              }
+                leaveId: selectedRequest.id,
+              },
             },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
         }
 
         // Set success message before closing modals
-        const actionText = action === 'approve' ? 'approved' : 'rejected';
+        const actionText = action === "approve" ? "approved" : "rejected";
         setSuccessMessage(`Leave request has been ${actionText} successfully`);
-        
+
         // Close action-related modals
         setShowActionModal(false);
         setShowRejectModal(false);
         setShowApproveModal(false);
-        
+
         // Reset form states
-        setRejectionReason('');
-        setResolutionNotes('');
+        setRejectionReason("");
+        setResolutionNotes("");
         setSelectedRequest(null);
-        
+
         // Show success modal
         setShowSuccessModal(true);
-        
+
         // Refresh the requests list
         await fetchRequests();
       }
     } catch (error) {
-      console.error('Error processing leave request:', error);
-      Alert.alert('Error', 'Failed to process leave request. Please try again.');
+      console.error("Error processing leave request:", error);
+      Alert.alert(
+        "Error",
+        "Failed to process leave request. Please try again.",
+      );
     } finally {
       setActionLoading(null);
     }
@@ -270,47 +288,47 @@ export default function LeaveApprovals() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'escalated':
-        return 'bg-purple-100 text-purple-800';
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "escalated":
+        return "bg-purple-100 text-purple-800";
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-yellow-100 text-yellow-800";
     }
   };
 
   const handleViewDocument = async (document: Document) => {
     try {
       setDocumentLoading(document.id);
-      
+
       if (!document.file_data) {
         // If no file data, try to fetch it first
         const response = await axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/document/${document.id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
-            responseType: 'text'
-          }
+            responseType: "text",
+          },
         );
-        
+
         if (!response.data) {
-          throw new Error('No document data received');
+          throw new Error("No document data received");
         }
-        
+
         document.file_data = response.data;
       }
 
       const fileUri = `${FileSystem.cacheDirectory}${document.file_name}`;
-      
+
       await FileSystem.writeAsStringAsync(fileUri, document.file_data, {
-        encoding: FileSystem.EncodingType.Base64
+        encoding: FileSystem.EncodingType.Base64,
       });
 
-      if (Platform.OS === 'android') {
+      if (Platform.OS === "android") {
         const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
           data: contentUri,
           flags: 1,
           type: document.file_type,
@@ -325,12 +343,10 @@ export default function LeaveApprovals() {
         }
       }
     } catch (error) {
-      console.error('Error opening document:', error);
-      Alert.alert(
-        'Error',
-        'Failed to open document. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      console.error("Error opening document:", error);
+      Alert.alert("Error", "Failed to open document. Please try again later.", [
+        { text: "OK" },
+      ]);
     } finally {
       setDocumentLoading(null);
     }
@@ -343,9 +359,11 @@ export default function LeaveApprovals() {
 
     return (
       <View className="mt-4">
-        <Text className={`text-sm font-medium mb-2 ${
-          isDark ? 'text-gray-300' : 'text-gray-700'
-        }`}>
+        <Text
+          className={`text-sm font-medium mb-2 ${
+            isDark ? "text-gray-300" : "text-gray-700"
+          }`}
+        >
           Attached Documents
         </Text>
         <View className="flex-row flex-wrap">
@@ -357,7 +375,11 @@ export default function LeaveApprovals() {
               className="mr-2 mb-2 p-2 bg-gray-100 rounded-lg flex-row items-center"
             >
               {documentLoading === doc.id ? (
-                <ActivityIndicator size="small" color="#6B7280" style={{ marginRight: 8 }} />
+                <ActivityIndicator
+                  size="small"
+                  color="#6B7280"
+                  style={{ marginRight: 8 }}
+                />
               ) : (
                 <Ionicons
                   name={getDocumentIcon(doc.file_type)}
@@ -377,14 +399,14 @@ export default function LeaveApprovals() {
 
   // Helper function to determine icon based on file type
   const getDocumentIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) {
-      return 'image';
-    } else if (fileType.includes('pdf')) {
-      return 'document-text';
-    } else if (fileType.includes('word') || fileType.includes('doc')) {
-      return 'document';
+    if (fileType.startsWith("image/")) {
+      return "image";
+    } else if (fileType.includes("pdf")) {
+      return "document-text";
+    } else if (fileType.includes("word") || fileType.includes("doc")) {
+      return "document";
     }
-    return 'document-outline';
+    return "document-outline";
   };
 
   if (loading) {
@@ -398,14 +420,21 @@ export default function LeaveApprovals() {
   if (error) {
     return (
       <View className="flex-1 justify-center items-center p-4">
-        <Text className={`text-lg text-center mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <Text
+          className={`text-lg text-center mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+        >
           {error}
         </Text>
         <TouchableOpacity
           onPress={fetchRequests}
           className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center"
         >
-          <Ionicons name="refresh" size={20} color="white" style={{ marginRight: 8 }} />
+          <Ionicons
+            name="refresh"
+            size={20}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
           <Text className="text-white font-medium">Retry</Text>
         </TouchableOpacity>
       </View>
@@ -418,19 +447,29 @@ export default function LeaveApprovals() {
         <Ionicons
           name="checkmark-circle-outline"
           size={64}
-          color={isDark ? '#9CA3AF' : '#6B7280'}
+          color={isDark ? "#9CA3AF" : "#6B7280"}
         />
-        <Text className={`text-xl font-semibold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text
+          className={`text-xl font-semibold mt-4 ${isDark ? "text-white" : "text-gray-900"}`}
+        >
           No Pending Approvals
         </Text>
-        <Text className={`text-center mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          You have no escalated requests or direct leave requests from group admins to review.
+        <Text
+          className={`text-center mt-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+        >
+          You have no escalated requests or direct leave requests from group
+          admins to review.
         </Text>
         <TouchableOpacity
           onPress={fetchRequests}
           className="mt-6 bg-blue-500 px-6 py-3 rounded-lg flex-row items-center"
         >
-          <Ionicons name="refresh" size={20} color="white" style={{ marginRight: 8 }} />
+          <Ionicons
+            name="refresh"
+            size={20}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
           <Text className="text-white font-medium">Refresh</Text>
         </TouchableOpacity>
       </View>
@@ -441,20 +480,22 @@ export default function LeaveApprovals() {
     <View className="flex-1">
       {/* Header */}
       <View className="mb-6">
-        <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text
+          className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+        >
           Leave Approvals
         </Text>
       </View>
 
       {/* Requests List */}
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[isDark ? '#60A5FA' : '#3B82F6']}
-            tintColor={isDark ? '#FFFFFF' : '#3B82F6'}
+            colors={[isDark ? "#60A5FA" : "#3B82F6"]}
+            tintColor={isDark ? "#FFFFFF" : "#3B82F6"}
           />
         }
       >
@@ -466,87 +507,110 @@ export default function LeaveApprovals() {
               setShowActionModal(true);
             }}
             className={`mb-4 p-4 rounded-lg ${
-              isDark ? 'bg-gray-800' : 'bg-white'
+              isDark ? "bg-gray-800" : "bg-white"
             }`}
           >
             <View className="flex-row justify-between items-start mb-2">
               <View>
-                <Text className={`text-lg font-semibold ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
+                <Text
+                  className={`text-lg font-semibold ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                >
                   {request.user_name}
                 </Text>
-                <Text className={`text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
                   {request.employee_number} • {request.department}
                 </Text>
                 {request.escalation_details && (
                   <View className="mt-2 p-2 rounded-lg bg-purple-100">
                     <Text className="text-purple-800 font-medium">
-                      Escalated by {request.escalation_details.escalated_by_name}
+                      Escalated by{" "}
+                      {request.escalation_details.escalated_by_name}
                     </Text>
                     <Text className="text-purple-700 text-sm mt-1">
                       Reason: {request.escalation_details.reason}
                     </Text>
                     <Text className="text-purple-600 text-xs mt-1">
-                      {format(new Date(request.escalation_details.escalated_at), 'MMM dd, yyyy HH:mm')}
+                      {format(
+                        new Date(request.escalation_details.escalated_at),
+                        "MMM dd, yyyy HH:mm",
+                      )}
                     </Text>
                   </View>
                 )}
               </View>
-              <View className={`px-2 py-1 rounded ${getStatusColor(request.status)}`}>
-                <Text className="text-sm capitalize">
-                  {request.status}
-                </Text>
+              <View
+                className={`px-2 py-1 rounded ${getStatusColor(request.status)}`}
+              >
+                <Text className="text-sm capitalize">{request.status}</Text>
               </View>
             </View>
 
             <View className="mt-4 space-y-2">
-              <Text className={`text-sm font-medium ${
-                isDark ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <Text
+                className={`text-sm font-medium ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 {request.leave_type_name}
               </Text>
 
-              <Text className={`text-sm ${
-                isDark ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {format(new Date(request.start_date), 'MMM dd, yyyy')} - {format(new Date(request.end_date), 'MMM dd, yyyy')}
+              <Text
+                className={`text-sm ${
+                  isDark ? "text-gray-400" : "text-gray-600"
+                }`}
+              >
+                {format(new Date(request.start_date), "MMM dd, yyyy")} -{" "}
+                {format(new Date(request.end_date), "MMM dd, yyyy")}
               </Text>
 
-              <Text className={`text-sm ${
-                isDark ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <Text
+                className={`text-sm ${
+                  isDark ? "text-gray-400" : "text-gray-600"
+                }`}
+              >
                 Reason: {request.reason}
               </Text>
 
               <View className="flex-row justify-between">
-                <Text className={`text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
                   Days: {request.days_requested}
                 </Text>
-                <Text className={`text-sm ${
-                  isDark ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
                   Contact: {request.contact_number}
                 </Text>
               </View>
 
               {request.requires_documentation && request.documentation_url && (
                 <TouchableOpacity
-                  onPress={() => {/* Handle document view */}}
+                  onPress={() => {
+                    /* Handle document view */
+                  }}
                   className="flex-row items-center"
                 >
                   <Ionicons
                     name="document-text-outline"
                     size={20}
-                    color={isDark ? '#9CA3AF' : '#6B7280'}
+                    color={isDark ? "#9CA3AF" : "#6B7280"}
                   />
-                  <Text className={`ml-2 text-sm ${
-                    isDark ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
+                  <Text
+                    className={`ml-2 text-sm ${
+                      isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
                     View Documentation
                   </Text>
                 </TouchableOpacity>
@@ -564,89 +628,114 @@ export default function LeaveApprovals() {
         onBackdropPress={() => {
           setShowActionModal(false);
           setSelectedRequest(null);
-          setRejectionReason('');
-          setResolutionNotes('');
+          setRejectionReason("");
+          setResolutionNotes("");
         }}
         style={{ margin: 0 }}
       >
-        <View className={`m-4 p-6 rounded-2xl ${
-          isDark ? 'bg-gray-800' : 'bg-white'
-        }`}>
-          <Text className={`text-xl font-semibold mb-6 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
+        <View
+          className={`m-4 p-6 rounded-2xl ${
+            isDark ? "bg-gray-800" : "bg-white"
+          }`}
+        >
+          <Text
+            className={`text-xl font-semibold mb-6 ${
+              isDark ? "text-white" : "text-gray-900"
+            }`}
+          >
             Process Leave Request
           </Text>
 
           {selectedRequest && (
             <View className="space-y-4">
               <View>
-                <Text className={`text-sm font-medium ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <Text
+                  className={`text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Employee
                 </Text>
-                <Text className={`text-base ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
+                <Text
+                  className={`text-base ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                >
                   {selectedRequest.user_name}
                 </Text>
               </View>
 
               <View>
-                <Text className={`text-sm font-medium ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <Text
+                  className={`text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Leave Type
                 </Text>
-                <Text className={`text-base ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
+                <Text
+                  className={`text-base ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                >
                   {selectedRequest.leave_type_name}
                 </Text>
               </View>
 
               <View>
-                <Text className={`text-sm font-medium ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <Text
+                  className={`text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Duration
                 </Text>
-                <Text className={`text-base ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {format(new Date(selectedRequest.start_date), 'MMM dd, yyyy')} - {format(new Date(selectedRequest.end_date), 'MMM dd, yyyy')}
-                  {' '}({selectedRequest.days_requested} days)
+                <Text
+                  className={`text-base ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {format(new Date(selectedRequest.start_date), "MMM dd, yyyy")}{" "}
+                  - {format(new Date(selectedRequest.end_date), "MMM dd, yyyy")}{" "}
+                  ({selectedRequest.days_requested} days)
                 </Text>
               </View>
 
               <View>
-                <Text className={`text-sm font-medium ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <Text
+                  className={`text-sm font-medium ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   Reason
                 </Text>
-                <Text className={`text-base ${
-                  isDark ? 'text-white' : 'text-gray-900'
-                }`}>
+                <Text
+                  className={`text-base ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                >
                   {selectedRequest.reason}
                 </Text>
               </View>
 
-              {selectedRequest.status === 'escalated' && (
+              {selectedRequest.status === "escalated" && (
                 <View>
-                  <Text className={`text-sm font-medium mb-2 ${
-                    isDark ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
+                  <Text
+                    className={`text-sm font-medium mb-2 ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Resolution Notes <Text className="text-red-500">*</Text>
                   </Text>
                   <TextInput
                     value={resolutionNotes}
                     onChangeText={setResolutionNotes}
                     placeholder="Enter resolution notes for the escalation"
-                    placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                     className={`p-3 rounded-lg ${
-                      isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'
+                      isDark
+                        ? "bg-gray-700 text-white"
+                        : "bg-gray-100 text-gray-900"
                     }`}
                     multiline
                     numberOfLines={3}
@@ -657,18 +746,22 @@ export default function LeaveApprovals() {
               {/* Only show rejection reason input when rejecting */}
               {showRejectModal && (
                 <View>
-                  <Text className={`text-sm font-medium mb-2 ${
-                    isDark ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
+                  <Text
+                    className={`text-sm font-medium mb-2 ${
+                      isDark ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Rejection Reason <Text className="text-red-500">*</Text>
                   </Text>
                   <TextInput
                     value={rejectionReason}
                     onChangeText={setRejectionReason}
                     placeholder="Enter reason for rejection"
-                    placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                     className={`p-3 rounded-lg ${
-                      isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'
+                      isDark
+                        ? "bg-gray-700 text-white"
+                        : "bg-gray-100 text-gray-900"
                     }`}
                     multiline
                     numberOfLines={3}
@@ -681,16 +774,18 @@ export default function LeaveApprovals() {
                   onPress={() => {
                     setShowActionModal(false);
                     setSelectedRequest(null);
-                    setRejectionReason('');
-                    setResolutionNotes('');
+                    setRejectionReason("");
+                    setResolutionNotes("");
                   }}
                   className={`flex-1 py-3 rounded-lg ${
-                    isDark ? 'bg-gray-700' : 'bg-gray-100'
+                    isDark ? "bg-gray-700" : "bg-gray-100"
                   }`}
                 >
-                  <Text className={`text-center font-medium ${
-                    isDark ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <Text
+                    className={`text-center font-medium ${
+                      isDark ? "text-white" : "text-gray-900"
+                    }`}
+                  >
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -709,10 +804,11 @@ export default function LeaveApprovals() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAction(selectedRequest.id, 'approve')}
+                  onPress={() => handleAction(selectedRequest.id, "approve")}
                   disabled={
-                    actionLoading === selectedRequest?.id || 
-                    (selectedRequest.status === 'escalated' && !resolutionNotes.trim())
+                    actionLoading === selectedRequest?.id ||
+                    (selectedRequest.status === "escalated" &&
+                      !resolutionNotes.trim())
                   }
                   className="flex-1 bg-green-500 py-3 rounded-lg"
                 >
@@ -738,22 +834,28 @@ export default function LeaveApprovals() {
         style={{ margin: 0 }}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <Text className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
+            <Text
+              className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               Reject Leave Request
             </Text>
-            
-            {selectedRequest?.status === 'escalated' && (
+
+            {selectedRequest?.status === "escalated" && (
               <View className="mb-4">
-                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <Text
+                  className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Resolution Notes <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
                   value={resolutionNotes}
                   onChangeText={setResolutionNotes}
                   placeholder="Enter resolution notes for the escalation"
-                  placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                  className={`p-3 rounded-lg ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`p-3 rounded-lg ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"}`}
                   multiline
                 />
               </View>
@@ -763,31 +865,41 @@ export default function LeaveApprovals() {
               value={rejectionReason}
               onChangeText={setRejectionReason}
               placeholder="Enter reason for rejection"
-              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              className={`p-3 rounded-lg mb-4 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`p-3 rounded-lg mb-4 ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"}`}
               multiline
             />
             <View className="flex-row space-x-2 gap-2">
               <TouchableOpacity
                 onPress={() => {
                   setShowRejectModal(false);
-                  setRejectionReason('');
-                  setResolutionNotes('');
+                  setRejectionReason("");
+                  setResolutionNotes("");
                 }}
                 className="flex-1 p-3 rounded-lg bg-gray-500"
               >
-                <Text className="text-white text-center font-medium">Cancel</Text>
+                <Text className="text-white text-center font-medium">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => selectedRequest && handleAction(selectedRequest.id, 'reject')}
-                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest?.id ? 'bg-red-400' : 'bg-red-500'}`}
-                disabled={!rejectionReason.trim() || actionLoading === selectedRequest?.id || 
-                  (selectedRequest?.status === 'escalated' && !resolutionNotes.trim())}
+                onPress={() =>
+                  selectedRequest && handleAction(selectedRequest.id, "reject")
+                }
+                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest?.id ? "bg-red-400" : "bg-red-500"}`}
+                disabled={
+                  !rejectionReason.trim() ||
+                  actionLoading === selectedRequest?.id ||
+                  (selectedRequest?.status === "escalated" &&
+                    !resolutionNotes.trim())
+                }
               >
                 {actionLoading === selectedRequest?.id ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-center font-medium">Reject</Text>
+                  <Text className="text-white text-center font-medium">
+                    Reject
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -797,27 +909,33 @@ export default function LeaveApprovals() {
 
       {/* Approve Modal for Escalated Requests */}
       <Modal
-        isVisible={showApproveModal && selectedRequest?.status === 'escalated'}
+        isVisible={showApproveModal && selectedRequest?.status === "escalated"}
         onBackdropPress={() => setShowApproveModal(false)}
         onBackButtonPress={() => setShowApproveModal(false)}
         style={{ margin: 0 }}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <Text className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
+            <Text
+              className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               Approve Escalated Request
             </Text>
-            
+
             <View className="mb-4">
-              <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              <Text
+                className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+              >
                 Resolution Notes <Text className="text-red-500">*</Text>
               </Text>
               <TextInput
                 value={resolutionNotes}
                 onChangeText={setResolutionNotes}
                 placeholder="Enter resolution notes for the escalation"
-                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                className={`p-3 rounded-lg ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`p-3 rounded-lg ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"}`}
                 multiline
               />
             </View>
@@ -826,21 +944,30 @@ export default function LeaveApprovals() {
               <TouchableOpacity
                 onPress={() => {
                   setShowApproveModal(false);
-                  setResolutionNotes('');
+                  setResolutionNotes("");
                 }}
                 className="flex-1 p-3 rounded-lg bg-gray-500"
               >
-                <Text className="text-white text-center font-medium">Cancel</Text>
+                <Text className="text-white text-center font-medium">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => selectedRequest && handleAction(selectedRequest.id, 'approve')}
-                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest?.id ? 'bg-green-400' : 'bg-green-500'}`}
-                disabled={!resolutionNotes.trim() || actionLoading === selectedRequest?.id}
+                onPress={() =>
+                  selectedRequest && handleAction(selectedRequest.id, "approve")
+                }
+                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest?.id ? "bg-green-400" : "bg-green-500"}`}
+                disabled={
+                  !resolutionNotes.trim() ||
+                  actionLoading === selectedRequest?.id
+                }
               >
                 {actionLoading === selectedRequest?.id ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-center font-medium">Approve</Text>
+                  <Text className="text-white text-center font-medium">
+                    Approve
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -857,19 +984,25 @@ export default function LeaveApprovals() {
         animationOut="fadeOut"
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-4">
                 <Ionicons name="checkmark-circle" size={40} color="#10B981" />
               </View>
-              <Text className={`text-xl font-semibold text-center mb-2 ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
+              <Text
+                className={`text-xl font-semibold text-center mb-2 ${
+                  isDark ? "text-white" : "text-gray-900"
+                }`}
+              >
                 Success!
               </Text>
-              <Text className={`text-center mb-6 ${
-                isDark ? 'text-gray-300' : 'text-gray-600'
-              }`}>
+              <Text
+                className={`text-center mb-6 ${
+                  isDark ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
                 {successMessage}
               </Text>
             </View>
@@ -877,9 +1010,7 @@ export default function LeaveApprovals() {
               onPress={() => setShowSuccessModal(false)}
               className="bg-green-500 py-3 rounded-lg"
             >
-              <Text className="text-white text-center font-medium">
-                Done
-              </Text>
+              <Text className="text-white text-center font-medium">Done</Text>
             </TouchableOpacity>
           </View>
         </View>

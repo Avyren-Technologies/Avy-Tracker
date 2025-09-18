@@ -4,13 +4,13 @@ const { withNativeWind } = require("nativewind/metro");
 // Get the default config
 let config = getDefaultConfig(__dirname);
 
-// Apply our custom config
+// Apply our custom config - only add extensions that aren't already included
 config = {
   ...config,
   resolver: {
     ...config.resolver,
-    sourceExts: ["js", "jsx", "json", "ts", "tsx"],
-    assetExts: ["db", "ttf", "png", "jpg"],
+    sourceExts: [...config.resolver.sourceExts],
+    assetExts: [...config.resolver.assetExts, "db"],
   },
 };
 

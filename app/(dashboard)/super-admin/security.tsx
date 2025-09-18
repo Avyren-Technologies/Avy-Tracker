@@ -198,7 +198,7 @@ export default function Security() {
                   Alert.alert(
                     "Security Recommendations",
                     "The security recommendations feature is coming soon. This will provide detailed suggestions to improve your security score.",
-                    [{ text: "OK", style: "default" }]
+                    [{ text: "OK", style: "default" }],
                   )
                 }
               >
@@ -251,8 +251,8 @@ export default function Security() {
                             ]
                               ? "#3B82F6"
                               : theme === "dark"
-                              ? "#9CA3AF"
-                              : "#6B7280"
+                                ? "#9CA3AF"
+                                : "#6B7280"
                           }
                         />
                       </View>
@@ -331,8 +331,8 @@ export default function Security() {
                       event.type === "warning"
                         ? "bg-yellow-500"
                         : event.type === "error"
-                        ? "bg-red-500"
-                        : "bg-green-500"
+                          ? "bg-red-500"
+                          : "bg-green-500"
                     }`}
                   />
                   <Text

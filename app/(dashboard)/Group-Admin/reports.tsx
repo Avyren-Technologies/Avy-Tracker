@@ -85,7 +85,7 @@ export default function GroupAdminReports() {
 
   const calculateTrend = (
     currentValue: number,
-    previousValue: number
+    previousValue: number,
   ): string => {
     if (previousValue === 0) return "0%";
 
@@ -106,7 +106,7 @@ export default function GroupAdminReports() {
             total: analytics.expense.total || 0,
             trend: calculateTrend(
               analytics.expense.currentMonthTotal || 0, // Current month total
-              analytics.expense.previousMonthTotal || 0 // Previous month total
+              analytics.expense.previousMonthTotal || 0, // Previous month total
             ),
             average: analytics.expense.average || 0,
             lastUpdated: analytics.expense.lastUpdated,
@@ -128,7 +128,7 @@ export default function GroupAdminReports() {
             total: analytics.attendance.total || 0,
             trend: calculateTrend(
               analytics.attendance.currentMonthTotal || 0, // Current month total
-              analytics.attendance.previousMonthTotal || 0 // Previous month total
+              analytics.attendance.previousMonthTotal || 0, // Previous month total
             ),
             average: analytics.attendance.average || 0,
             lastUpdated: analytics.attendance.lastUpdated,
@@ -150,7 +150,7 @@ export default function GroupAdminReports() {
             total: analytics.task?.total_tasks || 0,
             trend: calculateTrend(
               analytics.task?.currentMonthTotal || 0,
-              analytics.task?.previousMonthTotal || 0
+              analytics.task?.previousMonthTotal || 0,
             ),
             average: Number(analytics.task?.avg_completion_time || 0),
             lastUpdated:
@@ -173,7 +173,7 @@ export default function GroupAdminReports() {
             total: analytics.travel?.total || 0,
             trend: calculateTrend(
               analytics.travel?.currentMonthTotal || 0,
-              analytics.travel?.previousMonthTotal || 0
+              analytics.travel?.previousMonthTotal || 0,
             ),
             average: Number(analytics.travel?.average || 0),
             lastUpdated:
@@ -238,7 +238,7 @@ export default function GroupAdminReports() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, []);
 
@@ -250,7 +250,7 @@ export default function GroupAdminReports() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/reports`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       setReports(response.data);
     } catch (error: any) {
@@ -267,7 +267,7 @@ export default function GroupAdminReports() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/reports/analytics`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       setAnalytics(response.data);
     } catch (error) {
@@ -600,7 +600,7 @@ export default function GroupAdminReports() {
               {reportSections.map((section) =>
                 selectedType === section.type ? (
                   <View key={section.type}>{renderReportSection(section)}</View>
-                ) : null
+                ) : null,
               )}
             </View>
           </ScrollView>

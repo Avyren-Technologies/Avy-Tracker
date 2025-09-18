@@ -14,4 +14,4 @@ export interface User {
   mfa_otp_attempts?: number;
   mfa_last_used?: Date;
   mfa_setup_date?: Date;
-} 
+}

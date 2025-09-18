@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { shiftTimerController } from '../controllers/shiftTimerController';
-import { authMiddleware } from '../middleware/auth';
+import { Router } from "express";
+import { shiftTimerController } from "../controllers/shiftTimerController";
+import { authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
@@ -8,8 +8,8 @@ const router = Router();
 router.use(authMiddleware);
 
 // Shift timer routes - accessible to all roles (employee, group-admin, management)
-router.post('/shift/timer', shiftTimerController.setTimer);
-router.delete('/shift/timer', shiftTimerController.cancelTimer);
-router.get('/shift/timer', shiftTimerController.getTimer);
+router.post("/shift/timer", shiftTimerController.setTimer);
+router.delete("/shift/timer", shiftTimerController.cancelTimer);
+router.get("/shift/timer", shiftTimerController.getTimer);
 
-export default router; 
+export default router;

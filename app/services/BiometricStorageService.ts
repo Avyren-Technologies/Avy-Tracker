@@ -1,9 +1,9 @@
-import * as SecureStore from 'expo-secure-store';
-import * as Crypto from 'expo-crypto';
-import { ErrorHandlingService } from './ErrorHandlingService';
+import * as SecureStore from "expo-secure-store";
+import * as Crypto from "expo-crypto";
+import { ErrorHandlingService } from "./ErrorHandlingService";
 
 interface BiometricData {
-  type: 'face' | 'fingerprint' | 'voice';
+  type: "face" | "fingerprint" | "voice";
   data: any;
   metadata: {
     createdAt: string;
@@ -27,9 +27,9 @@ interface StoredBiometric {
 
 export class BiometricStorageService {
   private static instance: BiometricStorageService;
-  private readonly STORAGE_PREFIX = 'biometric_';
-  private readonly ENCRYPTION_KEY_PREFIX = 'bio_key_';
-  private readonly CURRENT_VERSION = '1.0';
+  private readonly STORAGE_PREFIX = "biometric_";
+  private readonly ENCRYPTION_KEY_PREFIX = "bio_key_";
+  private readonly CURRENT_VERSION = "1.0";
 
   private constructor() {}
 
@@ -45,18 +45,23 @@ export class BiometricStorageService {
    */
   public async storeBiometricData(
     userId: string,
-    biometricData: BiometricData
+    biometricData: BiometricData,
   ): Promise<void> {
     try {
       // Generate unique ID for this biometric record
-      const biometricId = await this.generateBiometricId(userId, biometricData.type);
-      
+      const biometricId = await this.generateBiometricId(
+        userId,
+        biometricData.type,
+      );
+
       // Encrypt the biometric data
-      const encryptedData = await this.encryptData(JSON.stringify(biometricData));
-      
+      const encryptedData = await this.encryptData(
+        JSON.stringify(biometricData),
+      );
+
       // Create hash for integrity verification
       const hash = await this.createHash(JSON.stringify(biometricData));
-      
+
       // Prepare storage object
       const storedBiometric: StoredBiometric = {
         id: biometricId,
@@ -67,23 +72,25 @@ export class BiometricStorageService {
           createdAt: new Date().toISOString(),
           lastUsed: new Date().toISOString(),
           deviceInfo: biometricData.metadata.deviceInfo,
-          version: this.CURRENT_VERSION
-        }
+          version: this.CURRENT_VERSION,
+        },
       };
 
       // Store in secure storage
       const storageKey = `${this.STORAGE_PREFIX}${userId}_${biometricData.type}`;
-      await SecureStore.setItemAsync(storageKey, JSON.stringify(storedBiometric));
+      await SecureStore.setItemAsync(
+        storageKey,
+        JSON.stringify(storedBiometric),
+      );
 
       console.log(`Biometric data stored successfully for user ${userId}`);
-
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_STORAGE_ERROR', error as Error, {
-        context: 'BiometricStorageService.storeBiometricData',
+      ErrorHandlingService.logError("BIOMETRIC_STORAGE_ERROR", error as Error, {
+        context: "BiometricStorageService.storeBiometricData",
         userId,
-        biometricType: biometricData.type
+        biometricType: biometricData.type,
       });
-      throw new Error('Failed to store biometric data');
+      throw new Error("Failed to store biometric data");
     }
   }
 
@@ -92,7 +99,7 @@ export class BiometricStorageService {
    */
   public async getBiometricData(
     userId: string,
-    biometricType: 'face' | 'fingerprint' | 'voice' = 'face'
+    biometricType: "face" | "fingerprint" | "voice" = "face",
   ): Promise<BiometricData | null> {
     try {
       const storageKey = `${this.STORAGE_PREFIX}${userId}_${biometricType}`;
@@ -103,29 +110,37 @@ export class BiometricStorageService {
       }
 
       const storedBiometric: StoredBiometric = JSON.parse(storedData);
-      
+
       // Decrypt the data
-      const decryptedData = await this.decryptData(storedBiometric.encryptedData);
+      const decryptedData = await this.decryptData(
+        storedBiometric.encryptedData,
+      );
       const biometricData: BiometricData = JSON.parse(decryptedData);
-      
+
       // Verify data integrity
       const currentHash = await this.createHash(decryptedData);
       if (currentHash !== storedBiometric.hash) {
-        throw new Error('Biometric data integrity check failed');
+        throw new Error("Biometric data integrity check failed");
       }
 
       // Update last used timestamp
       storedBiometric.metadata.lastUsed = new Date().toISOString();
-      await SecureStore.setItemAsync(storageKey, JSON.stringify(storedBiometric));
+      await SecureStore.setItemAsync(
+        storageKey,
+        JSON.stringify(storedBiometric),
+      );
 
       return biometricData;
-
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_RETRIEVAL_ERROR', error as Error, {
-        context: 'BiometricStorageService.getBiometricData',
-        userId,
-        biometricType
-      });
+      ErrorHandlingService.logError(
+        "BIOMETRIC_RETRIEVAL_ERROR",
+        error as Error,
+        {
+          context: "BiometricStorageService.getBiometricData",
+          userId,
+          biometricType,
+        },
+      );
       return null;
     }
   }
@@ -135,7 +150,7 @@ export class BiometricStorageService {
    */
   public async deleteBiometricData(
     userId: string,
-    biometricType?: 'face' | 'fingerprint' | 'voice'
+    biometricType?: "face" | "fingerprint" | "voice",
   ): Promise<void> {
     try {
       if (biometricType) {
@@ -144,8 +159,12 @@ export class BiometricStorageService {
         await SecureStore.deleteItemAsync(storageKey);
       } else {
         // Delete all biometric data for user
-        const types: ('face' | 'fingerprint' | 'voice')[] = ['face', 'fingerprint', 'voice'];
-        
+        const types: ("face" | "fingerprint" | "voice")[] = [
+          "face",
+          "fingerprint",
+          "voice",
+        ];
+
         for (const type of types) {
           const storageKey = `${this.STORAGE_PREFIX}${userId}_${type}`;
           try {
@@ -157,14 +176,17 @@ export class BiometricStorageService {
       }
 
       console.log(`Biometric data deleted for user ${userId}`);
-
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_DELETION_ERROR', error as Error, {
-        context: 'BiometricStorageService.deleteBiometricData',
-        userId,
-        biometricType
-      });
-      throw new Error('Failed to delete biometric data');
+      ErrorHandlingService.logError(
+        "BIOMETRIC_DELETION_ERROR",
+        error as Error,
+        {
+          context: "BiometricStorageService.deleteBiometricData",
+          userId,
+          biometricType,
+        },
+      );
+      throw new Error("Failed to delete biometric data");
     }
   }
 
@@ -173,7 +195,7 @@ export class BiometricStorageService {
    */
   public async hasBiometricData(
     userId: string,
-    biometricType: 'face' | 'fingerprint' | 'voice' = 'face'
+    biometricType: "face" | "fingerprint" | "voice" = "face",
   ): Promise<boolean> {
     try {
       const storageKey = `${this.STORAGE_PREFIX}${userId}_${biometricType}`;
@@ -189,8 +211,8 @@ export class BiometricStorageService {
    */
   public async getBiometricMetadata(
     userId: string,
-    biometricType: 'face' | 'fingerprint' | 'voice' = 'face'
-  ): Promise<StoredBiometric['metadata'] | null> {
+    biometricType: "face" | "fingerprint" | "voice" = "face",
+  ): Promise<StoredBiometric["metadata"] | null> {
     try {
       const storageKey = `${this.STORAGE_PREFIX}${userId}_${biometricType}`;
       const storedData = await SecureStore.getItemAsync(storageKey);
@@ -201,13 +223,16 @@ export class BiometricStorageService {
 
       const storedBiometric: StoredBiometric = JSON.parse(storedData);
       return storedBiometric.metadata;
-
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_METADATA_ERROR', error as Error, {
-        context: 'BiometricStorageService.getBiometricMetadata',
-        userId,
-        biometricType
-      });
+      ErrorHandlingService.logError(
+        "BIOMETRIC_METADATA_ERROR",
+        error as Error,
+        {
+          context: "BiometricStorageService.getBiometricMetadata",
+          userId,
+          biometricType,
+        },
+      );
       return null;
     }
   }
@@ -217,14 +242,17 @@ export class BiometricStorageService {
    */
   public async updateBiometricData(
     userId: string,
-    biometricData: BiometricData
+    biometricData: BiometricData,
   ): Promise<void> {
     try {
       // Get existing metadata
-      const existingMetadata = await this.getBiometricMetadata(userId, biometricData.type);
-      
+      const existingMetadata = await this.getBiometricMetadata(
+        userId,
+        biometricData.type,
+      );
+
       if (!existingMetadata) {
-        throw new Error('No existing biometric data to update');
+        throw new Error("No existing biometric data to update");
       }
 
       // Update the data while preserving creation timestamp
@@ -232,32 +260,34 @@ export class BiometricStorageService {
         ...biometricData,
         metadata: {
           ...biometricData.metadata,
-          createdAt: existingMetadata.createdAt // Preserve original creation time
-        }
+          createdAt: existingMetadata.createdAt, // Preserve original creation time
+        },
       };
 
       await this.storeBiometricData(userId, updatedBiometricData);
-
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_UPDATE_ERROR', error as Error, {
-        context: 'BiometricStorageService.updateBiometricData',
+      ErrorHandlingService.logError("BIOMETRIC_UPDATE_ERROR", error as Error, {
+        context: "BiometricStorageService.updateBiometricData",
         userId,
-        biometricType: biometricData.type
+        biometricType: biometricData.type,
       });
-      throw new Error('Failed to update biometric data');
+      throw new Error("Failed to update biometric data");
     }
   }
 
   /**
    * Generate unique biometric ID
    */
-  private async generateBiometricId(userId: string, type: string): Promise<string> {
+  private async generateBiometricId(
+    userId: string,
+    type: string,
+  ): Promise<string> {
     const timestamp = Date.now().toString();
     const randomBytes = await Crypto.getRandomBytesAsync(16);
     const randomString = Array.from(randomBytes)
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join('');
-    
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+
     return `${type}_${userId}_${timestamp}_${randomString}`;
   }
 
@@ -269,25 +299,24 @@ export class BiometricStorageService {
       // In a real implementation, you would use a proper encryption library
       // For now, we'll use base64 encoding as a placeholder
       // In production, use crypto libraries like expo-crypto or react-native-keychain
-      
+
       const encoder = new TextEncoder();
       const dataBytes = encoder.encode(data);
-      
+
       // Simple XOR encryption with a device-specific key (placeholder)
       const key = await this.getOrCreateEncryptionKey();
       const keyBytes = encoder.encode(key);
-      
+
       const encryptedBytes = new Uint8Array(dataBytes.length);
       for (let i = 0; i < dataBytes.length; i++) {
         encryptedBytes[i] = dataBytes[i] ^ keyBytes[i % keyBytes.length];
       }
-      
+
       // Convert to base64
       const base64 = btoa(String.fromCharCode(...encryptedBytes));
       return base64;
-      
     } catch (error) {
-      throw new Error('Encryption failed');
+      throw new Error("Encryption failed");
     }
   }
 
@@ -300,24 +329,25 @@ export class BiometricStorageService {
       const key = await this.getOrCreateEncryptionKey();
       const encoder = new TextEncoder();
       const keyBytes = encoder.encode(key);
-      
+
       // Convert from base64
       const encryptedBytes = new Uint8Array(
-        atob(encryptedData).split('').map(char => char.charCodeAt(0))
+        atob(encryptedData)
+          .split("")
+          .map((char) => char.charCodeAt(0)),
       );
-      
+
       // XOR decrypt
       const decryptedBytes = new Uint8Array(encryptedBytes.length);
       for (let i = 0; i < encryptedBytes.length; i++) {
         decryptedBytes[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
       }
-      
+
       // Convert back to string
       const decoder = new TextDecoder();
       return decoder.decode(decryptedBytes);
-      
     } catch (error) {
-      throw new Error('Decryption failed');
+      throw new Error("Decryption failed");
     }
   }
 
@@ -326,19 +356,19 @@ export class BiometricStorageService {
    */
   private async getOrCreateEncryptionKey(): Promise<string> {
     const keyName = `${this.ENCRYPTION_KEY_PREFIX}device`;
-    
+
     let key = await SecureStore.getItemAsync(keyName);
-    
+
     if (!key) {
       // Generate new key
       const randomBytes = await Crypto.getRandomBytesAsync(32);
       key = Array.from(randomBytes)
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
-      
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+
       await SecureStore.setItemAsync(keyName, key);
     }
-    
+
     return key;
   }
 
@@ -350,11 +380,11 @@ export class BiometricStorageService {
       const hash = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         data,
-        { encoding: Crypto.CryptoEncoding.HEX }
+        { encoding: Crypto.CryptoEncoding.HEX },
       );
       return hash;
     } catch (error) {
-      throw new Error('Hash creation failed');
+      throw new Error("Hash creation failed");
     }
   }
 
@@ -365,11 +395,17 @@ export class BiometricStorageService {
     try {
       // This would require getting all stored keys, which isn't directly possible with SecureStore
       // In a real implementation, you might maintain an index of stored keys
-      console.log('Biometric data cleared (implementation depends on key management strategy)');
+      console.log(
+        "Biometric data cleared (implementation depends on key management strategy)",
+      );
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_CLEAR_ALL_ERROR', error as Error, {
-        context: 'BiometricStorageService.clearAllBiometricData'
-      });
+      ErrorHandlingService.logError(
+        "BIOMETRIC_CLEAR_ALL_ERROR",
+        error as Error,
+        {
+          context: "BiometricStorageService.clearAllBiometricData",
+        },
+      );
     }
   }
 
@@ -386,7 +422,7 @@ export class BiometricStorageService {
     return {
       totalUsers: 0,
       totalBiometrics: 0,
-      storageSize: 0
+      storageSize: 0,
     };
   }
 
@@ -399,10 +435,14 @@ export class BiometricStorageService {
       const decryptedData = await instance.decryptData(encryptedData.data);
       return JSON.parse(decryptedData);
     } catch (error) {
-      ErrorHandlingService.logError('BIOMETRIC_DECRYPTION_ERROR', error as Error, {
-        context: 'BiometricStorageService.decryptBiometricData'
-      });
-      throw new Error('Failed to decrypt biometric data');
+      ErrorHandlingService.logError(
+        "BIOMETRIC_DECRYPTION_ERROR",
+        error as Error,
+        {
+          context: "BiometricStorageService.decryptBiometricData",
+        },
+      );
+      throw new Error("Failed to decrypt biometric data");
     }
   }
 }

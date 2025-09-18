@@ -1,25 +1,30 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import * as Location from 'expo-location';
-import * as Battery from 'expo-battery';
-import { AppState, AppStateStatus } from 'react-native';
-import { LocationAccuracy, TrackingStatus, Location as LocationType, LocationHistory } from '../types/liveTracking';
-import useLocationStore from '../store/locationStore';
-import { useSocket } from './useSocket';
-import { useAuth } from '../context/AuthContext';
-import { 
-  startBackgroundLocationTracking, 
-  stopBackgroundLocationTracking, 
+import { useEffect, useRef, useState, useCallback } from "react";
+import * as Location from "expo-location";
+import * as Battery from "expo-battery";
+import { AppState, AppStateStatus } from "react-native";
+import {
+  LocationAccuracy,
+  TrackingStatus,
+  Location as LocationType,
+  LocationHistory,
+} from "../types/liveTracking";
+import useLocationStore from "../store/locationStore";
+import { useSocket } from "./useSocket";
+import { useAuth } from "../context/AuthContext";
+import {
+  startBackgroundLocationTracking,
+  stopBackgroundLocationTracking,
   isBackgroundLocationTrackingActive,
-  BACKGROUND_LOCATION_TASK 
-} from '../utils/backgroundLocationTask';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+  BACKGROUND_LOCATION_TASK,
+} from "../utils/backgroundLocationTask";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Map location accuracy levels to Expo accuracy constants
 const accuracyMap = {
   high: Location.Accuracy.High,
   balanced: Location.Accuracy.Balanced,
   low: Location.Accuracy.Low,
-  passive: Location.Accuracy.Lowest
+  passive: Location.Accuracy.Lowest,
 };
 
 interface UseLocationTrackingOptions {
@@ -33,21 +38,23 @@ interface UseLocationTrackingOptions {
 }
 
 export function useLocationTracking({
-  initialAccuracy = 'balanced',
+  initialAccuracy = "balanced",
   initialIntervalMs = 30000,
   distanceInterval = 10,
   onLocationUpdate,
   onError,
   autoStart = false,
-  enableBackgroundTracking = false
+  enableBackgroundTracking = false,
 }: UseLocationTrackingOptions = {}) {
   const { user } = useAuth();
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(
+    null,
+  );
   const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
   const [intervalMs, setIntervalMs] = useState<number>(initialIntervalMs);
-  
-  const { 
+
+  const {
     setCurrentLocation,
     addLocationToHistory,
     setTrackingStatus,
@@ -56,18 +63,14 @@ export function useLocationTracking({
     setBatteryLevel,
     locationAccuracy,
     trackingStatus,
-    backgroundTrackingEnabled
+    backgroundTrackingEnabled,
   } = useLocationStore();
-  
-  const { 
-    emitLocation, 
-    getOptimalUpdateInterval, 
-    isConnected
-  } = useSocket({
+
+  const { emitLocation, getOptimalUpdateInterval, isConnected } = useSocket({
     onError: (errorMessage) => {
       setError(errorMessage);
       onError?.(errorMessage);
-    }
+    },
   });
 
   // Check if background location task is active on mount
@@ -78,9 +81,9 @@ export function useLocationTracking({
         if (isActive) {
           // If the background task is active, update the store state
           setTrackingStatus(TrackingStatus.ACTIVE);
-          
+
           // Also check for last location saved from background task
-          const lastLocationStr = await AsyncStorage.getItem('lastLocation');
+          const lastLocationStr = await AsyncStorage.getItem("lastLocation");
           if (lastLocationStr) {
             try {
               const lastLocation = JSON.parse(lastLocationStr);
@@ -89,7 +92,7 @@ export function useLocationTracking({
               const now = new Date();
               const diff = now.getTime() - savedAt.getTime();
               const hourInMs = 60 * 60 * 1000;
-              
+
               if (diff < hourInMs) {
                 setCurrentLocation({
                   coords: {
@@ -103,19 +106,22 @@ export function useLocationTracking({
                   },
                   timestamp: lastLocation.timestamp,
                   batteryLevel: lastLocation.batteryLevel,
-                  isMoving: lastLocation.isMoving
+                  isMoving: lastLocation.isMoving,
                 });
               }
             } catch (error) {
-              console.error('Failed to parse last location from storage:', error);
+              console.error(
+                "Failed to parse last location from storage:",
+                error,
+              );
             }
           }
         }
       } catch (error) {
-        console.error('Failed to check background task status:', error);
+        console.error("Failed to check background task status:", error);
       }
     };
-    
+
     checkBackgroundTaskStatus();
   }, [setTrackingStatus, setCurrentLocation]);
 
@@ -132,7 +138,7 @@ export function useLocationTracking({
         setBatteryLevel(batteryPercent);
         return batteryPercent;
       } catch (error) {
-        console.error('Failed to get battery level:', error);
+        console.error("Failed to get battery level:", error);
         return null;
       }
     };
@@ -140,18 +146,20 @@ export function useLocationTracking({
     const setupBatteryMonitoring = async () => {
       // Initial check
       await checkBatteryLevel();
-      
+
       // Subscribe to battery updates
-      batterySubscription = Battery.addBatteryLevelListener(({ batteryLevel }) => {
-        const batteryPercent = Math.round(batteryLevel * 100);
-        setBatteryLevel(batteryPercent);
-      });
-      
+      batterySubscription = Battery.addBatteryLevelListener(
+        ({ batteryLevel }) => {
+          const batteryPercent = Math.round(batteryLevel * 100);
+          setBatteryLevel(batteryPercent);
+        },
+      );
+
       // Also check every minute as a fallback
       batteryCheckInterval = setInterval(checkBatteryLevel, 60000);
     };
 
-    if (trackingStatus === 'active') {
+    if (trackingStatus === "active") {
       setupBatteryMonitoring();
     }
 
@@ -180,7 +188,7 @@ export function useLocationTracking({
         // Get optimal interval from server
         const optimalInterval = await getOptimalUpdateInterval(
           batteryPercent,
-          isCharging
+          isCharging,
         );
 
         // Only update if significantly different
@@ -238,7 +246,7 @@ export function useLocationTracking({
       // Debounce the AppState change handling to prevent rapid firing
       debounceTimeout = setTimeout(async () => {
         console.log(
-          `[LocationTracking] AppState changed: ${appStateRef.current} -> ${nextAppState}`
+          `[LocationTracking] AppState changed: ${appStateRef.current} -> ${nextAppState}`,
         );
 
         // App has gone to the background
@@ -283,9 +291,8 @@ export function useLocationTracking({
               setTrackingStatus(TrackingStatus.ACTIVE);
 
               // Check for the last saved location from background task
-              const lastLocationStr = await AsyncStorage.getItem(
-                "lastLocation"
-              );
+              const lastLocationStr =
+                await AsyncStorage.getItem("lastLocation");
               if (lastLocationStr) {
                 try {
                   const lastLocation = JSON.parse(lastLocationStr);
@@ -306,7 +313,7 @@ export function useLocationTracking({
                 } catch (error) {
                   console.error(
                     "Failed to parse last location from storage:",
-                    error
+                    error,
                   );
                 }
               }
@@ -326,7 +333,7 @@ export function useLocationTracking({
 
     const subscription = AppState.addEventListener(
       "change",
-      handleAppStateChange
+      handleAppStateChange,
     );
 
     return () => {
@@ -409,7 +416,7 @@ export function useLocationTracking({
         },
         timestamp: timestamp,
         batteryLevel: processedLocation.batteryLevel,
-        isMoving: processedLocation.isMoving
+        isMoving: processedLocation.isMoving,
       };
 
       // Update stores with correctly structured enhanced location
@@ -437,15 +444,16 @@ export function useLocationTracking({
             heading: processedLocation.heading || null,
             speed: processedLocation.speed || null,
           },
-          timestamp: typeof processedLocation.timestamp === 'string' 
-            ? new Date(processedLocation.timestamp).getTime() 
-            : processedLocation.timestamp || Date.now(),
+          timestamp:
+            typeof processedLocation.timestamp === "string"
+              ? new Date(processedLocation.timestamp).getTime()
+              : processedLocation.timestamp || Date.now(),
           id: historyItem.id,
           userId: historyItem.userId,
           sessionId: historyItem.sessionId,
           startTime: historyItem.startTime,
           batteryLevel: processedLocation.batteryLevel,
-          isMoving: processedLocation.isMoving
+          isMoving: processedLocation.isMoving,
         };
 
         addLocationToHistory(historyItemForStore);
@@ -468,7 +476,7 @@ export function useLocationTracking({
       isConnected,
       emitLocation,
       onLocationUpdate,
-    ]
+    ],
   );
 
   // Start location tracking
@@ -527,7 +535,7 @@ export function useLocationTracking({
         },
         (location) => {
           processLocation(location);
-        }
+        },
       );
 
       return true;
@@ -587,73 +595,90 @@ export function useLocationTracking({
   ]);
 
   // Get current location once
-  const getCurrentLocation = useCallback(async (): Promise<Location.LocationObject | null> => {
-    try {
-      // Check permissions first
-      const hasPermission = await requestPermissions();
-      
-      if (!hasPermission) {
-        throw new Error('Location permissions not granted');
+  const getCurrentLocation =
+    useCallback(async (): Promise<Location.LocationObject | null> => {
+      try {
+        // Check permissions first
+        const hasPermission = await requestPermissions();
+
+        if (!hasPermission) {
+          throw new Error("Location permissions not granted");
+        }
+
+        // Get current location
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: accuracyMap[locationAccuracy],
+        });
+
+        // Create the enhanced location
+        const enhancedLocation = {
+          coords: {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            accuracy: location.coords.accuracy || 0,
+            altitude: location.coords.altitude || null,
+            altitudeAccuracy: location.coords.altitudeAccuracy || null,
+            heading: location.coords.heading || null,
+            speed: location.coords.speed || null,
+          },
+          timestamp: location.timestamp,
+        };
+
+        // Process and update state
+        processLocation(location);
+
+        // Return the original location object for compatibility
+        return location;
+      } catch (error: any) {
+        const errorMsg = error.message || "Failed to get current location";
+        setError(errorMsg);
+        onError?.(errorMsg);
+        return null;
       }
-      
-      // Get current location
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: accuracyMap[locationAccuracy]
-      });
-      
-      // Create the enhanced location
-      const enhancedLocation = {
-        coords: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy: location.coords.accuracy || 0,
-          altitude: location.coords.altitude || null,
-          altitudeAccuracy: location.coords.altitudeAccuracy || null,
-          heading: location.coords.heading || null,
-          speed: location.coords.speed || null,
-        },
-        timestamp: location.timestamp
-      };
-      
-      // Process and update state
-      processLocation(location);
-      
-      // Return the original location object for compatibility
-      return location;
-    } catch (error: any) {
-      const errorMsg = error.message || 'Failed to get current location';
-      setError(errorMsg);
-      onError?.(errorMsg);
-      return null;
-    }
-  }, [requestPermissions, locationAccuracy, processLocation, setError, onError]);
+    }, [
+      requestPermissions,
+      locationAccuracy,
+      processLocation,
+      setError,
+      onError,
+    ]);
 
   // Change location accuracy
-  const changeAccuracy = useCallback(async (accuracy: LocationAccuracy): Promise<boolean> => {
-    try {
-      setLocationAccuracy(accuracy);
-      
-      // Restart tracking if active
-      if (trackingStatus === 'active') {
-        await stopLocationTracking();
-        await startLocationTracking();
+  const changeAccuracy = useCallback(
+    async (accuracy: LocationAccuracy): Promise<boolean> => {
+      try {
+        setLocationAccuracy(accuracy);
+
+        // Restart tracking if active
+        if (trackingStatus === "active") {
+          await stopLocationTracking();
+          await startLocationTracking();
+        }
+
+        return true;
+      } catch (error: any) {
+        const errorMsg = error.message || "Failed to change location accuracy";
+        setError(errorMsg);
+        onError?.(errorMsg);
+        return false;
       }
-      
-      return true;
-    } catch (error: any) {
-      const errorMsg = error.message || 'Failed to change location accuracy';
-      setError(errorMsg);
-      onError?.(errorMsg);
-      return false;
-    }
-  }, [trackingStatus, startLocationTracking, stopLocationTracking, setLocationAccuracy, setError, onError]);
+    },
+    [
+      trackingStatus,
+      startLocationTracking,
+      stopLocationTracking,
+      setLocationAccuracy,
+      setError,
+      onError,
+    ],
+  );
 
   // Auto-start tracking if requested
   useEffect(() => {
     if (autoStart) {
       startLocationTracking();
     }
-    
+
     return () => {
       // Cleanup on unmount - only stop foreground tracking, not background
       if (locationSubscription.current) {
@@ -672,6 +697,6 @@ export function useLocationTracking({
     intervalMs,
     isBackgroundTracking: useCallback(async () => {
       return await isBackgroundLocationTrackingActive();
-    }, [])
+    }, []),
   };
-} 
+}

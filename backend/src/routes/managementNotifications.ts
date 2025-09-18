@@ -13,7 +13,7 @@ router.use(verifyToken);
 const ensureManagement = (
   req: CustomRequest,
   res: Response,
-  next: Function
+  next: Function,
 ) => {
   if (!req.user?.id || req.user.role !== "management") {
     return res.status(403).json({ error: "Access restricted to management" });
@@ -33,7 +33,7 @@ router.get("/", async (req: CustomRequest, res: Response) => {
       parseInt(req.user!.id.toString()),
       "management",
       limit,
-      offset
+      offset,
     );
 
     res.json(notifications);
@@ -69,7 +69,7 @@ router.post("/send-role", async (req: CustomRequest, res: Response) => {
         priority: "high",
         data: { screen: `/(dashboard)/${targetRole}/notifications` },
       },
-      true // Add new parameter to exclude sender
+      true, // Add new parameter to exclude sender
     );
 
     res.json({ success: true });
@@ -110,7 +110,7 @@ router.post("/send-users", async (req: CustomRequest, res: Response) => {
 
     await NotificationService.sendPushNotification(
       notification,
-      userIds.map(String)
+      userIds.map(String),
     );
     res.json({ success: true });
   } catch (error) {
@@ -131,7 +131,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
     console.log("[MarkAsRead] Request details:", {
       notificationId,
       userId,
-      userRole: req.user?.role
+      userRole: req.user?.role,
     });
 
     const client = await pool.connect();
@@ -141,7 +141,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
         `SELECT id, user_id, read 
          FROM notifications 
          WHERE id = $1 AND user_id = $2`,
-        [notificationId, userId]
+        [notificationId, userId],
       );
 
       // Then check in push_notifications table
@@ -149,12 +149,12 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
         `SELECT id, user_id, sent 
          FROM push_notifications 
          WHERE id = $1 AND user_id = $2`,
-        [notificationId, userId]
+        [notificationId, userId],
       );
 
       console.log("[MarkAsRead] Search results:", {
         inAppFound: inAppResult.rows.length > 0,
-        pushFound: pushResult.rows.length > 0
+        pushFound: pushResult.rows.length > 0,
       });
 
       // If notification found in in-app notifications
@@ -165,10 +165,13 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
            SET read = true 
            WHERE id = $1 AND user_id = $2 
            RETURNING id, user_id, title, message, type, read, created_at`,
-          [notificationId, userId]
+          [notificationId, userId],
         );
 
-        console.log("[MarkAsRead] In-app notification marked as read:", updateResult.rows[0]);
+        console.log(
+          "[MarkAsRead] In-app notification marked as read:",
+          updateResult.rows[0],
+        );
         return res.json(updateResult.rows[0]);
       }
 
@@ -188,10 +191,13 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
            FROM push_notifications 
            WHERE id = $1 AND user_id = $2
            RETURNING id, user_id, title, message, type, read, created_at`,
-          [notificationId, userId]
+          [notificationId, userId],
         );
 
-        console.log("[MarkAsRead] Push notification marked as read:", createInAppResult.rows[0]);
+        console.log(
+          "[MarkAsRead] Push notification marked as read:",
+          createInAppResult.rows[0],
+        );
         return res.json(createInAppResult.rows[0]);
       }
 
@@ -199,9 +205,8 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
       console.log("[MarkAsRead] Notification not found:", notificationId);
       return res.status(404).json({
         error: "Notification not found",
-        details: "No notification found with the given ID for this user"
+        details: "No notification found with the given ID for this user",
       });
-
     } finally {
       client.release();
     }
@@ -209,7 +214,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
     console.error("[MarkAsRead] Error:", error);
     res.status(500).json({
       error: "Failed to mark notification as read",
-      details: error instanceof Error ? error.message : "Unknown error"
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -218,7 +223,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
 router.get("/unread-count", async (req: CustomRequest, res: Response) => {
   try {
     const count = await NotificationService.getUnreadNotificationCount(
-      parseInt(req.user!.id.toString())
+      parseInt(req.user!.id.toString()),
     );
     res.json({ count });
   } catch (error) {
@@ -243,7 +248,7 @@ router.post("/register-device", async (req: CustomRequest, res: Response) => {
       req.user!.id.toString(),
       token,
       deviceType || "unknown",
-      deviceName || "unknown"
+      deviceName || "unknown",
     );
 
     res.json({ success: true, device: result.rows[0] });
@@ -269,7 +274,7 @@ router.delete(
 
       await NotificationService.removeDeviceToken(
         req.user!.id.toString(),
-        token
+        token,
       );
       res.json({ success: true });
     } catch (error) {
@@ -279,7 +284,7 @@ router.delete(
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
 );
 
 // Send test notification
@@ -302,7 +307,7 @@ router.post("/test", async (req: CustomRequest, res: Response) => {
         priority: "high",
         data: { screen: "/(dashboard)/management/notifications" },
       },
-      [req.user!.id.toString()]
+      [req.user!.id.toString()],
     );
 
     res.json({ success: true });
@@ -325,7 +330,7 @@ router.get("/users", async (req: CustomRequest, res: Response) => {
       // First get the company_id of the current management user
       const companyResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [currentUserId]
+        [currentUserId],
       );
 
       if (!companyResult.rows[0]?.company_id) {
@@ -342,7 +347,7 @@ router.get("/users", async (req: CustomRequest, res: Response) => {
          AND role != 'management'
          AND id != $2
          ORDER BY role, name`,
-        [companyId, currentUserId]
+        [companyId, currentUserId],
       );
 
       // Group users by role for easier frontend handling
@@ -355,7 +360,7 @@ router.get("/users", async (req: CustomRequest, res: Response) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          employee_number: user.employee_number
+          employee_number: user.employee_number,
         });
         return acc;
       }, {});

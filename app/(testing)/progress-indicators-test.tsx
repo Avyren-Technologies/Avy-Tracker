@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ThemeContext from '../context/ThemeContext';
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Switch } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import ThemeContext from "../context/ThemeContext";
 import {
   ProgressBar,
   CircularProgress,
@@ -9,15 +9,23 @@ import {
   CountdownTimer,
   StepProgress,
   SuccessAnimation,
-  FailureAnimation
-} from '../components/ProgressIndicators';
-import { FaceDetectionQualityFeedback } from '../components/FaceDetectionQualityFeedback';
-import { VerificationProgressOverlay, LivenessProgressOverlay } from '../components/VerificationProgressOverlay';
-import { AsyncLoadingState, ProgressiveLoading, DataLoadingSkeleton, InlineLoading } from '../components/AsyncLoadingStates';
+  FailureAnimation,
+} from "../components/ProgressIndicators";
+import { FaceDetectionQualityFeedback } from "../components/FaceDetectionQualityFeedback";
+import {
+  VerificationProgressOverlay,
+  LivenessProgressOverlay,
+} from "../components/VerificationProgressOverlay";
+import {
+  AsyncLoadingState,
+  ProgressiveLoading,
+  DataLoadingSkeleton,
+  InlineLoading,
+} from "../components/AsyncLoadingStates";
 
 export default function ProgressIndicatorsTest() {
   const { theme, toggleTheme } = ThemeContext.useTheme();
-  
+
   // Test states
   const [progress, setProgress] = useState(0);
   const [qualityScore, setQualityScore] = useState(0);
@@ -34,21 +42,21 @@ export default function ProgressIndicatorsTest() {
 
   const colors = {
     light: {
-      background: '#FFFFFF',
-      surface: '#F9FAFB',
-      text: '#374151',
-      textSecondary: '#6B7280',
-      border: '#E5E7EB',
-      primary: '#3B82F6'
+      background: "#FFFFFF",
+      surface: "#F9FAFB",
+      text: "#374151",
+      textSecondary: "#6B7280",
+      border: "#E5E7EB",
+      primary: "#3B82F6",
     },
     dark: {
-      background: '#111827',
-      surface: '#1F2937',
-      text: '#F3F4F6',
-      textSecondary: '#9CA3AF',
-      border: '#374151',
-      primary: '#60A5FA'
-    }
+      background: "#111827",
+      surface: "#1F2937",
+      text: "#F3F4F6",
+      textSecondary: "#9CA3AF",
+      border: "#374151",
+      primary: "#60A5FA",
+    },
   };
 
   const currentColors = colors[theme];
@@ -58,47 +66,65 @@ export default function ProgressIndicatorsTest() {
     bounds: { x: 100, y: 100, width: 200, height: 200 },
     leftEyeOpenProbability: 0.9,
     rightEyeOpenProbability: 0.8,
-    faceId: 'test-face-id-12345',
+    faceId: "test-face-id-12345",
     rollAngle: 5,
-    yawAngle: -2
+    yawAngle: -2,
   };
 
   const mockFeedback = {
-    lighting: qualityScore > 80 ? 'good' : qualityScore > 60 ? 'poor' : 'too_dark',
-    positioning: qualityScore > 70 ? 'centered' : 'too_left',
-    distance: qualityScore > 75 ? 'good' : 'too_far',
-    angle: qualityScore > 85 ? 'good' : 'tilted',
-    clarity: qualityScore > 80 ? 'good' : 'blurry'
+    lighting:
+      qualityScore > 80 ? "good" : qualityScore > 60 ? "poor" : "too_dark",
+    positioning: qualityScore > 70 ? "centered" : "too_left",
+    distance: qualityScore > 75 ? "good" : "too_far",
+    angle: qualityScore > 85 ? "good" : "tilted",
+    clarity: qualityScore > 80 ? "good" : "blurry",
   } as const;
 
-  const steps = ['Initialize', 'Detect Face', 'Check Liveness', 'Capture Photo', 'Process'];
+  const steps = [
+    "Initialize",
+    "Detect Face",
+    "Check Liveness",
+    "Capture Photo",
+    "Process",
+  ];
   const completedSteps = Array.from({ length: currentStep }, (_, i) => i);
 
   const progressiveSteps = [
-    { key: 'camera', label: 'Initialize Camera', completed: true, loading: false },
-    { key: 'face', label: 'Load Face Model', completed: false, loading: isLoading, error: hasError ? 'Network error' : undefined },
-    { key: 'profile', label: 'Load Profile', completed: false, loading: false },
-    { key: 'setup', label: 'Setup Complete', completed: false, loading: false }
+    {
+      key: "camera",
+      label: "Initialize Camera",
+      completed: true,
+      loading: false,
+    },
+    {
+      key: "face",
+      label: "Load Face Model",
+      completed: false,
+      loading: isLoading,
+      error: hasError ? "Network error" : undefined,
+    },
+    { key: "profile", label: "Load Profile", completed: false, loading: false },
+    { key: "setup", label: "Setup Complete", completed: false, loading: false },
   ];
 
   // Auto-increment progress for demo
   useEffect(() => {
     const interval = setInterval(() => {
-      setProgress(prev => (prev >= 100 ? 0 : prev + 5));
-      setQualityScore(prev => (prev >= 100 ? 0 : prev + 3));
-      setLivenessScore(prev => (prev >= 1 ? 0 : prev + 0.05));
+      setProgress((prev) => (prev >= 100 ? 0 : prev + 5));
+      setQualityScore((prev) => (prev >= 100 ? 0 : prev + 3));
+      setLivenessScore((prev) => (prev >= 1 ? 0 : prev + 0.05));
     }, 500);
 
     return () => clearInterval(interval);
   }, []);
 
   const handleCountdownComplete = () => {
-    console.log('Countdown completed!');
+    console.log("Countdown completed!");
     setCountdown(10);
   };
 
   const handleStepNext = () => {
-    setCurrentStep(prev => (prev >= steps.length - 1 ? 0 : prev + 1));
+    setCurrentStep((prev) => (prev >= steps.length - 1 ? 0 : prev + 1));
   };
 
   const handleShowSuccess = () => {
@@ -114,7 +140,7 @@ export default function ProgressIndicatorsTest() {
   const handleAsyncOperation = async () => {
     setIsLoading(true);
     setHasError(false);
-    
+
     // Simulate async operation
     setTimeout(() => {
       setIsLoading(false);
@@ -125,16 +151,16 @@ export default function ProgressIndicatorsTest() {
   };
 
   const handleRetryStep = (stepKey: string) => {
-    console.log('Retrying step:', stepKey);
+    console.log("Retrying step:", stepKey);
     setHasError(false);
     handleAsyncOperation();
   };
 
   return (
     <SafeAreaView
-      style={{ 
-        flex: 1, 
-        backgroundColor: currentColors.background 
+      style={{
+        flex: 1,
+        backgroundColor: currentColors.background,
       }}
     >
       <ScrollView className="flex-1 p-4">
@@ -154,10 +180,10 @@ export default function ProgressIndicatorsTest() {
               {theme}
             </Text>
             <Switch
-              value={theme === 'dark'}
+              value={theme === "dark"}
               onValueChange={toggleTheme}
-              trackColor={{ false: '#E5E7EB', true: '#374151' }}
-              thumbColor={theme === 'dark' ? '#60A5FA' : '#3B82F6'}
+              trackColor={{ false: "#E5E7EB", true: "#374151" }}
+              thumbColor={theme === "dark" ? "#60A5FA" : "#3B82F6"}
             />
           </View>
         </View>
@@ -283,7 +309,7 @@ export default function ProgressIndicatorsTest() {
               paddingHorizontal: 16,
               paddingVertical: 8,
               borderRadius: 8,
-              alignSelf: 'center',
+              alignSelf: "center",
               marginTop: 16,
             }}
           >
@@ -312,7 +338,7 @@ export default function ProgressIndicatorsTest() {
             <TouchableOpacity
               onPress={handleShowSuccess}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: "#10B981",
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 8,
@@ -323,7 +349,7 @@ export default function ProgressIndicatorsTest() {
             <TouchableOpacity
               onPress={handleShowFailure}
               style={{
-                backgroundColor: '#EF4444',
+                backgroundColor: "#EF4444",
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 8,
@@ -352,7 +378,7 @@ export default function ProgressIndicatorsTest() {
           isDetecting={true}
           qualityScore={qualityScore}
           feedback={mockFeedback}
-          onQualityChange={(score) => console.log('Quality changed:', score)}
+          onQualityChange={(score) => console.log("Quality changed:", score)}
         />
 
         {/* Progressive Loading */}
@@ -385,23 +411,22 @@ export default function ProgressIndicatorsTest() {
               paddingHorizontal: 16,
               paddingVertical: 8,
               borderRadius: 8,
-              alignSelf: 'center',
+              alignSelf: "center",
               marginBottom: 16,
             }}
           >
-            <Text className="text-white font-medium">Start Async Operation</Text>
+            <Text className="text-white font-medium">
+              Start Async Operation
+            </Text>
           </TouchableOpacity>
-          
+
           <AsyncLoadingState
             loading={isLoading}
-            error={hasError ? 'Something went wrong with the operation' : null}
+            error={hasError ? "Something went wrong with the operation" : null}
             onRetry={handleAsyncOperation}
             loadingText="Processing async operation..."
           >
-            <Text
-              style={{ color: currentColors.text }}
-              className="text-center"
-            >
+            <Text style={{ color: currentColors.text }} className="text-center">
               Operation completed successfully!
             </Text>
           </AsyncLoadingState>
@@ -423,11 +448,7 @@ export default function ProgressIndicatorsTest() {
           >
             Data Loading Skeleton
           </Text>
-          <DataLoadingSkeleton
-            lines={3}
-            showAvatar={true}
-            animated={true}
-          />
+          <DataLoadingSkeleton lines={3} showAvatar={true} animated={true} />
         </View>
 
         {/* Inline Loading */}
@@ -489,12 +510,14 @@ export default function ProgressIndicatorsTest() {
                 borderRadius: 8,
               }}
             >
-              <Text className="text-white font-medium">Verification Overlay</Text>
+              <Text className="text-white font-medium">
+                Verification Overlay
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowLivenessOverlay(true)}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: "#10B981",
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 8,
@@ -516,7 +539,7 @@ export default function ProgressIndicatorsTest() {
         statusMessage="Please blink naturally when the timer reaches zero"
         message="Please blink naturally when the timer reaches zero"
         countdown={5}
-        onCountdownComplete={() => console.log('Countdown complete')}
+        onCountdownComplete={() => console.log("Countdown complete")}
         onAnimationComplete={() => setShowOverlay(false)}
         retryCount={1}
         maxRetries={3}

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 /**
  * JSON Format Test
- * 
+ *
  * Tests the JSON formatting logic for multi-angle registration
  * to ensure it matches backend validation requirements.
  */
@@ -19,31 +19,34 @@ interface TestFaceEncoding {
 
 export default function JsonFormatTest() {
   const router = useRouter();
-  const [testResult, setTestResult] = useState<string>('');
+  const [testResult, setTestResult] = useState<string>("");
 
   // Simulate captured face encodings
   const mockFaceEncodings: TestFaceEncoding[] = [
     {
-      id: 'front',
-      encoding: 'UrgOPvYovD57FO4+UrgePxCUfz9tkX8/d9KivY4wfz8vR0g9nLF/P7U98jz9XIQ9IGbqPBAFhz3nAt88G+6lPVcEUD287yU9Mo23PcKmgD0DU8Q9jO+GPHLkEz3ReI49iN4/PUeIojsLsIY9TM21PT1mCjoP6rk9/AijPXgpmj1wVco9HhOaPcO5Zj3yBEA98iq7PXWHoz1mBws9SHiHPTQ2gD2Nyp09lZLVOwN8vTu94ak9Cp2ZPeXfxTxYuYw942RXPRntsj1hHmw9zuYaPIDLoD0waIg9+TeUPW4EWj0Xvr89JubBPe0BiD1wX509pcmSPeHNNj3l1xQ9PRmvPYN0mj2A5ko9AWymPVsVnD1ZRh49FUtpPBzVsT0z78A55LImPdo/kz2ono08rjAQPV3a3zzs82I8c1jkOxuOjz3Aliw8vLNWO2L0Nj13hMM9/oKtPZl9pz1JxwM8ieGkPVLl2DxlIJI9OxOuPfPHkj1sXJA9RqnSPBZ/aD1gvuA8lWeJPVZn0jwxXxw9w7+UPZY6tz1Zabo9DR6rPKt1nz3fFLU8UtGvPMuBnTu2Lbs95j1aPZLsnzyyyaA9+gklPfGGPDu1ny48oW+VPEYNwDx7d1M8ofcIPZA+fj3sosA9i4yoPcHYxT0iJ4U9XNadPB7YwD14xD09pOsxPciKEz0=',
-      confidence: 0.95
+      id: "front",
+      encoding:
+        "UrgOPvYovD57FO4+UrgePxCUfz9tkX8/d9KivY4wfz8vR0g9nLF/P7U98jz9XIQ9IGbqPBAFhz3nAt88G+6lPVcEUD287yU9Mo23PcKmgD0DU8Q9jO+GPHLkEz3ReI49iN4/PUeIojsLsIY9TM21PT1mCjoP6rk9/AijPXgpmj1wVco9HhOaPcO5Zj3yBEA98iq7PXWHoz1mBws9SHiHPTQ2gD2Nyp09lZLVOwN8vTu94ak9Cp2ZPeXfxTxYuYw942RXPRntsj1hHmw9zuYaPIDLoD0waIg9+TeUPW4EWj0Xvr89JubBPe0BiD1wX509pcmSPeHNNj3l1xQ9PRmvPYN0mj2A5ko9AWymPVsVnD1ZRh49FUtpPBzVsT0z78A55LImPdo/kz2ono08rjAQPV3a3zzs82I8c1jkOxuOjz3Aliw8vLNWO2L0Nj13hMM9/oKtPZl9pz1JxwM8ieGkPVLl2DxlIJI9OxOuPfPHkj1sXJA9RqnSPBZ/aD1gvuA8lWeJPVZn0jwxXxw9w7+UPZY6tz1Zabo9DR6rPKt1nz3fFLU8UtGvPMuBnTu2Lbs95j1aPZLsnzyyyaA9+gklPfGGPDu1ny48oW+VPEYNwDx7d1M8ofcIPZA+fj3sosA9i4yoPcHYxT0iJ4U9XNadPB7YwD14xD09pOsxPciKEz0=",
+      confidence: 0.95,
     },
     {
-      id: 'left',
-      encoding: 'TestLeftEncoding1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-      confidence: 0.92
+      id: "left",
+      encoding:
+        "TestLeftEncoding1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+      confidence: 0.92,
     },
     {
-      id: 'right',
-      encoding: 'TestRightEncoding9876543210ZYXWVUTSRQPONMLKJIHGFEDCBAzyxwvutsrqponmlkjihgfedcba9876543210',
-      confidence: 0.94
-    }
+      id: "right",
+      encoding:
+        "TestRightEncoding9876543210ZYXWVUTSRQPONMLKJIHGFEDCBAzyxwvutsrqponmlkjihgfedcba9876543210",
+      confidence: 0.94,
+    },
   ];
 
   const testJsonFormatting = () => {
     try {
       // Test the exact logic used in FaceRegistration.tsx
-      const angles = mockFaceEncodings.map(enc => ({
+      const angles = mockFaceEncodings.map((enc) => ({
         success: true,
         confidence: enc.confidence,
         livenessDetected: true,
@@ -52,21 +55,25 @@ export default function JsonFormatTest() {
       }));
 
       // Test the JSON formatting logic
-      const faceEncoding = JSON.stringify(angles.map(angle => angle.faceEncoding));
-      
+      const faceEncoding = JSON.stringify(
+        angles.map((angle) => angle.faceEncoding),
+      );
+
       // Validate the JSON format
       const parsed = JSON.parse(faceEncoding);
       const isValidArray = Array.isArray(parsed) && parsed.length > 0;
-      
+
       // Test the complete registration data structure
       const registrationData = {
         faceEncoding: faceEncoding,
         consentGiven: true,
-        qualityScore: angles.reduce((sum, angle) => sum + (angle.confidence || 0), 0) / angles.length,
+        qualityScore:
+          angles.reduce((sum, angle) => sum + (angle.confidence || 0), 0) /
+          angles.length,
         deviceInfo: {
-          platform: 'react-native',
-          timestamp: new Date().toISOString()
-        }
+          platform: "react-native",
+          timestamp: new Date().toISOString(),
+        },
       };
 
       const result = `
@@ -90,46 +97,55 @@ ${JSON.stringify(registrationData, null, 2)}
       `;
 
       setTestResult(result);
-      Alert.alert('Test Passed!', 'JSON format is correct and backend compatible.');
-
+      Alert.alert(
+        "Test Passed!",
+        "JSON format is correct and backend compatible.",
+      );
     } catch (error) {
       const errorResult = `
 ❌ JSON Format Test FAILED!
 
-Error: ${error instanceof Error ? error.message : 'Unknown error'}
+Error: ${error instanceof Error ? error.message : "Unknown error"}
 
 This indicates the JSON formatting logic needs to be fixed.
       `;
-      
+
       setTestResult(errorResult);
-      Alert.alert('Test Failed!', 'JSON format has issues that need fixing.');
+      Alert.alert("Test Failed!", "JSON format has issues that need fixing.");
     }
   };
 
   const testBackendValidation = () => {
     try {
       // Simulate backend validation logic
-      const faceEncoding = JSON.stringify(mockFaceEncodings.map(enc => enc.encoding));
-      
+      const faceEncoding = JSON.stringify(
+        mockFaceEncodings.map((enc) => enc.encoding),
+      );
+
       // Backend validation steps (from faceVerification.ts)
-      if (!faceEncoding || typeof faceEncoding !== 'string') {
-        throw new Error('Face encoding is required and must be a string');
+      if (!faceEncoding || typeof faceEncoding !== "string") {
+        throw new Error("Face encoding is required and must be a string");
       }
 
       const parsed = JSON.parse(faceEncoding);
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error('Face encoding must be a valid JSON array');
+        throw new Error("Face encoding must be a valid JSON array");
       }
 
-      Alert.alert('Validation Passed!', 'Backend validation logic accepts our data format.');
-      
+      Alert.alert(
+        "Validation Passed!",
+        "Backend validation logic accepts our data format.",
+      );
     } catch (error) {
-      Alert.alert('Validation Failed!', `Backend validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert(
+        "Validation Failed!",
+        `Backend validation error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   };
 
   const clearResults = () => {
-    setTestResult('');
+    setTestResult("");
   };
 
   return (
@@ -150,9 +166,10 @@ This indicates the JSON formatting logic needs to be fixed.
             🧪 JSON Format Validation Test
           </Text>
           <Text className="text-gray-600 dark:text-gray-300 mb-4">
-            This test validates that our multi-angle registration data format is compatible with the backend API requirements.
+            This test validates that our multi-angle registration data format is
+            compatible with the backend API requirements.
           </Text>
-          
+
           <View className="space-y-3">
             <TouchableOpacity
               onPress={testJsonFormatting}

@@ -59,4 +59,4 @@ export interface LeaveAnalyticsData {
   balances: LeaveBalances;
   monthlyTrend: MonthlyTrend[];
   metrics: LeaveMetrics;
-} 
+}

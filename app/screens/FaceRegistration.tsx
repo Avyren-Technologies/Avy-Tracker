@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,21 +7,22 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import { useAuth } from '../context/AuthContext';
-import FaceVerificationModal from '../components/FaceVerificationModal';
-import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import { useAuth } from "../context/AuthContext";
+import FaceVerificationModal from "../components/FaceVerificationModal";
+import {
+  FaceVerificationResult,
+  FaceVerificationError,
+} from "../types/faceDetection";
 // import { useFaceDetection } from '../hooks/useFaceDetection';
-import axios from 'axios';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-
-
+import axios from "axios";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 interface RegistrationStep {
   id: number;
@@ -32,10 +33,10 @@ interface RegistrationStep {
 
 /**
  * Face Registration Screen
- * 
+ *
  * Provides a comprehensive face registration workflow for new employees.
  * Includes consent capture, multi-step registration process, and success handling.
- * 
+ *
  * Requirements addressed:
  * - 2.1: Face registration requirement for new employees
  * - 2.2: Multi-angle face capture workflow
@@ -55,12 +56,12 @@ export default function FaceRegistration() {
   // });
 
   // Theme colors
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#1f2937', '#f8fafc');
-  const primaryColor = useThemeColor('#3b82f6', '#60a5fa');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const borderColor = useThemeColor('#e5e7eb', '#374151');
-  const cardColor = useThemeColor('#ffffff', '#1e293b');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#1f2937", "#f8fafc");
+  const primaryColor = useThemeColor("#3b82f6", "#60a5fa");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const borderColor = useThemeColor("#e5e7eb", "#374151");
+  const cardColor = useThemeColor("#ffffff", "#1e293b");
 
   // State management
   const [currentStep, setCurrentStep] = useState(0);
@@ -68,43 +69,59 @@ export default function FaceRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
-  const [registrationData, setRegistrationData] = useState<FaceVerificationResult | null>(null);
+  const [registrationData, setRegistrationData] =
+    useState<FaceVerificationResult | null>(null);
   const [captureStep, setCaptureStep] = useState(0);
-  const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
+  const [capturedAngles, setCapturedAngles] = useState<
+    FaceVerificationResult[]
+  >([]);
   const [hasExistingProfile, setHasExistingProfile] = useState(false);
   const [isModalTransitioning, setIsModalTransitioning] = useState(false);
-  
+
   // Modal state for existing profile warning
-  const [showExistingProfileModal, setShowExistingProfileModal] = useState(false);
+  const [showExistingProfileModal, setShowExistingProfileModal] =
+    useState(false);
 
   // CRITICAL: Component lifecycle management for multi-angle registration
   const isMountedRef = useRef(true);
 
   // Multi-angle capture configuration
   const captureAngles = [
-    { name: 'Front View', description: 'Look directly at the camera', icon: 'person' },
-    { name: 'Slight Left', description: 'Turn your head slightly to the left', icon: 'arrow-back' },
-    { name: 'Slight Right', description: 'Turn your head slightly to the right', icon: 'arrow-forward' },
+    {
+      name: "Front View",
+      description: "Look directly at the camera",
+      icon: "person",
+    },
+    {
+      name: "Slight Left",
+      description: "Turn your head slightly to the left",
+      icon: "arrow-back",
+    },
+    {
+      name: "Slight Right",
+      description: "Turn your head slightly to the right",
+      icon: "arrow-forward",
+    },
   ];
 
   // Registration steps
   const registrationSteps: RegistrationStep[] = [
     {
       id: 0,
-      title: 'Privacy Consent',
-      description: 'Review and accept biometric data usage terms',
+      title: "Privacy Consent",
+      description: "Review and accept biometric data usage terms",
       completed: consentGiven,
     },
     {
       id: 1,
-      title: 'Face Registration',
-      description: 'Capture your face profile for verification',
+      title: "Face Registration",
+      description: "Capture your face profile for verification",
       completed: capturedAngles.length === captureAngles.length,
     },
     {
       id: 2,
-      title: 'Verification Test',
-      description: 'Test your face verification setup',
+      title: "Verification Test",
+      description: "Test your face verification setup",
       completed: registrationComplete,
     },
   ];
@@ -114,7 +131,7 @@ export default function FaceRegistration() {
       setIsLoading(true);
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data?.isRegistered) {
@@ -123,9 +140,9 @@ export default function FaceRegistration() {
         setShowExistingProfileModal(true);
       }
     } catch (error) {
-      console.error('Error checking registration status:', error);
+      console.error("Error checking registration status:", error);
       // If we can't check status, allow registration to proceed
-      console.log('Proceeding with registration due to status check failure');
+      console.log("Proceeding with registration due to status check failure");
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +158,9 @@ export default function FaceRegistration() {
     if (hasExistingProfile && showFaceModal) {
       setShowFaceModal(false);
       Alert.alert(
-        'Profile Already Exists',
-        'You already have a face profile. Please use it for verification.',
-        [{ text: 'OK' }]
+        "Profile Already Exists",
+        "You already have a face profile. Please use it for verification.",
+        [{ text: "OK" }],
       );
     }
   }, [hasExistingProfile, showFaceModal]);
@@ -151,7 +168,7 @@ export default function FaceRegistration() {
   // CRITICAL: Component cleanup effect
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
     };
@@ -165,38 +182,39 @@ export default function FaceRegistration() {
   const routeToDashboard = () => {
     const userRole = user?.role;
     switch (userRole) {
-      case 'employee':
-        router.replace('/(dashboard)/employee/employee');
+      case "employee":
+        router.replace("/(dashboard)/employee/employee");
         break;
-      case 'group-admin':
-        router.replace('/(dashboard)/Group-Admin/group-admin');
+      case "group-admin":
+        router.replace("/(dashboard)/Group-Admin/group-admin");
         break;
-      case 'management':
-        router.replace('/(dashboard)/management/management');
+      case "management":
+        router.replace("/(dashboard)/management/management");
         break;
-      case 'super-admin':
-        router.replace('/(dashboard)/super-admin/super-admin');
+      case "super-admin":
+        router.replace("/(dashboard)/super-admin/super-admin");
         break;
       default:
-        console.error('Invalid user role:', userRole);
+        console.error("Invalid user role:", userRole);
         break;
     }
-  }
+  };
 
   const routeToFaceConfiguration = () => {
-    router.push('/(dashboard)/employee/face-configuration');
-  }
+    router.push("/(dashboard)/employee/face-configuration");
+  };
 
-
-  const handleFaceRegistrationSuccess = async (result: FaceVerificationResult) => {
-    console.log('Face registration successful for angle:', captureStep, result);
+  const handleFaceRegistrationSuccess = async (
+    result: FaceVerificationResult,
+  ) => {
+    console.log("Face registration successful for angle:", captureStep, result);
 
     // CRITICAL FIX: Prevent processing if user already has a profile
     if (hasExistingProfile) {
       Alert.alert(
-        'Profile Already Exists',
-        'You already have a face profile. Please use the existing profile for verification.',
-        [{ text: 'OK', onPress: () => setShowFaceModal(false) }]
+        "Profile Already Exists",
+        "You already have a face profile. Please use the existing profile for verification.",
+        [{ text: "OK", onPress: () => setShowFaceModal(false) }],
       );
       return;
     }
@@ -204,7 +222,7 @@ export default function FaceRegistration() {
     // Add this capture to our collection
     const newCapturedAngles = [...capturedAngles, result];
     setCapturedAngles(newCapturedAngles);
-    
+
     // Close modal and reset transition state
     setShowFaceModal(false);
     setIsModalTransitioning(false);
@@ -217,12 +235,12 @@ export default function FaceRegistration() {
 
       // FIXED: Add delay before opening next capture to ensure camera is ready
       Alert.alert(
-        'Capture Complete',
+        "Capture Complete",
         `${captureAngles[captureStep].name} captured successfully!\n\nNext: ${captureAngles[nextStep].name}`,
         [
-          { text: 'Continue Later', style: 'cancel' },
-          { 
-            text: 'Continue Now', 
+          { text: "Continue Later", style: "cancel" },
+          {
+            text: "Continue Now",
             onPress: () => {
               // Add delay to ensure camera is properly reset before next capture
               setIsModalTransitioning(true);
@@ -230,9 +248,9 @@ export default function FaceRegistration() {
                 setShowFaceModal(true);
                 setIsModalTransitioning(false);
               }, 1000);
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
     } else {
       // All angles captured, process registration
@@ -240,7 +258,9 @@ export default function FaceRegistration() {
     }
   };
 
-  const processMultiAngleRegistration = async (angles: FaceVerificationResult[]) => {
+  const processMultiAngleRegistration = async (
+    angles: FaceVerificationResult[],
+  ) => {
     try {
       setIsLoading(true);
 
@@ -248,68 +268,73 @@ export default function FaceRegistration() {
       try {
         const statusResponse = await axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
-        
+
         if (statusResponse.data.isRegistered) {
           // User already has a face profile - handle gracefully
           Alert.alert(
-            'Face Profile Already Exists',
-            'You already have a face profile registered. You can either:\n\n• Use your existing profile for verification\n• Update your existing profile with new data',
+            "Face Profile Already Exists",
+            "You already have a face profile registered. You can either:\n\n• Use your existing profile for verification\n• Update your existing profile with new data",
             [
               {
-                text: 'Use Existing Profile',
+                text: "Use Existing Profile",
                 onPress: () => {
                   setRegistrationData({
                     success: true,
                     confidence: 1.0,
                     livenessDetected: true,
-                    faceEncoding: 'existing_profile',
+                    faceEncoding: "existing_profile",
                     timestamp: new Date(),
                   });
                   setCurrentStep(2);
-                }
+                },
               },
               {
-                text: 'Update Profile',
+                text: "Update Profile",
                 onPress: () => {
                   // Proceed with registration to update existing profile
-                  console.log('Proceeding with profile update...');
-                }
-              }
-            ]
+                  console.log("Proceeding with profile update...");
+                },
+              },
+            ],
           );
           return;
         }
       } catch (statusError) {
-        console.warn('Could not check face profile status, proceeding with registration:', statusError);
+        console.warn(
+          "Could not check face profile status, proceeding with registration:",
+          statusError,
+        );
       }
 
       // Combine all face encodings for better accuracy
       const combinedResult: FaceVerificationResult = {
         success: true,
-        confidence: angles.reduce((sum, angle) => sum + (angle.confidence || 0), 0) / angles.length,
-        livenessDetected: angles.every(angle => angle.livenessDetected),
-        faceEncoding: angles.map(angle => angle.faceEncoding).join('|'), // Combine encodings
+        confidence:
+          angles.reduce((sum, angle) => sum + (angle.confidence || 0), 0) /
+          angles.length,
+        livenessDetected: angles.every((angle) => angle.livenessDetected),
+        faceEncoding: angles.map((angle) => angle.faceEncoding).join("|"), // Combine encodings
         timestamp: new Date(),
       };
 
       // CRITICAL FIX: Backend expects faceEncoding to be a valid JSON array string
       const registrationData = {
-        faceEncoding: JSON.stringify(angles.map(angle => angle.faceEncoding)), // ✅ JSON array string
-        consentGiven: true,                             // ✅ Required field
-        qualityScore: combinedResult.confidence,         // ✅ Correct field
+        faceEncoding: JSON.stringify(angles.map((angle) => angle.faceEncoding)), // ✅ JSON array string
+        consentGiven: true, // ✅ Required field
+        qualityScore: combinedResult.confidence, // ✅ Correct field
         deviceInfo: {
           platform: Platform.OS,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       // Send to backend for registration
       await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/register`,
         registrationData, // ✅ Use the correctly formatted data
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // CRITICAL FIX: Update user's face_registered status in the database
@@ -317,11 +342,14 @@ export default function FaceRegistration() {
         await axios.patch(
           `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile`,
           { face_registered: true },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
-        console.log('✅ User face_registered status updated successfully');
+        console.log("✅ User face_registered status updated successfully");
       } catch (updateError) {
-        console.warn('⚠️ Failed to update user face_registered status:', updateError);
+        console.warn(
+          "⚠️ Failed to update user face_registered status:",
+          updateError,
+        );
         // Don't fail the registration if this update fails
       }
 
@@ -329,55 +357,58 @@ export default function FaceRegistration() {
       setCurrentStep(2);
 
       Alert.alert(
-        'Registration Complete!',
+        "Registration Complete!",
         `All ${captureAngles.length} face angles captured successfully with ${Math.round((combinedResult.confidence || 0) * 100)}% average confidence.\n\nLet's test the verification.`,
-        [{ text: 'Test Verification', onPress: () => testVerification() }]
+        [{ text: "Test Verification", onPress: () => testVerification() }],
       );
     } catch (error: any) {
-      console.error('Error processing multi-angle registration:', error);
-      
+      console.error("Error processing multi-angle registration:", error);
+
       // Enhanced error logging
       if (error.response) {
-        console.error('Backend error response:', {
+        console.error("Backend error response:", {
           status: error.response.status,
           data: error.response.data,
-          headers: error.response.headers
+          headers: error.response.headers,
         });
       }
-      
+
       // CRITICAL FIX: Handle specific error cases gracefully
-      let errorMessage = 'Failed to complete face registration.';
+      let errorMessage = "Failed to complete face registration.";
       let showRetry = true;
-      
+
       if (error.response?.status === 409) {
         // Profile already exists - this shouldn't happen with our check above, but handle it gracefully
-        errorMessage = 'A face profile already exists for your account. Please contact support if you need to update it.';
+        errorMessage =
+          "A face profile already exists for your account. Please contact support if you need to update it.";
         showRetry = false;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       Alert.alert(
-        'Registration Error',
+        "Registration Error",
         errorMessage,
-        showRetry ? [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowFaceModal(true);
-            }
-          }
-        ] : [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate back or to dashboard since we can't retry
-              router.back();
-            }
-          }
-        ]
+        showRetry
+          ? [
+              {
+                text: "OK",
+                onPress: () => {
+                  setShowFaceModal(true);
+                },
+              },
+            ]
+          : [
+              {
+                text: "OK",
+                onPress: () => {
+                  // Navigate back or to dashboard since we can't retry
+                  router.back();
+                },
+              },
+            ],
       );
     } finally {
       setIsLoading(false);
@@ -385,40 +416,37 @@ export default function FaceRegistration() {
   };
 
   const handleFaceRegistrationError = (error: FaceVerificationError) => {
-    console.error('Face registration failed:', error);
+    console.error("Face registration failed:", error);
     setShowFaceModal(false);
 
     const currentAngle = captureAngles[captureStep];
-    
+
     // Check if it's a camera initialization error
-    const isCameraError = error.message?.includes('camera') || 
-                         error.message?.includes('Camera') ||
-                         error.message?.includes('timeout') ||
-                         error.message?.includes('initialization');
-    
-    const errorMessage = isCameraError 
+    const isCameraError =
+      error.message?.includes("camera") ||
+      error.message?.includes("Camera") ||
+      error.message?.includes("timeout") ||
+      error.message?.includes("initialization");
+
+    const errorMessage = isCameraError
       ? `Camera failed to initialize for ${currentAngle?.name}. This might be due to:\n\n• Camera permission issues\n• App backgrounding during capture\n• Device camera being used by another app\n\nPlease try again.`
       : `Failed to capture ${currentAngle?.name}: ${error.message}`;
-    
-    Alert.alert(
-      'Capture Failed',
-      errorMessage,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
-        { 
-          text: 'Retry', 
-          onPress: () => {
-            // Add delay before retry to ensure camera is ready
-            setIsModalTransitioning(true);
-            setTimeout(() => {
-              setShowFaceModal(true);
-              setIsModalTransitioning(false);
-            }, 1500);
-          }
+
+    Alert.alert("Capture Failed", errorMessage, [
+      { text: "Cancel", style: "cancel", onPress: () => router.back() },
+      {
+        text: "Retry",
+        onPress: () => {
+          // Add delay before retry to ensure camera is ready
+          setIsModalTransitioning(true);
+          setTimeout(() => {
+            setShowFaceModal(true);
+            setIsModalTransitioning(false);
+          }, 1500);
         },
-        { text: 'Start Over', onPress: resetRegistration },
-      ]
-    );
+      },
+      { text: "Start Over", onPress: resetRegistration },
+    ]);
   };
 
   const resetRegistration = () => {
@@ -435,50 +463,65 @@ export default function FaceRegistration() {
   };
 
   const handleVerificationTestSuccess = (result: FaceVerificationResult) => {
-    console.log('Verification test successful:', result);
+    console.log("Verification test successful:", result);
     setShowFaceModal(false);
     setRegistrationComplete(true);
 
     Alert.alert(
-      'Setup Complete!',
-      'Face verification has been set up successfully. You can now use face verification for shift operations.',
-      [{ text: 'Get Started', onPress: routeToDashboard}]
+      "Setup Complete!",
+      "Face verification has been set up successfully. You can now use face verification for shift operations.",
+      [{ text: "Get Started", onPress: routeToDashboard }],
     );
   };
 
   const handleVerificationTestError = (error: FaceVerificationError) => {
-    console.error('Verification test failed:', error);
+    console.error("Verification test failed:", error);
     setShowFaceModal(false);
 
     Alert.alert(
-      'Verification Test Failed',
+      "Verification Test Failed",
       `The verification test failed: ${error.message}\n\nYou may need to re-register your face.`,
       [
-        { text: 'Skip for Now', onPress: routeToDashboard },
+        { text: "Skip for Now", onPress: routeToDashboard },
         {
-          text: 'Re-register', onPress: () => {
+          text: "Re-register",
+          onPress: () => {
             setRegistrationData(null);
             setCurrentStep(1);
-          }
+          },
         },
-      ]
+      ],
     );
   };
 
   const renderConsentStep = () => (
-    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
+    <ScrollView
+      className="flex-1 p-6"
+      style={{ paddingTop: Constants.statusBarHeight }}
+    >
       <View className="items-center mb-8">
-        <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
-          style={{ backgroundColor: primaryColor }}>
+        <View
+          className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
+          style={{ backgroundColor: primaryColor }}
+        >
           <Ionicons name="shield-checkmark" size={40} color="white" />
         </View>
-        <Text className={`text-2xl font-bold text-center`} style={{ color: textColor }}>
+        <Text
+          className={`text-2xl font-bold text-center`}
+          style={{ color: textColor }}
+        >
           Biometric Data Consent
         </Text>
       </View>
 
-      <View className={`p-4 rounded-lg mb-6`} style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}>
-        <Text className={`text-lg font-semibold mb-3`} style={{ color: textColor }}>
+      <View
+        className={`p-4 rounded-lg mb-6`}
+        style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+      >
+        <Text
+          className={`text-lg font-semibold mb-3`}
+          style={{ color: textColor }}
+        >
           How We Use Your Face Data
         </Text>
 
@@ -500,9 +543,16 @@ export default function FaceRegistration() {
           </Text>
         </View>
 
-        <View className={`p-3 rounded-lg`} style={{ backgroundColor: primaryColor + '20' }}>
-          <Text className={`text-sm font-medium`} style={{ color: primaryColor }}>
-            Your privacy is our priority. Face verification enhances security while protecting your personal data.
+        <View
+          className={`p-3 rounded-lg`}
+          style={{ backgroundColor: primaryColor + "20" }}
+        >
+          <Text
+            className={`text-sm font-medium`}
+            style={{ color: primaryColor }}
+          >
+            Your privacy is our priority. Face verification enhances security
+            while protecting your personal data.
           </Text>
         </View>
       </View>
@@ -517,13 +567,15 @@ export default function FaceRegistration() {
         </Text>
       </TouchableOpacity>
 
-
       <TouchableOpacity
         onPress={() => router.back()}
         className={`py-3 px-6 rounded-lg`}
         style={{ backgroundColor: borderColor }}
       >
-        <Text className={`text-center font-medium`} style={{ color: textColor }}>
+        <Text
+          className={`text-center font-medium`}
+          style={{ color: textColor }}
+        >
           Cancel
         </Text>
       </TouchableOpacity>
@@ -531,13 +583,21 @@ export default function FaceRegistration() {
   );
 
   const renderRegistrationStep = () => (
-    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
+    <ScrollView
+      className="flex-1 p-6"
+      style={{ paddingTop: Constants.statusBarHeight }}
+    >
       <View className="items-center mb-8">
-        <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
-          style={{ backgroundColor: primaryColor }}>
+        <View
+          className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
+          style={{ backgroundColor: primaryColor }}
+        >
           <Ionicons name="camera" size={40} color="white" />
         </View>
-        <Text className={`text-2xl font-bold text-center mb-2`} style={{ color: textColor }}>
+        <Text
+          className={`text-2xl font-bold text-center mb-2`}
+          style={{ color: textColor }}
+        >
           Register Your Face
         </Text>
         <Text className={`text-base text-center`} style={{ color: textColor }}>
@@ -546,8 +606,14 @@ export default function FaceRegistration() {
       </View>
 
       {/* Multi-angle progress */}
-      <View className={`p-4 rounded-lg mb-6`} style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}>
-        <Text className={`text-lg font-semibold mb-3`} style={{ color: textColor }}>
+      <View
+        className={`p-4 rounded-lg mb-6`}
+        style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+      >
+        <Text
+          className={`text-lg font-semibold mb-3`}
+          style={{ color: textColor }}
+        >
           Capture Progress ({capturedAngles.length}/{captureAngles.length})
         </Text>
 
@@ -556,35 +622,54 @@ export default function FaceRegistration() {
             <View
               className={`w-6 h-6 rounded-full items-center justify-center mr-3`}
               style={{
-                backgroundColor: capturedAngles.length > index
-                  ? successColor
-                  : captureStep === index
-                    ? primaryColor
-                    : borderColor
+                backgroundColor:
+                  capturedAngles.length > index
+                    ? successColor
+                    : captureStep === index
+                      ? primaryColor
+                      : borderColor,
               }}
             >
               {capturedAngles.length > index ? (
                 <Ionicons name="checkmark" size={14} color="white" />
               ) : (
-                <Text className="text-white font-bold text-xs">{index + 1}</Text>
+                <Text className="text-white font-bold text-xs">
+                  {index + 1}
+                </Text>
               )}
             </View>
             <View className="flex-1">
-              <Text className={`font-medium`} style={{
-                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor
-              }}>
+              <Text
+                className={`font-medium`}
+                style={{
+                  color:
+                    capturedAngles.length > index || captureStep === index
+                      ? textColor
+                      : borderColor,
+                }}
+              >
                 {angle.name}
               </Text>
-              <Text className={`text-sm`} style={{
-                color: capturedAngles.length > index || captureStep === index ? textColor : borderColor
-              }}>
+              <Text
+                className={`text-sm`}
+                style={{
+                  color:
+                    capturedAngles.length > index || captureStep === index
+                      ? textColor
+                      : borderColor,
+                }}
+              >
                 {angle.description}
               </Text>
             </View>
             <Ionicons
               name={angle.icon as any}
               size={20}
-              color={capturedAngles.length > index || captureStep === index ? primaryColor : borderColor}
+              color={
+                capturedAngles.length > index || captureStep === index
+                  ? primaryColor
+                  : borderColor
+              }
             />
           </View>
         ))}
@@ -592,8 +677,18 @@ export default function FaceRegistration() {
 
       {/* Current capture instructions */}
       {captureStep < captureAngles.length && (
-        <View className={`p-4 rounded-lg mb-6`} style={{ backgroundColor: primaryColor + '20', borderColor: primaryColor, borderWidth: 1 }}>
-          <Text className={`text-lg font-semibold mb-2`} style={{ color: primaryColor }}>
+        <View
+          className={`p-4 rounded-lg mb-6`}
+          style={{
+            backgroundColor: primaryColor + "20",
+            borderColor: primaryColor,
+            borderWidth: 1,
+          }}
+        >
+          <Text
+            className={`text-lg font-semibold mb-2`}
+            style={{ color: primaryColor }}
+          >
             Next: {captureAngles[captureStep].name}
           </Text>
           <Text className={`text-base`} style={{ color: textColor }}>
@@ -603,8 +698,14 @@ export default function FaceRegistration() {
       )}
 
       {/* Registration tips */}
-      <View className={`p-4 rounded-lg mb-6`} style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}>
-        <Text className={`text-lg font-semibold mb-3`} style={{ color: textColor }}>
+      <View
+        className={`p-4 rounded-lg mb-6`}
+        style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+      >
+        <Text
+          className={`text-lg font-semibold mb-3`}
+          style={{ color: textColor }}
+        >
           Registration Tips
         </Text>
 
@@ -647,18 +748,25 @@ export default function FaceRegistration() {
           }
         }}
         className={`py-4 px-6 rounded-lg mb-4`}
-        style={{ backgroundColor: hasExistingProfile ? borderColor : (captureStep < captureAngles.length ? primaryColor : successColor) }}
-        disabled={capturedAngles.length === captureAngles.length || isModalTransitioning}
+        style={{
+          backgroundColor: hasExistingProfile
+            ? borderColor
+            : captureStep < captureAngles.length
+              ? primaryColor
+              : successColor,
+        }}
+        disabled={
+          capturedAngles.length === captureAngles.length || isModalTransitioning
+        }
       >
         <Text className="text-white text-center font-semibold text-lg">
           {isModalTransitioning
-            ? 'Preparing Camera...'
-            : hasExistingProfile 
-              ? 'Profile Already Exists - Click to Manage'
+            ? "Preparing Camera..."
+            : hasExistingProfile
+              ? "Profile Already Exists - Click to Manage"
               : captureStep < captureAngles.length
                 ? `Capture ${captureAngles[captureStep].name}`
-                : 'All Angles Captured!'
-          }
+                : "All Angles Captured!"}
         </Text>
       </TouchableOpacity>
 
@@ -667,7 +775,10 @@ export default function FaceRegistration() {
         className={`py-3 px-6 rounded-lg`}
         style={{ backgroundColor: borderColor }}
       >
-        <Text className={`text-center font-medium`} style={{ color: textColor }}>
+        <Text
+          className={`text-center font-medium`}
+          style={{ color: textColor }}
+        >
           Back
         </Text>
       </TouchableOpacity>
@@ -675,13 +786,21 @@ export default function FaceRegistration() {
   );
 
   const renderTestStep = () => (
-    <ScrollView className="flex-1 p-6" style={{ paddingTop: Constants.statusBarHeight }}>
+    <ScrollView
+      className="flex-1 p-6"
+      style={{ paddingTop: Constants.statusBarHeight }}
+    >
       <View className="items-center mb-8">
-        <View className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
-          style={{ backgroundColor: successColor }}>
+        <View
+          className={`w-20 h-20 rounded-full items-center justify-center mb-4`}
+          style={{ backgroundColor: successColor }}
+        >
           <Ionicons name="checkmark" size={40} color="white" />
         </View>
-        <Text className={`text-2xl font-bold text-center mb-2`} style={{ color: textColor }}>
+        <Text
+          className={`text-2xl font-bold text-center mb-2`}
+          style={{ color: textColor }}
+        >
           Test Verification
         </Text>
         <Text className={`text-base text-center`} style={{ color: textColor }}>
@@ -689,18 +808,32 @@ export default function FaceRegistration() {
         </Text>
       </View>
 
-      <View className={`p-4 rounded-lg mb-6`} style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}>
-        <Text className={`text-lg font-semibold mb-3`} style={{ color: textColor }}>
+      <View
+        className={`p-4 rounded-lg mb-6`}
+        style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+      >
+        <Text
+          className={`text-lg font-semibold mb-3`}
+          style={{ color: textColor }}
+        >
           Registration Complete!
         </Text>
         <Text className={`text-base mb-4`} style={{ color: textColor }}>
-          Your face has been successfully registered. Now let's test the verification to ensure everything works correctly.
+          Your face has been successfully registered. Now let's test the
+          verification to ensure everything works correctly.
         </Text>
 
         {registrationData && (
-          <View className={`p-3 rounded-lg`} style={{ backgroundColor: successColor + '20' }}>
-            <Text className={`text-sm font-medium mb-2`} style={{ color: successColor }}>
-              ✓ Face profile registered with {Math.round((registrationData.confidence || 0) * 100)}% confidence
+          <View
+            className={`p-3 rounded-lg`}
+            style={{ backgroundColor: successColor + "20" }}
+          >
+            <Text
+              className={`text-sm font-medium mb-2`}
+              style={{ color: successColor }}
+            >
+              ✓ Face profile registered with{" "}
+              {Math.round((registrationData.confidence || 0) * 100)}% confidence
             </Text>
             <Text className={`text-xs`} style={{ color: successColor }}>
               {capturedAngles.length} angles captured for enhanced accuracy
@@ -724,7 +857,10 @@ export default function FaceRegistration() {
         className={`py-3 px-6 rounded-lg`}
         style={{ backgroundColor: borderColor }}
       >
-        <Text className={`text-center font-medium`} style={{ color: textColor }}>
+        <Text
+          className={`text-center font-medium`}
+          style={{ color: textColor }}
+        >
           Skip Test - Go to Dashboard
         </Text>
       </TouchableOpacity>
@@ -744,19 +880,24 @@ export default function FaceRegistration() {
                     ? successColor
                     : currentStep === index
                       ? primaryColor
-                      : borderColor
+                      : borderColor,
                 }}
               >
                 {step.completed ? (
                   <Ionicons name="checkmark" size={16} color="white" />
                 ) : (
-                  <Text className="text-white font-bold text-sm">{index + 1}</Text>
+                  <Text className="text-white font-bold text-sm">
+                    {index + 1}
+                  </Text>
                 )}
               </View>
               <Text
                 className={`text-xs text-center font-medium`}
                 style={{
-                  color: step.completed || currentStep === index ? textColor : borderColor
+                  color:
+                    step.completed || currentStep === index
+                      ? textColor
+                      : borderColor,
                 }}
               >
                 {step.title}
@@ -766,7 +907,9 @@ export default function FaceRegistration() {
               <View
                 className="h-0.5 flex-1 mx-2"
                 style={{
-                  backgroundColor: registrationSteps[index + 1].completed ? successColor : borderColor
+                  backgroundColor: registrationSteps[index + 1].completed
+                    ? successColor
+                    : borderColor,
                 }}
               />
             )}
@@ -781,14 +924,19 @@ export default function FaceRegistration() {
       <SafeAreaView className="flex-1" style={{ backgroundColor }}>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={primaryColor} />
-          <Text className={`mt-4 text-lg text-center`} style={{ color: textColor }}>
+          <Text
+            className={`mt-4 text-lg text-center`}
+            style={{ color: textColor }}
+          >
             {capturedAngles.length > 0
               ? `Processing ${capturedAngles.length} face captures...`
-              : 'Checking registration status...'
-            }
+              : "Checking registration status..."}
           </Text>
           {capturedAngles.length > 0 && (
-            <Text className={`mt-2 text-sm text-center`} style={{ color: textColor }}>
+            <Text
+              className={`mt-2 text-sm text-center`}
+              style={{ color: textColor }}
+            >
               Combining multiple angles for enhanced accuracy
             </Text>
           )}
@@ -799,7 +947,7 @@ export default function FaceRegistration() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor }}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 py-4">
@@ -824,35 +972,51 @@ export default function FaceRegistration() {
       <FaceVerificationModal
         key={`face-modal-${captureStep}-${showFaceModal}`} // Force re-mount for each capture
         visible={showFaceModal}
-        mode={currentStep === 1 ? 'register' : 'verify'}
-        onSuccess={currentStep === 1 ? handleFaceRegistrationSuccess : handleVerificationTestSuccess}
-        onError={currentStep === 1 ? handleFaceRegistrationError : handleVerificationTestError}
+        mode={currentStep === 1 ? "register" : "verify"}
+        onSuccess={
+          currentStep === 1
+            ? handleFaceRegistrationSuccess
+            : handleVerificationTestSuccess
+        }
+        onError={
+          currentStep === 1
+            ? handleFaceRegistrationError
+            : handleVerificationTestError
+        }
         onCancel={() => {
           setShowFaceModal(false);
           setIsModalTransitioning(false);
         }}
-        title={currentStep === 1
-          ? `Register: ${captureAngles[captureStep]?.name || 'Face'}`
-          : 'Test Face Verification'
+        title={
+          currentStep === 1
+            ? `Register: ${captureAngles[captureStep]?.name || "Face"}`
+            : "Test Face Verification"
         }
-        subtitle={currentStep === 1
-          ? `${captureAngles[captureStep]?.description || 'Look at the camera'} and blink when prompted`
-          : 'Look at the camera and blink to test your face verification setup'
+        subtitle={
+          currentStep === 1
+            ? `${captureAngles[captureStep]?.description || "Look at the camera"} and blink when prompted`
+            : "Look at the camera and blink to test your face verification setup"
         }
         maxRetries={3}
       />
 
       {/* Existing Profile Warning Modal */}
-      <Modal visible={showExistingProfileModal} transparent animationType="fade">
+      <Modal
+        visible={showExistingProfileModal}
+        transparent
+        animationType="fade"
+      >
         <View className="flex-1 justify-center items-center bg-black/50">
           <View
             className={`m-5 p-6 rounded-xl ${
-              colorScheme === 'dark' ? "bg-gray-800" : "bg-white"
+              colorScheme === "dark" ? "bg-gray-800" : "bg-white"
             } w-5/6`}
           >
             <View className="items-center mb-4">
-              <View className={`w-16 h-16 rounded-full items-center justify-center mb-4`}
-                style={{ backgroundColor: primaryColor }}>
+              <View
+                className={`w-16 h-16 rounded-full items-center justify-center mb-4`}
+                style={{ backgroundColor: primaryColor }}
+              >
                 <Ionicons name="shield-checkmark" size={32} color="white" />
               </View>
               <Text
@@ -865,7 +1029,8 @@ export default function FaceRegistration() {
                 className={`text-base text-center`}
                 style={{ color: textColor }}
               >
-                You have already completed face registration. What would you like to do?
+                You have already completed face registration. What would you
+                like to do?
               </Text>
             </View>
 
@@ -890,7 +1055,7 @@ export default function FaceRegistration() {
                     success: true,
                     confidence: 1.0,
                     livenessDetected: true,
-                    faceEncoding: 'existing_profile',
+                    faceEncoding: "existing_profile",
                     timestamp: new Date(),
                   });
                   setCurrentStep(2); // Skip to verification test
@@ -911,7 +1076,10 @@ export default function FaceRegistration() {
                 className={`py-3 px-4 rounded-lg`}
                 style={{ backgroundColor: borderColor }}
               >
-                <Text className={`text-center font-medium`} style={{ color: textColor }}>
+                <Text
+                  className={`text-center font-medium`}
+                  style={{ color: textColor }}
+                >
                   Go to Dashboard
                 </Text>
               </TouchableOpacity>

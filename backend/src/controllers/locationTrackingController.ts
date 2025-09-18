@@ -25,7 +25,7 @@ export class LocationTrackingController {
       // Check if this is a background update
       const isBackgroundUpdate =
         !!location.isBackground ||
-        req.headers['x-background-update'] === 'true';
+        req.headers["x-background-update"] === "true";
 
       if (!userId) {
         return res.status(401).json({
@@ -48,7 +48,7 @@ export class LocationTrackingController {
            WHERE user_id = $1
            AND end_time IS NULL
            ORDER BY start_time DESC LIMIT 1`,
-          [userId]
+          [userId],
         );
 
         if (activeShift.rows.length > 0) {
@@ -65,7 +65,7 @@ export class LocationTrackingController {
           {
             ...location,
             isBackgroundUpdate,
-          }
+          },
         );
 
         res.status(200).json({
@@ -75,7 +75,7 @@ export class LocationTrackingController {
         });
       } catch (storageError: any) {
         console.error("Location storage error:", storageError.message);
-        
+
         // Still return success to prevent client retry loops
         // But include error message for debugging
         res.status(200).json({
@@ -129,7 +129,7 @@ export class LocationTrackingController {
           {
             latitude: location.latitude,
             longitude: location.longitude,
-          }
+          },
         );
         return res.status(200).json({
           success: false,
@@ -142,7 +142,7 @@ export class LocationTrackingController {
         `SELECT employee_shifts.id FROM employee_shifts 
          WHERE employee_shifts.user_id = $1 AND employee_shifts.end_time IS NULL
          ORDER BY employee_shifts.start_time DESC LIMIT 1`,
-        [userId]
+        [userId],
       );
 
       const shiftId =
@@ -163,7 +163,7 @@ export class LocationTrackingController {
             ...location,
             is_tracking_active: isTrackingActive,
             isBackgroundUpdate: true,
-          }
+          },
         );
 
         // Update shift's last_location_update if there's an active shift
@@ -173,7 +173,7 @@ export class LocationTrackingController {
              SET last_location_update = $1,
                  is_tracking_active = $2
              WHERE id = $3`,
-            [new Date(), isTrackingActive, shiftId]
+            [new Date(), isTrackingActive, shiftId],
           );
         }
 
@@ -230,7 +230,7 @@ export class LocationTrackingController {
       const activeShiftResult = await pool.query(
         `SELECT id FROM employee_shifts 
          WHERE user_id = $1 AND end_time IS NULL`,
-        [userId]
+        [userId],
       );
 
       if (activeShiftResult.rows.length > 0) {
@@ -256,7 +256,7 @@ export class LocationTrackingController {
           new Date(),
           batteryLevel,
           isMoving ? "moving" : "stationary",
-        ]
+        ],
       );
 
       const shiftId = shiftResult.rows[0].id;
@@ -272,7 +272,7 @@ export class LocationTrackingController {
         `UPDATE employee_shifts 
          SET location_history = ST_GeomFromGeoJSON($1)
          WHERE id = $2`,
-        [JSON.stringify(locationHistory), shiftId]
+        [JSON.stringify(locationHistory), shiftId],
       );
 
       // Store the starting location
@@ -292,7 +292,7 @@ export class LocationTrackingController {
         await locationTrackingService.checkGeofenceTransitions(
           userId || 0,
           shiftId,
-          { latitude, longitude }
+          { latitude, longitude },
         );
 
       res.status(200).json({
@@ -333,7 +333,7 @@ export class LocationTrackingController {
         `SELECT id, start_time FROM employee_shifts 
          WHERE user_id = $1 AND end_time IS NULL
          ORDER BY start_time DESC LIMIT 1`,
-        [userId]
+        [userId],
       );
 
       if (activeShiftResult.rows.length === 0) {
@@ -364,7 +364,7 @@ export class LocationTrackingController {
       // End the shift
       const endTime = timestamp ? new Date(timestamp) : new Date();
       const durationMinutes = Math.round(
-        (endTime.getTime() - new Date(startTime).getTime()) / 60000
+        (endTime.getTime() - new Date(startTime).getTime()) / 60000,
       );
 
       await pool.query(
@@ -376,7 +376,7 @@ export class LocationTrackingController {
              travel_time_minutes = $5,
              last_location_update = $1
          WHERE id = $6`,
-        [endTime, latitude, longitude, accuracy, durationMinutes, shiftId]
+        [endTime, latitude, longitude, accuracy, durationMinutes, shiftId],
       );
 
       // Get the updated shift with calculated distance
@@ -389,7 +389,7 @@ export class LocationTrackingController {
            travel_time_minutes as "travelTimeMinutes"
          FROM employee_shifts 
          WHERE id = $1`,
-        [shiftId]
+        [shiftId],
       );
 
       const shiftData = updatedShiftResult.rows[0];
@@ -430,7 +430,7 @@ export class LocationTrackingController {
          FROM employee_shifts 
          WHERE user_id = $1 AND end_time IS NULL
          ORDER BY start_time DESC LIMIT 1`,
-        [userId]
+        [userId],
       );
 
       if (result.rows.length === 0) {
@@ -452,7 +452,7 @@ export class LocationTrackingController {
          FROM employee_locations 
          WHERE user_id = $1 AND shift_id = $2
          ORDER BY timestamp DESC LIMIT 1`,
-        [userId, result.rows[0].id]
+        [userId, result.rows[0].id],
       );
 
       const currentLocation =
@@ -501,7 +501,7 @@ export class LocationTrackingController {
          WHERE user_id = $1 
          AND start_time BETWEEN $2 AND $3
          ORDER BY start_time DESC`,
-        [userId, startDate, endDate]
+        [userId, startDate, endDate],
       );
 
       // Format the results
@@ -511,7 +511,7 @@ export class LocationTrackingController {
           ? Math.round(
               (new Date(shift.endTimestamp).getTime() -
                 new Date(shift.startTimestamp).getTime()) /
-                60000
+                60000,
             )
           : null,
         date: new Date(shift.startTimestamp).toISOString().split("T")[0],
@@ -538,36 +538,36 @@ export class LocationTrackingController {
     try {
       const groupAdminId = req.user?.id;
       console.log(
-        `[Controller] Getting active employee locations for group admin ${groupAdminId}`
+        `[Controller] Getting active employee locations for group admin ${groupAdminId}`,
       );
 
       // First try the service that uses Redis
       try {
         const groupAdminService = new GroupAdminTrackingService();
         const locations = await groupAdminService.getActiveEmployeeLocations(
-          groupAdminId || 0
+          groupAdminId || 0,
         );
 
         if (locations && locations.length > 0) {
           console.log(
-            `[Controller] Found ${locations.length} employee locations via GroupAdminTrackingService`
+            `[Controller] Found ${locations.length} employee locations via GroupAdminTrackingService`,
           );
           return res.json(locations);
         } else {
           console.log(
-            `[Controller] No locations found via GroupAdminTrackingService, falling back to direct DB query`
+            `[Controller] No locations found via GroupAdminTrackingService, falling back to direct DB query`,
           );
         }
       } catch (serviceError) {
         console.error(
           "[Controller] Error using GroupAdminTrackingService:",
-          serviceError
+          serviceError,
         );
       }
 
       // Fallback to direct database query if Redis fails or returns empty
       console.log(
-        `[Controller] Performing fallback database query for employee locations`
+        `[Controller] Performing fallback database query for employee locations`,
       );
 
       // Get all employees assigned to this group admin
@@ -577,18 +577,18 @@ export class LocationTrackingController {
          WHERE (u.group_admin_id = $1 OR u.manager_id = $1)
          AND u.is_active = true
          AND u.role = 'employee'`,
-        [groupAdminId]
+        [groupAdminId],
       );
 
       if (employeesResult.rows.length === 0) {
         console.log(
-          `[Controller] No employees found for group admin ${groupAdminId}`
+          `[Controller] No employees found for group admin ${groupAdminId}`,
         );
         return res.json([]);
       }
 
       console.log(
-        `[Controller] Found ${employeesResult.rows.length} employees assigned to group admin ${groupAdminId}`
+        `[Controller] Found ${employeesResult.rows.length} employees assigned to group admin ${groupAdminId}`,
       );
 
       // For each employee, get their most recent location
@@ -601,7 +601,7 @@ export class LocationTrackingController {
                WHERE user_id = $1
                ORDER BY timestamp DESC
                LIMIT 1`,
-              [employee.id]
+              [employee.id],
             );
 
             // Get device info for this employee
@@ -611,7 +611,7 @@ export class LocationTrackingController {
                WHERE user_id = $1 AND is_active = true
                ORDER BY updated_at DESC 
                LIMIT 1`,
-              [employee.id]
+              [employee.id],
             );
 
             const deviceInfo =
@@ -621,14 +621,14 @@ export class LocationTrackingController {
 
             if (locationResult.rows.length === 0) {
               console.log(
-                `[Controller] No location found for employee ${employee.id}`
+                `[Controller] No location found for employee ${employee.id}`,
               );
               return null;
             }
 
             const location = locationResult.rows[0];
             console.log(
-              `[Controller] Found location for employee ${employee.id} from database`
+              `[Controller] Found location for employee ${employee.id} from database`,
             );
 
             // Store this location in Redis for future use
@@ -644,7 +644,7 @@ export class LocationTrackingController {
 
             // Push to Redis with multiple key formats
             const redis = new Redis(
-              process.env.REDIS_URL || "redis://localhost:6379"
+              process.env.REDIS_URL || "redis://localhost:6379",
             );
             const keyFormats = [
               `last_location:${employee.id}`,
@@ -678,16 +678,16 @@ export class LocationTrackingController {
           } catch (error) {
             console.error(
               `[Controller] Error getting location for employee ${employee.id}:`,
-              error
+              error,
             );
             return null;
           }
-        })
+        }),
       );
 
       const validLocations = employeeLocations.filter((loc) => loc !== null);
       console.log(
-        `[Controller] Returning ${validLocations.length} employee locations from database fallback`
+        `[Controller] Returning ${validLocations.length} employee locations from database fallback`,
       );
 
       res.json(validLocations);
@@ -719,7 +719,7 @@ export class LocationTrackingController {
       // Get the admin's company ID
       const adminResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [adminId]
+        [adminId],
       );
 
       const companyId = adminResult.rows[0].company_id;
@@ -727,7 +727,7 @@ export class LocationTrackingController {
       // Check if the employee belongs to the admin's company
       const employeeResult = await pool.query(
         `SELECT id FROM users WHERE id = $1 AND company_id = $2`,
-        [employee_id, companyId]
+        [employee_id, companyId],
       );
 
       if (employeeResult.rows.length === 0) {
@@ -861,7 +861,7 @@ export class LocationTrackingController {
             employee_id,
             startDate.toISOString().split("T")[0],
             endDate.toISOString().split("T")[0],
-          ]
+          ],
         );
 
         res.status(200).json({
@@ -886,7 +886,7 @@ export class LocationTrackingController {
             userId || 0,
             startDate.toISOString().split("T")[0],
             endDate.toISOString().split("T")[0],
-          ]
+          ],
         );
 
         res.status(200).json({
@@ -910,7 +910,7 @@ export class LocationTrackingController {
             userId || 0,
             startDate.toISOString().split("T")[0],
             endDate.toISOString().split("T")[0],
-          ]
+          ],
         );
 
         res.status(200).json({

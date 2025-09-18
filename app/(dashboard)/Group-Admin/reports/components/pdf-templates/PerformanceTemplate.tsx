@@ -1,4 +1,4 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
 
 interface PerformanceData {
   summary: {
@@ -7,7 +7,7 @@ interface PerformanceData {
     avgTaskCompletion: number;
     avgExpenseApproval: number;
   };
-  employeePerformance: Array<{
+  employeePerformance: {
     employeeName: string;
     employeeNumber: string;
     attendance: {
@@ -25,20 +25,20 @@ interface PerformanceData {
       approvalRate: number;
       avgProcessingTime: number;
     };
-  }>;
-  departmentStats: Array<{
+  }[];
+  departmentStats: {
     department: string;
     employeeCount: number;
     avgAttendance: number;
     avgTaskCompletion: number;
     avgExpenseApproval: number;
-  }>;
-  topPerformers: Array<{
+  }[];
+  topPerformers: {
     employeeName: string;
     department: string;
     score: number;
     highlights: string[];
-  }>;
+  }[];
   companyInfo: {
     name: string;
     logo: string;
@@ -47,7 +47,10 @@ interface PerformanceData {
   };
 }
 
-export const generatePerformanceReport = (data: PerformanceData, options: TemplateOptions): string => {
+export const generatePerformanceReport = (
+  data: PerformanceData,
+  options: TemplateOptions,
+): string => {
   const content = `
     <div class="summary-section">
       <h2>Performance Overview</h2>
@@ -84,7 +87,9 @@ export const generatePerformanceReport = (data: PerformanceData, options: Templa
           </tr>
         </thead>
         <tbody>
-          ${data.employeePerformance.map(emp => `
+          ${data.employeePerformance
+            .map(
+              (emp) => `
             <tr>
               <td>${emp.employeeName}</td>
               <td>${emp.employeeNumber}</td>
@@ -94,7 +99,9 @@ export const generatePerformanceReport = (data: PerformanceData, options: Templa
               <td>${emp.tasks.onTimeCompletion}%</td>
               <td>${emp.expenses.approvalRate}%</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
 
@@ -110,7 +117,9 @@ export const generatePerformanceReport = (data: PerformanceData, options: Templa
           </tr>
         </thead>
         <tbody>
-          ${data.departmentStats.map(dept => `
+          ${data.departmentStats
+            .map(
+              (dept) => `
             <tr>
               <td>${dept.department}</td>
               <td>${dept.employeeCount}</td>
@@ -118,34 +127,44 @@ export const generatePerformanceReport = (data: PerformanceData, options: Templa
               <td>${dept.avgTaskCompletion}%</td>
               <td>${dept.avgExpenseApproval}%</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
 
       <h2>Top Performers</h2>
       <div class="top-performers">
-        ${data.topPerformers.map(performer => `
+        ${data.topPerformers
+          .map(
+            (performer) => `
           <div class="performer-card">
             <h3>${performer.employeeName}</h3>
             <p class="department">${performer.department}</p>
             <p class="score">Performance Score: ${performer.score}%</p>
             <ul>
-              ${performer.highlights.map(highlight => `
+              ${performer.highlights
+                .map(
+                  (highlight) => `
                 <li>${highlight}</li>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </ul>
           </div>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </div>
     </div>
   `;
 
   return generateBaseTemplate({
-    title: 'Performance Report',
+    title: "Performance Report",
     date: new Date().toLocaleDateString(),
     content,
     theme: options.theme,
     companyInfo: options.companyInfo,
-    adminName: options.adminName
+    adminName: options.adminName,
   });
-}; 
+};

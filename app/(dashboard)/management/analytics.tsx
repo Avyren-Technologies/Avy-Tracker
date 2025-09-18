@@ -1,14 +1,23 @@
 // app/(dashboard)/management/analytics.tsx
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, StatusBar as RNStatusBar, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import ThemeContext from '../../context/ThemeContext';
-import { LineChart, BarChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
-import { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  StatusBar as RNStatusBar,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemeContext from "../../context/ThemeContext";
+import { LineChart, BarChart } from "react-native-chart-kit";
+import { Dimensions } from "react-native";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
+import { useEffect, useState } from "react";
 import BottomNav from "../../components/BottomNav";
 import { managementNavItems } from "./utils/navigationItems";
 
@@ -51,7 +60,7 @@ export default function ManagementAnalytics() {
           `${process.env.EXPO_PUBLIC_API_URL}/api/management/analytics-data`,
           {
             headers: { Authorization: `Bearer ${token}` },
-          }
+          },
         );
         setAnalyticsData(response.data);
       } catch (error) {
@@ -101,7 +110,7 @@ export default function ManagementAnalytics() {
       data?.datasets?.[0]?.data?.length > 0 &&
       data.labels?.length > 0 &&
       data.datasets[0].data.every(
-        (value) => typeof value === "number" && !isNaN(value)
+        (value) => typeof value === "number" && !isNaN(value),
       )
     );
   };
@@ -282,35 +291,35 @@ export default function ManagementAnalytics() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: 'transparent',
-    },
-    header: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-        paddingBottom: 16,
-        paddingHorizontal: 16,
-    },
-    backButton: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    chart: {
-        marginVertical: 8,
-        borderRadius: 16,
-    },
-    metricCard: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  header: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  metricCard: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
 });

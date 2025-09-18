@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,22 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-} from 'react-native';
-import { useColorScheme } from '../../../../../app/hooks/useColorScheme';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import { format, differenceInBusinessDays, isWeekend, addDays, isSameDay, parseISO } from 'date-fns';
+} from "react-native";
+import { useColorScheme } from "../../../../../app/hooks/useColorScheme";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import {
+  format,
+  differenceInBusinessDays,
+  isWeekend,
+  addDays,
+  isSameDay,
+  parseISO,
+} from "date-fns";
 
 interface LeaveType {
   id: number;
@@ -37,7 +44,7 @@ interface Document {
   file_name: string;
   file_type: string;
   file_data: string;
-  upload_method: 'camera' | 'file';
+  upload_method: "camera" | "file";
 }
 
 interface Holiday {
@@ -45,15 +52,21 @@ interface Holiday {
   name: string;
 }
 
-export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void }) {
-  const isDark = useColorScheme() === 'dark';
+export default function LeaveRequestForm({
+  onSuccess,
+}: {
+  onSuccess: () => void;
+}) {
+  const isDark = useColorScheme() === "dark";
   const [loading, setLoading] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(null);
+  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(
+    null,
+  );
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [reason, setReason] = useState('');
-  const [contactNumber, setContactNumber] = useState('');
+  const [reason, setReason] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -80,15 +93,15 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
 
   const fetchLeaveTypes = async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await AsyncStorage.getItem("auth_token");
       if (!token) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data && Array.isArray(response.data)) {
@@ -96,7 +109,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         const transformedLeaveTypes = response.data.map((type: any) => ({
           id: type.leave_type_id,
           name: type.leave_type_name,
-          description: type.description || '',
+          description: type.description || "",
           requires_documentation: type.requires_documentation || false,
           max_days: type.max_days || 0,
           is_paid: type.is_paid !== undefined ? type.is_paid : true,
@@ -105,51 +118,57 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
           min_service_days: 0, // Default value
           notice_period_days: 0, // Default value
           max_consecutive_days: type.max_days || 30, // Use max_days as default
-          gender_specific: type.gender_specific || null
+          gender_specific: type.gender_specific || null,
         }));
         setLeaveTypes(transformedLeaveTypes);
       } else {
         setLeaveTypes([]);
       }
     } catch (error: any) {
-      console.error('Error fetching leave types:', error);
-      setError(error.response?.data?.error || 'Failed to fetch leave types');
+      console.error("Error fetching leave types:", error);
+      setError(error.response?.data?.error || "Failed to fetch leave types");
     }
   };
 
   const fetchHolidays = async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await AsyncStorage.getItem("auth_token");
       if (!token) return;
 
       // Since holidays endpoint doesn't exist, we'll set an empty array
       // You can implement holidays functionality later if needed
       setHolidays([]);
     } catch (error) {
-      console.error('Error fetching holidays:', error);
+      console.error("Error fetching holidays:", error);
       setHolidays([]);
     }
   };
 
   const fetchLeaveBalance = async (leaveTypeId: number) => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await AsyncStorage.getItem("auth_token");
       if (!token) return;
 
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave/balance?year=${new Date().getFullYear()}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data && Array.isArray(response.data)) {
-        const balance = response.data.find((b: any) => b.leave_type_id === leaveTypeId);
+        const balance = response.data.find(
+          (b: any) => b.leave_type_id === leaveTypeId,
+        );
         if (balance) {
           setLeaveBalance({
             total_days: balance.total_days || 0,
             used_days: balance.used_days || 0,
             pending_days: balance.pending_days || 0,
             carry_forward_days: balance.carry_forward_days || 0,
-            available_days: (balance.total_days || 0) + (balance.carry_forward_days || 0) - (balance.used_days || 0) - (balance.pending_days || 0),
+            available_days:
+              (balance.total_days || 0) +
+              (balance.carry_forward_days || 0) -
+              (balance.used_days || 0) -
+              (balance.pending_days || 0),
           });
         } else {
           // If no balance found, set default values
@@ -163,7 +182,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         }
       }
     } catch (error) {
-      console.error('Error fetching leave balance:', error);
+      console.error("Error fetching leave balance:", error);
       // Set default values on error
       setLeaveBalance({
         total_days: 0,
@@ -176,20 +195,20 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
   };
 
   const isHoliday = (date: Date): boolean => {
-    return holidays.some(holiday => isSameDay(parseISO(holiday.date), date));
+    return holidays.some((holiday) => isSameDay(parseISO(holiday.date), date));
   };
 
   const calculateWorkingDays = (start: Date, end: Date): number => {
     let days = 0;
     let current = new Date(start);
-    
+
     while (current <= end) {
       if (!isWeekend(current) && !isHoliday(current)) {
         days++;
       }
       current = addDays(current, 1);
     }
-    
+
     return days;
   };
 
@@ -201,8 +220,11 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
     const noticeDays = differenceInBusinessDays(startDate, today);
 
     if (noticeDays < selectedLeaveType.notice_period_days) {
-      const earliestPossibleDate = addDays(today, selectedLeaveType.notice_period_days);
-      return `Notice period requirement not met. Earliest possible start date is ${format(earliestPossibleDate, 'dd MMM yyyy')}`;
+      const earliestPossibleDate = addDays(
+        today,
+        selectedLeaveType.notice_period_days,
+      );
+      return `Notice period requirement not met. Earliest possible start date is ${format(earliestPossibleDate, "dd MMM yyyy")}`;
     }
 
     return null;
@@ -211,8 +233,11 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
   const validateLeaveBalance = (daysRequested: number): string | null => {
     if (!leaveBalance) return null;
 
-    const availableDays = leaveBalance.total_days + leaveBalance.carry_forward_days - 
-                         leaveBalance.used_days - leaveBalance.pending_days;
+    const availableDays =
+      leaveBalance.total_days +
+      leaveBalance.carry_forward_days -
+      leaveBalance.used_days -
+      leaveBalance.pending_days;
 
     if (availableDays < daysRequested) {
       return `Insufficient leave balance. Available: ${availableDays} days, Requested: ${daysRequested} days`;
@@ -221,8 +246,12 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
     return null;
   };
 
-  const handleDateChange = (event: any, selectedDate: Date | undefined, isStart: boolean) => {
-    if (Platform.OS === 'android') {
+  const handleDateChange = (
+    event: any,
+    selectedDate: Date | undefined,
+    isStart: boolean,
+  ) => {
+    if (Platform.OS === "android") {
       setShowStartDatePicker(false);
       setShowEndDatePicker(false);
     }
@@ -242,7 +271,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
+        type: ["application/pdf", "image/*"],
       });
 
       if (result.assets && result.assets.length > 0) {
@@ -252,31 +281,34 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          const base64data = reader.result?.toString().split(',')[1];
+          const base64data = reader.result?.toString().split(",")[1];
           if (base64data) {
             setDocuments([
               ...documents,
               {
                 file_name: asset.name,
-                file_type: asset.mimeType || 'application/octet-stream',
+                file_type: asset.mimeType || "application/octet-stream",
                 file_data: base64data,
-                upload_method: 'file',
+                upload_method: "file",
               },
             ]);
           }
         };
       }
     } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to pick document');
+      console.error("Error picking document:", error);
+      Alert.alert("Error", "Failed to pick document");
     }
   };
 
   const takePhoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera permission is required to take photos');
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Camera permission is required to take photos",
+        );
         return;
       }
 
@@ -293,16 +325,16 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
             ...documents,
             {
               file_name: `photo_${Date.now()}.jpg`,
-              file_type: 'image/jpeg',
+              file_type: "image/jpeg",
               file_data: asset.base64,
-              upload_method: 'camera',
+              upload_method: "camera",
             },
           ]);
         }
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      console.error("Error taking photo:", error);
+      Alert.alert("Error", "Failed to take photo");
     }
   };
 
@@ -312,22 +344,22 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
 
   const validateRequest = () => {
     if (!selectedLeaveType) {
-      return 'Please select a leave type';
+      return "Please select a leave type";
     }
     if (!reason.trim()) {
-      return 'Please provide a reason for leave';
+      return "Please provide a reason for leave";
     }
     if (!contactNumber.trim()) {
-      return 'Please provide a contact number';
+      return "Please provide a contact number";
     }
     if (selectedLeaveType.requires_documentation && documents.length === 0) {
-      return 'Please upload required documents';
+      return "Please upload required documents";
     }
 
     const daysRequested = calculateWorkingDays(startDate, endDate);
-    
+
     if (daysRequested === 0) {
-      return 'Selected dates include only weekends or holidays';
+      return "Selected dates include only weekends or holidays";
     }
 
     if (daysRequested > selectedLeaveType.max_consecutive_days) {
@@ -354,9 +386,9 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
       setLoading(true);
       setError(null);
 
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await AsyncStorage.getItem("auth_token");
       if (!token) {
-        setError('Authentication required');
+        setError("Authentication required");
         return;
       }
 
@@ -366,26 +398,25 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave/request`,
         {
           leave_type_id: selectedLeaveType?.id,
-          start_date: format(startDate, 'yyyy-MM-dd'),
-          end_date: format(endDate, 'yyyy-MM-dd'),
+          start_date: format(startDate, "yyyy-MM-dd"),
+          end_date: format(endDate, "yyyy-MM-dd"),
           days_requested: daysRequested,
           reason,
           contact_number: contactNumber,
           documents,
         },
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      Alert.alert(
-        'Success',
-        'Leave request submitted successfully',
-        [{ text: 'OK', onPress: onSuccess }]
-      );
+      Alert.alert("Success", "Leave request submitted successfully", [
+        { text: "OK", onPress: onSuccess },
+      ]);
     } catch (error: any) {
-      console.error('Error submitting leave request:', error);
-      const errorMessage = error.response?.data?.details?.message || 
-                         error.response?.data?.error || 
-                         'Failed to submit leave request';
+      console.error("Error submitting leave request:", error);
+      const errorMessage =
+        error.response?.data?.details?.message ||
+        error.response?.data?.error ||
+        "Failed to submit leave request";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -398,14 +429,16 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
     const weekends = [];
     const holidayDates = [];
     let current = new Date(startDate);
-    
+
     while (current <= endDate) {
       if (isWeekend(current)) {
-        weekends.push(format(current, 'dd MMM'));
+        weekends.push(format(current, "dd MMM"));
       } else if (isHoliday(current)) {
-        const holiday = holidays.find(h => isSameDay(parseISO(h.date), current));
+        const holiday = holidays.find((h) =>
+          isSameDay(parseISO(h.date), current),
+        );
         if (holiday) {
-          holidayDates.push(`${format(current, 'dd MMM')} (${holiday.name})`);
+          holidayDates.push(`${format(current, "dd MMM")} (${holiday.name})`);
         }
       }
       current = addDays(current, 1);
@@ -414,16 +447,22 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
     return (
       <View className="mt-2">
         {weekends.length > 0 && (
-          <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Weekends: {weekends.join(', ')}
+          <Text
+            className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
+            Weekends: {weekends.join(", ")}
           </Text>
         )}
         {holidayDates.length > 0 && (
-          <Text className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-            Holidays: {holidayDates.join(', ')}
+          <Text
+            className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
+            Holidays: {holidayDates.join(", ")}
           </Text>
         )}
-        <Text className={`text-sm mt-1 font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text
+          className={`text-sm mt-1 font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+        >
           Working days: {calculateWorkingDays(startDate, endDate)}
         </Text>
       </View>
@@ -434,12 +473,14 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
     <ScrollView className="flex-1">
       <View className="p-4">
         {/* Leave Type Selection */}
-        <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+        <Text
+          className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+        >
           Leave Type *
         </Text>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           className="mb-4"
         >
           {leaveTypes.map((type) => (
@@ -448,15 +489,19 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
               onPress={() => setSelectedLeaveType(type)}
               className={`mr-2 px-4 py-2 rounded-full ${
                 selectedLeaveType?.id === type.id
-                  ? 'bg-blue-500'
-                  : isDark ? 'bg-gray-700' : 'bg-gray-200'
+                  ? "bg-blue-500"
+                  : isDark
+                    ? "bg-gray-700"
+                    : "bg-gray-200"
               }`}
             >
               <Text
                 className={
                   selectedLeaveType?.id === type.id
-                    ? 'text-white'
-                    : isDark ? 'text-gray-300' : 'text-gray-700'
+                    ? "text-white"
+                    : isDark
+                      ? "text-gray-300"
+                      : "text-gray-700"
                 }
               >
                 {type.name}
@@ -466,39 +511,49 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         </ScrollView>
 
         {selectedLeaveType && (
-          <View className={`mb-4 p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-            <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`mb-4 p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-gray-100"}`}
+          >
+            <Text
+              className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+            >
               {selectedLeaveType.description}
             </Text>
             {selectedLeaveType.requires_documentation && (
               <View className="flex-row items-center mt-2">
-                <Ionicons 
-                  name="information-circle" 
-                  size={16} 
-                  color={isDark ? '#9CA3AF' : '#6B7280'} 
+                <Ionicons
+                  name="information-circle"
+                  size={16}
+                  color={isDark ? "#9CA3AF" : "#6B7280"}
                 />
-                <Text className={`ml-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <Text
+                  className={`ml-1 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                >
                   Documentation required
                 </Text>
               </View>
             )}
             <View className="flex-row items-center mt-1">
-              <Ionicons 
-                name="time" 
-                size={16} 
-                color={isDark ? '#9CA3AF' : '#6B7280'} 
+              <Ionicons
+                name="time"
+                size={16}
+                color={isDark ? "#9CA3AF" : "#6B7280"}
               />
-              <Text className={`ml-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <Text
+                className={`ml-1 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 {selectedLeaveType.notice_period_days} days notice required
               </Text>
             </View>
             <View className="flex-row items-center mt-1">
-              <Ionicons 
-                name="calendar" 
-                size={16} 
-                color={isDark ? '#9CA3AF' : '#6B7280'} 
+              <Ionicons
+                name="calendar"
+                size={16}
+                color={isDark ? "#9CA3AF" : "#6B7280"}
               />
-              <Text className={`ml-1 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <Text
+                className={`ml-1 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Max {selectedLeaveType.max_consecutive_days} consecutive days
               </Text>
             </View>
@@ -506,43 +561,65 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
             {/* Leave Balance Preview */}
             {leaveBalance && (
               <View className="mt-3 pt-3 border-t border-gray-700">
-                <Text className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text
+                  className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   Current Balance
                 </Text>
                 <View className="flex-row justify-between mt-2">
                   <View>
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       Total
                     </Text>
-                    <Text className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {leaveBalance.total_days}
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       Used
                     </Text>
-                    <Text className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {leaveBalance.used_days}
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       Pending
                     </Text>
-                    <Text className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {leaveBalance.pending_days}
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       Available
                     </Text>
-                    <Text className={`text-sm font-medium ${
-                      leaveBalance.available_days > 0
-                        ? isDark ? 'text-green-400' : 'text-green-600'
-                        : isDark ? 'text-red-400' : 'text-red-600'
-                    }`}>
+                    <Text
+                      className={`text-sm font-medium ${
+                        leaveBalance.available_days > 0
+                          ? isDark
+                            ? "text-green-400"
+                            : "text-green-600"
+                          : isDark
+                            ? "text-red-400"
+                            : "text-red-600"
+                      }`}
+                    >
                       {leaveBalance.available_days}
                     </Text>
                   </View>
@@ -554,49 +631,53 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
 
         {/* Date Selection */}
         <View className="mb-4">
-          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <Text
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+          >
             Start Date *
           </Text>
           <TouchableOpacity
             onPress={() => setShowStartDatePicker(true)}
             className={`p-3 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700' 
-                : 'bg-white border-gray-300'
+              isDark
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-300"
             }`}
           >
-            <Text className={isDark ? 'text-white' : 'text-gray-900'}>
-              {format(startDate, 'dd MMM yyyy')}
+            <Text className={isDark ? "text-white" : "text-gray-900"}>
+              {format(startDate, "dd MMM yyyy")}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View className="mb-4">
-          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <Text
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+          >
             End Date *
           </Text>
           <TouchableOpacity
             onPress={() => setShowEndDatePicker(true)}
             className={`p-3 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700' 
-                : 'bg-white border-gray-300'
+              isDark
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-300"
             }`}
           >
-                      <Text className={isDark ? 'text-white' : 'text-gray-900'}>
-            {format(endDate, 'dd MMM yyyy')}
-          </Text>
-        </TouchableOpacity>
-        {renderDatePreview()}
-      </View>
+            <Text className={isDark ? "text-white" : "text-gray-900"}>
+              {format(endDate, "dd MMM yyyy")}
+            </Text>
+          </TouchableOpacity>
+          {renderDatePreview()}
+        </View>
 
-      {/* Date Pickers */}
+        {/* Date Pickers */}
         {(showStartDatePicker || showEndDatePicker) && (
           <DateTimePicker
             value={showStartDatePicker ? startDate : endDate}
             mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => 
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={(event, date) =>
               handleDateChange(event, date, showStartDatePicker)
             }
             minimumDate={new Date()}
@@ -605,40 +686,44 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
 
         {/* Reason */}
         <View className="mb-4">
-          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <Text
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+          >
             Reason *
           </Text>
           <TextInput
             value={reason}
             onChangeText={setReason}
             placeholder="Enter reason for leave"
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
             multiline
             numberOfLines={3}
             className={`p-3 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
+              isDark
+                ? "bg-gray-800 border-gray-700 text-white"
+                : "bg-white border-gray-300 text-gray-900"
             }`}
-            style={{ textAlignVertical: 'top' }}
+            style={{ textAlignVertical: "top" }}
           />
         </View>
 
         {/* Contact Number */}
         <View className="mb-4">
-          <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+          <Text
+            className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+          >
             Contact Number *
           </Text>
           <TextInput
             value={contactNumber}
             onChangeText={setContactNumber}
             placeholder="Enter contact number"
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
             keyboardType="phone-pad"
             className={`p-3 rounded-lg border ${
-              isDark 
-                ? 'bg-gray-800 border-gray-700 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
+              isDark
+                ? "bg-gray-800 border-gray-700 text-white"
+                : "bg-white border-gray-300 text-gray-900"
             }`}
           />
         </View>
@@ -646,27 +731,33 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
         {/* Document Upload */}
         {selectedLeaveType?.requires_documentation && (
           <View className="mb-4">
-            <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <Text
+              className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
               Supporting Documents *
             </Text>
             <View className="flex-row mb-2">
               <TouchableOpacity
                 onPress={pickDocument}
                 className={`flex-1 mr-2 p-3 rounded-lg ${
-                  isDark ? 'bg-gray-800' : 'bg-gray-100'
+                  isDark ? "bg-gray-800" : "bg-gray-100"
                 }`}
               >
-                <Text className={`text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text
+                  className={`text-center ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   Upload File
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={takePhoto}
                 className={`flex-1 p-3 rounded-lg ${
-                  isDark ? 'bg-gray-800' : 'bg-gray-100'
+                  isDark ? "bg-gray-800" : "bg-gray-100"
                 }`}
               >
-                <Text className={`text-center ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text
+                  className={`text-center ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   Take Photo
                 </Text>
               </TouchableOpacity>
@@ -676,17 +767,19 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
               <View
                 key={index}
                 className={`flex-row items-center justify-between p-3 mb-2 rounded-lg ${
-                  isDark ? 'bg-gray-800' : 'bg-gray-100'
+                  isDark ? "bg-gray-800" : "bg-gray-100"
                 }`}
               >
                 <View className="flex-row items-center flex-1">
                   <Ionicons
-                    name={doc.upload_method === 'camera' ? 'camera' : 'document'}
+                    name={
+                      doc.upload_method === "camera" ? "camera" : "document"
+                    }
                     size={20}
-                    color={isDark ? '#9CA3AF' : '#6B7280'}
+                    color={isDark ? "#9CA3AF" : "#6B7280"}
                   />
                   <Text
-                    className={`ml-2 flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}
+                    className={`ml-2 flex-1 ${isDark ? "text-white" : "text-gray-900"}`}
                     numberOfLines={1}
                   >
                     {doc.file_name}
@@ -699,7 +792,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
                   <Ionicons
                     name="close-circle"
                     size={20}
-                    color={isDark ? '#EF4444' : '#DC2626'}
+                    color={isDark ? "#EF4444" : "#DC2626"}
                   />
                 </TouchableOpacity>
               </View>
@@ -719,9 +812,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
           onPress={handleSubmit}
           disabled={loading}
           className={`p-4 rounded-lg ${
-            loading 
-              ? isDark ? 'bg-gray-700' : 'bg-gray-300'
-              : 'bg-blue-500'
+            loading ? (isDark ? "bg-gray-700" : "bg-gray-300") : "bg-blue-500"
           }`}
         >
           {loading ? (
@@ -735,4 +826,4 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
       </View>
     </ScrollView>
   );
-} 
+}

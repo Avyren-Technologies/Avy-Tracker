@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform, StatusBar as RNStatusBar } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import ThemeContext from '../../../context/ThemeContext';
-import LeaveBalanceTracker from './components/LeaveBalanceTracker';
-import LeaveRequests from './components/LeaveRequests';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  StatusBar as RNStatusBar,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemeContext from "../../../context/ThemeContext";
+import LeaveBalanceTracker from "./components/LeaveBalanceTracker";
+import LeaveRequests from "./components/LeaveRequests";
 
-type TabType = 'requests' | 'tracker';
+type TabType = "requests" | "tracker";
 
 interface TabItem {
   id: TabType;
@@ -21,31 +28,31 @@ interface TabItem {
 export default function LeaveInsights() {
   const { theme } = ThemeContext.useTheme();
   const router = useRouter();
-  const isDark = theme === 'dark';
-  const [activeTab, setActiveTab] = useState<TabType>('requests');
+  const isDark = theme === "dark";
+  const [activeTab, setActiveTab] = useState<TabType>("requests");
 
   const tabs: TabItem[] = [
     {
-      id: 'requests',
-      label: 'Leave Requests',
-      icon: 'document-text-outline',
-      activeIcon: 'document-text',
-      color: '#3B82F6'
+      id: "requests",
+      label: "Leave Requests",
+      icon: "document-text-outline",
+      activeIcon: "document-text",
+      color: "#3B82F6",
     },
     {
-      id: 'tracker',
-      label: 'Balance Tracker',
-      icon: 'hourglass-outline',
-      activeIcon: 'hourglass',
-      color: '#F59E0B'
-    }
+      id: "tracker",
+      label: "Balance Tracker",
+      icon: "hourglass-outline",
+      activeIcon: "hourglass",
+      color: "#F59E0B",
+    },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'requests':
+      case "requests":
         return <LeaveRequests />;
-      case 'tracker':
+      case "tracker":
         return <LeaveBalanceTracker />;
       default:
         return null;
@@ -53,36 +60,48 @@ export default function LeaveInsights() {
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: isDark ? '#111827' : '#F9FAFB' }}>
-      <StatusBar 
-        style={isDark ? 'light' : 'dark'} 
-        backgroundColor={isDark ? '#1F2937' : '#FFFFFF'} 
-        translucent 
+    <View
+      className="flex-1"
+      style={{ backgroundColor: isDark ? "#111827" : "#F9FAFB" }}
+    >
+      <StatusBar
+        style={isDark ? "light" : "dark"}
+        backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
+        translucent
       />
 
       {/* Header with proper status bar spacing */}
       <LinearGradient
-        colors={isDark ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+        colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
         className="shadow-sm"
         style={{
-          paddingTop: Platform.OS === 'ios' ? RNStatusBar.currentHeight || 44 : RNStatusBar.currentHeight || 0,
+          paddingTop:
+            Platform.OS === "ios"
+              ? RNStatusBar.currentHeight || 44
+              : RNStatusBar.currentHeight || 0,
         }}
       >
         <View className="flex-row items-center justify-between px-6 py-4">
           <TouchableOpacity
             onPress={() => router.back()}
-            className={`p-2 rounded-full ${isDark ? 'bg-gray-800/80' : 'bg-gray-100'}`}
+            className={`p-2 rounded-full ${isDark ? "bg-gray-800/80" : "bg-gray-100"}`}
             style={{
-              shadowColor: '#000',
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.2,
               shadowRadius: 1.41,
               elevation: 2,
             }}
           >
-            <Ionicons name="arrow-back" size={24} color={isDark ? '#E5E7EB' : '#374151'} />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={isDark ? "#E5E7EB" : "#374151"}
+            />
           </TouchableOpacity>
-          <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <Text
+            className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+          >
             Leave Insights
           </Text>
           <View style={{ width: 40 }} />
@@ -97,14 +116,14 @@ export default function LeaveInsights() {
               className={`flex-1 flex-row items-center justify-center px-4 py-3 mx-2 rounded-xl ${
                 activeTab === tab.id
                   ? isDark
-                    ? 'bg-gray-800'
-                    : 'bg-white'
+                    ? "bg-gray-800"
+                    : "bg-white"
                   : isDark
-                  ? 'bg-gray-800/50'
-                  : 'bg-gray-100'
+                    ? "bg-gray-800/50"
+                    : "bg-gray-100"
               }`}
               style={{
-                shadowColor: activeTab === tab.id ? tab.color : '#000',
+                shadowColor: activeTab === tab.id ? tab.color : "#000",
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: activeTab === tab.id ? 0.3 : 0.1,
                 shadowRadius: activeTab === tab.id ? 3.84 : 1,
@@ -114,18 +133,24 @@ export default function LeaveInsights() {
               <Ionicons
                 name={activeTab === tab.id ? tab.activeIcon : tab.icon}
                 size={20}
-                color={activeTab === tab.id ? tab.color : isDark ? '#9CA3AF' : '#6B7280'}
+                color={
+                  activeTab === tab.id
+                    ? tab.color
+                    : isDark
+                      ? "#9CA3AF"
+                      : "#6B7280"
+                }
                 style={{ marginRight: 8 }}
               />
               <Text
                 className={`font-medium ${
                   activeTab === tab.id
                     ? isDark
-                      ? 'text-white'
-                      : 'text-gray-900'
+                      ? "text-white"
+                      : "text-gray-900"
                     : isDark
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                      ? "text-gray-400"
+                      : "text-gray-600"
                 }`}
                 style={activeTab === tab.id ? { color: tab.color } : {}}
               >
@@ -137,8 +162,8 @@ export default function LeaveInsights() {
       </LinearGradient>
 
       {/* Content */}
-      <ScrollView 
-        className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}
+      <ScrollView
+        className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
@@ -150,4 +175,4 @@ export default function LeaveInsights() {
       </ScrollView>
     </View>
   );
-} 
+}

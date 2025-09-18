@@ -1,4 +1,4 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
 
 interface TravelData {
   summary: {
@@ -8,42 +8,42 @@ interface TravelData {
     avgTripCost: number;
     totalTravelers: number;
   };
-  expenseBreakdown?: Array<{
+  expenseBreakdown?: {
     category: string;
     amount: number;
     percentage: number;
-  }>;
-  categories?: Array<{
+  }[];
+  categories?: {
     category: string;
     amount: number;
     percentage: string;
-  }>;
-  vehicleStats?: Array<{
+  }[];
+  vehicleStats?: {
     vehicleType: string;
     tripCount: number;
     totalDistance: number;
     totalExpenses: number;
-  }>;
-  transport?: Array<{
+  }[];
+  transport?: {
     vehicle_type: string;
     trip_count: number;
     total_distance: number;
     total_expenses: number;
-  }>;
-  employeeStats?: Array<{
+  }[];
+  employeeStats?: {
     employeeName: string;
     tripCount: number;
     totalDistance: number;
     totalExpenses: number;
     avgExpensePerTrip: number;
-  }>;
-  recentTrips?: Array<{
+  }[];
+  recentTrips?: {
     employeeName: string;
     date: string;
     route: string;
     distance: number;
     expenses: number;
-  }>;
+  }[];
   companyInfo: {
     name: string;
     logo: string;
@@ -56,15 +56,18 @@ interface TravelData {
 const safeFormat = {
   fixed: (value: any, decimals = 1): string => {
     const num = parseFloat(value);
-    return isNaN(num) ? '0' : num.toFixed(decimals);
+    return isNaN(num) ? "0" : num.toFixed(decimals);
   },
   locale: (value: any): string => {
     const num = parseFloat(value);
-    return isNaN(num) ? '0' : num.toLocaleString();
-  }
+    return isNaN(num) ? "0" : num.toLocaleString();
+  },
 };
 
-export const generateTravelReport = (data: TravelData, options: TemplateOptions): string => {
+export const generateTravelReport = (
+  data: TravelData,
+  options: TemplateOptions,
+): string => {
   // Ensure summary data exists with defaults
   const summary = {
     totalTrips: data.summary?.totalTrips || 0,
@@ -73,21 +76,29 @@ export const generateTravelReport = (data: TravelData, options: TemplateOptions)
     avgTripCost: data.summary?.avgTripCost || 0,
     totalTravelers: data.summary?.totalTravelers || 0,
   };
-  
+
   // Data mapping to handle both old and new formats
-  const expenses = data.expenseBreakdown || (data.categories ? data.categories.map(c => ({
-    category: c.category || 'Other',
-    amount: parseFloat(c.amount?.toString() || '0'),
-    percentage: parseFloat(c.percentage?.toString() || '0')
-  })) : []);
-  
-  const vehicles = data.vehicleStats || (data.transport ? data.transport.map(t => ({
-    vehicleType: t.vehicle_type || 'Unknown',
-    tripCount: parseInt(t.trip_count?.toString() || '0'),
-    totalDistance: parseFloat(t.total_distance?.toString() || '0'),
-    totalExpenses: parseFloat(t.total_expenses?.toString() || '0')
-  })) : []);
-  
+  const expenses =
+    data.expenseBreakdown ||
+    (data.categories
+      ? data.categories.map((c) => ({
+          category: c.category || "Other",
+          amount: parseFloat(c.amount?.toString() || "0"),
+          percentage: parseFloat(c.percentage?.toString() || "0"),
+        }))
+      : []);
+
+  const vehicles =
+    data.vehicleStats ||
+    (data.transport
+      ? data.transport.map((t) => ({
+          vehicleType: t.vehicle_type || "Unknown",
+          tripCount: parseInt(t.trip_count?.toString() || "0"),
+          totalDistance: parseFloat(t.total_distance?.toString() || "0"),
+          totalExpenses: parseFloat(t.total_expenses?.toString() || "0"),
+        }))
+      : []);
+
   const employees = data.employeeStats || [];
   const trips = data.recentTrips || [];
 
@@ -123,13 +134,21 @@ export const generateTravelReport = (data: TravelData, options: TemplateOptions)
           </tr>
         </thead>
         <tbody>
-          ${expenses.length > 0 ? expenses.map(exp => `
+          ${
+            expenses.length > 0
+              ? expenses
+                  .map(
+                    (exp) => `
             <tr>
-              <td>${exp.category || 'Other'}</td>
+              <td>${exp.category || "Other"}</td>
               <td>₹${safeFormat.locale(exp.amount)}</td>
               <td>${safeFormat.fixed(exp.percentage)}%</td>
             </tr>
-          `).join('') : '<tr><td colspan="3">No expense data available</td></tr>'}
+          `,
+                  )
+                  .join("")
+              : '<tr><td colspan="3">No expense data available</td></tr>'
+          }
         </tbody>
       </table>
 
@@ -144,18 +163,28 @@ export const generateTravelReport = (data: TravelData, options: TemplateOptions)
           </tr>
         </thead>
         <tbody>
-          ${vehicles.length > 0 ? vehicles.map(vehicle => `
+          ${
+            vehicles.length > 0
+              ? vehicles
+                  .map(
+                    (vehicle) => `
             <tr>
-              <td>${vehicle.vehicleType || 'Unknown'}</td>
+              <td>${vehicle.vehicleType || "Unknown"}</td>
               <td>${vehicle.tripCount || 0}</td>
               <td>${safeFormat.fixed(vehicle.totalDistance)} km</td>
               <td>₹${safeFormat.locale(vehicle.totalExpenses)}</td>
             </tr>
-          `).join('') : '<tr><td colspan="4">No vehicle data available</td></tr>'}
+          `,
+                  )
+                  .join("")
+              : '<tr><td colspan="4">No vehicle data available</td></tr>'
+          }
         </tbody>
       </table>
 
-      ${employees.length > 0 ? `
+      ${
+        employees.length > 0
+          ? `
       <h2>Employee Travel Summary</h2>
       <table>
         <thead>
@@ -168,20 +197,28 @@ export const generateTravelReport = (data: TravelData, options: TemplateOptions)
           </tr>
         </thead>
         <tbody>
-          ${employees.map(emp => `
+          ${employees
+            .map(
+              (emp) => `
             <tr>
-              <td>${emp.employeeName || 'Unknown'}</td>
+              <td>${emp.employeeName || "Unknown"}</td>
               <td>${emp.tripCount || 0}</td>
               <td>${safeFormat.fixed(emp.totalDistance)} km</td>
               <td>₹${safeFormat.locale(emp.totalExpenses)}</td>
               <td>₹${safeFormat.locale(emp.avgExpensePerTrip)}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
-      ` : ''}
+      `
+          : ""
+      }
 
-      ${trips.length > 0 ? `
+      ${
+        trips.length > 0
+          ? `
       <h2>Recent Trips</h2>
       <table>
         <thead>
@@ -194,32 +231,38 @@ export const generateTravelReport = (data: TravelData, options: TemplateOptions)
           </tr>
         </thead>
         <tbody>
-          ${trips.map(trip => `
+          ${trips
+            .map(
+              (trip) => `
             <tr>
-              <td>${trip.employeeName || 'Unknown'}</td>
-              <td>${trip.date || '-'}</td>
-              <td>${trip.route || 'Travel expense'}</td>
+              <td>${trip.employeeName || "Unknown"}</td>
+              <td>${trip.date || "-"}</td>
+              <td>${trip.route || "Travel expense"}</td>
               <td>${safeFormat.fixed(trip.distance)} km</td>
               <td>₹${safeFormat.locale(trip.expenses)}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
-      ` : ''}
+      `
+          : ""
+      }
     </div>
   `;
 
   return generateBaseTemplate({
-    title: 'Travel Report',
+    title: "Travel Report",
     date: new Date().toLocaleDateString(),
     content,
     theme: options.theme,
     companyInfo: options.companyInfo || {
-      name: 'Company Name',
-      logo: '',
-      address: '',
-      contact: ''
+      name: "Company Name",
+      logo: "",
+      address: "",
+      contact: "",
     },
-    adminName: options.adminName || 'Administrator'
+    adminName: options.adminName || "Administrator",
   });
-}; 
+};

@@ -1,11 +1,22 @@
-import React, { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, StatusBar as RNStatusBar, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import ThemeContext from '../../context/ThemeContext';
-import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import React, {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  StatusBar as RNStatusBar,
+  Image,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemeContext from "../../context/ThemeContext";
+import { useState, useEffect, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import BottomNav from "../../components/BottomNav";
 import { managementNavItems } from "./utils/navigationItems";
 
@@ -42,7 +53,7 @@ export default function ManagementProfile() {
         // Try to load from cache first
         const cachedData = await AsyncStorage.getItem("management_profile");
         const cacheTimestamp = await AsyncStorage.getItem(
-          "management_profile_timestamp"
+          "management_profile_timestamp",
         );
 
         if (cachedData && cacheTimestamp) {
@@ -83,7 +94,7 @@ export default function ManagementProfile() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/management/profile`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.data) {
@@ -100,7 +111,7 @@ export default function ManagementProfile() {
         if (!response.data.profile_image) {
           const imageResponse = await axios.get(
             `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile-image/${response.data.id}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
           if (imageResponse.data.image) {
             profileData.profile_image = imageResponse.data.image;
@@ -112,11 +123,11 @@ export default function ManagementProfile() {
         await Promise.all([
           AsyncStorage.setItem(
             "management_profile",
-            JSON.stringify(profileData)
+            JSON.stringify(profileData),
           ),
           AsyncStorage.setItem(
             "management_profile_timestamp",
-            Date.now().toString()
+            Date.now().toString(),
           ),
         ]);
       }
@@ -336,74 +347,74 @@ export default function ManagementProfile() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-        paddingBottom: 16,
-    },
-    backButton: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    profileHeader: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    imageContainer: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        backgroundColor: '#F3F4F6',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
-    },
-    profileImage: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-    },
-    detailsCard: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    iconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#EBF5FF',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    defaultAvatar: {
-        backgroundColor: '#3B82F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-    },
-    avatarText: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-    },
+  container: {
+    flex: 1,
+  },
+  header: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingBottom: 16,
+  },
+  backButton: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  profileHeader: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  imageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "#F3F4F6",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  profileImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+  },
+  detailsCard: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#EBF5FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  defaultAvatar: {
+    backgroundColor: "#3B82F6",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+  },
+  avatarText: {
+    fontSize: 48,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
 });

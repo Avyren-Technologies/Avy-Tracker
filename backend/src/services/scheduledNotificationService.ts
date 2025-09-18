@@ -29,7 +29,7 @@ class ScheduledNotificationService {
       const result = await client.query(
         `SELECT * FROM scheduled_notifications 
          WHERE status = 'pending' 
-         AND scheduled_for > CURRENT_TIMESTAMP`
+         AND scheduled_for > CURRENT_TIMESTAMP`,
       );
 
       // Schedule each notification
@@ -56,7 +56,7 @@ class ScheduledNotificationService {
     try {
       // Get the template
       const template = await NotificationTemplateModel.getById(
-        notification.template_id
+        notification.template_id,
       );
       if (!template) {
         throw new Error("Template not found");
@@ -65,7 +65,7 @@ class ScheduledNotificationService {
       // Render the template with variables
       const renderedTemplate = NotificationTemplateModel.renderTemplate(
         template,
-        notification.variables
+        notification.variables,
       );
 
       // Determine target users based on notification type
@@ -75,13 +75,13 @@ class ScheduledNotificationService {
       } else if (notification.target_role) {
         const users = await client.query(
           "SELECT id FROM users WHERE role = $1",
-          [notification.target_role]
+          [notification.target_role],
         );
         userIds = users.rows.map((user) => user.id.toString());
       } else if (notification.target_group_id) {
         const users = await client.query(
           "SELECT id FROM users WHERE group_id = $1",
-          [notification.target_group_id]
+          [notification.target_group_id],
         );
         userIds = users.rows.map((user) => user.id.toString());
       }
@@ -98,7 +98,7 @@ class ScheduledNotificationService {
           data: { ...template.data, scheduled: true },
           template_id: template.id,
         },
-        userIds
+        userIds,
       );
 
       // Update notification status
@@ -108,7 +108,7 @@ class ScheduledNotificationService {
              sent_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP 
          WHERE id = $1`,
-        [notification.id]
+        [notification.id],
       );
 
       // Remove the job from tracked jobs
@@ -124,7 +124,7 @@ class ScheduledNotificationService {
         [
           notification.id,
           error instanceof Error ? error.message : "Unknown error",
-        ]
+        ],
       );
     } finally {
       client.release();
@@ -139,7 +139,7 @@ class ScheduledNotificationService {
       targetRole?: string;
       targetUserId?: number;
       targetGroupId?: number;
-    }
+    },
   ) {
     const client = await pool.connect();
     try {
@@ -162,7 +162,7 @@ class ScheduledNotificationService {
           options.targetRole,
           options.targetUserId,
           options.targetGroupId,
-        ]
+        ],
       );
 
       const notification = result.rows[0];
@@ -188,7 +188,7 @@ class ScheduledNotificationService {
          SET status = 'cancelled', 
              updated_at = CURRENT_TIMESTAMP 
          WHERE id = $1`,
-        [id]
+        [id],
       );
 
       return true;
@@ -203,7 +203,7 @@ class ScheduledNotificationService {
       targetRole?: string;
       targetUserId?: number;
       targetGroupId?: number;
-    } = {}
+    } = {},
   ) {
     const client = await pool.connect();
     try {

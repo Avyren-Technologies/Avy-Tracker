@@ -50,7 +50,7 @@ const formatAmount = (amount: number | undefined | null): string => {
 const calculateTotalAmount = (expenses: Expense[]): number => {
   return expenses.reduce(
     (sum, expense) => sum + (expense.total_amount || 0),
-    0
+    0,
   );
 };
 
@@ -69,7 +69,7 @@ export default function MyExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "approved" | "rejected">(
-    "all"
+    "all",
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -126,7 +126,7 @@ export default function MyExpenses() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, []);
 
@@ -134,7 +134,7 @@ export default function MyExpenses() {
     try {
       console.log(
         "Fetching expenses from:",
-        `${process.env.EXPO_PUBLIC_API_URL}/api/expenses/employee/my-expenses`
+        `${process.env.EXPO_PUBLIC_API_URL}/api/expenses/employee/my-expenses`,
       );
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/expenses/employee/my-expenses`,
@@ -143,7 +143,7 @@ export default function MyExpenses() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       // Validate and transform the data
@@ -329,8 +329,8 @@ export default function MyExpenses() {
                       activeTab === tab
                         ? "#FFFFFF"
                         : isDark
-                        ? "#9CA3AF"
-                        : "#6B7280",
+                          ? "#9CA3AF"
+                          : "#6B7280",
                   },
                 ]}
               >

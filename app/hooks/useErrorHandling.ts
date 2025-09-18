@@ -1,18 +1,18 @@
 /**
  * Error Handling Hook
- * 
+ *
  * Provides error handling capabilities with retry logic
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 import {
   FaceVerificationError,
   FaceVerificationErrorType,
   ErrorRecoveryAction,
   ErrorHandlingConfig,
-  ErrorContext
-} from '../types/faceVerificationErrors';
-import ErrorHandlingService from '../services/ErrorHandlingService';
+  ErrorContext,
+} from "../types/faceVerificationErrors";
+import ErrorHandlingService from "../services/ErrorHandlingService";
 
 interface UseErrorHandlingReturn {
   error: FaceVerificationError | null;
@@ -27,24 +27,29 @@ interface UseErrorHandlingReturn {
   shouldShowFallback: boolean;
   executeWithErrorHandling: <T>(
     operation: () => Promise<T>,
-    context?: Partial<ErrorContext>
+    context?: Partial<ErrorContext>,
   ) => Promise<T>;
   formatErrorForDisplay?: (error: FaceVerificationError) => any;
 }
 
-export function useErrorHandling(config: ErrorHandlingConfig = {}): UseErrorHandlingReturn {
+export function useErrorHandling(
+  config: ErrorHandlingConfig = {},
+): UseErrorHandlingReturn {
   const [error, setError] = useState<FaceVerificationError | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   const maxRetries = config.retryConfig?.maxAttempts || 3;
 
-  const handleError = useCallback((newError: FaceVerificationError) => {
-    setError(newError);
-    if (config.onError) {
-      config.onError(newError);
-    }
-  }, [config]);
+  const handleError = useCallback(
+    (newError: FaceVerificationError) => {
+      setError(newError);
+      if (config.onError) {
+        config.onError(newError);
+      }
+    },
+    [config],
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -58,7 +63,7 @@ export function useErrorHandling(config: ErrorHandlingConfig = {}): UseErrorHand
     }
 
     setIsRetrying(true);
-    setRetryCount(prev => prev + 1);
+    setRetryCount((prev) => prev + 1);
 
     if (config.onRetry && error) {
       config.onRetry(retryCount + 1, error);
@@ -71,59 +76,65 @@ export function useErrorHandling(config: ErrorHandlingConfig = {}): UseErrorHand
     }, 1000);
   }, [retryCount, maxRetries, config, error]);
 
-  const executeRecoveryAction = useCallback((action: ErrorRecoveryAction) => {
-    if (config.onRecovery) {
-      config.onRecovery(action);
-    }
-    action.action();
-  }, [config]);
-
-  const executeWithErrorHandling = useCallback(async <T>(
-    operation: () => Promise<T>,
-    context?: Partial<ErrorContext>
-  ): Promise<T> => {
-    try {
-      return await operation();
-    } catch (error) {
-      let faceError: FaceVerificationError;
-      
-      if (error && typeof error === 'object' && 'type' in error) {
-        faceError = error as FaceVerificationError;
-      } else {
-        faceError = ErrorHandlingService.createError(
-          FaceVerificationErrorType.UNKNOWN_ERROR,
-          error as Error,
-          context
-        );
+  const executeRecoveryAction = useCallback(
+    (action: ErrorRecoveryAction) => {
+      if (config.onRecovery) {
+        config.onRecovery(action);
       }
-      
-      handleError(faceError);
-      throw faceError;
-    }
-  }, [handleError]);
+      action.action();
+    },
+    [config],
+  );
+
+  const executeWithErrorHandling = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      context?: Partial<ErrorContext>,
+    ): Promise<T> => {
+      try {
+        return await operation();
+      } catch (error) {
+        let faceError: FaceVerificationError;
+
+        if (error && typeof error === "object" && "type" in error) {
+          faceError = error as FaceVerificationError;
+        } else {
+          faceError = ErrorHandlingService.createError(
+            FaceVerificationErrorType.UNKNOWN_ERROR,
+            error as Error,
+            context,
+          );
+        }
+
+        handleError(faceError);
+        throw faceError;
+      }
+    },
+    [handleError],
+  );
 
   const recoveryActions: ErrorRecoveryAction[] = [
     {
-      type: 'retry',
-      label: 'Try Again',
-      description: 'Retry the operation',
+      type: "retry",
+      label: "Try Again",
+      description: "Retry the operation",
       action: retry,
-      priority: 1
+      priority: 1,
     },
     {
-      type: 'fallback',
-      label: 'Cancel',
-      description: 'Cancel the operation',
+      type: "fallback",
+      label: "Cancel",
+      description: "Cancel the operation",
       action: clearError,
-      priority: 2
-    }
+      priority: 2,
+    },
   ];
 
   const formatErrorForDisplay = (error: FaceVerificationError) => {
     return {
-      title: error.type || 'Error',
+      title: error.type || "Error",
       message: error.userMessage || error.message,
-      suggestions: error.suggestions || []
+      suggestions: error.suggestions || [],
     };
   };
 
@@ -136,9 +147,10 @@ export function useErrorHandling(config: ErrorHandlingConfig = {}): UseErrorHand
     clearError,
     retry,
     executeRecoveryAction,
-    canRetry: retryCount < maxRetries && ErrorHandlingService.isRetryable(error),
+    canRetry:
+      retryCount < maxRetries && ErrorHandlingService.isRetryable(error),
     shouldShowFallback: retryCount >= maxRetries,
     executeWithErrorHandling,
-    formatErrorForDisplay
+    formatErrorForDisplay,
   };
 }

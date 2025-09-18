@@ -85,7 +85,7 @@ class PushNotificationService {
       | "employee"
       | "group-admin"
       | "management"
-      | "super-admin" = "employee"
+      | "super-admin" = "employee",
   ): Promise<void> {
     try {
       console.log("[PushService] Registering device with backend");
@@ -94,7 +94,7 @@ class PushNotificationService {
       // Validate token before sending to backend
       if (!deviceToken || !deviceToken.startsWith("ExponentPushToken[")) {
         console.error(
-          "[PushService] Invalid token format, aborting registration"
+          "[PushService] Invalid token format, aborting registration",
         );
         return;
       }
@@ -108,7 +108,7 @@ class PushNotificationService {
       let finalAuthToken = authToken;
       if (!finalAuthToken) {
         console.log(
-          "[PushNotification] No auth token provided, checking AsyncStorage"
+          "[PushNotification] No auth token provided, checking AsyncStorage",
         );
         try {
           const storedToken = await AsyncStorage.getItem("auth_token");
@@ -121,14 +121,14 @@ class PushNotificationService {
         } catch (storageError) {
           console.error(
             "[PushNotification] Error accessing AsyncStorage:",
-            storageError
+            storageError,
           );
         }
       }
 
       if (!finalAuthToken) {
         throw new Error(
-          "No auth token available in parameters or AsyncStorage"
+          "No auth token available in parameters or AsyncStorage",
         );
       }
 
@@ -148,18 +148,18 @@ class PushNotificationService {
             Authorization: `Bearer ${finalAuthToken}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       console.log(
         "[PushService] Backend registration successful:",
-        response.data
+        response.data,
       );
 
       if (response.status === 200) {
         console.log(
           "[PushService] Backend registration successful:",
-          response.data
+          response.data,
         );
 
         // Save the token locally for reuse
@@ -169,7 +169,7 @@ class PushNotificationService {
         // Record successful registration time
         await AsyncStorage.setItem(
           "pushTokenLastRegistered",
-          new Date().toISOString()
+          new Date().toISOString(),
         );
       }
     } catch (error) {
@@ -210,7 +210,7 @@ class PushNotificationService {
   public async checkTokenValidity(): Promise<boolean> {
     try {
       const lastRegistered = await AsyncStorage.getItem(
-        "pushTokenLastRegistered"
+        "pushTokenLastRegistered",
       );
       if (!lastRegistered) return false;
 
@@ -239,7 +239,7 @@ class PushNotificationService {
       // Check if simulation environment
       if (this.isSimulator()) {
         console.log(
-          "[PushService] Running in simulator, skipping push registration"
+          "[PushService] Running in simulator, skipping push registration",
         );
         return {
           success: false,
@@ -254,7 +254,7 @@ class PushNotificationService {
 
       console.log(
         "[PushService] Current notification permission status:",
-        existingStatus
+        existingStatus,
       );
 
       if (existingStatus !== "granted") {
@@ -298,7 +298,7 @@ class PushNotificationService {
         try {
           attempts++;
           console.log(
-            `[PushService] Getting push token (attempt ${attempts}/${maxAttempts})`
+            `[PushService] Getting push token (attempt ${attempts}/${maxAttempts})`,
           );
           pushToken = await this.getExpoPushToken();
 
@@ -315,7 +315,7 @@ class PushNotificationService {
         } catch (error) {
           console.error(
             `[PushService] Error getting token (attempt ${attempts})`,
-            error
+            error,
           );
 
           if (attempts < maxAttempts) {
@@ -327,7 +327,7 @@ class PushNotificationService {
 
       if (!pushToken) {
         console.log(
-          "[PushService] Failed to get valid push token after multiple attempts"
+          "[PushService] Failed to get valid push token after multiple attempts",
         );
         return {
           success: false,
@@ -346,7 +346,7 @@ class PushNotificationService {
     } catch (error) {
       console.error(
         "[PushService] Error registering for push notifications:",
-        error
+        error,
       );
       return {
         success: false,
@@ -385,8 +385,8 @@ class PushNotificationService {
   public setupNotificationListeners(
     onNotification: (notification: Notifications.Notification) => void,
     onNotificationResponse: (
-      response: Notifications.NotificationResponse
-    ) => void
+      response: Notifications.NotificationResponse,
+    ) => void,
   ) {
     console.log("[PushService] Setting up notification listeners");
 
@@ -401,7 +401,7 @@ class PushNotificationService {
           data: notification.request.content.data,
         });
         onNotification(notification);
-      }
+      },
     );
 
     this.responseListener =
@@ -432,7 +432,7 @@ class PushNotificationService {
 
   public async scheduleLocalNotification(
     content: Notifications.NotificationContentInput,
-    trigger?: Notifications.NotificationTriggerInput
+    trigger?: Notifications.NotificationTriggerInput,
   ) {
     try {
       const notificationId = await Notifications.scheduleNotificationAsync({
@@ -472,7 +472,7 @@ class PushNotificationService {
   // Utility function to test notifications
   public async sendTestNotification(
     title: string = "Test Notification",
-    body: string = "This is a test notification"
+    body: string = "This is a test notification",
   ): Promise<boolean> {
     try {
       console.log("[PushService] Sending test local notification");
@@ -501,14 +501,14 @@ class PushNotificationService {
 
   // Check for missed notifications using receipt API
   public async checkForMissedNotifications(
-    receiptIds: string[]
+    receiptIds: string[],
   ): Promise<void> {
     if (!receiptIds.length) return;
 
     try {
       console.log(
         "[PushService] Checking for missed notifications:",
-        receiptIds
+        receiptIds,
       );
 
       const response = await axios.post(
@@ -519,7 +519,7 @@ class PushNotificationService {
             "Content-Type": "application/json",
           },
           data: { ids: receiptIds },
-        }
+        },
       );
 
       const data = response.data;
@@ -533,12 +533,12 @@ class PushNotificationService {
           if (receiptData.status === "ok") {
             console.log(
               "[PushService] Receipt was delivered but notification may have been missed:",
-              id
+              id,
             );
             // Create a local notification to ensure the user sees it
             await this.sendTestNotification(
               "Recovered Notification",
-              "This notification was sent earlier but may not have been displayed"
+              "This notification was sent earlier but may not have been displayed",
             );
           }
         }
@@ -566,7 +566,7 @@ class PushNotificationService {
       } catch (error) {
         console.error(
           "[PushService] Error checking missed notifications:",
-          error
+          error,
         );
       }
     };

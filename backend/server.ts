@@ -114,11 +114,11 @@ app.use(
     err: any,
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction
+    next: express.NextFunction,
   ) => {
     console.error("Error:", err);
     res.status(500).json({ error: "Internal Server Error" });
-  }
+  },
 );
 
 // Add error handling middleware last

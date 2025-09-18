@@ -1,40 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import FaceVerificationModal from '../components/FaceVerificationModal';
-import { FaceVerificationResult, FaceVerificationError } from '../types/faceDetection';
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import FaceVerificationModal from "../components/FaceVerificationModal";
+import {
+  FaceVerificationResult,
+  FaceVerificationError,
+} from "../types/faceDetection";
 
 /**
  * Multi-Angle Registration Test
- * 
+ *
  * Tests the complete multi-angle registration flow:
  * 1. Front-View verification
- * 2. Slight Left verification  
+ * 2. Slight Left verification
  * 3. Slight Right verification
  * 4. Success with all angles captured
- * 
+ *
  * This test ensures camera stability between angles and proper state management.
  */
 export default function MultiAngleRegistrationTest() {
   const router = useRouter();
-  
+
   // Test state
   const [currentAngle, setCurrentAngle] = useState(0);
   const [showModal, setShowModal] = useState(false);
-  const [capturedAngles, setCapturedAngles] = useState<FaceVerificationResult[]>([]);
-  const [testStatus, setTestStatus] = useState<'ready' | 'running' | 'success' | 'failed'>('ready');
+  const [capturedAngles, setCapturedAngles] = useState<
+    FaceVerificationResult[]
+  >([]);
+  const [testStatus, setTestStatus] = useState<
+    "ready" | "running" | "success" | "failed"
+  >("ready");
   const [logs, setLogs] = useState<string[]>([]);
-  
+
   // Component lifecycle management
   const isMountedRef = useRef(true);
-  
+
   // Multi-angle configuration
   const angles = [
-    { name: 'Front View', description: 'Look directly at the camera', icon: 'person' },
-    { name: 'Slight Left', description: 'Turn your head slightly to the left', icon: 'arrow-back' },
-    { name: 'Slight Right', description: 'Turn your head slightly to the right', icon: 'arrow-forward' },
+    {
+      name: "Front View",
+      description: "Look directly at the camera",
+      icon: "person",
+    },
+    {
+      name: "Slight Left",
+      description: "Turn your head slightly to the left",
+      icon: "arrow-back",
+    },
+    {
+      name: "Slight Right",
+      description: "Turn your head slightly to the right",
+      icon: "arrow-forward",
+    },
   ];
 
   // Cleanup effect
@@ -48,7 +67,7 @@ export default function MultiAngleRegistrationTest() {
   // Add log entry
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev.slice(-9), `${timestamp}: ${message}`]);
+    setLogs((prev) => [...prev.slice(-9), `${timestamp}: ${message}`]);
   };
 
   // Handle verification success
@@ -56,7 +75,11 @@ export default function MultiAngleRegistrationTest() {
     if (!isMountedRef.current) return;
 
     addLog(`✅ ${angles[currentAngle].name} captured successfully`);
-    console.log('Face verification successful for angle:', currentAngle, result);
+    console.log(
+      "Face verification successful for angle:",
+      currentAngle,
+      result,
+    );
 
     // Add to captured angles
     const newCapturedAngles = [...capturedAngles, result];
@@ -67,40 +90,48 @@ export default function MultiAngleRegistrationTest() {
       // Move to next angle
       const nextAngle = currentAngle + 1;
       setCurrentAngle(nextAngle);
-      
+
       addLog(`🔄 Moving to next angle: ${angles[nextAngle].name}`);
-      
+
       // Show success message and continue option
       Alert.alert(
-        'Angle Captured Successfully!',
+        "Angle Captured Successfully!",
         `${angles[currentAngle].name} captured with ${Math.round((result.confidence || 0) * 100)}% confidence.\n\nNext: ${angles[nextAngle].name}`,
         [
-          { text: 'Continue Later', style: 'cancel', onPress: () => setShowModal(false) },
-          { 
-            text: 'Continue Now', 
+          {
+            text: "Continue Later",
+            style: "cancel",
+            onPress: () => setShowModal(false),
+          },
+          {
+            text: "Continue Now",
             onPress: () => {
-              addLog('🚀 Continuing to next angle...');
+              addLog("🚀 Continuing to next angle...");
               // Modal will automatically reset and continue
-            }
-          }
-        ]
+            },
+          },
+        ],
       );
     } else {
       // All angles captured
-      addLog('🎉 All angles captured successfully!');
-      setTestStatus('success');
+      addLog("🎉 All angles captured successfully!");
+      setTestStatus("success");
       setShowModal(false);
-      
+
       // Show final results
-      const avgConfidence = newCapturedAngles.reduce((sum, angle) => sum + (angle.confidence || 0), 0) / newCapturedAngles.length;
-      
+      const avgConfidence =
+        newCapturedAngles.reduce(
+          (sum, angle) => sum + (angle.confidence || 0),
+          0,
+        ) / newCapturedAngles.length;
+
       Alert.alert(
-        'Multi-Angle Registration Complete!',
+        "Multi-Angle Registration Complete!",
         `All ${angles.length} angles captured successfully!\n\nAverage confidence: ${Math.round(avgConfidence * 100)}%\n\nTest completed successfully!`,
         [
-          { text: 'View Results', onPress: () => {} },
-          { text: 'Run Again', onPress: resetTest }
-        ]
+          { text: "View Results", onPress: () => {} },
+          { text: "Run Again", onPress: resetTest },
+        ],
       );
     }
   };
@@ -110,18 +141,18 @@ export default function MultiAngleRegistrationTest() {
     if (!isMountedRef.current) return;
 
     addLog(`❌ ${angles[currentAngle].name} failed: ${error.message}`);
-    console.error('Face verification failed:', error);
-    setTestStatus('failed');
+    console.error("Face verification failed:", error);
+    setTestStatus("failed");
     setShowModal(false);
 
     Alert.alert(
-      'Verification Failed',
+      "Verification Failed",
       `Failed to capture ${angles[currentAngle].name}: ${error.message}\n\nWould you like to try again?`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Retry', onPress: () => setShowModal(true) },
-        { text: 'Start Over', onPress: resetTest }
-      ]
+        { text: "Cancel", style: "cancel" },
+        { text: "Retry", onPress: () => setShowModal(true) },
+        { text: "Start Over", onPress: resetTest },
+      ],
     );
   };
 
@@ -129,18 +160,18 @@ export default function MultiAngleRegistrationTest() {
   const resetTest = () => {
     setCurrentAngle(0);
     setCapturedAngles([]);
-    setTestStatus('ready');
+    setTestStatus("ready");
     setLogs([]);
-    addLog('🔄 Test reset - ready to start');
+    addLog("🔄 Test reset - ready to start");
   };
 
   // Start test
   const startTest = () => {
-    setTestStatus('running');
+    setTestStatus("running");
     setCurrentAngle(0);
     setCapturedAngles([]);
     setLogs([]);
-    addLog('🚀 Starting multi-angle registration test...');
+    addLog("🚀 Starting multi-angle registration test...");
     addLog(`📸 First angle: ${angles[0].name}`);
     setShowModal(true);
   };
@@ -175,10 +206,14 @@ export default function MultiAngleRegistrationTest() {
         </View>
 
         {/* Current Angle Info */}
-        {testStatus === 'running' && (
+        {testStatus === "running" && (
           <View className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border border-blue-200 dark:border-blue-800">
             <View className="flex-row items-center mb-2">
-              <Ionicons name={currentAngleInfo.icon as any} size={24} color="#3b82f6" />
+              <Ionicons
+                name={currentAngleInfo.icon as any}
+                size={24}
+                color="#3b82f6"
+              />
               <Text className="text-lg font-semibold text-blue-800 dark:text-blue-200 ml-2">
                 Current: {currentAngleInfo.name}
               </Text>
@@ -199,24 +234,31 @@ export default function MultiAngleRegistrationTest() {
               <View
                 className={`w-6 h-6 rounded-full items-center justify-center mr-3`}
                 style={{
-                  backgroundColor: capturedAngles.length > index
-                    ? '#10b981' // Success green
-                    : currentAngle === index
-                      ? '#3b82f6' // Current blue
-                      : '#e5e7eb' // Pending gray
+                  backgroundColor:
+                    capturedAngles.length > index
+                      ? "#10b981" // Success green
+                      : currentAngle === index
+                        ? "#3b82f6" // Current blue
+                        : "#e5e7eb", // Pending gray
                 }}
               >
                 {capturedAngles.length > index ? (
                   <Ionicons name="checkmark" size={14} color="white" />
                 ) : (
-                  <Text className="text-gray-600 font-bold text-xs">{index + 1}</Text>
+                  <Text className="text-gray-600 font-bold text-xs">
+                    {index + 1}
+                  </Text>
                 )}
               </View>
               <View className="flex-1">
-                <Text className={`font-medium ${capturedAngles.length > index || currentAngle === index ? 'text-gray-800 dark:text-gray-100' : 'text-gray-500'}`}>
+                <Text
+                  className={`font-medium ${capturedAngles.length > index || currentAngle === index ? "text-gray-800 dark:text-gray-100" : "text-gray-500"}`}
+                >
                   {angle.name}
                 </Text>
-                <Text className={`text-sm ${capturedAngles.length > index || currentAngle === index ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400'}`}>
+                <Text
+                  className={`text-sm ${capturedAngles.length > index || currentAngle === index ? "text-gray-600 dark:text-gray-400" : "text-gray-400"}`}
+                >
                   {angle.description}
                 </Text>
               </View>
@@ -226,7 +268,7 @@ export default function MultiAngleRegistrationTest() {
 
         {/* Action Buttons */}
         <View className="space-y-3 mb-6">
-          {testStatus === 'ready' && (
+          {testStatus === "ready" && (
             <TouchableOpacity
               onPress={startTest}
               className="bg-blue-600 dark:bg-blue-500 py-4 px-6 rounded-lg shadow-sm"
@@ -237,7 +279,7 @@ export default function MultiAngleRegistrationTest() {
             </TouchableOpacity>
           )}
 
-          {testStatus === 'running' && (
+          {testStatus === "running" && (
             <TouchableOpacity
               onPress={() => setShowModal(true)}
               className="bg-green-600 dark:bg-green-500 py-4 px-6 rounded-lg shadow-sm"
@@ -248,7 +290,7 @@ export default function MultiAngleRegistrationTest() {
             </TouchableOpacity>
           )}
 
-          {testStatus === 'success' && (
+          {testStatus === "success" && (
             <TouchableOpacity
               onPress={resetTest}
               className="bg-purple-600 dark:bg-purple-500 py-4 px-6 rounded-lg shadow-sm"
@@ -259,7 +301,7 @@ export default function MultiAngleRegistrationTest() {
             </TouchableOpacity>
           )}
 
-          {testStatus === 'failed' && (
+          {testStatus === "failed" && (
             <TouchableOpacity
               onPress={resetTest}
               className="bg-red-600 dark:bg-red-500 py-4 px-6 rounded-lg shadow-sm"
@@ -292,7 +334,10 @@ export default function MultiAngleRegistrationTest() {
               </Text>
             ) : (
               logs.map((log, index) => (
-                <Text key={index} className="text-sm text-gray-600 dark:text-gray-400 mb-1 font-mono">
+                <Text
+                  key={index}
+                  className="text-sm text-gray-600 dark:text-gray-400 mb-1 font-mono"
+                >
                   {log}
                 </Text>
               ))
@@ -308,8 +353,8 @@ export default function MultiAngleRegistrationTest() {
         onSuccess={handleVerificationSuccess}
         onError={handleVerificationError}
         onCancel={() => setShowModal(false)}
-        title={`Register: ${currentAngleInfo?.name || 'Face'}`}
-        subtitle={`${currentAngleInfo?.description || 'Look at the camera'} and blink when prompted`}
+        title={`Register: ${currentAngleInfo?.name || "Face"}`}
+        subtitle={`${currentAngleInfo?.description || "Look at the camera"} and blink when prompted`}
         maxRetries={3}
       />
     </SafeAreaView>

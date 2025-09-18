@@ -1,7 +1,7 @@
-import express, { Response } from 'express';
-import { pool } from '../config/database';
-import { verifyToken } from '../middleware/auth';
-import { CustomRequest } from '../types';
+import express, { Response } from "express";
+import { pool } from "../config/database";
+import { verifyToken } from "../middleware/auth";
+import { CustomRequest } from "../types";
 import NotificationService from "../services/notificationService";
 
 const router = express.Router();
@@ -23,7 +23,7 @@ router.get("/", async (req: CustomRequest, res: Response) => {
       parseInt(req.user.id.toString()),
       req.user.role,
       limit,
-      offset
+      offset,
     );
 
     res.json(notifications);
@@ -46,7 +46,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
     const notificationId = parseInt(req.params.id);
     const result = await NotificationService.markNotificationAsRead(
       notificationId,
-      parseInt(req.user.id.toString())
+      parseInt(req.user.id.toString()),
     );
 
     if (result.rowCount === 0) {
@@ -71,7 +71,7 @@ router.get("/unread-count", async (req: CustomRequest, res: Response) => {
     }
 
     const count = await NotificationService.getUnreadNotificationCount(
-      parseInt(req.user.id.toString())
+      parseInt(req.user.id.toString()),
     );
     res.json({ count });
   } catch (error) {
@@ -105,7 +105,7 @@ router.post("/group", async (req: CustomRequest, res: Response) => {
         type,
         priority: "high",
         data: { screen: "/(dashboard)/employee/notifications" },
-      }
+      },
     );
 
     res.json({ success: true });
@@ -140,7 +140,7 @@ router.post("/role", async (req: CustomRequest, res: Response) => {
         type,
         priority: "high",
         data: { screen: `/(dashboard)/${targetRole}/notifications` },
-      }
+      },
     );
 
     res.json({ success: true });
@@ -166,7 +166,7 @@ router.post("/register-device", async (req: CustomRequest, res: Response) => {
       req.user.id.toString(),
       token,
       deviceType || "unknown",
-      deviceName || "unknown"
+      deviceName || "unknown",
     );
 
     res.json({ success: true, device: result.rows[0] });
@@ -192,7 +192,7 @@ router.delete(
 
       await NotificationService.removeDeviceToken(
         req.user.id.toString(),
-        token
+        token,
       );
       res.json({ success: true });
     } catch (error) {
@@ -202,7 +202,7 @@ router.delete(
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
 );
 
 // Send test notification (for development)
@@ -272,7 +272,7 @@ router.post("/send", async (req: CustomRequest, res: Response) => {
 
     await NotificationService.sendPushNotification(
       notification,
-      userIds.map(String)
+      userIds.map(String),
     );
     res.json({ success: true });
   } catch (error) {
@@ -284,4 +284,4 @@ router.post("/send", async (req: CustomRequest, res: Response) => {
   }
 });
 
-export default router; 
+export default router;

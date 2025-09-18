@@ -46,47 +46,65 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
   const { theme } = ThemeContext.useTheme();
   const router = useRouter();
   const isDark = theme === "dark";
-  
-  const [step, setStep] = useState<"intro" | "notification" | "location" | "complete">("intro");
+
+  const [step, setStep] = useState<
+    "intro" | "notification" | "location" | "complete"
+  >("intro");
   const [loading, setLoading] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
-  const [locationPermission, setLocationPermission] = useState<string | null>(null);
-  const [backgroundLocationPermission, setBackgroundLocationPermission] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<
+    string | null
+  >(null);
+  const [locationPermission, setLocationPermission] = useState<string | null>(
+    null,
+  );
+  const [backgroundLocationPermission, setBackgroundLocationPermission] =
+    useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showSettingsPrompt, setShowSettingsPrompt] = useState<'notification' | 'location' | null>(null);
+  const [showSettingsPrompt, setShowSettingsPrompt] = useState<
+    "notification" | "location" | null
+  >(null);
 
   // Set up notification listeners
   useEffect(() => {
-    if (step !== "complete" || !userId || !notificationPermission || notificationPermission !== "granted") {
+    if (
+      step !== "complete" ||
+      !userId ||
+      !notificationPermission ||
+      notificationPermission !== "granted"
+    ) {
       return;
     }
-    
+
     // Initialize notification service if permissions granted
     const initializeNotifications = async () => {
       try {
         // Mark permissions as requested so we don't show this modal again
         await PermissionsManager.markPermissionsAsRequested();
-        
+
         // Create default notification channel for Android
         await PermissionsManager.setupNotificationChannel();
-        
+
         // Register for push notifications
-        const result = await PushNotificationService.registerForPushNotifications();
-        
+        const result =
+          await PushNotificationService.registerForPushNotifications();
+
         if (result.success && result.token) {
           // Store token registration time
-          await AsyncStorage.setItem('pushTokenLastRegistered', new Date().toISOString());
-          
+          await AsyncStorage.setItem(
+            "pushTokenLastRegistered",
+            new Date().toISOString(),
+          );
+
           // Register token with backend
           if (userId && userRole) {
             await PushNotificationService.registerDeviceWithBackend(
               userId.toString(),
               result.token,
               token,
-              userRole as any
+              userRole as any,
             );
           }
-          
+
           // Set up notification listeners
           PushNotificationService.setupNotificationListeners(
             (notification) => {
@@ -95,7 +113,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             },
             (response) => {
               const data = response.notification.request.content.data;
-              
+
               // Handle navigation when notification is tapped
               const validScreens = [
                 "/(dashboard)/employee/notifications",
@@ -110,14 +128,14 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
               ) {
                 router.push(data.screen as any);
               }
-            }
+            },
           );
         }
       } catch (error) {
         console.error("Error initializing notifications:", error);
       }
     };
-    
+
     initializeNotifications();
   }, [step, userId, notificationPermission]);
 
@@ -125,16 +143,17 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
   const requestNotificationPermission = async () => {
     setLoading(true);
     setErrorMessage(null);
-    
+
     try {
       // Check if we should redirect to settings instead
-      const shouldUseSettings = await PermissionsManager.shouldRequestFromSettings('notification');
+      const shouldUseSettings =
+        await PermissionsManager.shouldRequestFromSettings("notification");
       if (shouldUseSettings) {
-        setShowSettingsPrompt('notification');
+        setShowSettingsPrompt("notification");
         setLoading(false);
         return;
       }
-      
+
       if (Platform.OS === "web") {
         if ("Notification" in window) {
           const permission = await window.Notification.requestPermission();
@@ -146,8 +165,9 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
       }
 
       // Check existing permissions first
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+
       // If already granted, move to next step
       if (existingStatus === "granted") {
         setNotificationPermission("granted");
@@ -155,7 +175,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
         setStep("location");
         return;
       }
-      
+
       // Request permissions
       const { status } = await Notifications.requestPermissionsAsync();
       setNotificationPermission(status);
@@ -163,7 +183,9 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
       setStep("location");
     } catch (error) {
       console.error("Error requesting notification permission:", error);
-      setErrorMessage("Unable to request notification permissions. Please try again.");
+      setErrorMessage(
+        "Unable to request notification permissions. Please try again.",
+      );
       setLoading(false);
     }
   };
@@ -172,62 +194,72 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
   const requestLocationPermission = async () => {
     setLoading(true);
     setErrorMessage(null);
-    
+
     try {
       // First, request foreground location permission
-      const foregroundResult = await Location.requestForegroundPermissionsAsync();
+      const foregroundResult =
+        await Location.requestForegroundPermissionsAsync();
       setLocationPermission(foregroundResult.status);
-      
+
       // If foreground permission granted, request background permission
-      if (foregroundResult.status === 'granted') {
+      if (foregroundResult.status === "granted") {
         // Show information alert about the importance of background permission
-        if (Platform.OS === 'ios') {
+        if (Platform.OS === "ios") {
           Alert.alert(
             "Background Location Required",
             "Avy Tracker needs to track your location in the background for shift management. In the next prompt, please select 'Always Allow' to enable this feature.",
-            [{ text: "OK", onPress: async () => {
-              // Request background permission
-              const backgroundResult = await Location.requestBackgroundPermissionsAsync();
-              setBackgroundLocationPermission(backgroundResult.status);
-              
-              if (backgroundResult.status !== 'granted') {
-                Alert.alert(
-                  "Background Permission Required",
-                  "Background location was not granted. Some features like background tracking will not work. Please go to Settings > Privacy > Location Services to allow 'Always' access.",
-                  [
-                    { text: "Later", style: "cancel" },
-                    { text: "Settings", onPress: openSettings }
-                  ]
-                );
-              }
-              
-              setLoading(false);
-              setStep("complete");
-            }}]
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  // Request background permission
+                  const backgroundResult =
+                    await Location.requestBackgroundPermissionsAsync();
+                  setBackgroundLocationPermission(backgroundResult.status);
+
+                  if (backgroundResult.status !== "granted") {
+                    Alert.alert(
+                      "Background Permission Required",
+                      "Background location was not granted. Some features like background tracking will not work. Please go to Settings > Privacy > Location Services to allow 'Always' access.",
+                      [
+                        { text: "Later", style: "cancel" },
+                        { text: "Settings", onPress: openSettings },
+                      ],
+                    );
+                  }
+
+                  setLoading(false);
+                  setStep("complete");
+                },
+              },
+            ],
           );
         } else {
           // For Android, request background directly
-          const backgroundResult = await Location.requestBackgroundPermissionsAsync();
+          const backgroundResult =
+            await Location.requestBackgroundPermissionsAsync();
           setBackgroundLocationPermission(backgroundResult.status);
-          
-          if (backgroundResult.status !== 'granted') {
+
+          if (backgroundResult.status !== "granted") {
             Alert.alert(
               "Background Permission Required",
               "Background location permission is needed for shift tracking. Please go to Settings > Apps > Avy Tracker > Permissions > Location and select 'Allow all the time'.",
               [
                 { text: "Later", style: "cancel" },
-                { text: "Settings", onPress: openSettings }
-              ]
+                { text: "Settings", onPress: openSettings },
+              ],
             );
           }
-          
+
           setLoading(false);
           setStep("complete");
         }
       } else {
         setLoading(false);
-        setErrorMessage("Location permission is required for tracking functionality");
-        setShowSettingsPrompt('location');
+        setErrorMessage(
+          "Location permission is required for tracking functionality",
+        );
+        setShowSettingsPrompt("location");
       }
     } catch (error) {
       console.error("Error requesting location permission:", error);
@@ -244,25 +276,27 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
       setLoading(false);
       // Hide the settings prompt after trying to open settings
       setShowSettingsPrompt(null);
-      
+
       // If we were on the notification step, move to location step
-      if (showSettingsPrompt === 'notification') {
-        setStep('location');
-      } else if (showSettingsPrompt === 'location') {
+      if (showSettingsPrompt === "notification") {
+        setStep("location");
+      } else if (showSettingsPrompt === "location") {
         // If we were on the location step, move to complete step
-        setStep('complete');
+        setStep("complete");
       }
     } catch (error) {
       console.error("Error opening settings:", error);
       setLoading(false);
-      setErrorMessage("Unable to open settings. Please manually open your device settings.");
+      setErrorMessage(
+        "Unable to open settings. Please manually open your device settings.",
+      );
     }
   };
 
   // Handle when user wants to skip a permission
   const handleSkip = (currentStep: "notification" | "location") => {
     setShowSettingsPrompt(null); // Clear any settings prompt
-    
+
     if (currentStep === "notification") {
       setNotificationPermission("denied");
       setStep("location");
@@ -281,33 +315,44 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
 
   // Render settings prompt
   const renderSettingsPrompt = () => {
-    const permissionType = showSettingsPrompt === 'notification' ? 'notification' : 'location';
-    
+    const permissionType =
+      showSettingsPrompt === "notification" ? "notification" : "location";
+
     return (
       <View style={styles.content}>
         <Ionicons
-          name={showSettingsPrompt === 'notification' ? "notifications-outline" : "location-outline"}
+          name={
+            showSettingsPrompt === "notification"
+              ? "notifications-outline"
+              : "location-outline"
+          }
           size={64}
           color={isDark ? "#3B82F6" : "#6366F1"}
         />
-        
+
         <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
-          {showSettingsPrompt === 'notification' ? "Enable Notifications" : "Enable Location"}
+          {showSettingsPrompt === "notification"
+            ? "Enable Notifications"
+            : "Enable Location"}
         </Text>
-        
-        <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
-          You've previously denied permission. Please enable {permissionType} access in your device settings.
+
+        <Text
+          style={[
+            styles.description,
+            { color: isDark ? "#D1D5DB" : "#4B5563" },
+          ]}
+        >
+          You've previously denied permission. Please enable {permissionType}{" "}
+          access in your device settings.
         </Text>
-        
-        {errorMessage && (
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        )}
-        
+
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
         <TouchableOpacity
           style={[
             styles.primaryButton,
             { backgroundColor: isDark ? "#3B82F6" : "#6366F1" },
-            loading && styles.disabledButton
+            loading && styles.disabledButton,
           ]}
           onPress={openSettings}
           disabled={loading}
@@ -318,7 +363,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             <Text style={styles.buttonText}>Open Settings</Text>
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => {
@@ -328,7 +373,12 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
           }}
           disabled={loading}
         >
-          <Text style={[styles.secondaryButtonText, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
+          <Text
+            style={[
+              styles.secondaryButtonText,
+              { color: isDark ? "#D1D5DB" : "#4B5563" },
+            ]}
+          >
             Skip for now
           </Text>
         </TouchableOpacity>
@@ -342,7 +392,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
     if (showSettingsPrompt) {
       return renderSettingsPrompt();
     }
-    
+
     // Otherwise render the normal steps
     switch (step) {
       case "intro":
@@ -353,20 +403,28 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
               size={64}
               color={isDark ? "#3B82F6" : "#6366F1"}
             />
-            
-            <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
+
+            <Text
+              style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}
+            >
               Welcome to Avy Tracker
             </Text>
-            
-            <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
-              To provide you with the best experience, we need to request a few permissions.
-              We'll ask for notifications to keep you updated and location for tracking features.
+
+            <Text
+              style={[
+                styles.description,
+                { color: isDark ? "#D1D5DB" : "#4B5563" },
+              ]}
+            >
+              To provide you with the best experience, we need to request a few
+              permissions. We'll ask for notifications to keep you updated and
+              location for tracking features.
             </Text>
-            
+
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: isDark ? "#3B82F6" : "#6366F1" }
+                { backgroundColor: isDark ? "#3B82F6" : "#6366F1" },
               ]}
               onPress={() => setStep("notification")}
             >
@@ -374,7 +432,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             </TouchableOpacity>
           </View>
         );
-        
+
       case "notification":
         return (
           <View style={styles.content}>
@@ -383,25 +441,32 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
               size={64}
               color={isDark ? "#3B82F6" : "#6366F1"}
             />
-            
-            <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
+
+            <Text
+              style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}
+            >
               Enable Notifications
             </Text>
-            
-            <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
-              Receive important updates, reminders and alerts from our app.
-              Stay informed about new features and events.
+
+            <Text
+              style={[
+                styles.description,
+                { color: isDark ? "#D1D5DB" : "#4B5563" },
+              ]}
+            >
+              Receive important updates, reminders and alerts from our app. Stay
+              informed about new features and events.
             </Text>
-            
+
             {errorMessage && (
               <Text style={styles.errorText}>{errorMessage}</Text>
             )}
-            
+
             <TouchableOpacity
               style={[
                 styles.primaryButton,
                 { backgroundColor: isDark ? "#3B82F6" : "#6366F1" },
-                loading && styles.disabledButton
+                loading && styles.disabledButton,
               ]}
               onPress={requestNotificationPermission}
               disabled={loading}
@@ -412,19 +477,24 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
                 <Text style={styles.buttonText}>Allow Notifications</Text>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => handleSkip("notification")}
               disabled={loading}
             >
-              <Text style={[styles.secondaryButtonText, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: isDark ? "#D1D5DB" : "#4B5563" },
+                ]}
+              >
                 Skip for now
               </Text>
             </TouchableOpacity>
           </View>
         );
-        
+
       case "location":
         return (
           <View style={styles.content}>
@@ -433,26 +503,34 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
               size={64}
               color={isDark ? "#3B82F6" : "#6366F1"}
             />
-            
-            <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
+
+            <Text
+              style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}
+            >
               Enable Location
             </Text>
-            
-            <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
+
+            <Text
+              style={[
+                styles.description,
+                { color: isDark ? "#D1D5DB" : "#4B5563" },
+              ]}
+            >
               Allow us to access your location to track employee activity,
               calculate distances, and provide accurate reporting.
-              {Platform.OS === 'ios' && "\n\nYou'll also be asked for background location permission for tracking when the app is not active."}
+              {Platform.OS === "ios" &&
+                "\n\nYou'll also be asked for background location permission for tracking when the app is not active."}
             </Text>
-            
+
             {errorMessage && (
               <Text style={styles.errorText}>{errorMessage}</Text>
             )}
-            
+
             <TouchableOpacity
               style={[
                 styles.primaryButton,
                 { backgroundColor: isDark ? "#3B82F6" : "#6366F1" },
-                loading && styles.disabledButton
+                loading && styles.disabledButton,
               ]}
               onPress={requestLocationPermission}
               disabled={loading}
@@ -463,19 +541,24 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
                 <Text style={styles.buttonText}>Allow Location</Text>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={() => handleSkip("location")}
               disabled={loading}
             >
-              <Text style={[styles.secondaryButtonText, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: isDark ? "#D1D5DB" : "#4B5563" },
+                ]}
+              >
                 Skip for now
               </Text>
             </TouchableOpacity>
           </View>
         );
-        
+
       case "complete":
         return (
           <View style={styles.content}>
@@ -484,72 +567,105 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
               size={64}
               color={isDark ? "#3B82F6" : "#6366F1"}
             />
-            
-            <Text style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}>
+
+            <Text
+              style={[styles.title, { color: isDark ? "#ffffff" : "#1F2937" }]}
+            >
               All Set!
             </Text>
-            
-            <Text style={[styles.description, { color: isDark ? "#D1D5DB" : "#4B5563" }]}>
-              Thanks for setting up your permissions. You can always change these later in your device settings.
+
+            <Text
+              style={[
+                styles.description,
+                { color: isDark ? "#D1D5DB" : "#4B5563" },
+              ]}
+            >
+              Thanks for setting up your permissions. You can always change
+              these later in your device settings.
             </Text>
-            
+
             <View style={styles.permissionStatus}>
               <View style={styles.permissionRow}>
                 <Ionicons
                   name="notifications-outline"
                   size={24}
-                  color={notificationPermission === "granted" ? "#10B981" : "#F87171"}
+                  color={
+                    notificationPermission === "granted" ? "#10B981" : "#F87171"
+                  }
                 />
-                <Text style={[
-                  styles.permissionText,
-                  { color: isDark ? "#D1D5DB" : "#4B5563" }
-                ]}>
-                  Notifications: {notificationPermission === "granted" ? "Allowed" : "Denied"}
+                <Text
+                  style={[
+                    styles.permissionText,
+                    { color: isDark ? "#D1D5DB" : "#4B5563" },
+                  ]}
+                >
+                  Notifications:{" "}
+                  {notificationPermission === "granted" ? "Allowed" : "Denied"}
                 </Text>
               </View>
-              
+
               <View style={styles.permissionRow}>
                 <Ionicons
                   name="location-outline"
                   size={24}
-                  color={locationPermission === "granted" ? "#10B981" : "#F87171"}
+                  color={
+                    locationPermission === "granted" ? "#10B981" : "#F87171"
+                  }
                 />
-                <Text style={[
-                  styles.permissionText,
-                  { color: isDark ? "#D1D5DB" : "#4B5563" }
-                ]}>
-                  Location: {locationPermission === "granted" ? "Allowed" : "Denied"}
+                <Text
+                  style={[
+                    styles.permissionText,
+                    { color: isDark ? "#D1D5DB" : "#4B5563" },
+                  ]}
+                >
+                  Location:{" "}
+                  {locationPermission === "granted" ? "Allowed" : "Denied"}
                 </Text>
               </View>
-              
+
               <View style={styles.permissionRow}>
                 <Ionicons
                   name="locate"
                   size={24}
-                  color={backgroundLocationPermission === "granted" ? "#10B981" : "#F87171"}
+                  color={
+                    backgroundLocationPermission === "granted"
+                      ? "#10B981"
+                      : "#F87171"
+                  }
                 />
-                <Text style={[
-                  styles.permissionText,
-                  { color: isDark ? "#D1D5DB" : "#4B5563" }
-                ]}>
-                  Background Location: {backgroundLocationPermission === "granted" ? "Allowed" : "Denied"}
+                <Text
+                  style={[
+                    styles.permissionText,
+                    { color: isDark ? "#D1D5DB" : "#4B5563" },
+                  ]}
+                >
+                  Background Location:{" "}
+                  {backgroundLocationPermission === "granted"
+                    ? "Allowed"
+                    : "Denied"}
                 </Text>
               </View>
             </View>
-            
-            {(locationPermission === "granted" && backgroundLocationPermission !== "granted") && (
-              <View style={styles.warningBox}>
-                <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
-                <Text style={styles.warningText}>
-                  Background location is needed for tracking when the app is not active. You can enable this in settings later.
-                </Text>
-              </View>
-            )}
-            
+
+            {locationPermission === "granted" &&
+              backgroundLocationPermission !== "granted" && (
+                <View style={styles.warningBox}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={20}
+                    color="#F59E0B"
+                  />
+                  <Text style={styles.warningText}>
+                    Background location is needed for tracking when the app is
+                    not active. You can enable this in settings later.
+                  </Text>
+                </View>
+              )}
+
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: isDark ? "#3B82F6" : "#6366F1" }
+                { backgroundColor: isDark ? "#3B82F6" : "#6366F1" },
               ]}
               onPress={handleFinish}
             >
@@ -576,8 +692,8 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             "Are you sure you want to exit? Some features may not work properly without granting permissions.",
             [
               { text: "Continue Setup", style: "cancel" },
-              { text: "Exit", onPress: onClose }
-            ]
+              { text: "Exit", onPress: onClose },
+            ],
           );
         }
       }}
@@ -691,8 +807,8 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "rgba(250, 204, 21, 0.1)",
     borderRadius: 12,
     padding: 16,
@@ -708,4 +824,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PermissionsModal; 
+export default PermissionsModal;

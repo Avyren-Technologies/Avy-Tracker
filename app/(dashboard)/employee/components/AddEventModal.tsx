@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -8,9 +8,9 @@ import {
   ScrollView,
   Platform,
   Alert,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { format } from 'date-fns';
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
 
 interface AddEventModalProps {
   visible: boolean;
@@ -25,16 +25,21 @@ interface AddEventModalProps {
   selectedDate: Date;
 }
 
-export default function AddEventModal({ visible, onClose, onSubmit, selectedDate }: AddEventModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+export default function AddEventModal({
+  visible,
+  onClose,
+  onSubmit,
+  selectedDate,
+}: AddEventModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
   const [time, setTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSubmit = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter an event title');
+      Alert.alert("Error", "Please enter an event title");
       return;
     }
 
@@ -42,14 +47,14 @@ export default function AddEventModal({ visible, onClose, onSubmit, selectedDate
       title,
       description,
       location,
-      time: format(time, 'hh:mm a'),
+      time: format(time, "hh:mm a"),
       date: selectedDate,
     });
 
     // Reset form
-    setTitle('');
-    setDescription('');
-    setLocation('');
+    setTitle("");
+    setDescription("");
+    setLocation("");
     setTime(new Date());
     onClose();
   };
@@ -64,7 +69,7 @@ export default function AddEventModal({ visible, onClose, onSubmit, selectedDate
       <View className="flex-1 justify-end">
         <View className="bg-white rounded-t-xl p-4 h-2/3">
           <Text className="text-xl font-semibold mb-4">Add New Event</Text>
-          
+
           <ScrollView>
             <View className="mb-4">
               <Text className="text-sm font-medium mb-1">Title *</Text>
@@ -104,7 +109,7 @@ export default function AddEventModal({ visible, onClose, onSubmit, selectedDate
                 className="border border-gray-200 rounded-lg p-2"
                 onPress={() => setShowTimePicker(true)}
               >
-                <Text>{format(time, 'hh:mm a')}</Text>
+                <Text>{format(time, "hh:mm a")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -115,7 +120,7 @@ export default function AddEventModal({ visible, onClose, onSubmit, selectedDate
                 is24Hour={false}
                 display="default"
                 onChange={(event, selectedTime) => {
-                  setShowTimePicker(Platform.OS === 'ios');
+                  setShowTimePicker(Platform.OS === "ios");
                   if (selectedTime) {
                     setTime(selectedTime);
                   }
@@ -142,4 +147,4 @@ export default function AddEventModal({ visible, onClose, onSubmit, selectedDate
       </View>
     </Modal>
   );
-} 
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -10,17 +10,17 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-import ThemeContext from '../../../../context/ThemeContext';
-import AuthContext from '../../../../context/AuthContext';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { format, differenceInDays, isWeekend } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
+import ThemeContext from "../../../../context/ThemeContext";
+import AuthContext from "../../../../context/AuthContext";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import { format, differenceInDays, isWeekend } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 
 interface LeaveType {
   id: number;
@@ -43,7 +43,7 @@ interface Document {
   file_name: string;
   file_type: string;
   file_data: string;
-  upload_method: 'camera' | 'file';
+  upload_method: "camera" | "file";
 }
 
 interface RequestLeaveModalProps {
@@ -58,10 +58,16 @@ interface ErrorModalState {
   visible: boolean;
   title: string;
   message: string;
-  type: 'error' | 'success' | 'warning';
+  type: "error" | "success" | "warning";
 }
 
-export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTypes, balances }: RequestLeaveModalProps) {
+export default function RequestLeaveModal({
+  visible,
+  onClose,
+  onSuccess,
+  leaveTypes,
+  balances,
+}: RequestLeaveModalProps) {
   const { theme } = ThemeContext.useTheme();
   const { token, user } = AuthContext.useAuth();
   const isDark = theme === "dark";
@@ -96,7 +102,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
     if (status !== "granted") {
       Alert.alert(
         "Permission needed",
-        "Camera permission is required for taking photos"
+        "Camera permission is required for taking photos",
       );
     }
   };
@@ -114,7 +120,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
   const showError = (
     title: string,
     message: string,
-    type: ErrorModalState["type"] = "error"
+    type: ErrorModalState["type"] = "error",
   ) => {
     setErrorModal({
       visible: true,
@@ -135,7 +141,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
     }
 
     const selectedLeaveType = leaveTypes.find(
-      (type) => type.id === selectedType
+      (type) => type.id === selectedType,
     );
     if (!selectedLeaveType) return false;
 
@@ -145,7 +151,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
     if (noticeDays < selectedLeaveType.notice_period_days) {
       const earliestPossibleDate = new Date();
       earliestPossibleDate.setDate(
-        earliestPossibleDate.getDate() + selectedLeaveType.notice_period_days
+        earliestPossibleDate.getDate() + selectedLeaveType.notice_period_days,
       );
 
       showError(
@@ -154,10 +160,10 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
           `• Required Notice: ${selectedLeaveType.notice_period_days} days\n` +
           `• Earliest Possible Date: ${format(
             earliestPossibleDate,
-            "MMM dd, yyyy"
+            "MMM dd, yyyy",
           )}\n\n` +
           `Please adjust your start date to comply with the notice period requirement.`,
-        "warning"
+        "warning",
       );
       return false;
     }
@@ -172,7 +178,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
       showError(
         "Warning",
         "Please enter a valid 10-digit mobile number starting with 6-9",
-        "warning"
+        "warning",
       );
       return false;
     }
@@ -197,7 +203,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
       showError(
         "Warning",
         `Maximum ${selectedLeaveType.max_consecutive_days} consecutive working days allowed`,
-        "warning"
+        "warning",
       );
       return false;
     }
@@ -306,7 +312,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
     try {
       // Find the selected leave type
       const selectedLeaveType = leaveTypes.find(
-        (type) => type.id === selectedType
+        (type) => type.id === selectedType,
       );
       if (!selectedLeaveType) {
         showError("Error", "Invalid leave type selected", "error");
@@ -315,13 +321,13 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
 
       // Find the corresponding balance
       const leaveBalance = balances.find(
-        (balance) => balance.name === selectedLeaveType.name
+        (balance) => balance.name === selectedLeaveType.name,
       );
       if (!leaveBalance) {
         showError(
           "Warning",
           "Leave balance not found. Please contact your administrator.",
-          "warning"
+          "warning",
         );
         return;
       }
@@ -339,7 +345,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
             `• Requested Days: ${requestedDays} days\n` +
             `• Total Balance: ${leaveBalance.max_days} days\n` +
             `• Used Days: ${leaveBalance.days_used} days`,
-          "warning"
+          "warning",
         );
         return;
       }
@@ -362,7 +368,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave/request`,
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // Send notification to group admin
@@ -387,7 +393,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       setErrorModal({
@@ -420,10 +426,10 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
             `• Required Notice: ${errorDetails.required_days} days\n` +
             `• Earliest Possible Date: ${format(
               new Date(errorDetails.earliest_possible_date),
-              "MMM dd, yyyy"
+              "MMM dd, yyyy",
             )}\n\n` +
             `Please adjust your start date to comply with the notice period requirement.`,
-          "warning"
+          "warning",
         );
       } else if (
         error.response?.data?.error === "Insufficient leave balance" &&
@@ -437,7 +443,7 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
             `• Total Balance: ${errorDetails.total_balance} days\n` +
             `• Used Days: ${errorDetails.used_days} days\n` +
             `• Pending Days: ${errorDetails.pending_days} days`,
-          "warning"
+          "warning",
         );
       } else {
         setErrorModal({
@@ -461,15 +467,23 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
         onRequestClose={onClose}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 max-h-[90%] rounded-xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
+          <View
+            className={`w-11/12 max-h-[90%] rounded-xl ${isDark ? "bg-gray-900" : "bg-white"}`}
+          >
             {/* Header */}
             <View className="p-4 border-b border-gray-200">
               <View className="flex-row justify-between items-center">
-                <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text
+                  className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   New Leave Request
                 </Text>
                 <TouchableOpacity onPress={onClose}>
-                  <Ionicons name="close" size={24} color={isDark ? '#D1D5DB' : '#6B7280'} />
+                  <Ionicons
+                    name="close"
+                    size={24}
+                    color={isDark ? "#D1D5DB" : "#6B7280"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -477,25 +491,33 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
             <ScrollView className="p-4">
               {/* Leave Type */}
               <View className="mb-4">
-                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <Text
+                  className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Leave Type <Text className="text-red-500">*</Text>
                 </Text>
-                <View className={`border rounded-lg ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} ${
-                  errors.leaveType ? 'border-red-500' : ''
-                }`}>
+                <View
+                  className={`border rounded-lg ${isDark ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"} ${
+                    errors.leaveType ? "border-red-500" : ""
+                  }`}
+                >
                   <Picker
                     selectedValue={selectedType}
                     onValueChange={(value) => {
                       setSelectedType(value);
-                      setErrors(prev => ({ ...prev, leaveType: '' }));
+                      setErrors((prev) => ({ ...prev, leaveType: "" }));
                     }}
                     style={{
-                      color: isDark ? '#FFFFFF' : '#111827',
+                      color: isDark ? "#FFFFFF" : "#111827",
                     }}
                   >
                     <Picker.Item label="Select Leave Type" value={null} />
-                    {leaveTypes.map(type => (
-                      <Picker.Item key={type.id} label={type.name} value={type.id} />
+                    {leaveTypes.map((type) => (
+                      <Picker.Item
+                        key={type.id}
+                        label={type.name}
+                        value={type.id}
+                      />
                     ))}
                   </Picker>
                 </View>
@@ -504,29 +526,33 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
               {/* Date Selection */}
               <View className="flex-row space-x-4 gap-4 mb-4">
                 <View className="flex-1">
-                  <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <Text
+                    className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     Start Date <Text className="text-red-500">*</Text>
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowStartDate(true)}
-                    className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+                    className={`p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-gray-100"}`}
                   >
-                    <Text className={isDark ? 'text-white' : 'text-gray-900'}>
-                      {format(startDate, 'MMM dd, yyyy')}
+                    <Text className={isDark ? "text-white" : "text-gray-900"}>
+                      {format(startDate, "MMM dd, yyyy")}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View className="flex-1">
-                  <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <Text
+                    className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     End Date <Text className="text-red-500">*</Text>
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowEndDate(true)}
-                    className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+                    className={`p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-gray-100"}`}
                   >
-                    <Text className={isDark ? 'text-white' : 'text-gray-900'}>
-                      {format(endDate, 'MMM dd, yyyy')}
+                    <Text className={isDark ? "text-white" : "text-gray-900"}>
+                      {format(endDate, "MMM dd, yyyy")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -553,113 +579,149 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
 
               {/* Reason */}
               <View className="mb-4">
-                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <Text
+                  className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Reason <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
                   value={reason}
                   onChangeText={(text) => {
                     setReason(text);
-                    setErrors(prev => ({ ...prev, reason: '' }));
+                    setErrors((prev) => ({ ...prev, reason: "" }));
                   }}
                   multiline
                   numberOfLines={3}
                   className={`p-3 rounded-lg ${
-                    isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'
-                  } ${errors.reason ? 'border border-red-500' : ''}`}
-                  placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                    isDark
+                      ? "bg-gray-800 text-white"
+                      : "bg-gray-100 text-gray-900"
+                  } ${errors.reason ? "border border-red-500" : ""}`}
+                  placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                   placeholder="Enter reason for leave"
                 />
               </View>
 
               {/* Contact Number */}
               <View className="mb-4">
-                <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <Text
+                  className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Contact Number <Text className="text-red-500">*</Text>
                 </Text>
-                <View className={`flex-row items-center rounded-lg ${
-                  isDark ? 'bg-gray-800' : 'bg-gray-100'
-                } ${errors.contactNumber ? 'border border-red-500' : ''}`}>
-                  <Text className={`px-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>+91</Text>
+                <View
+                  className={`flex-row items-center rounded-lg ${
+                    isDark ? "bg-gray-800" : "bg-gray-100"
+                  } ${errors.contactNumber ? "border border-red-500" : ""}`}
+                >
+                  <Text
+                    className={`px-3 ${isDark ? "text-white" : "text-gray-900"}`}
+                  >
+                    +91
+                  </Text>
                   <TextInput
                     value={contactNumber}
                     onChangeText={(text) => {
-                      const cleaned = text.replace(/\D/g, '').slice(0, 10);
+                      const cleaned = text.replace(/\D/g, "").slice(0, 10);
                       setContactNumber(cleaned);
-                      setErrors(prev => ({ ...prev, contactNumber: '' }));
+                      setErrors((prev) => ({ ...prev, contactNumber: "" }));
                     }}
                     keyboardType="phone-pad"
                     maxLength={10}
-                    className={`flex-1 p-3 ${isDark ? 'text-white' : 'text-gray-900'}`}
-                    placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                    className={`flex-1 p-3 ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                     placeholder="Enter mobile number"
                   />
                 </View>
               </View>
 
               {/* Document Upload */}
-              {selectedType && leaveTypes.find(t => t.id === selectedType)?.requires_documentation && (
-                <View className="mb-4">
-                  <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Documents Required <Text className="text-red-500">*</Text>
-                  </Text>
-                  <View className="flex-row space-x-4 gap-4 mb-4">
-                    <TouchableOpacity
-                      onPress={() => handleDocumentUpload('camera')}
-                      className="flex-1 bg-blue-500 p-3 rounded-lg flex-row justify-center items-center"
+              {selectedType &&
+                leaveTypes.find((t) => t.id === selectedType)
+                  ?.requires_documentation && (
+                  <View className="mb-4">
+                    <Text
+                      className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
                     >
-                      <Ionicons name="camera" size={20} color="white" style={{ marginRight: 8 }} />
-                      <Text className="text-white font-medium">Camera</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => handleDocumentUpload('file')}
-                      className="flex-1 bg-green-500 p-3 rounded-lg flex-row justify-center items-center"
-                    >
-                      <Ionicons name="document" size={20} color="white" style={{ marginRight: 8 }} />
-                      <Text className="text-white font-medium">Upload</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {documents.map((doc, index) => (
-                    <View
-                      key={index}
-                      className={`flex-row justify-between items-center p-3 rounded-lg mb-3 ${
-                        isDark ? 'bg-gray-800' : 'bg-gray-100'
-                      }`}
-                    >
-                      <View className="flex-row items-center flex-1 mr-2">
-                        <Ionicons
-                          name={doc.file_type.includes('image') ? 'image' : 'document-text'}
-                          size={20}
-                          color={isDark ? '#D1D5DB' : '#6B7280'}
-                        />
-                        <Text 
-                          className={`ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
-                          numberOfLines={1}
-                          style={{ maxWidth: screenWidth * 0.6 }}
-                        >
-                          {doc.file_name}
-                        </Text>
-                      </View>
-                      <TouchableOpacity 
-                        onPress={() => removeDocument(index)}
-                        className="p-2"
+                      Documents Required <Text className="text-red-500">*</Text>
+                    </Text>
+                    <View className="flex-row space-x-4 gap-4 mb-4">
+                      <TouchableOpacity
+                        onPress={() => handleDocumentUpload("camera")}
+                        className="flex-1 bg-blue-500 p-3 rounded-lg flex-row justify-center items-center"
                       >
-                        <Ionicons name="close-circle" size={20} color="#EF4444" />
+                        <Ionicons
+                          name="camera"
+                          size={20}
+                          color="white"
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text className="text-white font-medium">Camera</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => handleDocumentUpload("file")}
+                        className="flex-1 bg-green-500 p-3 rounded-lg flex-row justify-center items-center"
+                      >
+                        <Ionicons
+                          name="document"
+                          size={20}
+                          color="white"
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text className="text-white font-medium">Upload</Text>
                       </TouchableOpacity>
                     </View>
-                  ))}
-                </View>
-              )}
+
+                    {documents.map((doc, index) => (
+                      <View
+                        key={index}
+                        className={`flex-row justify-between items-center p-3 rounded-lg mb-3 ${
+                          isDark ? "bg-gray-800" : "bg-gray-100"
+                        }`}
+                      >
+                        <View className="flex-row items-center flex-1 mr-2">
+                          <Ionicons
+                            name={
+                              doc.file_type.includes("image")
+                                ? "image"
+                                : "document-text"
+                            }
+                            size={20}
+                            color={isDark ? "#D1D5DB" : "#6B7280"}
+                          />
+                          <Text
+                            className={`ml-2 ${isDark ? "text-white" : "text-gray-900"}`}
+                            numberOfLines={1}
+                            style={{ maxWidth: screenWidth * 0.6 }}
+                          >
+                            {doc.file_name}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => removeDocument(index)}
+                          className="p-2"
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color="#EF4444"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
             </ScrollView>
-            
+
             {/* Sticky Submit Button Container */}
-            <View className={`p-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+            <View
+              className={`p-4 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}
+            >
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={loading}
-                className={`bg-blue-500 p-4 rounded-lg ${loading ? 'opacity-70' : ''}`}
+                className={`bg-blue-500 p-4 rounded-lg ${loading ? "opacity-70" : ""}`}
               >
                 {loading ? (
                   <ActivityIndicator color="white" />
@@ -679,56 +741,64 @@ export default function RequestLeaveModal({ visible, onClose, onSuccess, leaveTy
         visible={errorModal.visible}
         transparent
         animationType="fade"
-        onRequestClose={() => setErrorModal(prev => ({ ...prev, visible: false }))}
+        onRequestClose={() =>
+          setErrorModal((prev) => ({ ...prev, visible: false }))
+        }
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
             <View className="items-center mb-4">
               <Ionicons
                 name={
-                  errorModal.type === 'success'
-                    ? 'checkmark-circle'
-                    : errorModal.type === 'warning'
-                    ? 'warning'
-                    : 'alert-circle'
+                  errorModal.type === "success"
+                    ? "checkmark-circle"
+                    : errorModal.type === "warning"
+                      ? "warning"
+                      : "alert-circle"
                 }
                 size={48}
                 color={
-                  errorModal.type === 'success'
-                    ? '#10B981'
-                    : errorModal.type === 'warning'
-                    ? '#F59E0B'
-                    : '#EF4444'
+                  errorModal.type === "success"
+                    ? "#10B981"
+                    : errorModal.type === "warning"
+                      ? "#F59E0B"
+                      : "#EF4444"
                 }
               />
             </View>
-            <Text className={`text-lg font-semibold text-center mb-2 ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}>
+            <Text
+              className={`text-lg font-semibold text-center mb-2 ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
               {errorModal.title}
             </Text>
-            <Text className={`text-center mb-6 ${
-              isDark ? 'text-gray-300' : 'text-gray-600'
-            }`}>
+            <Text
+              className={`text-center mb-6 ${
+                isDark ? "text-gray-300" : "text-gray-600"
+              }`}
+            >
               {errorModal.message}
             </Text>
             <TouchableOpacity
-              onPress={() => setErrorModal(prev => ({ ...prev, visible: false }))}
+              onPress={() =>
+                setErrorModal((prev) => ({ ...prev, visible: false }))
+              }
               className={`py-3 rounded-lg ${
-                errorModal.type === 'success'
-                  ? 'bg-green-500'
-                  : errorModal.type === 'warning'
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                errorModal.type === "success"
+                  ? "bg-green-500"
+                  : errorModal.type === "warning"
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
               }`}
             >
-              <Text className="text-white text-center font-medium">
-                OK
-              </Text>
+              <Text className="text-white text-center font-medium">OK</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </>
   );
-} 
+}

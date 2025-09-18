@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -17,16 +17,16 @@ import AuthContext from "../../../context/AuthContext";
 import * as FileSystem from "expo-file-system";
 
 interface UploadResponse {
-  success: Array<{
+  success: {
     id: number;
     name: string;
     email: string;
-  }>;
-  errors: Array<{
+  }[];
+  errors: {
     row: number;
     error: string;
     email?: string;
-  }>;
+  }[];
   summary?: {
     total: number;
     success: number;
@@ -89,7 +89,7 @@ export default function BulkUpload() {
               "Content-Type": "multipart/form-data",
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         if (response.data.success && response.data.success.length > 0) {
@@ -124,7 +124,7 @@ export default function BulkUpload() {
                   text: "OK",
                   onPress: () => router.back(),
                 },
-              ]
+              ],
             );
           } else {
             Alert.alert("Success", successMessage, [
@@ -148,7 +148,7 @@ export default function BulkUpload() {
       } catch (uploadError: any) {
         console.error(
           "Upload error:",
-          uploadError.response?.data || uploadError
+          uploadError.response?.data || uploadError,
         );
 
         if (uploadError.response?.data?.error === "User limit exceeded") {
@@ -156,7 +156,7 @@ export default function BulkUpload() {
           Alert.alert(
             "User Limit Exceeded",
             `${details.message}\n\nCurrent Users: ${details.currentCount}\nUser Limit: ${details.limit}\nRemaining Slots: ${details.remainingSlots}\nAttempted to Add: ${details.attemptedToAdd}\n\nPlease contact your super admin to increase the user limit or reduce the number of users in your CSV file.`,
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         } else if (
           uploadError.response?.data?.error ===
@@ -171,7 +171,7 @@ export default function BulkUpload() {
           Alert.alert(
             "Duplicate Emails",
             `The following email(s) already exist in the database:\n\n${emailList}\n\nPlease update your CSV file and try again.`,
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         } else if (
           uploadError.response?.data?.error ===
@@ -186,7 +186,7 @@ export default function BulkUpload() {
           Alert.alert(
             "Duplicate Emails in CSV",
             `The following email(s) appear multiple times in your CSV file:\n\n${emailList}\n\nPlease remove duplicates and try again.`,
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         } else if (
           uploadError.response?.data?.error ===
@@ -197,13 +197,13 @@ export default function BulkUpload() {
           Alert.alert(
             "Invalid CSV Format",
             `${details}\n\nPlease ensure your CSV file includes all required headers: name, email, employee_number, phone, password, gender.`,
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         } else {
           setError(
             uploadError.response?.data?.error ||
               uploadError.response?.data?.details ||
-              "Failed to upload CSV file"
+              "Failed to upload CSV file",
           );
         }
       }
@@ -257,7 +257,8 @@ export default function BulkUpload() {
               { color: theme === "dark" ? "#BFDBFE" : "#1E40AF" },
             ]}
           >
-            Required columns: name, email, employee_number, phone, password, gender
+            Required columns: name, email, employee_number, phone, password,
+            gender
           </Text>
           <Text
             style={[
@@ -265,7 +266,8 @@ export default function BulkUpload() {
               { color: theme === "dark" ? "#93C5FD" : "#1D4ED8" },
             ]}
           >
-            Example: John Doe,john@example.com,EMP001,+916748363636,password123,male
+            Example: John
+            Doe,john@example.com,EMP001,+916748363636,password123,male
           </Text>
         </View>
 
@@ -289,13 +291,11 @@ export default function BulkUpload() {
               { color: theme === "dark" ? "#FDE68A" : "#92400E" },
             ]}
           >
-            • Duplicate emails in your CSV file{"\n"}
-            • Duplicate employee numbers in your CSV file{"\n"}
-            • Emails that already exist in the system{"\n"}
-            • Employee numbers that already exist in the system{"\n"}
-            • Passwords less than 8 characters{"\n"}
-            • Invalid gender values (use male, female, or other){"\n"}
-            • Missing required fields
+            • Duplicate emails in your CSV file{"\n"}• Duplicate employee
+            numbers in your CSV file{"\n"}• Emails that already exist in the
+            system{"\n"}• Employee numbers that already exist in the system
+            {"\n"}• Passwords less than 8 characters{"\n"}• Invalid gender
+            values (use male, female, or other){"\n"}• Missing required fields
           </Text>
         </View>
 

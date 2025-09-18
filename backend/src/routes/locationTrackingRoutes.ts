@@ -18,32 +18,32 @@ declare global {
 router.post(
   "/employee-tracking/location",
   authMiddleware,
-  locationTrackingController.storeLocation
+  locationTrackingController.storeLocation,
 );
 router.post(
   "/employee-tracking/start-shift",
   authMiddleware,
-  locationTrackingController.startShift
+  locationTrackingController.startShift,
 );
 router.post(
   "/employee-tracking/end-shift",
   authMiddleware,
-  locationTrackingController.endShift
+  locationTrackingController.endShift,
 );
 router.get(
   "/employee-tracking/current-shift",
   authMiddleware,
-  locationTrackingController.getCurrentShift
+  locationTrackingController.getCurrentShift,
 );
 router.get(
   "/employee-tracking/shift-history",
   authMiddleware,
-  locationTrackingController.getShiftHistory
+  locationTrackingController.getShiftHistory,
 );
 router.get(
   "/employee-tracking/analytics",
   authMiddleware,
-  locationTrackingController.getAnalytics
+  locationTrackingController.getAnalytics,
 );
 
 // Function to check roles for route access
@@ -68,21 +68,21 @@ router.get(
   "/group-admin-tracking/active-locations",
   authMiddleware,
   checkRole(["GroupAdmin", "Admin"]),
-  locationTrackingController.getActiveEmployeeLocations
+  locationTrackingController.getActiveEmployeeLocations,
 );
 
 router.get(
   "/group-admin-tracking/employee-history",
   authMiddleware,
   checkRole(["GroupAdmin", "Admin"]),
-  locationTrackingController.getEmployeeLocationHistory
+  locationTrackingController.getEmployeeLocationHistory,
 );
 
 router.get(
   "/group-admin-tracking/analytics",
   authMiddleware,
   checkRole(["GroupAdmin", "Admin"]),
-  locationTrackingController.getAnalytics
+  locationTrackingController.getAnalytics,
 );
 
 export default router;

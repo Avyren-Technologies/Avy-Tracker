@@ -1,13 +1,13 @@
-import { pool } from '../config/database';
-import { socketService } from '../../server';
-import { NotificationService } from './notificationService';
+import { pool } from "../config/database";
+import { socketService } from "../../server";
+import { NotificationService } from "./notificationService";
 
 const notificationService = new NotificationService();
 
 interface LeaveNotificationData {
   requestId: number;
   userId: number;
-  action: 'submitted' | 'approved' | 'rejected' | 'escalated';
+  action: "submitted" | "approved" | "rejected" | "escalated";
   level?: string;
   comments?: string;
 }
@@ -16,7 +16,8 @@ class LeaveNotificationService {
   private async getRequestDetails(requestId: number) {
     const client = await pool.connect();
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT 
           lr.*,
           u.name as employee_name,
@@ -29,7 +30,9 @@ class LeaveNotificationService {
         JOIN leave_types lt ON lr.leave_type_id = lt.id
         LEFT JOIN approval_levels al ON lr.current_level_id = al.id
         WHERE lr.id = $1
-      `, [requestId]);
+      `,
+        [requestId],
+      );
 
       return result.rows[0];
     } finally {
@@ -40,12 +43,15 @@ class LeaveNotificationService {
   private async getApproverIds(companyId: number, role: string) {
     const client = await pool.connect();
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT id FROM users 
         WHERE company_id = $1 AND role = $2
-      `, [companyId, role]);
+      `,
+        [companyId, role],
+      );
 
-      return result.rows.map(row => row.id);
+      return result.rows.map((row) => row.id);
     } finally {
       client.release();
     }
@@ -56,7 +62,7 @@ class LeaveNotificationService {
     title: string,
     message: string,
     type: string,
-    data: any
+    data: any,
   ) {
     await notificationService.sendPushNotification({
       id: 0,
@@ -65,7 +71,7 @@ class LeaveNotificationService {
       message,
       type,
       data,
-      priority: 'high'
+      priority: "high",
     });
   }
 
@@ -77,17 +83,21 @@ class LeaveNotificationService {
     if (request.group_admin_id) {
       await this.createNotification(
         request.group_admin_id,
-        'New Leave Request',
+        "New Leave Request",
         `${request.employee_name} has submitted a ${request.leave_type_name} request`,
-        'leave_request_submitted',
-        { requestId }
+        "leave_request_submitted",
+        { requestId },
       );
 
-      await socketService.emitToUser(request.group_admin_id, 'leave_request_submitted', {
-        requestId,
-        employeeName: request.employee_name,
-        leaveType: request.leave_type_name
-      });
+      await socketService.emitToUser(
+        request.group_admin_id,
+        "leave_request_submitted",
+        {
+          requestId,
+          employeeName: request.employee_name,
+          leaveType: request.leave_type_name,
+        },
+      );
     }
   }
 
@@ -98,35 +108,38 @@ class LeaveNotificationService {
     // Notify employee
     await this.createNotification(
       request.user_id,
-      'Leave Request Approved',
+      "Leave Request Approved",
       `Your ${request.leave_type_name} request has been approved by ${data.level}`,
-      'leave_request_approved',
-      { requestId: data.requestId, comments: data.comments }
+      "leave_request_approved",
+      { requestId: data.requestId, comments: data.comments },
     );
 
-    await socketService.emitToUser(request.user_id, 'leave_request_approved', {
+    await socketService.emitToUser(request.user_id, "leave_request_approved", {
       requestId: data.requestId,
       leaveType: request.leave_type_name,
       level: data.level,
-      comments: data.comments
+      comments: data.comments,
     });
 
     // If there's a next level, notify those approvers
     if (request.current_level_id) {
-      const approverIds = await this.getApproverIds(request.company_id, request.required_role);
+      const approverIds = await this.getApproverIds(
+        request.company_id,
+        request.required_role,
+      );
       for (const approverId of approverIds) {
         await this.createNotification(
           approverId,
-          'Leave Request Needs Review',
+          "Leave Request Needs Review",
           `${request.employee_name}'s ${request.leave_type_name} request needs your approval`,
-          'leave_request_pending',
-          { requestId: data.requestId }
+          "leave_request_pending",
+          { requestId: data.requestId },
         );
 
-        await socketService.emitToUser(approverId, 'leave_request_pending', {
+        await socketService.emitToUser(approverId, "leave_request_pending", {
           requestId: data.requestId,
           employeeName: request.employee_name,
-          leaveType: request.leave_type_name
+          leaveType: request.leave_type_name,
         });
       }
     }
@@ -139,17 +152,17 @@ class LeaveNotificationService {
     // Notify employee
     await this.createNotification(
       request.user_id,
-      'Leave Request Rejected',
+      "Leave Request Rejected",
       `Your ${request.leave_type_name} request has been rejected by ${data.level}`,
-      'leave_request_rejected',
-      { requestId: data.requestId, comments: data.comments }
+      "leave_request_rejected",
+      { requestId: data.requestId, comments: data.comments },
     );
 
-    await socketService.emitToUser(request.user_id, 'leave_request_rejected', {
+    await socketService.emitToUser(request.user_id, "leave_request_rejected", {
       requestId: data.requestId,
       leaveType: request.leave_type_name,
       level: data.level,
-      comments: data.comments
+      comments: data.comments,
     });
   }
 
@@ -160,36 +173,39 @@ class LeaveNotificationService {
     // Notify employee
     await this.createNotification(
       request.user_id,
-      'Leave Request Escalated',
+      "Leave Request Escalated",
       `Your ${request.leave_type_name} request has been escalated to management`,
-      'leave_request_escalated',
-      { requestId: data.requestId, comments: data.comments }
+      "leave_request_escalated",
+      { requestId: data.requestId, comments: data.comments },
     );
 
-    await socketService.emitToUser(request.user_id, 'leave_request_escalated', {
+    await socketService.emitToUser(request.user_id, "leave_request_escalated", {
       requestId: data.requestId,
       leaveType: request.leave_type_name,
-      comments: data.comments
+      comments: data.comments,
     });
 
     // Notify management
-    const managementIds = await this.getApproverIds(request.company_id, 'management');
+    const managementIds = await this.getApproverIds(
+      request.company_id,
+      "management",
+    );
     for (const managerId of managementIds) {
       await this.createNotification(
         managerId,
-        'Escalated Leave Request',
+        "Escalated Leave Request",
         `${request.employee_name}'s ${request.leave_type_name} request needs your review`,
-        'leave_request_escalated',
-        { requestId: data.requestId }
+        "leave_request_escalated",
+        { requestId: data.requestId },
       );
 
-      await socketService.emitToUser(managerId, 'leave_request_escalated', {
+      await socketService.emitToUser(managerId, "leave_request_escalated", {
         requestId: data.requestId,
         employeeName: request.employee_name,
-        leaveType: request.leave_type_name
+        leaveType: request.leave_type_name,
       });
     }
   }
 }
 
-export const leaveNotificationService = new LeaveNotificationService(); 
+export const leaveNotificationService = new LeaveNotificationService();

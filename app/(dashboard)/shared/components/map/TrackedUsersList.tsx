@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+import React, { useState, useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   Platform,
-  ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeColor } from '../../../../hooks/useColorScheme';
-import { TrackingUser, TrackingStatus } from '../../../../types/liveTracking';
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useThemeColor } from "../../../../hooks/useColorScheme";
+import { TrackingUser, TrackingStatus } from "../../../../types/liveTracking";
 
 interface TrackedUsersListProps {
   users: TrackingUser[];
@@ -276,22 +276,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   fullHeight: {
     flexGrow: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statusPill: {
     paddingHorizontal: 8,
@@ -299,13 +299,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: 'white',
+    color: "white",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
   },
@@ -320,16 +320,16 @@ const styles = StyleSheet.create({
   },
   userDetails: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   nameContainer: {
     flex: 1,
   },
   userName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   userNameCompact: {
     fontSize: 14,
@@ -343,37 +343,37 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   batteryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 8,
   },
   batteryText: {
     fontSize: 12,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   selectedIndicator: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 8,
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 24,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
   },
 });

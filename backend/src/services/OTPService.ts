@@ -1,13 +1,22 @@
-import crypto from 'crypto';
-import ErrorHandlingService from './ErrorHandlingService';
-import SMSService from './SMSService';
-import { pool } from '../config/database';
+import crypto from "crypto";
+import ErrorHandlingService from "./ErrorHandlingService";
+import SMSService from "./SMSService";
+import { pool } from "../config/database";
 
 interface OTPRecord {
   id: string;
   phoneNumber: string;
   otp: string;
-  purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification' | 'face-settings-access' | 'profile-update' | 'security-verification' | 'password-reset' | 'manager_override';
+  purpose:
+    | "shift_start"
+    | "shift_end"
+    | "face_verification"
+    | "account_verification"
+    | "face-settings-access"
+    | "profile-update"
+    | "security-verification"
+    | "password-reset"
+    | "manager_override";
   expiresAt: Date;
   attempts: number;
   isUsed: boolean;
@@ -28,7 +37,8 @@ export class OTPService {
   private static instance: OTPService;
   private smsService: SMSService;
   private otpRecords: Map<string, OTPRecord> = new Map();
-  private rateLimitMap: Map<string, { count: number; resetTime: Date }> = new Map();
+  private rateLimitMap: Map<string, { count: number; resetTime: Date }> =
+    new Map();
   private blockedNumbers: Map<string, Date> = new Map();
 
   // Rate limiting configuration
@@ -40,13 +50,16 @@ export class OTPService {
 
   private constructor() {
     this.smsService = SMSService.getInstance();
-    
-    // Cleanup expired records every 10 minutes
-    setInterval(() => {
-      this.cleanupExpiredRecords();
-    }, 10 * 60 * 1000);
 
-    console.log('OTPService initialized with SMS integration');
+    // Cleanup expired records every 10 minutes
+    setInterval(
+      () => {
+        this.cleanupExpiredRecords();
+      },
+      10 * 60 * 1000,
+    );
+
+    console.log("OTPService initialized with SMS integration");
   }
 
   public static getInstance(): OTPService {
@@ -58,8 +71,8 @@ export class OTPService {
 
   // Generate secure OTP
   private generateOTP(): string {
-    const digits = '0123456789';
-    let otp = '';
+    const digits = "0123456789";
+    let otp = "";
     for (let i = 0; i < this.OTP_LENGTH; i++) {
       const randomIndex = crypto.randomInt(0, digits.length);
       otp += digits[randomIndex];
@@ -82,7 +95,7 @@ export class OTPService {
     if (!rateLimit) {
       this.rateLimitMap.set(phoneNumber, {
         count: 1,
-        resetTime: new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+        resetTime: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
       });
       return true;
     }
@@ -91,7 +104,7 @@ export class OTPService {
       // Reset rate limit
       this.rateLimitMap.set(phoneNumber, {
         count: 1,
-        resetTime: new Date(now.getTime() + 60 * 60 * 1000)
+        resetTime: new Date(now.getTime() + 60 * 60 * 1000),
       });
       return true;
     }
@@ -119,7 +132,9 @@ export class OTPService {
   // Block phone number
   private blockNumber(phoneNumber: string): void {
     const blockUntil = new Date();
-    blockUntil.setMinutes(blockUntil.getMinutes() + this.BLOCK_DURATION_MINUTES);
+    blockUntil.setMinutes(
+      blockUntil.getMinutes() + this.BLOCK_DURATION_MINUTES,
+    );
     this.blockedNumbers.set(phoneNumber, blockUntil);
   }
 
@@ -127,23 +142,26 @@ export class OTPService {
   private async storeOTPInDatabase(otpRecord: OTPRecord): Promise<void> {
     const client = await pool.connect();
     try {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO otp_records (
           id, phone_number, otp_hash, purpose, expires_at, 
           attempts, is_used, device_fingerprint, ip_address, created_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `, [
-        otpRecord.id,
-        otpRecord.phoneNumber,
-        crypto.createHash('sha256').update(otpRecord.otp).digest('hex'),
-        otpRecord.purpose,
-        otpRecord.expiresAt,
-        otpRecord.attempts,
-        otpRecord.isUsed,
-        otpRecord.deviceFingerprint,
-        otpRecord.ipAddress,
-        otpRecord.createdAt
-      ]);
+      `,
+        [
+          otpRecord.id,
+          otpRecord.phoneNumber,
+          crypto.createHash("sha256").update(otpRecord.otp).digest("hex"),
+          otpRecord.purpose,
+          otpRecord.expiresAt,
+          otpRecord.attempts,
+          otpRecord.isUsed,
+          otpRecord.deviceFingerprint,
+          otpRecord.ipAddress,
+          otpRecord.createdAt,
+        ],
+      );
     } finally {
       client.release();
     }
@@ -152,16 +170,26 @@ export class OTPService {
   // Generate and send OTP
   public async generateAndSendOTP(
     phoneNumber: string,
-    purpose: 'shift_start' | 'shift_end' | 'face_verification' | 'account_verification' | 'face-settings-access' | 'profile-update' | 'security-verification' | 'password-reset' | 'manager_override',
+    purpose:
+      | "shift_start"
+      | "shift_end"
+      | "face_verification"
+      | "account_verification"
+      | "face-settings-access"
+      | "profile-update"
+      | "security-verification"
+      | "password-reset"
+      | "manager_override",
     deviceFingerprint?: string,
-    ipAddress?: string
+    ipAddress?: string,
   ): Promise<{ success: boolean; message: string; otpId?: string }> {
     try {
       // Validate phone number
       if (!this.validatePhoneNumber(phoneNumber)) {
         return {
           success: false,
-          message: 'Invalid phone number format. Please use international format (+1234567890)'
+          message:
+            "Invalid phone number format. Please use international format (+1234567890)",
         };
       }
 
@@ -170,7 +198,7 @@ export class OTPService {
         const blockExpiry = this.blockedNumbers.get(phoneNumber);
         return {
           success: false,
-          message: `Phone number is temporarily blocked. Try again after ${blockExpiry?.toLocaleTimeString()}`
+          message: `Phone number is temporarily blocked. Try again after ${blockExpiry?.toLocaleTimeString()}`,
         };
       }
 
@@ -178,7 +206,7 @@ export class OTPService {
       if (!this.checkRateLimit(phoneNumber)) {
         return {
           success: false,
-          message: 'Too many OTP requests. Please try again later.'
+          message: "Too many OTP requests. Please try again later.",
         };
       }
 
@@ -199,7 +227,7 @@ export class OTPService {
         isUsed: false,
         createdAt: new Date(),
         deviceFingerprint,
-        ipAddress
+        ipAddress,
       };
 
       // Store in memory and database
@@ -207,23 +235,24 @@ export class OTPService {
       await this.storeOTPInDatabase(otpRecord);
 
       // Prepare SMS message based on purpose
-      const purposeText = {
-        'shift_start': 'start your shift',
-        'shift_end': 'end your shift',
-        'face_verification': 'verify your identity',
-        'account_verification': 'verify your account',
-        'face-settings-access': 'access face settings',
-        'profile-update': 'update your profile',
-        'security-verification': 'verify your security',
-        'password-reset': 'reset your password',
-        'manager_override': 'manager override'
-      }[purpose] || 'verify your identity';
+      const purposeText =
+        {
+          shift_start: "start your shift",
+          shift_end: "end your shift",
+          face_verification: "verify your identity",
+          account_verification: "verify your account",
+          "face-settings-access": "access face settings",
+          "profile-update": "update your profile",
+          "security-verification": "verify your security",
+          "password-reset": "reset your password",
+          manager_override: "manager override",
+        }[purpose] || "verify your identity";
 
       // Send SMS using SMS service
       const smsResult = await this.smsService.sendOTPSMS(
         phoneNumber,
         otp,
-        purposeText || 'verify your identity'
+        purposeText || "verify your identity",
       );
 
       if (!smsResult.success) {
@@ -231,39 +260,38 @@ export class OTPService {
         this.otpRecords.delete(otpId);
         return {
           success: false,
-          message: 'Failed to send OTP. Please try again.'
+          message: "Failed to send OTP. Please try again.",
         };
       }
 
       // Log successful OTP generation
-      ErrorHandlingService.logError('OTP_GENERATED', null, {
-        context: 'OTPService.generateAndSendOTP',
-        phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+      ErrorHandlingService.logError("OTP_GENERATED", null, {
+        context: "OTPService.generateAndSendOTP",
+        phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"),
         purpose,
         otpId,
         smsProvider: smsResult.provider,
         deviceFingerprint,
-        ipAddress
+        ipAddress,
       });
 
       return {
         success: true,
-        message: `OTP sent to ${phoneNumber.replace(/\d(?=\d{4})/g, '*')}`,
-        otpId
+        message: `OTP sent to ${phoneNumber.replace(/\d(?=\d{4})/g, "*")}`,
+        otpId,
       };
-
     } catch (error) {
-      ErrorHandlingService.logError('OTP_GENERATION_ERROR', error as Error, {
-        context: 'OTPService.generateAndSendOTP',
-        phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+      ErrorHandlingService.logError("OTP_GENERATION_ERROR", error as Error, {
+        context: "OTPService.generateAndSendOTP",
+        phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"),
         purpose,
         deviceFingerprint,
-        ipAddress
+        ipAddress,
       });
 
       return {
         success: false,
-        message: 'Internal error occurred. Please try again.'
+        message: "Internal error occurred. Please try again.",
       };
     }
   }
@@ -273,14 +301,14 @@ export class OTPService {
     otpId: string,
     providedOTP: string,
     deviceFingerprint?: string,
-    ipAddress?: string
+    ipAddress?: string,
   ): Promise<OTPVerificationResult> {
     try {
       const otpRecord = this.otpRecords.get(otpId);
       if (!otpRecord) {
         return {
           success: false,
-          message: 'Invalid or expired OTP ID'
+          message: "Invalid or expired OTP ID",
         };
       }
 
@@ -288,7 +316,7 @@ export class OTPService {
       if (otpRecord.isUsed) {
         return {
           success: false,
-          message: 'OTP has already been used'
+          message: "OTP has already been used",
         };
       }
 
@@ -298,7 +326,7 @@ export class OTPService {
         await this.updateOTPInDatabase(otpId, { isUsed: true });
         return {
           success: false,
-          message: 'OTP has expired. Please request a new one.'
+          message: "OTP has expired. Please request a new one.",
         };
       }
 
@@ -306,7 +334,8 @@ export class OTPService {
       if (this.isNumberBlocked(otpRecord.phoneNumber)) {
         return {
           success: false,
-          message: 'Phone number is temporarily blocked due to too many failed attempts'
+          message:
+            "Phone number is temporarily blocked due to too many failed attempts",
         };
       }
 
@@ -316,7 +345,8 @@ export class OTPService {
 
       // Verify OTP
       if (otpRecord.otp !== providedOTP) {
-        const remainingAttempts = this.MAX_VERIFICATION_ATTEMPTS - otpRecord.attempts;
+        const remainingAttempts =
+          this.MAX_VERIFICATION_ATTEMPTS - otpRecord.attempts;
 
         if (remainingAttempts <= 0) {
           // Block the number and mark OTP as used
@@ -327,53 +357,57 @@ export class OTPService {
 
           const blockExpiry = this.blockedNumbers.get(otpRecord.phoneNumber);
 
-          ErrorHandlingService.logError('OTP_VERIFICATION_BLOCKED', null, {
-            context: 'OTPService.verifyOTP',
-            phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+          ErrorHandlingService.logError("OTP_VERIFICATION_BLOCKED", null, {
+            context: "OTPService.verifyOTP",
+            phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
             attempts: otpRecord.attempts,
             otpId,
             deviceFingerprint,
-            ipAddress
+            ipAddress,
           });
 
           return {
             success: false,
-            message: 'Too many failed attempts. Phone number blocked temporarily.',
+            message:
+              "Too many failed attempts. Phone number blocked temporarily.",
             isBlocked: true,
-            blockExpiresAt: blockExpiry
+            blockExpiresAt: blockExpiry,
           };
         }
 
-        ErrorHandlingService.logError('OTP_VERIFICATION_FAILED', null, {
-          context: 'OTPService.verifyOTP',
-          phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+        ErrorHandlingService.logError("OTP_VERIFICATION_FAILED", null, {
+          context: "OTPService.verifyOTP",
+          phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
           attempts: otpRecord.attempts,
           remainingAttempts,
           otpId,
           deviceFingerprint,
-          ipAddress
+          ipAddress,
         });
 
         return {
           success: false,
           message: `Invalid OTP. ${remainingAttempts} attempts remaining.`,
-          remainingAttempts
+          remainingAttempts,
         };
       }
 
       // OTP is valid - mark as used
       otpRecord.isUsed = true;
-      await this.updateOTPInDatabase(otpId, { isUsed: true, verifiedAt: new Date() });
+      await this.updateOTPInDatabase(otpId, {
+        isUsed: true,
+        verifiedAt: new Date(),
+      });
 
       // Log successful verification
-      ErrorHandlingService.logError('OTP_VERIFICATION_SUCCESS', null, {
-        context: 'OTPService.verifyOTP',
-        phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+      ErrorHandlingService.logError("OTP_VERIFICATION_SUCCESS", null, {
+        context: "OTPService.verifyOTP",
+        phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
         purpose: otpRecord.purpose,
         attempts: otpRecord.attempts,
         otpId,
         deviceFingerprint,
-        ipAddress
+        ipAddress,
       });
 
       // Clean up the OTP record after successful verification
@@ -383,47 +417,49 @@ export class OTPService {
 
       return {
         success: true,
-        message: 'OTP verified successfully'
+        message: "OTP verified successfully",
       };
-
     } catch (error) {
-      ErrorHandlingService.logError('OTP_VERIFICATION_ERROR', error as Error, {
-        context: 'OTPService.verifyOTP',
+      ErrorHandlingService.logError("OTP_VERIFICATION_ERROR", error as Error, {
+        context: "OTPService.verifyOTP",
         otpId,
         deviceFingerprint,
-        ipAddress
+        ipAddress,
       });
 
       return {
         success: false,
-        message: 'Internal error occurred during verification'
+        message: "Internal error occurred during verification",
       };
     }
   }
 
   // Update OTP record in database
-  private async updateOTPInDatabase(otpId: string, updates: Partial<{
-    attempts: number;
-    isUsed: boolean;
-    verifiedAt: Date;
-  }>): Promise<void> {
+  private async updateOTPInDatabase(
+    otpId: string,
+    updates: Partial<{
+      attempts: number;
+      isUsed: boolean;
+      verifiedAt: Date;
+    }>,
+  ): Promise<void> {
     const client = await pool.connect();
     try {
       // Map JavaScript property names to database column names
       const columnMapping: { [key: string]: string } = {
-        attempts: 'attempts',
-        isUsed: 'is_used',
-        verifiedAt: 'verified_at'
+        attempts: "attempts",
+        isUsed: "is_used",
+        verifiedAt: "verified_at",
       };
 
-      const setClause = Object.keys(updates).map((key, index) => 
-        `${columnMapping[key] || key} = $${index + 2}`
-      ).join(', ');
+      const setClause = Object.keys(updates)
+        .map((key, index) => `${columnMapping[key] || key} = $${index + 2}`)
+        .join(", ");
 
       if (setClause) {
         await client.query(
           `UPDATE otp_records SET ${setClause}, updated_at = NOW() WHERE id = $1`,
-          [otpId, ...Object.values(updates)]
+          [otpId, ...Object.values(updates)],
         );
       }
     } finally {
@@ -446,14 +482,17 @@ export class OTPService {
 
     const now = new Date();
     const isExpired = now > otpRecord.expiresAt;
-    const remainingTime = Math.max(0, otpRecord.expiresAt.getTime() - now.getTime());
+    const remainingTime = Math.max(
+      0,
+      otpRecord.expiresAt.getTime() - now.getTime(),
+    );
 
     return {
       exists: true,
       isExpired,
       isUsed: otpRecord.isUsed,
       attempts: otpRecord.attempts,
-      remainingTime: Math.floor(remainingTime / 1000) // Return in seconds
+      remainingTime: Math.floor(remainingTime / 1000), // Return in seconds
     };
   }
 
@@ -500,7 +539,7 @@ export class OTPService {
       activeOTPs: this.otpRecords.size,
       rateLimitedNumbers: this.rateLimitMap.size,
       blockedNumbers: this.blockedNumbers.size,
-      smsStatistics: this.smsService.getStatistics()
+      smsStatistics: this.smsService.getStatistics(),
     };
   }
 

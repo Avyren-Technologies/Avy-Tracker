@@ -1,11 +1,11 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Region, MapType } from 'react-native-maps';
-import { Dimensions } from 'react-native';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Region, MapType } from "react-native-maps";
+import { Dimensions } from "react-native";
 
 // Default map settings
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
@@ -35,7 +35,7 @@ interface MapStore {
   defaultRegion: Region;
   mapType: MapType;
   customMapStyle: MapStyle[];
-  
+
   // User location management
   userLocation: {
     latitude: number;
@@ -44,13 +44,13 @@ interface MapStore {
     timestamp: number; // When this location was last updated
   } | null;
   isLoadingLocation: boolean;
-  
+
   // UI options
   uiOptions: MapUIOptions;
-  
+
   // Map view history
   recentRegions: Region[];
-  
+
   // Actions
   setCurrentRegion: (region: Region) => void;
   setDefaultRegion: (region: Region) => void;
@@ -61,11 +61,21 @@ interface MapStore {
   resetToDefaultRegion: () => void;
   addToRecentRegions: (region: Region) => void;
   clearRecentRegions: () => void;
-  
+
   // User location actions
-  setUserLocation: (location: { latitude: number; longitude: number; accuracy?: number }) => void;
+  setUserLocation: (location: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  }) => void;
   setIsLoadingLocation: (isLoading: boolean) => void;
-  getUserLocation: () => { latitude: number; longitude: number; accuracy?: number; isCached: boolean; timestamp: number } | null;
+  getUserLocation: () => {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    isCached: boolean;
+    timestamp: number;
+  } | null;
 }
 
 type MapStyle = { [key: string]: any };
@@ -100,7 +110,7 @@ const DEFAULT_REGION: Region = {
 
 // Add debug logging function
 const logMapAction = (action: string, data?: any) => {
-  console.log(`[MapStore] ${action}`, data || '');
+  console.log(`[MapStore] ${action}`, data || "");
 };
 
 const useMapStore = create(
@@ -108,84 +118,86 @@ const useMapStore = create(
     (set, get) => ({
       currentRegion: DEFAULT_REGION,
       defaultRegion: DEFAULT_REGION,
-      mapType: 'standard',
+      mapType: "standard",
       customMapStyle: [],
       uiOptions: DEFAULT_UI_OPTIONS,
       recentRegions: [],
-      
+
       // User location state
       userLocation: null,
       isLoadingLocation: false,
-      
+
       setCurrentRegion: (region: Region) => {
-        logMapAction('Setting current region', region);
+        logMapAction("Setting current region", region);
         set({ currentRegion: region });
       },
-      
+
       setDefaultRegion: (region: Region) => {
-        logMapAction('Setting default region', region);
+        logMapAction("Setting default region", region);
         set({ defaultRegion: region });
       },
-      
-      setMapType: (mapType: MapType) => 
-        set({ mapType }),
-      
-      setCustomMapStyle: (style: MapStyle[] | undefined) => 
+
+      setMapType: (mapType: MapType) => set({ mapType }),
+
+      setCustomMapStyle: (style: MapStyle[] | undefined) =>
         set({ customMapStyle: style }),
-      
-      toggleMapOption: (option: keyof MapUIOptions) => 
+
+      toggleMapOption: (option: keyof MapUIOptions) =>
         set((state: MapStore) => ({
           uiOptions: {
             ...state.uiOptions,
             [option]: !state.uiOptions[option],
           },
         })),
-      
-      updateMapOptions: (options: Partial<MapUIOptions>) => 
+
+      updateMapOptions: (options: Partial<MapUIOptions>) =>
         set((state: MapStore) => ({
           uiOptions: {
             ...state.uiOptions,
             ...options,
           },
         })),
-      
-      resetToDefaultRegion: () => 
+
+      resetToDefaultRegion: () =>
         set((state: MapStore) => ({
           currentRegion: state.defaultRegion,
         })),
-      
-      addToRecentRegions: (region: Region) => 
+
+      addToRecentRegions: (region: Region) =>
         set((state: MapStore) => {
           const regions = [region, ...state.recentRegions.slice(0, 4)];
           return { recentRegions: regions };
         }),
-      
-      clearRecentRegions: () => 
-        set({ recentRegions: [] }),
-        
+
+      clearRecentRegions: () => set({ recentRegions: [] }),
+
       // User location actions
-      setUserLocation: (location: { latitude: number; longitude: number; accuracy?: number }) => {
-        logMapAction('Setting user location', location);
-        set({ 
+      setUserLocation: (location: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+      }) => {
+        logMapAction("Setting user location", location);
+        set({
           userLocation: {
             ...location,
             timestamp: Date.now(),
           },
-          isLoadingLocation: false
+          isLoadingLocation: false,
         });
       },
-        
-      setIsLoadingLocation: (isLoading: boolean) => 
+
+      setIsLoadingLocation: (isLoading: boolean) =>
         set({ isLoadingLocation: isLoading }),
-        
+
       getUserLocation: () => {
         const { userLocation } = get();
         if (!userLocation) {
-          logMapAction('getUserLocation returning null');
+          logMapAction("getUserLocation returning null");
           return null;
         }
-        
-        logMapAction('getUserLocation returning cached location', userLocation);
+
+        logMapAction("getUserLocation returning cached location", userLocation);
         return {
           ...userLocation,
           isCached: true, // To indicate this is from cache
@@ -193,10 +205,10 @@ const useMapStore = create(
       },
     }),
     {
-      name: 'map-storage',
-      storage: createJSONStorage(() => AsyncStorage)
-    }
-  )
+      name: "map-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
 );
 
-export default useMapStore; 
+export default useMapStore;

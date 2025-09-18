@@ -26,7 +26,7 @@ export class LocationTrackingService {
       speed?: number;
       is_tracking_active?: boolean;
       isBackgroundUpdate?: boolean;
-    }
+    },
   ) {
     // Implement retry logic with exponential backoff
     const maxRetries = 3;
@@ -43,7 +43,7 @@ export class LocationTrackingService {
           isNaN(location.longitude)
         ) {
           throw new Error(
-            `Invalid coordinates: lat=${location.latitude}, lng=${location.longitude}`
+            `Invalid coordinates: lat=${location.latitude}, lng=${location.longitude}`,
           );
         }
 
@@ -65,8 +65,8 @@ export class LocationTrackingService {
 
         console.log(
           `Storing location for user ${userId}: ${JSON.stringify(
-            sanitizedLocation
-          )}`
+            sanitizedLocation,
+          )}`,
         );
 
         // If no shift ID was provided, check if there's an active shift
@@ -75,12 +75,12 @@ export class LocationTrackingService {
             `SELECT employee_shifts.id FROM employee_shifts 
              WHERE employee_shifts.user_id = $1 AND employee_shifts.end_time IS NULL
              ORDER BY employee_shifts.start_time DESC LIMIT 1`,
-            [userId]
+            [userId],
           );
 
           if (activeShiftResult.rows.length > 0) {
             console.log(
-              `Found active shift ${activeShiftResult.rows[0].id} for user ${userId}`
+              `Found active shift ${activeShiftResult.rows[0].id} for user ${userId}`,
             );
             shiftId = activeShiftResult.rows[0].id;
           }
@@ -102,7 +102,7 @@ export class LocationTrackingService {
             sanitizedLocation.battery_level,
             sanitizedLocation.timestamp,
             sanitizedLocation.is_tracking_active,
-          ]
+          ],
         );
 
         const locationId = result.rows[0].id;
@@ -113,7 +113,7 @@ export class LocationTrackingService {
           `SELECT u.id, u.name, u.employee_number, u.department, u.designation 
            FROM users u
            WHERE u.id = $1`,
-          [userId]
+          [userId],
         );
 
         // Get device info for the employee
@@ -124,7 +124,7 @@ export class LocationTrackingService {
            AND device_tokens.is_active = true
            ORDER BY device_tokens.last_used_at DESC
            LIMIT 1`,
-          [userId]
+          [userId],
         );
 
         const deviceInfo =
@@ -154,21 +154,24 @@ export class LocationTrackingService {
         try {
           // Check if the key exists and what type it is
           const keyType = await redis.type(`location:${userId}`);
-          
+
           // If key exists but is not a string, delete it first
-          if (keyType !== 'none' && keyType !== 'string') {
+          if (keyType !== "none" && keyType !== "string") {
             await redis.del(`location:${userId}`);
           }
-          
+
           // Now set the new value
           await redis.set(
             `location:${userId}`,
             JSON.stringify(cacheData),
             "EX",
-            300 // Expire after 5 minutes
+            300, // Expire after 5 minutes
           );
         } catch (redisError: any) {
-          console.warn(`Redis error when caching location for user ${userId}:`, redisError);
+          console.warn(
+            `Redis error when caching location for user ${userId}:`,
+            redisError,
+          );
           // Continue execution, as this is not critical for location tracking
         }
 
@@ -177,7 +180,7 @@ export class LocationTrackingService {
           await this.updateShiftLocationHistory(
             userId,
             shiftId,
-            sanitizedLocation
+            sanitizedLocation,
           );
         }
 
@@ -189,36 +192,41 @@ export class LocationTrackingService {
 
         // Handle database connection error with retry
         if (retryCount > 0) {
-          console.log(`Retry attempt ${retryCount} for user ${userId} succeeded after previous failure`);
+          console.log(
+            `Retry attempt ${retryCount} for user ${userId} succeeded after previous failure`,
+          );
         }
-        
+
         return locationId; // Return on success
       } catch (error: any) {
         lastError = error;
-        
+
         // Check if this is a connection error
-        const isConnectionError = error.message?.includes('remaining connection slots') || 
-                                 error.code === '53300' || 
-                                 error.code === '08006' ||
-                                 error.code === '08001';
-        
+        const isConnectionError =
+          error.message?.includes("remaining connection slots") ||
+          error.code === "53300" ||
+          error.code === "08006" ||
+          error.code === "08001";
+
         if (!isConnectionError || retryCount >= maxRetries) {
           // If it's not a connection error or we've exceeded retries, log and throw
           console.error("Error storing location:", error);
           logLocationError(error, userId, location);
           throw error;
         }
-        
+
         // For connection errors, we'll retry with backoff
         retryCount++;
         const backoffTime = Math.min(100 * Math.pow(2, retryCount), 3000); // Exponential backoff with 3s max
-        console.warn(`Database connection error, retrying (${retryCount}/${maxRetries}) after ${backoffTime}ms: ${error.message}`);
-        
+        console.warn(
+          `Database connection error, retrying (${retryCount}/${maxRetries}) after ${backoffTime}ms: ${error.message}`,
+        );
+
         // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
       }
     }
-    
+
     // This code should never be reached, but TypeScript wants a return statement
     if (lastError) {
       throw lastError;
@@ -236,13 +244,13 @@ export class LocationTrackingService {
       latitude: number;
       longitude: number;
       timestamp?: string;
-    }
+    },
   ) {
     try {
       // First check if the shift exists and get current history
       const shiftResult = await pool.query(
         `SELECT location_history FROM employee_shifts WHERE id = $1`,
-        [shiftId]
+        [shiftId],
       );
 
       if (shiftResult.rows.length === 0) {
@@ -272,7 +280,7 @@ export class LocationTrackingService {
           } else {
             // Create new GeoJSON if we can't parse existing one
             console.log(
-              "Creating new GeoJSON object for history - could not parse existing data"
+              "Creating new GeoJSON object for history - could not parse existing data",
             );
             historyGeoJson = {
               type: "LineString",
@@ -294,7 +302,7 @@ export class LocationTrackingService {
         } catch (parseError) {
           console.warn(
             "Error parsing location history, creating new GeoJSON:",
-            parseError
+            parseError,
           );
           // If parsing fails, create a new GeoJSON object
           updatedHistory = {
@@ -310,7 +318,7 @@ export class LocationTrackingService {
          SET location_history = ST_GeomFromGeoJSON($1),
              last_location_update = $2
          WHERE id = $3`,
-        [JSON.stringify(updatedHistory), new Date(), shiftId]
+        [JSON.stringify(updatedHistory), new Date(), shiftId],
       );
 
       // Calculate and update distance if necessary
@@ -333,7 +341,7 @@ export class LocationTrackingService {
          SET total_distance_km = ST_Length(location_history::geography)/1000
          WHERE id = $1
          RETURNING total_distance_km`,
-        [shiftId]
+        [shiftId],
       );
 
       return result.rows[0]?.total_distance_km || 0;
@@ -354,7 +362,7 @@ export class LocationTrackingService {
          SET travel_time_minutes = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - start_time))/60
          WHERE id = $1
          RETURNING travel_time_minutes`,
-        [shiftId]
+        [shiftId],
       );
 
       return result.rows[0]?.travel_time_minutes || 0;
@@ -373,7 +381,7 @@ export class LocationTrackingService {
     location: {
       latitude: number;
       longitude: number;
-    }
+    },
   ) {
     try {
       // Validate coordinates to ensure they are numbers
@@ -393,13 +401,13 @@ export class LocationTrackingService {
       }
 
       console.log(
-        `Checking geofence for user ${userId} at coordinates: ${location.longitude}, ${location.latitude}`
+        `Checking geofence for user ${userId} at coordinates: ${location.longitude}, ${location.latitude}`,
       );
 
       // Get user's company ID
       const userResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [userId]
+        [userId],
       );
 
       if (userResult.rows.length === 0) {
@@ -418,7 +426,7 @@ export class LocationTrackingService {
            ST_SetSRID(ST_MakePoint($2::float, $3::float), 4326), 
            radius
          )`,
-        [companyId, location.longitude, location.latitude]
+        [companyId, location.longitude, location.latitude],
       );
 
       const isInGeofence = result.rows.length > 0;
@@ -427,7 +435,7 @@ export class LocationTrackingService {
       // Get previous status from Redis
       const prevStatusKey = `geofence:${userId}`;
       let previousGeofenceId = null;
-      
+
       try {
         const prevStatus = await redis.get(prevStatusKey);
         if (prevStatus) {
@@ -435,16 +443,24 @@ export class LocationTrackingService {
           previousGeofenceId = parsedStatus.geofenceId;
         }
       } catch (redisError: any) {
-        console.warn(`Redis error when retrieving geofence status for user ${userId}:`, redisError);
+        console.warn(
+          `Redis error when retrieving geofence status for user ${userId}:`,
+          redisError,
+        );
         // If there's an error, we'll proceed with previousGeofenceId as null
-        
+
         // If it's a WRONGTYPE error, try to clean up the key
-        if (redisError.message && redisError.message.includes('WRONGTYPE')) {
+        if (redisError.message && redisError.message.includes("WRONGTYPE")) {
           try {
             await redis.del(prevStatusKey);
-            console.log(`Deleted invalid Redis key ${prevStatusKey} to fix WRONGTYPE error`);
+            console.log(
+              `Deleted invalid Redis key ${prevStatusKey} to fix WRONGTYPE error`,
+            );
           } catch (delError) {
-            console.error(`Failed to delete invalid Redis key ${prevStatusKey}:`, delError);
+            console.error(
+              `Failed to delete invalid Redis key ${prevStatusKey}:`,
+              delError,
+            );
           }
         }
       }
@@ -458,7 +474,7 @@ export class LocationTrackingService {
         if (
           shiftId && // Ensure we have a valid shift_id before inserting
           (eventType === "entry" ||
-          (eventType === "exit" && previousGeofenceId))
+            (eventType === "exit" && previousGeofenceId))
         ) {
           try {
             await pool.query(
@@ -470,12 +486,12 @@ export class LocationTrackingService {
                 eventType === "entry" ? geofenceId : previousGeofenceId,
                 shiftId,
                 eventType,
-              ]
+              ],
             );
           } catch (error) {
             console.warn(
               `Failed to record geofence ${eventType} event: User ID ${userId}, Geofence ID ${eventType === "entry" ? geofenceId : previousGeofenceId}, Shift ID ${shiftId}`,
-              error
+              error,
             );
             // Log the error but don't throw it to avoid interrupting location updates
           }
@@ -492,19 +508,19 @@ export class LocationTrackingService {
            ORDER BY timestamp DESC
            LIMIT 1
          )`,
-        [isInGeofence ? "inside" : "outside", userId]
+        [isInGeofence ? "inside" : "outside", userId],
       );
 
       // Update Redis with new status
       try {
         // First, check if the key exists and what type it is
         const keyType = await redis.type(prevStatusKey);
-        
+
         // If key exists but is not a string, delete it first
-        if (keyType !== 'none' && keyType !== 'string') {
+        if (keyType !== "none" && keyType !== "string") {
           await redis.del(prevStatusKey);
         }
-        
+
         // Now set the new value
         await redis.set(
           prevStatusKey,
@@ -514,10 +530,13 @@ export class LocationTrackingService {
             timestamp: new Date().toISOString(),
           }),
           "EX",
-          300 // Expire after 5 minutes
+          300, // Expire after 5 minutes
         );
       } catch (redisError: any) {
-        console.warn(`Redis error when updating geofence status for user ${userId}:`, redisError);
+        console.warn(
+          `Redis error when updating geofence status for user ${userId}:`,
+          redisError,
+        );
         // Continue execution, as this is not critical
       }
 
@@ -546,7 +565,7 @@ export class LocationTrackingService {
          FROM employee_shifts
          WHERE user_id = $1
          AND DATE(start_time) = $2`,
-        [userId, targetDate]
+        [userId, targetDate],
       );
 
       // Calculate total travel time
@@ -555,7 +574,7 @@ export class LocationTrackingService {
          FROM employee_shifts
          WHERE user_id = $1
          AND DATE(start_time) = $2`,
-        [userId, targetDate]
+        [userId, targetDate],
       );
 
       // Calculate indoor/outdoor time
@@ -566,7 +585,7 @@ export class LocationTrackingService {
          FROM employee_locations
          WHERE user_id = $1
          AND DATE(timestamp) = $2`,
-        [userId, targetDate]
+        [userId, targetDate],
       );
 
       const totalDistance = distanceResult.rows[0]?.total_distance || 0;
@@ -603,7 +622,7 @@ export class LocationTrackingService {
           totalTime,
           outdoorTimeMinutes,
           indoorTimeMinutes,
-        ]
+        ],
       );
 
       return {

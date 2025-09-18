@@ -1,19 +1,23 @@
-import express, { Response } from 'express';
-import { pool } from '../config/database';
-import { authMiddleware } from '../middleware/auth';
-import { CustomRequest } from '../types';
+import express, { Response } from "express";
+import { pool } from "../config/database";
+import { authMiddleware } from "../middleware/auth";
+import { CustomRequest } from "../types";
 
 const router = express.Router();
 
 // Get pending approvals for the current user
-router.get('/pending', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/pending",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       WITH user_approval_levels AS (
         SELECT al.id, al.level_order
         FROM approval_levels al
@@ -87,29 +91,36 @@ router.get('/pending', authMiddleware, async (req: CustomRequest, res: Response)
         AND ra.approver_id = $1
       )
       ORDER BY lr.created_at DESC
-    `, [req.user.id]);
+    `,
+        [req.user.id],
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching pending approvals:', error);
-    res.status(500).json({ error: 'Failed to fetch pending approvals' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching pending approvals:", error);
+      res.status(500).json({ error: "Failed to fetch pending approvals" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Process approval/rejection
-router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { requestId, action } = req.params;
-    const { comments } = req.body;
-    const { id: approverId } = req.user!;
+router.post(
+  "/:requestId/:action",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { requestId, action } = req.params;
+      const { comments } = req.body;
+      const { id: approverId } = req.user!;
 
-    await client.query('BEGIN');
+      await client.query("BEGIN");
 
-    // Get request details and validate approver's role
-    const requestResult = await client.query(`
+      // Get request details and validate approver's role
+      const requestResult = await client.query(
+        `
       SELECT 
         lr.*,
         al.level_order as current_level_order,
@@ -122,27 +133,34 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
       JOIN approval_workflows aw ON lr.workflow_id = aw.id
       JOIN users u ON u.id = $1
       WHERE lr.id = $2
-    `, [approverId, requestId]);
+    `,
+        [approverId, requestId],
+      );
 
-    if (!requestResult.rows.length) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Leave request not found' });
-    }
+      if (!requestResult.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Leave request not found" });
+      }
 
-    const request = requestResult.rows[0];
+      const request = requestResult.rows[0];
 
-    if (request.approver_role !== request.required_role) {
-      await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'Unauthorized to process this request' });
-    }
+      if (request.approver_role !== request.required_role) {
+        await client.query("ROLLBACK");
+        return res
+          .status(403)
+          .json({ error: "Unauthorized to process this request" });
+      }
 
-    if (request.approval_status !== 'pending') {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Request is not pending approval' });
-    }
+      if (request.approval_status !== "pending") {
+        await client.query("ROLLBACK");
+        return res
+          .status(400)
+          .json({ error: "Request is not pending approval" });
+      }
 
-    // Record the approval/rejection
-    await client.query(`
+      // Record the approval/rejection
+      await client.query(
+        `
       INSERT INTO request_approvals (
         request_id,
         workflow_id,
@@ -151,18 +169,21 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
         status,
         comments
       ) VALUES ($1, $2, $3, $4, $5, $6)
-    `, [
-      requestId,
-      request.workflow_id,
-      request.current_level_id,
-      approverId,
-      action,
-      comments
-    ]);
+    `,
+        [
+          requestId,
+          request.workflow_id,
+          request.current_level_id,
+          approverId,
+          action,
+          comments,
+        ],
+      );
 
-    if (action === 'reject') {
-      // Update request status to rejected
-      await client.query(`
+      if (action === "reject") {
+        // Update request status to rejected
+        await client.query(
+          `
         UPDATE leave_requests 
         SET 
           approval_status = 'rejected',
@@ -170,10 +191,13 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
           final_approver_id = $1,
           updated_at = NOW()
         WHERE id = $2
-      `, [approverId, requestId]);
+      `,
+          [approverId, requestId],
+        );
 
-      // Update leave balance - remove pending days
-      await client.query(`
+        // Update leave balance - remove pending days
+        await client.query(
+          `
         UPDATE leave_balances
         SET 
           pending_days = pending_days - $1,
@@ -181,10 +205,13 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
         WHERE user_id = $2 
           AND leave_type_id = $3 
           AND year = EXTRACT(YEAR FROM NOW())
-      `, [request.days_requested, request.user_id, request.leave_type_id]);
-    } else {
-      // Get next approval level if any
-      const nextLevelResult = await client.query(`
+      `,
+          [request.days_requested, request.user_id, request.leave_type_id],
+        );
+      } else {
+        // Get next approval level if any
+        const nextLevelResult = await client.query(
+          `
         SELECT al.*
         FROM approval_levels al
         WHERE al.company_id = $1
@@ -192,20 +219,26 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
         AND al.is_active = true
         ORDER BY al.level_order
         LIMIT 1
-      `, [request.company_id, request.current_level_order]);
+      `,
+          [request.company_id, request.current_level_order],
+        );
 
-      if (nextLevelResult.rows.length && request.requires_all_levels) {
-        // Move to next approval level
-        await client.query(`
+        if (nextLevelResult.rows.length && request.requires_all_levels) {
+          // Move to next approval level
+          await client.query(
+            `
           UPDATE leave_requests 
           SET 
             current_level_id = $1,
             updated_at = NOW()
           WHERE id = $2
-        `, [nextLevelResult.rows[0].id, requestId]);
-      } else {
-        // Final approval
-        await client.query(`
+        `,
+            [nextLevelResult.rows[0].id, requestId],
+          );
+        } else {
+          // Final approval
+          await client.query(
+            `
           UPDATE leave_requests 
           SET 
             approval_status = 'approved',
@@ -213,10 +246,13 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
             final_approver_id = $1,
             updated_at = NOW()
           WHERE id = $2
-        `, [approverId, requestId]);
+        `,
+            [approverId, requestId],
+          );
 
-        // Update leave balance - move days from pending to used
-        await client.query(`
+          // Update leave balance - move days from pending to used
+          await client.query(
+            `
           UPDATE leave_balances
           SET 
             used_days = used_days + $1,
@@ -225,30 +261,37 @@ router.post('/:requestId/:action', authMiddleware, async (req: CustomRequest, re
           WHERE user_id = $2 
             AND leave_type_id = $3 
             AND year = EXTRACT(YEAR FROM NOW())
-        `, [request.days_requested, request.user_id, request.leave_type_id]);
+        `,
+            [request.days_requested, request.user_id, request.leave_type_id],
+          );
+        }
       }
-    }
 
-    await client.query('COMMIT');
-    res.json({ message: 'Leave request processed successfully' });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error processing leave request:', error);
-    res.status(500).json({ error: 'Failed to process leave request' });
-  } finally {
-    client.release();
-  }
-});
+      await client.query("COMMIT");
+      res.json({ message: "Leave request processed successfully" });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error processing leave request:", error);
+      res.status(500).json({ error: "Failed to process leave request" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Get approval history for a request
-router.get('/:requestId/history', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { requestId } = req.params;
-    const { id: userId } = req.user!;
+router.get(
+  "/:requestId/history",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { requestId } = req.params;
+      const { id: userId } = req.user!;
 
-    // Verify user has access to this request
-    const accessResult = await client.query(`
+      // Verify user has access to this request
+      const accessResult = await client.query(
+        `
       SELECT 1
       FROM leave_requests lr
       JOIN users u ON lr.user_id = u.id
@@ -260,13 +303,16 @@ router.get('/:requestId/history', authMiddleware, async (req: CustomRequest, res
           SELECT role FROM users WHERE id = $2
         ) IN ('management', 'super_admin')
       )
-    `, [requestId, userId]);
+    `,
+        [requestId, userId],
+      );
 
-    if (!accessResult.rows.length) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+      if (!accessResult.rows.length) {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       SELECT 
         ra.id,
         ra.status,
@@ -282,36 +328,43 @@ router.get('/:requestId/history', authMiddleware, async (req: CustomRequest, res
       JOIN approval_levels al ON ra.level_id = al.id
       WHERE ra.request_id = $1
       ORDER BY al.level_order, ra.created_at
-    `, [requestId]);
+    `,
+        [requestId],
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching approval history:', error);
-    res.status(500).json({ error: 'Failed to fetch approval history' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching approval history:", error);
+      res.status(500).json({ error: "Failed to fetch approval history" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Get approval workflow configuration
-router.get('/workflows', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { id: userId } = req.user!;
+router.get(
+  "/workflows",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { id: userId } = req.user!;
 
-    // Get user's company ID
-    const userResult = await client.query(
-      `SELECT company_id FROM users WHERE id = $1`,
-      [userId]
-    );
+      // Get user's company ID
+      const userResult = await client.query(
+        `SELECT company_id FROM users WHERE id = $1`,
+        [userId],
+      );
 
-    if (!userResult.rows.length) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+      if (!userResult.rows.length) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-    const companyId = userResult.rows[0].company_id;
+      const companyId = userResult.rows[0].company_id;
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       SELECT 
         aw.*,
         lt.name as leave_type_name,
@@ -332,15 +385,18 @@ router.get('/workflows', authMiddleware, async (req: CustomRequest, res: Respons
       AND aw.is_active = true
       GROUP BY aw.id, lt.name
       ORDER BY lt.name
-    `, [companyId]);
+    `,
+        [companyId],
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching approval workflows:', error);
-    res.status(500).json({ error: 'Failed to fetch approval workflows' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching approval workflows:", error);
+      res.status(500).json({ error: "Failed to fetch approval workflows" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
-export default router; 
+export default router;

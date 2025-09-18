@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
 export interface NavItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 const nav = {
-  NavItem: {} as NavItem
+  NavItem: {} as NavItem,
 };
 
-export default nav; 
+export default nav;

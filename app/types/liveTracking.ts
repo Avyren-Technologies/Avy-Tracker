@@ -204,9 +204,9 @@ export interface EmployeeLocationData {
   shiftActive?: boolean;
 }
 
-export type LocationAccuracy = 'high' | 'balanced' | 'low' | 'passive';
+export type LocationAccuracy = "high" | "balanced" | "low" | "passive";
 
-export type GeofenceType = 'circle' | 'polygon';
+export type GeofenceType = "circle" | "polygon";
 
 export interface MapRegion {
   latitude: number;
@@ -215,4 +215,4 @@ export interface MapRegion {
   longitudeDelta: number;
 }
 
-export type TrackingPrecision = 'low' | 'medium' | 'high'; 
+export type TrackingPrecision = "low" | "medium" | "high";

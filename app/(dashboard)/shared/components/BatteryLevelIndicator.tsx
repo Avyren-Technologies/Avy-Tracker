@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons, FontAwesome5, Fontisto } from "@expo/vector-icons";
 import { useThemeColor } from "../../../hooks/useColorScheme";
 
@@ -117,14 +117,14 @@ const BatteryLevelIndicator: React.FC<BatteryLevelIndicatorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   text: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 6,
   },
 });
 
-export default BatteryLevelIndicator; 
+export default BatteryLevelIndicator;

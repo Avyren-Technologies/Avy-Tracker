@@ -11,21 +11,23 @@ import {
   Dimensions,
   Image,
   Alert,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import ThemeContext from "../../context/ThemeContext";
-import AuthContext from "../../context/AuthContext";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomNav from "../../components/BottomNav";
-import { groupAdminNavItems } from "./utils/navigationItems";
-import React, { useState, useEffect, useRef } from "react";
-import { getCurrentColors } from "../../utils/themeColors";
-import biometricAuthService, { BiometricSettings } from "../../utils/biometricAuth";
-import axios from "axios";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import ThemeContext from '../../context/ThemeContext';
+import AuthContext from '../../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import BottomNav from '../../components/BottomNav';
+import { groupAdminNavItems } from './utils/navigationItems';
+import React, { useState, useEffect, useRef } from 'react';
+import { getCurrentColors } from '../../utils/themeColors';
+import biometricAuthService, {
+  BiometricSettings,
+} from '../../utils/biometricAuth';
+import axios from 'axios';
 
-const { width, height } = Dimensions.get("window");
+const { width, height } = Dimensions.get('window');
 
 interface SettingsItem {
   icon: string;
@@ -42,10 +44,12 @@ export default function GroupAdminSettings() {
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [modalAnimation] = useState(new Animated.Value(0));
-  const [biometricSettings, setBiometricSettings] = useState<BiometricSettings>({
-    enabled: false,
-    required: false,
-  });
+  const [biometricSettings, setBiometricSettings] = useState<BiometricSettings>(
+    {
+      enabled: false,
+      required: false,
+    }
+  );
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<string>('');
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -92,7 +96,7 @@ export default function GroupAdminSettings() {
     try {
       const isAvailable = await biometricAuthService.isBiometricAvailable();
       setBiometricAvailable(isAvailable);
-      
+
       if (isAvailable) {
         const type = await biometricAuthService.getPrimaryBiometricType();
         setBiometricType(type);
@@ -119,28 +123,28 @@ export default function GroupAdminSettings() {
       );
       setMfaEnabled(response.data.enabled || false);
     } catch (error) {
-      console.error("Error fetching MFA status:", error);
+      console.error('Error fetching MFA status:', error);
     }
   };
 
   const handleMFAToggle = async (enabled: boolean) => {
     if (!user?.id) return;
-    
+
     setMfaLoading(true);
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/auth/setup-mfa`,
         {
           userId: user.id,
-          enable: enabled
+          enable: enabled,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.message) {
         setMfaEnabled(enabled);
         Alert.alert(
-          'Success', 
+          'Success',
           `MFA ${enabled ? 'enabled' : 'disabled'} successfully`,
           [{ text: 'OK' }]
         );
@@ -148,7 +152,7 @@ export default function GroupAdminSettings() {
     } catch (error: any) {
       console.error('Error updating MFA:', error);
       Alert.alert(
-        'Error', 
+        'Error',
         error.response?.data?.error || 'Failed to update MFA settings'
       );
     } finally {
@@ -163,16 +167,23 @@ export default function GroupAdminSettings() {
         const result = await biometricAuthService.authenticateUser(
           'Authenticate to enable biometric login'
         );
-        
+
         if (result.success) {
           await biometricAuthService.setBiometricEnabled(true);
-          setBiometricSettings(prev => ({ ...prev, enabled: true }));
+          setBiometricSettings((prev) => ({ ...prev, enabled: true }));
         } else {
-          Alert.alert('Authentication Failed', result.error || 'Please try again');
+          Alert.alert(
+            'Authentication Failed',
+            result.error || 'Please try again'
+          );
         }
       } else {
         await biometricAuthService.setBiometricEnabled(false);
-        setBiometricSettings(prev => ({ ...prev, enabled: false, required: false }));
+        setBiometricSettings((prev) => ({
+          ...prev,
+          enabled: false,
+          required: false,
+        }));
       }
     } catch (error) {
       console.error('Error toggling biometric:', error);
@@ -187,16 +198,19 @@ export default function GroupAdminSettings() {
         const result = await biometricAuthService.authenticateUser(
           'Authenticate to require biometric login'
         );
-        
+
         if (result.success) {
           await biometricAuthService.setBiometricRequired(true);
-          setBiometricSettings(prev => ({ ...prev, required: true }));
+          setBiometricSettings((prev) => ({ ...prev, required: true }));
         } else {
-          Alert.alert('Authentication Failed', result.error || 'Please try again');
+          Alert.alert(
+            'Authentication Failed',
+            result.error || 'Please try again'
+          );
         }
       } else {
         await biometricAuthService.setBiometricRequired(false);
-        setBiometricSettings(prev => ({ ...prev, required: false }));
+        setBiometricSettings((prev) => ({ ...prev, required: false }));
       }
     } catch (error) {
       console.error('Error toggling biometric required:', error);
@@ -212,10 +226,10 @@ export default function GroupAdminSettings() {
     setShowLogoutModal(false);
     try {
       logout();
-      router.replace("/(auth)/signin");
+      router.replace('/(auth)/signin');
     } catch (error) {
-      console.error("Error during logout:", error);
-      router.replace("/(auth)/signin");
+      console.error('Error during logout:', error);
+      router.replace('/(auth)/signin');
     }
   };
 
@@ -226,54 +240,54 @@ export default function GroupAdminSettings() {
 
   const settingsSections = [
     {
-      title: "Account",
+      title: 'Account',
       items: [
         {
-          icon: "person-outline",
-          label: "Profile Settings",
+          icon: 'person-outline',
+          label: 'Profile Settings',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/ProfileSettings"),
+            router.push('/(dashboard)/Group-Admin/settings/ProfileSettings'),
           showArrow: true,
         } as SettingsItem,
         {
-          icon: "notifications-outline",
-          label: "Notifications",
+          icon: 'notifications-outline',
+          label: 'Notifications',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/Notifications"),
+            router.push('/(dashboard)/Group-Admin/settings/Notifications'),
           showArrow: true,
         },
         {
-          icon: "shield-outline",
-          label: "Privacy & Security",
+          icon: 'shield-outline',
+          label: 'Privacy & Security',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/PrivacySecurity"),
+            router.push('/(dashboard)/Group-Admin/settings/PrivacySecurity'),
           showArrow: true,
         },
       ],
     },
     {
-      title: "Group Management",
+      title: 'Group Management',
       items: [
         {
-          icon: "people-outline",
-          label: "User Permissions",
+          icon: 'people-outline',
+          label: 'User Permissions',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/UserPermissions"),
+            router.push('/(dashboard)/Group-Admin/settings/UserPermissions'),
           showArrow: true,
         },
         {
-          icon: "map-outline",
-          label: "Tracking Settings",
+          icon: 'map-outline',
+          label: 'Tracking Settings',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/TrackingSettings"),
+            router.push('/(dashboard)/Group-Admin/settings/TrackingSettings'),
           showArrow: true,
         },
         {
-          icon: "receipt-outline",
-          label: "Expense Approval Rules",
+          icon: 'receipt-outline',
+          label: 'Expense Approval Rules',
           action: () =>
             router.push(
-              "/(dashboard)/Group-Admin/settings/ExpenseApprovalRules"
+              '/(dashboard)/Group-Admin/settings/ExpenseApprovalRules'
             ),
           showArrow: true,
         },
@@ -286,37 +300,43 @@ export default function GroupAdminSettings() {
       ],
     },
     {
-      title: "Appearance",
+      title: 'Appearance',
       items: [
         {
-          icon: theme === "dark" ? "moon" : "sunny",
-          label: "Dark Mode",
+          icon: theme === 'dark' ? 'moon' : 'sunny',
+          label: 'Dark Mode',
           action: toggleTheme,
           isSwitch: true,
-          switchValue: theme === "dark",
+          switchValue: theme === 'dark',
         },
       ],
     },
     {
-      title: "Security",
+      title: 'Security',
       items: [
         {
           icon: biometricAuthService.getBiometricIconName(biometricType),
-          label: biometricAuthService.getBiometricTypeName(biometricType) + " Authentication",
+          label:
+            biometricAuthService.getBiometricTypeName(biometricType) +
+            ' Authentication',
           action: () => {},
           isSwitch: true,
           switchValue: biometricSettings.enabled,
         },
-        ...(biometricSettings.enabled ? [{
-          icon: "shield-checkmark-outline",
-          label: "Require Biometric Login",
-          action: () => {},
-          isSwitch: true,
-          switchValue: biometricSettings.required,
-        }] : []),
+        ...(biometricSettings.enabled
+          ? [
+              {
+                icon: 'shield-checkmark-outline',
+                label: 'Require Biometric Login',
+                action: () => {},
+                isSwitch: true,
+                switchValue: biometricSettings.required,
+              },
+            ]
+          : []),
         {
-          icon: "two-factor-authentication",
-          label: "Two-Factor Authentication",
+          icon: 'two-factor-authentication',
+          label: 'Two-Factor Authentication',
           action: () => {},
           isSwitch: true,
           switchValue: mfaEnabled,
@@ -324,19 +344,19 @@ export default function GroupAdminSettings() {
       ],
     },
     {
-      title: "Support",
+      title: 'Support',
       items: [
         {
-          icon: "help-circle-outline",
-          label: "Help & Support",
+          icon: 'help-circle-outline',
+          label: 'Help & Support',
           action: () =>
-            router.push("/(dashboard)/Group-Admin/settings/HelpSupport"),
+            router.push('/(dashboard)/Group-Admin/settings/HelpSupport'),
           showArrow: true,
         },
         {
-          icon: "information-circle-outline",
-          label: "About",
-          action: () => router.push("/(dashboard)/Group-Admin/settings/About"),
+          icon: 'information-circle-outline',
+          label: 'About',
+          action: () => router.push('/(dashboard)/Group-Admin/settings/About'),
           showArrow: true,
         },
       ],
@@ -346,7 +366,7 @@ export default function GroupAdminSettings() {
   return (
     <>
       <StatusBar
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={currentColors.background}
         translucent={false}
         animated={true}
@@ -358,7 +378,7 @@ export default function GroupAdminSettings() {
         {/* Main background */}
         <View
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
@@ -369,13 +389,13 @@ export default function GroupAdminSettings() {
           <LinearGradient
             colors={[
               currentColors.background,
-              theme === "dark"
-                ? "rgba(59, 130, 246, 0.05)"
-                : "rgba(59, 130, 246, 0.02)",
+              theme === 'dark'
+                ? 'rgba(59, 130, 246, 0.05)'
+                : 'rgba(59, 130, 246, 0.02)',
               currentColors.background,
             ]}
             style={{
-              position: "absolute",
+              position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
@@ -388,7 +408,7 @@ export default function GroupAdminSettings() {
           {/* Floating geometric shapes */}
           <View
             style={{
-              position: "absolute",
+              position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
@@ -398,7 +418,7 @@ export default function GroupAdminSettings() {
             {/* Blue circle */}
             <Animated.View
               style={{
-                position: "absolute",
+                position: 'absolute',
                 top: height * 0.1,
                 right: width * 0.1,
                 width: 60,
@@ -413,7 +433,7 @@ export default function GroupAdminSettings() {
             {/* Sky square */}
             <Animated.View
               style={{
-                position: "absolute",
+                position: 'absolute',
                 bottom: height * 0.3,
                 left: width * 0.1,
                 width: 40,
@@ -435,7 +455,7 @@ export default function GroupAdminSettings() {
             {/* Indigo triangle */}
             <Animated.View
               style={{
-                position: "absolute",
+                position: 'absolute',
                 top: height * 0.7,
                 right: width * 0.2,
                 width: 0,
@@ -443,8 +463,8 @@ export default function GroupAdminSettings() {
                 borderLeftWidth: 20,
                 borderRightWidth: 20,
                 borderBottomWidth: 35,
-                borderLeftColor: "transparent",
-                borderRightColor: "transparent",
+                borderLeftColor: 'transparent',
+                borderRightColor: 'transparent',
                 borderBottomColor: currentColors.accent,
                 opacity: 0.1,
                 transform: [
@@ -482,11 +502,11 @@ export default function GroupAdminSettings() {
               height: 40,
               borderRadius: 20,
               backgroundColor:
-                theme === "dark"
-                  ? "rgba(59, 130, 246, 0.2)"
-                  : "rgba(59, 130, 246, 0.1)",
-              alignItems: "center",
-              justifyContent: "center",
+                theme === 'dark'
+                  ? 'rgba(59, 130, 246, 0.2)'
+                  : 'rgba(59, 130, 246, 0.1)',
+              alignItems: 'center',
+              justifyContent: 'center',
               borderWidth: 1,
               borderColor: currentColors.border,
             }}
@@ -504,9 +524,9 @@ export default function GroupAdminSettings() {
                 {
                   color: currentColors.text,
                   textShadowColor:
-                    theme === "dark"
-                      ? "rgba(0, 0, 0, 0.5)"
-                      : "rgba(255, 255, 255, 0.8)",
+                    theme === 'dark'
+                      ? 'rgba(0, 0, 0, 0.5)'
+                      : 'rgba(255, 255, 255, 0.8)',
                   textShadowOffset: { width: 0, height: 1 },
                   textShadowRadius: 2,
                 },
@@ -526,19 +546,19 @@ export default function GroupAdminSettings() {
           {settingsSections.map((section, sectionIndex) => (
             <View
               key={section.title}
-              className={`mb-6 ${sectionIndex !== 0 ? "mt-2" : ""}`}
+              className={`mb-6 ${sectionIndex !== 0 ? 'mt-2' : ''}`}
               style={styles.section}
             >
               <Text
                 className={`px-6 py-2 text-sm font-semibold ${
-                  theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}
                 style={styles.sectionTitle}
               >
                 {section.title}
               </Text>
               <View
-                className={`${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+                className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
                 style={styles.sectionContent}
               >
                 {section.items.map((item, index) => (
@@ -550,7 +570,7 @@ export default function GroupAdminSettings() {
                       styles.settingItem,
                       index !== section.items.length - 1 &&
                         styles.settingItemBorder,
-                      { borderColor: theme === "dark" ? "#374151" : "#E5E7EB" },
+                      { borderColor: theme === 'dark' ? '#374151' : '#E5E7EB' },
                     ]}
                   >
                     <View
@@ -562,19 +582,31 @@ export default function GroupAdminSettings() {
                           styles.iconContainer,
                           {
                             backgroundColor:
-                              theme === "dark" ? "#374151" : "#F3F4F6",
+                              theme === 'dark' ? '#374151' : '#F3F4F6',
                           },
                         ]}
                       >
-                        <Ionicons
-                          name={item.icon as keyof typeof Ionicons.glyphMap}
-                          size={22}
-                          color={theme === "dark" ? "#FFFFFF" : "#000000"}
-                        />
+                        {Object.keys(MaterialCommunityIcons.glyphMap).includes(
+                          item.icon
+                        ) ? (
+                          <MaterialCommunityIcons
+                            name={
+                              item.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                            }
+                            size={22}
+                            color={theme === 'dark' ? '#FFFFFF' : '#000000'}
+                          />
+                        ) : (
+                          <Ionicons
+                            name={item.icon as keyof typeof Ionicons.glyphMap}
+                            size={22}
+                            color={theme === 'dark' ? '#FFFFFF' : '#000000'}
+                          />
+                        )}
                       </View>
                       <Text
                         className={`text-base ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
+                          theme === 'dark' ? 'text-white' : 'text-gray-900'
                         }`}
                         style={styles.settingLabel}
                       >
@@ -585,21 +617,23 @@ export default function GroupAdminSettings() {
                       <Switch
                         value={item.switchValue}
                         onValueChange={(value) => {
-                          if (item.label.includes("Authentication")) {
+                          if (item.label.includes('Authentication')) {
                             handleBiometricToggle(value);
-                          } else if (item.label.includes("Require Biometric")) {
+                          } else if (item.label.includes('Require Biometric')) {
                             handleBiometricRequiredToggle(value);
-                          } else if (item.label.includes("Two-Factor Authentication")) {
+                          } else if (
+                            item.label.includes('Two-Factor Authentication')
+                          ) {
                             handleMFAToggle(value);
-                          } else if (item.label.includes("Dark Mode")) {
+                          } else if (item.label.includes('Dark Mode')) {
                             item.action();
                           }
                         }}
                         trackColor={{
-                          false: theme === "dark" ? "#4B5563" : "#D1D5DB",
-                          true: "#60A5FA",
+                          false: theme === 'dark' ? '#4B5563' : '#D1D5DB',
+                          true: '#60A5FA',
                         }}
-                        thumbColor={item.switchValue ? "#3B82F6" : "#F3F4F6"}
+                        thumbColor={item.switchValue ? '#3B82F6' : '#F3F4F6'}
                         style={styles.switch}
                       />
                     ) : (
@@ -608,7 +642,7 @@ export default function GroupAdminSettings() {
                           <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                            color={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
                           />
                         </View>
                       )
@@ -625,7 +659,7 @@ export default function GroupAdminSettings() {
             style={styles.logoutButtonContainer}
           >
             <LinearGradient
-              colors={["#DC2626", "#B91C1C"]}
+              colors={['#DC2626', '#B91C1C']}
               className="p-4 rounded-xl"
               style={styles.logoutGradient}
             >
@@ -642,7 +676,7 @@ export default function GroupAdminSettings() {
           <View style={styles.versionContainer}>
             <Text
               className={`text-center ${
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
+                theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
               }`}
               style={styles.versionText}
             >
@@ -664,7 +698,7 @@ export default function GroupAdminSettings() {
               styles.modalOverlay,
               {
                 opacity: modalAnimation,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
               },
             ]}
           >
@@ -681,7 +715,7 @@ export default function GroupAdminSettings() {
                       }),
                     },
                   ],
-                  backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF",
+                  backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF',
                 },
               ]}
             >
@@ -691,7 +725,7 @@ export default function GroupAdminSettings() {
                 </View>
                 <Text
                   className={`text-xl font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
                   }`}
                 >
                   Logout Confirmation
@@ -700,7 +734,7 @@ export default function GroupAdminSettings() {
 
               <Text
                 className={`text-center my-4 px-4 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-600"
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                 }`}
               >
                 Are you sure you want to logout from your account?
@@ -710,12 +744,12 @@ export default function GroupAdminSettings() {
                 <TouchableOpacity
                   onPress={() => setShowLogoutModal(false)}
                   className={`flex-1 py-3 mr-2 rounded-xl ${
-                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
                   }`}
                 >
                   <Text
                     className={`text-center font-semibold ${
-                      theme === "dark" ? "text-white" : "text-gray-800"
+                      theme === 'dark' ? 'text-white' : 'text-gray-800'
                     }`}
                   >
                     Cancel
@@ -744,24 +778,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "transparent",
+    borderBottomColor: 'transparent',
   },
   headerTextContainer: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   backButton: {
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -775,12 +809,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     letterSpacing: 0.5,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
   },
   sectionContent: {
     borderRadius: 16,
     marginHorizontal: 16,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -794,21 +828,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   settingItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   settingLabel: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: '500',
     flex: 1,
   },
   switch: {
@@ -823,22 +857,22 @@ const styles = StyleSheet.create({
   },
   logoutGradient: {
     borderRadius: 12,
-    shadowColor: "#DC2626",
+    shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
   logoutText: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   versionContainer: {
     marginTop: 8,
     marginBottom: 32,
-    alignItems: "center",
+    alignItems: 'center',
   },
   versionText: {
     fontSize: 14,
@@ -846,14 +880,14 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
-    width: "85%",
+    width: '85%',
     padding: 20,
     borderRadius: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 3,

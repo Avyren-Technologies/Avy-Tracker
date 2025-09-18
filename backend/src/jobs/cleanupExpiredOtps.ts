@@ -11,13 +11,13 @@ async function cleanupExpiredMfaOtp() {
     // acquire session-scoped advisory lock
     const res = await client.query(
       "SELECT pg_try_advisory_lock($1) AS locked",
-      [LOCK_KEY]
+      [LOCK_KEY],
     );
     locked = !!(res.rows[0] && res.rows[0].locked);
 
     if (!locked) {
       console.log(
-        "cleanup job: lock not acquired — another instance is running it."
+        "cleanup job: lock not acquired — another instance is running it.",
       );
       return;
     }
@@ -54,8 +54,8 @@ const job = new CronJob(
   "*/5 * * * *",
   cleanupExpiredMfaOtp,
   null,
-  true,   // start now
-  "UTC"   // timezone
+  true, // start now
+  "UTC", // timezone
 );
 
 // note: since we passed `start:true` above, no need to call job.start() again

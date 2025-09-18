@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
-import { Region } from 'react-native-maps';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import { Region } from "react-native-maps";
 
 // Default map settings
 const BANGALORE_REGION: Region = {
@@ -15,7 +15,7 @@ const BANGALORE_REGION: Region = {
 
 // Debug logging function
 const log = (action: string, data?: any) => {
-  console.log(`[AdminLocationStore] ${action}`, data || '');
+  console.log(`[AdminLocationStore] ${action}`, data || "");
 };
 
 interface AdminLocationState {
@@ -26,17 +26,21 @@ interface AdminLocationState {
     accuracy?: number;
     timestamp: number;
   } | null;
-  
+
   // Map region for initialRegion props
   mapInitialRegion: Region;
-  
+
   // Status flags
   isLoading: boolean;
   hasLoadedLocation: boolean;
   error: string | null;
-  
+
   // Actions
-  setAdminLocation: (location: { latitude: number; longitude: number; accuracy?: number }) => void;
+  setAdminLocation: (location: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  }) => void;
   fetchAdminLocation: () => Promise<void>;
   resetLocationError: () => void;
 }
@@ -49,10 +53,14 @@ const useAdminLocationStore = create(
       isLoading: false,
       hasLoadedLocation: false,
       error: null,
-      
-      setAdminLocation: (location: { latitude: number; longitude: number; accuracy?: number }) => {
-        log('Setting admin location', location);
-        
+
+      setAdminLocation: (location: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+      }) => {
+        log("Setting admin location", location);
+
         // Create the region object suitable for map initialRegion prop
         const mapRegion: Region = {
           latitude: location.latitude,
@@ -60,79 +68,78 @@ const useAdminLocationStore = create(
           latitudeDelta: 0.01, // Zoomed in for better visibility
           longitudeDelta: 0.01,
         };
-        
-        set({ 
+
+        set({
           adminLocation: {
             ...location,
             timestamp: Date.now(),
           },
           mapInitialRegion: mapRegion,
           hasLoadedLocation: true,
-          isLoading: false
+          isLoading: false,
         });
       },
-      
+
       fetchAdminLocation: async () => {
         const state = get();
-        
+
         // Don't refetch if we're already loading
         if (state.isLoading) {
-          log('Already fetching location, skipping');
+          log("Already fetching location, skipping");
           return;
         }
-        
+
         set({ isLoading: true, error: null });
-        log('Fetching admin location...');
-        
+        log("Fetching admin location...");
+
         try {
           // First check for location permissions
           const { status } = await Location.requestForegroundPermissionsAsync();
-          
-          if (status !== 'granted') {
-            log('Location permission denied');
-            set({ 
-              error: 'Location permission denied', 
+
+          if (status !== "granted") {
+            log("Location permission denied");
+            set({
+              error: "Location permission denied",
               isLoading: false,
               // Keep using Bangalore as fallback
-              mapInitialRegion: BANGALORE_REGION
+              mapInitialRegion: BANGALORE_REGION,
             });
             return;
           }
-          
+
           // Get current position with high accuracy
           const location = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.BestForNavigation,
           });
-          
-          log('Location obtained successfully', location.coords);
-          
+
+          log("Location obtained successfully", location.coords);
+
           // Format the location and update state
           const adminLocation = {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
             accuracy: location.coords.accuracy || undefined,
           };
-          
+
           get().setAdminLocation(adminLocation);
-          
         } catch (error) {
-          log('Error fetching location', error);
-          set({ 
+          log("Error fetching location", error);
+          set({
             error: `Location error: ${error instanceof Error ? error.message : String(error)}`,
             isLoading: false,
             // Keep using Bangalore as fallback
-            mapInitialRegion: BANGALORE_REGION
+            mapInitialRegion: BANGALORE_REGION,
           });
         }
       },
-      
+
       resetLocationError: () => set({ error: null }),
     }),
     {
-      name: 'admin-location-storage',
-      storage: createJSONStorage(() => AsyncStorage)
-    }
-  )
+      name: "admin-location-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
 );
 
-export default useAdminLocationStore; 
+export default useAdminLocationStore;

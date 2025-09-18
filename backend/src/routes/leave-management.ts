@@ -1,7 +1,7 @@
-import express, { Response } from 'express';
-import { pool } from '../config/database';
-import { authMiddleware, managementMiddleware } from '../middleware/auth';
-import { CustomRequest } from '../types';
+import express, { Response } from "express";
+import { pool } from "../config/database";
+import { authMiddleware, managementMiddleware } from "../middleware/auth";
+import { CustomRequest } from "../types";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ interface DefaultLeavePolicy {
 }
 
 interface RoleDefaultBalance {
-  role: 'management' | 'group_admin' | 'employee';
+  role: "management" | "group_admin" | "employee";
   default_days: number;
   carry_forward_days: number;
 }
@@ -190,7 +190,9 @@ const initializeDefaultLeaveTypes = async (companyId?: number) => {
         ];
       } else {
         // Skip global defaults as per new schema
-        console.log(`Skipping global leave type creation for ${type.name} as per new schema`);
+        console.log(
+          `Skipping global leave type creation for ${type.name} as per new schema`,
+        );
         continue;
       }
 
@@ -204,9 +206,13 @@ const initializeDefaultLeaveTypes = async (companyId?: number) => {
     }
 
     // Validate that all required leave type IDs were created
-    const missingTypes = defaultLeaveTypes.filter(type => !leaveTypeIds[type.name]);
+    const missingTypes = defaultLeaveTypes.filter(
+      (type) => !leaveTypeIds[type.name],
+    );
     if (missingTypes.length > 0) {
-      throw new Error(`Failed to create leave types: ${missingTypes.map(t => t.name).join(', ')}`);
+      throw new Error(
+        `Failed to create leave types: ${missingTypes.map((t) => t.name).join(", ")}`,
+      );
     }
 
     // Default leave policies
@@ -376,11 +382,13 @@ const initializeDefaultLeaveTypes = async (companyId?: number) => {
     // Insert leave policies with improved error handling
     for (const policy of defaultPolicies) {
       const leaveTypeName = Object.keys(leaveTypeIds).find(
-        key => leaveTypeIds[key] === policy.leave_type_id
+        (key) => leaveTypeIds[key] === policy.leave_type_id,
       );
 
       if (!leaveTypeName || !leaveTypeIds[leaveTypeName]) {
-        console.error(`Invalid leave type ID: ${policy.leave_type_id} for policy creation`);
+        console.error(
+          `Invalid leave type ID: ${policy.leave_type_id} for policy creation`,
+        );
         continue;
       }
 
@@ -410,19 +418,29 @@ const initializeDefaultLeaveTypes = async (companyId?: number) => {
             policy.notice_period_days,
             policy.max_consecutive_days,
             policy.gender_specific,
-          ]
+          ],
         );
       } catch (error) {
-        console.error(`Error creating policy for leave type ${leaveTypeName}:`, error);
-        throw new Error(`Failed to create policy for leave type: ${leaveTypeName}`);
+        console.error(
+          `Error creating policy for leave type ${leaveTypeName}:`,
+          error,
+        );
+        throw new Error(
+          `Failed to create policy for leave type: ${leaveTypeName}`,
+        );
       }
     }
 
     await client.query("COMMIT");
-    console.log(`Successfully initialized ${Object.keys(leaveTypeIds).length} leave types and policies${companyId ? ` for company ${companyId}` : ''}`);
+    console.log(
+      `Successfully initialized ${Object.keys(leaveTypeIds).length} leave types and policies${companyId ? ` for company ${companyId}` : ""}`,
+    );
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Error initializing default leave types and policies:", error);
+    console.error(
+      "Error initializing default leave types and policies:",
+      error,
+    );
     throw error;
   } finally {
     client.release();
@@ -432,7 +450,9 @@ const initializeDefaultLeaveTypes = async (companyId?: number) => {
 // Initialize defaults on server start - for global defaults
 // Removed as we no longer support global leave types
 // initializeDefaultLeaveTypes().catch(console.error);
-console.log("Leave types initialization disabled - use company-specific initialization only");
+console.log(
+  "Leave types initialization disabled - use company-specific initialization only",
+);
 
 // Check and initialize defaults route for company-specific defaults
 router.post(
@@ -448,7 +468,7 @@ router.post(
       // Get the company_id of the requesting user
       const userResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
@@ -468,10 +488,8 @@ router.post(
       console.error("Error initializing defaults:", error);
       res.status(500).json({ error: "Failed to initialize defaults" });
     }
-  }
+  },
 );
-
-
 
 // Create new leave type with role-based defaults
 router.post(
@@ -498,28 +516,30 @@ router.post(
       // Get company_id
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Check for duplicate name in company
       const duplicateCheck = await client.query(
         `SELECT id FROM leave_types WHERE name = $1 AND company_id = $2`,
-        [name, companyId]
+        [name, companyId],
       );
 
       if (duplicateCheck.rows.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Duplicate leave type",
-          details: "A leave type with this name already exists in your company"
+          details: "A leave type with this name already exists in your company",
         });
       }
 
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // Create leave type
       const leaveTypeResult = await client.query(
@@ -527,7 +547,15 @@ router.post(
         (name, description, requires_documentation, max_days, is_paid, is_active, company_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`,
-        [name, description, requires_documentation, max_days, is_paid, is_active, companyId]
+        [
+          name,
+          description,
+          requires_documentation,
+          max_days,
+          is_paid,
+          is_active,
+          companyId,
+        ],
       );
 
       const leaveTypeId = leaveTypeResult.rows[0].id;
@@ -537,17 +565,23 @@ router.post(
         for (const roleDef of role_defaults) {
           // Validate role default days don't exceed max_days
           const defaultDays = Math.min(roleDef.default_days, max_days);
-          
+
           await client.query(
             `INSERT INTO company_default_leave_balances
             (company_id, leave_type_id, role, default_days, carry_forward_days)
             VALUES ($1, $2, $3, $4, $5)`,
-            [companyId, leaveTypeId, roleDef.role, defaultDays, roleDef.carry_forward_days]
+            [
+              companyId,
+              leaveTypeId,
+              roleDef.role,
+              defaultDays,
+              roleDef.carry_forward_days,
+            ],
           );
         }
       }
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
 
       // Fetch the complete leave type with role defaults
       const finalResult = await client.query(
@@ -564,18 +598,18 @@ router.post(
         LEFT JOIN company_default_leave_balances cdb ON lt.id = cdb.leave_type_id
         WHERE lt.id = $1
         GROUP BY lt.id`,
-        [leaveTypeId]
+        [leaveTypeId],
       );
 
       res.status(201).json(finalResult.rows[0]);
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       console.error("Error creating leave type:", error);
       res.status(500).json({ error: "Failed to create leave type" });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update leave type and role-based defaults
@@ -608,24 +642,26 @@ router.put(
       // Get company_id
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Check if leave type belongs to this company
       const leaveTypeCheck = await client.query(
         `SELECT * FROM leave_types WHERE id = $1 AND company_id = $2`,
-        [id, companyId]
+        [id, companyId],
       );
 
       if (leaveTypeCheck.rows.length === 0) {
         return res.status(403).json({
           error: "Access denied",
-          details: "Leave type not found or belongs to another company"
+          details: "Leave type not found or belongs to another company",
         });
       }
 
@@ -633,17 +669,18 @@ router.put(
       const duplicateCheck = await client.query(
         `SELECT id FROM leave_types 
         WHERE name = $1 AND company_id = $2 AND id != $3`,
-        [name, companyId, id]
+        [name, companyId, id],
       );
 
       if (duplicateCheck.rows.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Duplicate leave type",
-          details: "Another leave type with this name already exists in your company"
+          details:
+            "Another leave type with this name already exists in your company",
         });
       }
 
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // Update leave type
       const result = await client.query(
@@ -657,7 +694,16 @@ router.put(
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $7 AND company_id = $8
         RETURNING *`,
-        [name, description, requires_documentation, max_days, is_paid, is_active, id, companyId]
+        [
+          name,
+          description,
+          requires_documentation,
+          max_days,
+          is_paid,
+          is_active,
+          id,
+          companyId,
+        ],
       );
 
       // Update role-based default balances
@@ -666,18 +712,24 @@ router.put(
         await client.query(
           `DELETE FROM company_default_leave_balances
           WHERE leave_type_id = $1`,
-          [id]
+          [id],
         );
 
         // Insert new defaults
         for (const roleDef of role_defaults) {
           const defaultDays = Math.min(roleDef.default_days, max_days);
-          
+
           await client.query(
             `INSERT INTO company_default_leave_balances
             (company_id, leave_type_id, role, default_days, carry_forward_days)
             VALUES ($1, $2, $3, $4, $5)`,
-            [companyId, id, roleDef.role, defaultDays, roleDef.carry_forward_days]
+            [
+              companyId,
+              id,
+              roleDef.role,
+              defaultDays,
+              roleDef.carry_forward_days,
+            ],
           );
         }
       }
@@ -687,10 +739,10 @@ router.put(
         `UPDATE leave_balances
         SET total_days = LEAST(total_days, $1)
         WHERE leave_type_id = $2`,
-        [max_days, id]
+        [max_days, id],
       );
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
 
       // Fetch updated leave type with role defaults
       const finalResult = await client.query(
@@ -707,18 +759,18 @@ router.put(
         LEFT JOIN company_default_leave_balances cdb ON lt.id = cdb.leave_type_id
         WHERE lt.id = $1
         GROUP BY lt.id`,
-        [id]
+        [id],
       );
 
       res.json(finalResult.rows[0]);
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       console.error("Error updating leave type:", error);
       res.status(500).json({ error: "Failed to update leave type" });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get all leave policies
@@ -735,7 +787,7 @@ router.get(
       // Get the company_id of the requesting user
       const userResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
@@ -763,7 +815,7 @@ router.get(
          JOIN leave_types lt ON lp.leave_type_id = lt.id
          WHERE lt.company_id IS NULL OR lt.company_id = $1
          ORDER BY lt.name, is_global_policy DESC`,
-        [companyId]
+        [companyId],
       );
 
       // Process results to keep only one version of each policy
@@ -805,7 +857,7 @@ router.get(
       console.error("Error fetching leave policies:", error);
       res.status(500).json({ error: "Failed to fetch leave policies" });
     }
-  }
+  },
 );
 
 // Create new leave policy
@@ -845,16 +897,16 @@ router.post(
         // Get the leave type to ensure default_days doesn't exceed max_days
         const leaveTypeResult = await client.query(
           `SELECT max_days FROM leave_types WHERE id = $1`,
-          [leave_type_id]
+          [leave_type_id],
         );
-        
+
         if (leaveTypeResult.rows.length === 0) {
           await client.query("ROLLBACK");
           return res.status(404).json({ error: "Leave type not found" });
         }
-        
+
         const { max_days } = leaveTypeResult.rows[0];
-        
+
         // Note: default_days is the actual allocation days for users
         // It should not exceed the max_days constraint from the leave type
         const finalDefaultDays = Math.min(default_days, max_days);
@@ -877,7 +929,7 @@ router.post(
             max_consecutive_days,
             gender_specific,
             is_active,
-          ]
+          ],
         );
 
         // Insert rules if provided
@@ -887,7 +939,7 @@ router.post(
               `INSERT INTO leave_policy_rules 
              (policy_id, rule_type, rule_value)
              VALUES ($1, $2, $3)`,
-              [policyResult.rows[0].id, rule.type, rule.value]
+              [policyResult.rows[0].id, rule.type, rule.value],
             );
           }
         }
@@ -904,7 +956,7 @@ router.post(
       console.error("Error creating leave policy:", error);
       res.status(500).json({ error: "Failed to create leave policy" });
     }
-  }
+  },
 );
 
 // Update leave policy
@@ -934,7 +986,7 @@ router.put(
       // Get the company_id of the requesting user
       const userResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
@@ -956,7 +1008,7 @@ router.put(
            FROM leave_policies lp
            JOIN leave_types lt ON lp.leave_type_id = lt.id
            WHERE lp.id = $1`,
-          [id]
+          [id],
         );
 
         if (policyResult.rows.length === 0) {
@@ -967,7 +1019,7 @@ router.put(
         const policy = policyResult.rows[0];
         const leaveTypeId = policy.leave_type_id;
         const maxDays = policy.max_days;
-        
+
         // Ensure default_days doesn't exceed max_days constraint
         const finalDefaultDays = Math.min(default_days, maxDays);
 
@@ -977,7 +1029,7 @@ router.put(
           const existingTypeResult = await client.query(
             `SELECT * FROM leave_types 
              WHERE name = $1 AND company_id = $2`,
-            [policy.leave_type_name, companyId]
+            [policy.leave_type_name, companyId],
           );
 
           let companyLeaveTypeId;
@@ -989,7 +1041,7 @@ router.put(
             // Create a company-specific copy of the leave type
             const globalTypeResult = await client.query(
               `SELECT * FROM leave_types WHERE id = $1`,
-              [policy.leave_type_id]
+              [policy.leave_type_id],
             );
 
             if (globalTypeResult.rows.length === 0) {
@@ -1012,7 +1064,7 @@ router.put(
                 globalType.is_paid,
                 globalType.is_active,
                 companyId,
-              ]
+              ],
             );
 
             companyLeaveTypeId = newTypeResult.rows[0].id;
@@ -1045,7 +1097,7 @@ router.put(
               max_consecutive_days,
               gender_specific,
               is_active,
-            ]
+            ],
           );
 
           // Update rules if provided
@@ -1053,7 +1105,7 @@ router.put(
             // Delete existing rules
             await client.query(
               "DELETE FROM leave_policy_rules WHERE policy_id = $1",
-              [companyPolicyResult.rows[0].id]
+              [companyPolicyResult.rows[0].id],
             );
 
             // Insert new rules
@@ -1062,7 +1114,7 @@ router.put(
                 `INSERT INTO leave_policy_rules 
                  (policy_id, rule_type, rule_value)
                  VALUES ($1, $2, $3)`,
-                [companyPolicyResult.rows[0].id, rule.type, rule.value]
+                [companyPolicyResult.rows[0].id, rule.type, rule.value],
               );
             }
           }
@@ -1107,7 +1159,7 @@ router.put(
             gender_specific,
             is_active,
             id,
-          ]
+          ],
         );
 
         if (result.rows.length === 0) {
@@ -1120,7 +1172,7 @@ router.put(
           // Delete existing rules
           await client.query(
             "DELETE FROM leave_policy_rules WHERE policy_id = $1",
-            [id]
+            [id],
           );
 
           // Insert new rules
@@ -1129,7 +1181,7 @@ router.put(
               `INSERT INTO leave_policy_rules 
                (policy_id, rule_type, rule_value)
                VALUES ($1, $2, $3)`,
-              [id, rule.type, rule.value]
+              [id, rule.type, rule.value],
             );
           }
         }
@@ -1146,7 +1198,7 @@ router.put(
       console.error("Error updating leave policy:", error);
       res.status(500).json({ error: "Failed to update leave policy" });
     }
-  }
+  },
 );
 
 // Get leave analytics
@@ -1221,7 +1273,7 @@ router.get(
        FROM leave_requests lr
        WHERE lr.user_id = ANY($1)
        AND lr.created_at BETWEEN $2 AND $3`,
-        [userIds, startDate.toISOString(), endDate.toISOString()]
+        [userIds, startDate.toISOString(), endDate.toISOString()],
       );
 
       // Get leave type distribution
@@ -1235,7 +1287,7 @@ router.get(
        AND lr.created_at BETWEEN $2 AND $3
        GROUP BY lt.name, lt.id
        ORDER BY request_count DESC`,
-        [userIds, startDate.toISOString(), endDate.toISOString()]
+        [userIds, startDate.toISOString(), endDate.toISOString()],
       );
 
       // Get daily trend with proper date handling
@@ -1262,20 +1314,20 @@ router.get(
        FROM dates d
        LEFT JOIN daily_counts dc ON d.date = dc.date
        ORDER BY d.date`,
-        [startDate.toISOString(), endDate.toISOString(), userIds]
+        [startDate.toISOString(), endDate.toISOString(), userIds],
       );
 
       const response = {
         statistics: {
           total_requests: parseInt(statsResult.rows[0]?.total_requests || "0"),
           approved_requests: parseInt(
-            statsResult.rows[0]?.approved_requests || "0"
+            statsResult.rows[0]?.approved_requests || "0",
           ),
           pending_requests: parseInt(
-            statsResult.rows[0]?.pending_requests || "0"
+            statsResult.rows[0]?.pending_requests || "0",
           ),
           rejected_requests: parseInt(
-            statsResult.rows[0]?.rejected_requests || "0"
+            statsResult.rows[0]?.rejected_requests || "0",
           ),
         },
         typeDistribution: typeDistribution.rows || [],
@@ -1291,7 +1343,7 @@ router.get(
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
 );
 
 // Calculate and initialize leave balances for a user
@@ -1301,7 +1353,8 @@ export const calculateLeaveBalances = async (userId: number, year: number) => {
     await client.query("BEGIN");
 
     // First check which leave types don't have balances yet
-    const missingBalancesResult = await client.query(`
+    const missingBalancesResult = await client.query(
+      `
       SELECT 
         lt.id, 
         lt.max_days,
@@ -1316,7 +1369,9 @@ export const calculateLeaveBalances = async (userId: number, year: number) => {
         AND lb.user_id = $1 
         AND lb.year = $2
       )
-    `, [userId, year]);
+    `,
+      [userId, year],
+    );
 
     if (missingBalancesResult.rows.length === 0) {
       // All balances exist, no need to do anything
@@ -1331,7 +1386,7 @@ export const calculateLeaveBalances = async (userId: number, year: number) => {
       FROM leave_balances
       WHERE user_id = $1 AND year = $2
     `,
-      [userId, year - 1]
+      [userId, year - 1],
     );
 
     const prevBalancesMap = prevYearBalances.rows.reduce((acc, row) => {
@@ -1344,7 +1399,7 @@ export const calculateLeaveBalances = async (userId: number, year: number) => {
       // Calculate carry forward days - limited by policy maximum
       const carryForwardDays = Math.min(
         prevBalancesMap[leaveType.id] || 0,
-        parseInt(leaveType.carry_forward_days) || 0
+        parseInt(leaveType.carry_forward_days) || 0,
       );
 
       // Use default_days from policy, falling back to max_days from leave types if needed
@@ -1359,7 +1414,7 @@ export const calculateLeaveBalances = async (userId: number, year: number) => {
         VALUES ($1, $2, $3, 0, 0, $4, $5)
         ON CONFLICT (user_id, leave_type_id, year) DO NOTHING
       `,
-        [userId, leaveType.id, totalDays, carryForwardDays, year]
+        [userId, leaveType.id, totalDays, carryForwardDays, year],
       );
     }
 
@@ -1398,7 +1453,7 @@ const getUsersUnderManagement = async (managementId: number) => {
     SELECT DISTINCT id, name, email, role, employee_number
     FROM user_hierarchy
     ORDER BY role, name`,
-    [managementId]
+    [managementId],
   );
   return result.rows;
 };
@@ -1421,7 +1476,7 @@ router.get(
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
     }
-  }
+  },
 );
 
 // Update leave balance endpoint to check user access
@@ -1443,7 +1498,7 @@ router.get(
       // Get user's company_id
       const userCompanyResult = await pool.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [userId]
+        [userId],
       );
 
       if (!userCompanyResult.rows.length) {
@@ -1488,7 +1543,7 @@ router.get(
         )
         ORDER BY lt.name
       `,
-        [userId, year, companyId]
+        [userId, year, companyId],
       );
 
       res.json(result.rows);
@@ -1496,7 +1551,7 @@ router.get(
       console.error("Error fetching leave balances:", error);
       res.status(500).json({ error: "Failed to fetch leave balances" });
     }
-  }
+  },
 );
 
 // Update leave balance when a leave request is processed
@@ -1505,7 +1560,7 @@ const updateLeaveBalance = async (
   leaveTypeId: number,
   days: number,
   status: "pending" | "approved" | "rejected",
-  year: number
+  year: number,
 ) => {
   const client = await pool.connect();
   try {
@@ -1518,7 +1573,7 @@ const updateLeaveBalance = async (
         SET pending_days = pending_days + $1
         WHERE user_id = $2 AND leave_type_id = $3 AND year = $4
       `,
-        [days, userId, leaveTypeId, year]
+        [days, userId, leaveTypeId, year],
       );
     } else if (status === "approved") {
       await client.query(
@@ -1528,7 +1583,7 @@ const updateLeaveBalance = async (
             pending_days = pending_days - $1
         WHERE user_id = $2 AND leave_type_id = $3 AND year = $4
       `,
-        [days, userId, leaveTypeId, year]
+        [days, userId, leaveTypeId, year],
       );
     } else if (status === "rejected") {
       await client.query(
@@ -1537,7 +1592,7 @@ const updateLeaveBalance = async (
         SET pending_days = pending_days - $1
         WHERE user_id = $2 AND leave_type_id = $3 AND year = $4
       `,
-        [days, userId, leaveTypeId, year]
+        [days, userId, leaveTypeId, year],
       );
     }
 
@@ -1565,7 +1620,7 @@ router.post(
 
       // Get all users
       const usersResult = await client.query(
-        "SELECT id FROM users WHERE role != 'super-admin'"
+        "SELECT id FROM users WHERE role != 'super-admin'",
       );
 
       for (const user of usersResult.rows) {
@@ -1581,7 +1636,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get documents for a leave request
@@ -1609,7 +1664,7 @@ router.get(
         OR (u.group_admin_id = $2 AND $3 = 'group-admin')
         OR $3 = 'management'
       )`,
-        [id, req.user.id, req.user.role]
+        [id, req.user.id, req.user.role],
       );
 
       if (accessCheck.rows.length === 0) {
@@ -1621,7 +1676,7 @@ router.get(
        FROM leave_documents
        WHERE request_id = $1
        ORDER BY created_at DESC`,
-        [id]
+        [id],
       );
 
       res.json(result.rows);
@@ -1631,7 +1686,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update the leave request submission route to handle documents
@@ -1673,7 +1728,7 @@ router.post(
       JOIN leave_policies lp ON lt.id = lp.leave_type_id
       WHERE lt.id = $1
     `,
-        [leave_type_id]
+        [leave_type_id],
       );
 
       if (!leaveTypeResult.rows.length) {
@@ -1702,12 +1757,12 @@ router.post(
 
       // Check notice period
       const noticeDays = Math.ceil(
-        (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
       if (noticeDays < leaveType.notice_period_days) {
         const earliestPossibleDate = new Date();
         earliestPossibleDate.setDate(
-          earliestPossibleDate.getDate() + leaveType.notice_period_days
+          earliestPossibleDate.getDate() + leaveType.notice_period_days,
         );
         return res.status(400).json({
           error: "Notice period requirement not met",
@@ -1728,14 +1783,14 @@ router.post(
       // Calculate days requested
       const days_requested =
         Math.ceil(
-          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
         ) + 1;
 
       // Get user's current leave balance
       const balanceResult = await client.query(
         `SELECT * FROM leave_balances 
        WHERE user_id = $1 AND leave_type_id = $2 AND year = $3`,
-        [req.user.id, leave_type_id, new Date().getFullYear()]
+        [req.user.id, leave_type_id, new Date().getFullYear()],
       );
 
       if (balanceResult.rows.length === 0) {
@@ -1754,7 +1809,7 @@ router.post(
       if (leaveType.gender_specific) {
         const userResult = await client.query(
           "SELECT gender FROM users WHERE id = $1",
-          [req.user.id]
+          [req.user.id],
         );
 
         if (!userResult.rows[0]?.gender) {
@@ -1792,7 +1847,7 @@ router.post(
           documents && documents.length > 0,
           "pending",
           days_requested,
-        ]
+        ],
       );
 
       const requestId = requestResult.rows[0].id;
@@ -1810,7 +1865,7 @@ router.post(
               doc.file_type,
               doc.file_data,
               doc.upload_method,
-            ]
+            ],
           );
         }
       }
@@ -1821,7 +1876,7 @@ router.post(
         leave_type_id,
         days_requested,
         "pending",
-        new Date().getFullYear()
+        new Date().getFullYear(),
       );
 
       await client.query("COMMIT");
@@ -1838,7 +1893,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Process leave request approval/rejection
@@ -1863,7 +1918,7 @@ router.post(
       LEFT JOIN leave_escalations le ON lr.id = le.request_id 
       WHERE lr.id = $1
     `,
-        [id]
+        [id],
       );
 
       if (!requestResult.rows.length) {
@@ -1877,13 +1932,13 @@ router.post(
       if (isEscalated) {
         if (!resolution_notes) {
           throw new Error(
-            "Resolution notes are required for escalated requests"
+            "Resolution notes are required for escalated requests",
           );
         }
 
         await client.query(
           "UPDATE leave_escalations SET status = $1, resolution_notes = $2, resolved_at = $3 WHERE request_id = $4",
-          ["resolved", resolution_notes, now, id]
+          ["resolved", resolution_notes, now, id],
         );
       }
 
@@ -1895,7 +1950,7 @@ router.post(
             action === "reject" ? rejection_reason : null,
             now,
             id,
-          ]
+          ],
         );
 
         // Update leave balance
@@ -1908,7 +1963,12 @@ router.post(
             pending_days = pending_days - $1
           WHERE user_id = $2 AND leave_type_id = $3 AND year = $4
         `,
-            [request.days_requested, request.user_id, request.leave_type_id, request.year]
+            [
+              request.days_requested,
+              request.user_id,
+              request.leave_type_id,
+              request.year,
+            ],
           );
         } else if (action === "reject") {
           // When rejecting, just decrease pending_days
@@ -1919,7 +1979,12 @@ router.post(
             pending_days = pending_days - $1
           WHERE user_id = $2 AND leave_type_id = $3 AND year = $4
         `,
-            [request.days_requested, request.user_id, request.leave_type_id, request.year]
+            [
+              request.days_requested,
+              request.user_id,
+              request.leave_type_id,
+              request.year,
+            ],
           );
         }
       }
@@ -1936,7 +2001,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get escalated leave requests
@@ -1965,7 +2030,7 @@ router.get(
        JOIN users et ON le.escalated_to = et.id
        WHERE le.escalated_to = $1 AND le.status = 'pending'
        ORDER BY le.created_at DESC`,
-        [req.user?.id]
+        [req.user?.id],
       );
 
       res.json(result.rows);
@@ -1973,7 +2038,7 @@ router.get(
       console.error("Error fetching escalated requests:", error);
       res.status(500).json({ error: "Failed to fetch escalated requests" });
     }
-  }
+  },
 );
 
 // Get all leave requests for management
@@ -2003,7 +2068,7 @@ router.get(
       JOIN users u ON lr.user_id = u.id
       WHERE lr.user_id = $1
       ORDER BY lr.created_at DESC`,
-        [userId]
+        [userId],
       );
 
       res.json(result.rows);
@@ -2011,7 +2076,7 @@ router.get(
       console.error("Error fetching leave requests:", error);
       res.status(500).json({ error: "Failed to fetch leave requests" });
     }
-  }
+  },
 );
 
 // Get pending leave requests for management
@@ -2093,7 +2158,7 @@ router.get(
         END,
         lr.created_at DESC
     `,
-        [req.user.id]
+        [req.user.id],
       );
 
       res.json(result.rows);
@@ -2103,7 +2168,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update the stats endpoint
@@ -2121,7 +2186,7 @@ router.get(
       // Get user info including role and company_id
       const userResult = await client.query(
         `SELECT id, role, company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const userData = userResult.rows[0];
@@ -2180,7 +2245,7 @@ router.get(
       FROM leave_requests
       WHERE user_id = ANY($1)
         AND created_at >= CURRENT_DATE - INTERVAL '30 days'`,
-        [userIds]
+        [userIds],
       );
 
       // Get active leave types count for the company
@@ -2189,18 +2254,18 @@ router.get(
       FROM leave_types
       WHERE is_active = true
       AND (company_id IS NULL OR company_id = $1)`,
-        [companyId]
+        [companyId],
       );
 
       const stats = {
         pending_requests: parseInt(
-          requestsResult.rows[0]?.pending_requests || "0"
+          requestsResult.rows[0]?.pending_requests || "0",
         ),
         approved_requests: parseInt(
-          requestsResult.rows[0]?.approved_requests || "0"
+          requestsResult.rows[0]?.approved_requests || "0",
         ),
         active_leave_types: parseInt(
-          leaveTypesResult.rows[0]?.active_leave_types || "0"
+          leaveTypesResult.rows[0]?.active_leave_types || "0",
         ),
       };
 
@@ -2214,21 +2279,25 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Add document retrieval endpoint
-router.get('/document/:id', [authMiddleware, managementMiddleware], async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/document/:id",
+  [authMiddleware, managementMiddleware],
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const { id } = req.params;
+      const { id } = req.params;
 
-    // Check if the user has access to this document
-    const result = await client.query(`
+      // Check if the user has access to this document
+      const result = await client.query(
+        `
       SELECT ld.file_data, ld.file_type 
       FROM leave_documents ld
       JOIN leave_requests lr ON ld.request_id = lr.id
@@ -2239,25 +2308,28 @@ router.get('/document/:id', [authMiddleware, managementMiddleware], async (req: 
         OR (u.group_admin_id = $2 AND $3 = 'group-admin')
         OR $3 = 'management'
       )`,
-      [id, req.user.id, req.user.role]
-    );
+        [id, req.user.id, req.user.role],
+      );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Document not found or unauthorized' });
+      if (result.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "Document not found or unauthorized" });
+      }
+
+      const document = result.rows[0];
+
+      // Send base64 data directly
+      res.setHeader("Content-Type", "text/plain");
+      res.send(document.file_data);
+    } catch (error) {
+      console.error("Error fetching document:", error);
+      res.status(500).json({ error: "Failed to fetch document" });
+    } finally {
+      client.release();
     }
-
-    const document = result.rows[0];
-    
-    // Send base64 data directly
-    res.setHeader('Content-Type', 'text/plain');
-    res.send(document.file_data);
-  } catch (error) {
-    console.error('Error fetching document:', error);
-    res.status(500).json({ error: 'Failed to fetch document' });
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 // Manually adjust leave balance with audit trail
 router.post(
@@ -2267,13 +2339,8 @@ router.post(
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {
-      const {
-        user_id,
-        leave_type_id,
-        year,
-        adjustment_days,
-        reason
-      } = req.body;
+      const { user_id, leave_type_id, year, adjustment_days, reason } =
+        req.body;
 
       if (!req.user?.id) {
         return res.status(401).json({ error: "User not authenticated" });
@@ -2286,7 +2353,7 @@ router.post(
         JOIN users u2 ON u2.id = $1
         JOIN leave_types lt ON lt.id = $2
         WHERE u1.id = $3`,
-        [user_id, leave_type_id, req.user.id]
+        [user_id, leave_type_id, req.user.id],
       );
 
       if (!userResult.rows.length) {
@@ -2296,16 +2363,18 @@ router.post(
       const { company_id, target_company_id, max_days } = userResult.rows[0];
 
       if (company_id !== target_company_id) {
-        return res.status(403).json({ error: "Cannot adjust leave balance for users from other companies" });
+        return res.status(403).json({
+          error: "Cannot adjust leave balance for users from other companies",
+        });
       }
 
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // Get current balance
       const balanceResult = await client.query(
         `SELECT * FROM leave_balances
         WHERE user_id = $1 AND leave_type_id = $2 AND year = $3`,
-        [user_id, leave_type_id, year]
+        [user_id, leave_type_id, year],
       );
 
       let currentBalance = balanceResult.rows[0];
@@ -2319,7 +2388,7 @@ router.post(
           (user_id, leave_type_id, total_days, used_days, pending_days, year)
           VALUES ($1, $2, $3, 0, 0, $4)
           RETURNING *`,
-          [user_id, leave_type_id, Math.max(0, adjustment_days), year]
+          [user_id, leave_type_id, Math.max(0, adjustment_days), year],
         );
         currentBalance = newBalanceResult.rows[0];
         beforeValue = 0;
@@ -2327,14 +2396,17 @@ router.post(
       } else {
         // Update existing balance
         beforeValue = currentBalance.total_days;
-        afterValue = Math.max(0, Math.min(max_days, beforeValue + adjustment_days));
+        afterValue = Math.max(
+          0,
+          Math.min(max_days, beforeValue + adjustment_days),
+        );
 
         await client.query(
           `UPDATE leave_balances
           SET total_days = $1,
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $2`,
-          [afterValue, currentBalance.id]
+          [afterValue, currentBalance.id],
         );
       }
 
@@ -2343,25 +2415,33 @@ router.post(
         `INSERT INTO manual_leave_adjustments
         (user_id, leave_type_id, year, adjusted_by, before_value, after_value, reason)
         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [user_id, leave_type_id, year, req.user.id, beforeValue, afterValue, reason]
+        [
+          user_id,
+          leave_type_id,
+          year,
+          req.user.id,
+          beforeValue,
+          afterValue,
+          reason,
+        ],
       );
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
 
       res.json({
         message: "Leave balance adjusted successfully",
         before_value: beforeValue,
         after_value: afterValue,
-        adjustment: afterValue - beforeValue
+        adjustment: afterValue - beforeValue,
       });
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       console.error("Error adjusting leave balance:", error);
       res.status(500).json({ error: "Failed to adjust leave balance" });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get leave balance adjustment history
@@ -2373,7 +2453,7 @@ router.get(
     const client = await pool.connect();
     try {
       const { user_id, leave_type_id, year } = req.query;
-      
+
       if (!req.user?.id) {
         return res.status(401).json({ error: "User not authenticated" });
       }
@@ -2381,12 +2461,14 @@ router.get(
       // Get company_id
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Build query based on filters
@@ -2402,7 +2484,7 @@ router.get(
         JOIN leave_types lt ON mla.leave_type_id = lt.id
         WHERE u1.company_id = $1
       `;
-      
+
       const params = [companyId];
       let paramCount = 1;
 
@@ -2434,7 +2516,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get company default leave balances
@@ -2452,16 +2534,19 @@ router.get(
       // Get company ID
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Get default balances for all roles and leave types
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT 
           lt.id as leave_type_id,
           lt.name as leave_type_name,
@@ -2475,7 +2560,9 @@ router.get(
         LEFT JOIN company_default_leave_balances cdb ON lt.id = cdb.leave_type_id
         WHERE lt.company_id = $1 AND lt.is_active = true
         ORDER BY lt.name, cdb.role
-      `, [companyId]);
+      `,
+        [companyId],
+      );
 
       res.json(result.rows);
     } catch (error) {
@@ -2484,7 +2571,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update company default leave balances
@@ -2499,7 +2586,8 @@ router.post(
         return res.status(401).json({ error: "User not authenticated" });
       }
 
-      const { leave_type_id, role, default_days, carry_forward_days } = req.body;
+      const { leave_type_id, role, default_days, carry_forward_days } =
+        req.body;
 
       if (!leave_type_id || !role || default_days === undefined) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -2508,7 +2596,7 @@ router.post(
       // Get company ID and validate leave type belongs to company
       const companyCheck = await client.query(
         `SELECT company_id FROM leave_types WHERE id = $1`,
-        [leave_type_id]
+        [leave_type_id],
       );
 
       if (!companyCheck.rows.length) {
@@ -2516,7 +2604,8 @@ router.post(
       }
 
       // Update or insert default balance
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO company_default_leave_balances 
         (leave_type_id, role, default_days, carry_forward_days)
         VALUES ($1, $2, $3, $4)
@@ -2524,7 +2613,9 @@ router.post(
         DO UPDATE SET 
           default_days = EXCLUDED.default_days,
           carry_forward_days = EXCLUDED.carry_forward_days
-      `, [leave_type_id, role, default_days, carry_forward_days || 0]);
+      `,
+        [leave_type_id, role, default_days, carry_forward_days || 0],
+      );
 
       res.json({ message: "Default leave balance updated successfully" });
     } catch (error) {
@@ -2533,7 +2624,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get user leave balances
@@ -2548,12 +2639,14 @@ router.get(
       }
 
       const { userId } = req.params;
-      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const year =
+        parseInt(req.query.year as string) || new Date().getFullYear();
       const currentUserId = Number(req.user.id);
       const targetUserId = Number(userId);
 
       // Check authorization and get user details
-      const authCheck = await client.query(`
+      const authCheck = await client.query(
+        `
         SELECT 
           u1.company_id as user_company,
           u1.role as user_role,
@@ -2563,7 +2656,9 @@ router.get(
         FROM users u1
         CROSS JOIN users u2
         WHERE u1.id = $1 AND u2.id = $2
-      `, [currentUserId, targetUserId]);
+      `,
+        [currentUserId, targetUserId],
+      );
 
       if (!authCheck.rows.length) {
         return res.status(404).json({ error: "User not found" });
@@ -2574,22 +2669,26 @@ router.get(
         user_role,
         target_company,
         group_admin_id,
-        gender
+        gender,
       } = authCheck.rows[0];
 
-      console.log('User details:', { targetUserId, gender, target_company });
+      console.log("User details:", { targetUserId, gender, target_company });
 
       // Verify authorization
       if (
         user_company !== target_company || // Must be same company
-        (user_role === 'employee' && currentUserId !== targetUserId) || // Employees can only view their own
-        (user_role === 'group_admin' && Number(group_admin_id) !== currentUserId) // Group admins can only view their team
+        (user_role === "employee" && currentUserId !== targetUserId) || // Employees can only view their own
+        (user_role === "group_admin" &&
+          Number(group_admin_id) !== currentUserId) // Group admins can only view their team
       ) {
-        return res.status(403).json({ error: "Not authorized to view this user's leave balances" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to view this user's leave balances" });
       }
 
       // Get leave balances with improved gender-specific filtering
-      const result = await client.query(`
+      const result = await client.query(
+        `
         WITH leave_types_with_policies AS (
           SELECT 
             lt.id,
@@ -2627,15 +2726,17 @@ router.get(
             OR $4 IS NULL
           )
         ORDER BY ltp.name
-      `, [targetUserId, year, target_company, gender]);
+      `,
+        [targetUserId, year, target_company, gender],
+      );
 
-      console.log('Leave balance query result:', {
+      console.log("Leave balance query result:", {
         userGender: gender,
         rowCount: result.rows.length,
-        leaveTypes: result.rows.map(row => ({
+        leaveTypes: result.rows.map((row) => ({
           name: row.leave_type_name,
-          genderSpecific: row.gender_specific
-        }))
+          genderSpecific: row.gender_specific,
+        })),
       });
 
       res.json(result.rows);
@@ -2645,7 +2746,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update user leave balance
@@ -2662,7 +2763,13 @@ router.post(
       const { userId } = req.params;
       const { leave_type_id, total_days, carry_forward_days, year } = req.body;
 
-      console.log('Updating balance for:', { userId, leave_type_id, total_days, carry_forward_days, year });
+      console.log("Updating balance for:", {
+        userId,
+        leave_type_id,
+        total_days,
+        carry_forward_days,
+        year,
+      });
 
       if (!leave_type_id || total_days === undefined || !year) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -2676,7 +2783,8 @@ router.post(
       await client.query("BEGIN");
 
       // Check authorization
-      const authCheck = await client.query(`
+      const authCheck = await client.query(
+        `
         SELECT 
           u1.company_id as user_company,
           u1.role as user_role,
@@ -2685,34 +2793,35 @@ router.post(
         FROM users u1
         CROSS JOIN users u2
         WHERE u1.id = $1 AND u2.id = $2
-      `, [req.user.id, userId]);
+      `,
+        [req.user.id, userId],
+      );
 
       if (!authCheck.rows.length) {
         await client.query("ROLLBACK");
         return res.status(404).json({ error: "User not found" });
       }
 
-      const {
-        user_company,
-        user_role,
-        target_company,
-        group_admin_id
-      } = authCheck.rows[0];
+      const { user_company, user_role, target_company, group_admin_id } =
+        authCheck.rows[0];
 
       // Verify authorization
       if (
         user_company !== target_company || // Must be same company
-        user_role === 'employee' || // Employees cannot modify balances
-        (user_role === 'group_admin' && Number(group_admin_id) !== Number(req.user.id)) // Group admins can only modify their team
+        user_role === "employee" || // Employees cannot modify balances
+        (user_role === "group_admin" &&
+          Number(group_admin_id) !== Number(req.user.id)) // Group admins can only modify their team
       ) {
         await client.query("ROLLBACK");
-        return res.status(403).json({ error: "Not authorized to modify this user's leave balances" });
+        return res.status(403).json({
+          error: "Not authorized to modify this user's leave balances",
+        });
       }
 
       // Verify leave type belongs to company
       const leaveTypeCheck = await client.query(
         `SELECT id, max_days FROM leave_types WHERE id = $1 AND company_id = $2`,
-        [leave_type_id, user_company]
+        [leave_type_id, user_company],
       );
 
       if (!leaveTypeCheck.rows.length) {
@@ -2724,9 +2833,9 @@ router.post(
       const { max_days } = leaveTypeCheck.rows[0];
       if (max_days > 0 && total_days > max_days) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Total days exceeds maximum allowed",
-          details: `Maximum allowed days for this leave type is ${max_days}`
+          details: `Maximum allowed days for this leave type is ${max_days}`,
         });
       }
 
@@ -2734,23 +2843,24 @@ router.post(
       const currentBalance = await client.query(
         `SELECT used_days, pending_days FROM leave_balances 
          WHERE user_id = $1 AND leave_type_id = $2 AND year = $3`,
-        [userId, leave_type_id, year]
+        [userId, leave_type_id, year],
       );
 
       const used_days = currentBalance.rows[0]?.used_days || 0;
       const pending_days = currentBalance.rows[0]?.pending_days || 0;
 
       // Ensure new total_days isn't less than already used or pending days
-      if (total_days < (used_days + pending_days)) {
+      if (total_days < used_days + pending_days) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Total days cannot be less than used + pending days",
-          details: `User has already used ${used_days} days and has ${pending_days} pending days`
+          details: `User has already used ${used_days} days and has ${pending_days} pending days`,
         });
       }
 
       // Update or insert leave balance
-      const result = await client.query(`
+      const result = await client.query(
+        `
         INSERT INTO leave_balances 
         (user_id, leave_type_id, total_days, carry_forward_days, year, used_days, pending_days)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -2760,15 +2870,17 @@ router.post(
           carry_forward_days = EXCLUDED.carry_forward_days,
           updated_at = NOW()
         RETURNING *
-      `, [
-        userId,
-        leave_type_id,
-        total_days,
-        carry_forward_days || 0,
-        year,
-        used_days,
-        pending_days
-      ]);
+      `,
+        [
+          userId,
+          leave_type_id,
+          total_days,
+          carry_forward_days || 0,
+          year,
+          used_days,
+          pending_days,
+        ],
+      );
 
       // Try to log the update, but don't fail if audit table doesn't exist
       try {
@@ -2787,41 +2899,44 @@ router.post(
           )
         `);
 
-        await client.query(`
+        await client.query(
+          `
           INSERT INTO leave_balance_audit_log
           (user_id, leave_type_id, year, old_total_days, new_total_days, 
            old_carry_forward_days, new_carry_forward_days, modified_by)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [
-          userId,
-          leave_type_id,
-          year,
-          currentBalance.rows[0]?.total_days || 0,
-          total_days,
-          currentBalance.rows[0]?.carry_forward_days || 0,
-          carry_forward_days || 0,
-          req.user.id
-        ]);
+        `,
+          [
+            userId,
+            leave_type_id,
+            year,
+            currentBalance.rows[0]?.total_days || 0,
+            total_days,
+            currentBalance.rows[0]?.carry_forward_days || 0,
+            carry_forward_days || 0,
+            req.user.id,
+          ],
+        );
       } catch (auditError) {
         // Log audit error but don't fail the transaction
-        console.warn('Failed to log balance update to audit log:', auditError);
+        console.warn("Failed to log balance update to audit log:", auditError);
       }
 
       await client.query("COMMIT");
 
-      console.log('Successfully updated balance:', result.rows[0]);
+      console.log("Successfully updated balance:", result.rows[0]);
       res.json(result.rows[0]);
     } catch (error) {
       await client.query("ROLLBACK");
       console.error("Error updating user leave balance:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to update user leave balance",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Initialize default leave balances for all users in a company
@@ -2836,27 +2951,30 @@ router.post(
         return res.status(401).json({ error: "User not authenticated" });
       }
 
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // Get company ID and role
       const userResult = await client.query(
         `SELECT company_id, role FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       const companyId = userResult.rows[0]?.company_id;
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Get all users under management's company with their gender
       const usersResult = await client.query(
         `SELECT id, role, gender FROM users WHERE company_id = $1`,
-        [companyId]
+        [companyId],
       );
 
       // Get all active leave types and their default values
-      const leaveTypesResult = await client.query(`
+      const leaveTypesResult = await client.query(
+        `
         SELECT 
           lt.id,
           lt.name,
@@ -2869,23 +2987,32 @@ router.post(
         LEFT JOIN leave_policies lp ON lt.id = lp.leave_type_id
         WHERE lt.company_id = $1 
         AND lt.is_active = true
-      `, [companyId]);
+      `,
+        [companyId],
+      );
 
-      console.log('Leave types with defaults:', JSON.stringify(leaveTypesResult.rows, null, 2));
+      console.log(
+        "Leave types with defaults:",
+        JSON.stringify(leaveTypesResult.rows, null, 2),
+      );
 
       let initializationCount = 0;
       const year = new Date().getFullYear();
 
       // For each user
       for (const user of usersResult.rows) {
-        console.log(`Processing user ${user.id} with role ${user.role} and gender ${user.gender || 'unspecified'}`);
-        
+        console.log(
+          `Processing user ${user.id} with role ${user.role} and gender ${user.gender || "unspecified"}`,
+        );
+
         // For each leave type
         for (const leaveType of leaveTypesResult.rows) {
           // Skip gender-specific leaves if gender doesn't match
           if (leaveType.gender_specific) {
             if (!user.gender || leaveType.gender_specific !== user.gender) {
-              console.log(`Skipping ${leaveType.name} for user ${user.id} due to gender mismatch`);
+              console.log(
+                `Skipping ${leaveType.name} for user ${user.id} due to gender mismatch`,
+              );
               continue;
             }
           }
@@ -2894,37 +3021,48 @@ router.post(
           const existingBalance = await client.query(
             `SELECT id FROM leave_balances 
              WHERE user_id = $1 AND leave_type_id = $2 AND year = $3`,
-            [user.id, leaveType.id, year]
+            [user.id, leaveType.id, year],
           );
 
           if (existingBalance.rows.length === 0) {
             // Get role-specific defaults if they exist
-            const roleDefaultResult = await client.query(`
+            const roleDefaultResult = await client.query(
+              `
               SELECT default_days, carry_forward_days 
               FROM company_default_leave_balances 
               WHERE company_id = $1 
               AND leave_type_id = $2 
               AND role = $3`,
-              [companyId, leaveType.id, user.role]
+              [companyId, leaveType.id, user.role],
             );
 
             // Use role-specific defaults or fallback to leave type/policy defaults
-            const defaultDays = roleDefaultResult.rows[0]?.default_days || leaveType.default_days || leaveType.max_days || 0;
-            const carryForwardDays = roleDefaultResult.rows[0]?.carry_forward_days || leaveType.carry_forward_days || 0;
+            const defaultDays =
+              roleDefaultResult.rows[0]?.default_days ||
+              leaveType.default_days ||
+              leaveType.max_days ||
+              0;
+            const carryForwardDays =
+              roleDefaultResult.rows[0]?.carry_forward_days ||
+              leaveType.carry_forward_days ||
+              0;
 
-            console.log(`Setting up leave balance for user ${user.id}, leave type ${leaveType.name}:`, {
-              defaultDays,
-              carryForwardDays,
-              roleSpecific: roleDefaultResult.rows.length > 0,
-              genderSpecific: leaveType.gender_specific
-            });
+            console.log(
+              `Setting up leave balance for user ${user.id}, leave type ${leaveType.name}:`,
+              {
+                defaultDays,
+                carryForwardDays,
+                roleSpecific: roleDefaultResult.rows.length > 0,
+                genderSpecific: leaveType.gender_specific,
+              },
+            );
 
             // Insert new balance
             await client.query(
               `INSERT INTO leave_balances 
                (user_id, leave_type_id, total_days, used_days, pending_days, carry_forward_days, year)
                VALUES ($1, $2, $3, 0, 0, $4, $5)`,
-              [user.id, leaveType.id, defaultDays, carryForwardDays, year]
+              [user.id, leaveType.id, defaultDays, carryForwardDays, year],
             );
 
             initializationCount++;
@@ -2932,7 +3070,7 @@ router.post(
         }
       }
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
 
       res.json({
         success: true,
@@ -2940,22 +3078,21 @@ router.post(
         details: {
           users_processed: usersResult.rows.length,
           leave_types_processed: leaveTypesResult.rows.length,
-          balances_initialized: initializationCount
-        }
+          balances_initialized: initializationCount,
+        },
       });
-
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       console.error("Error initializing default balances:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: "Failed to initialize default balances",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get user's leave balances for active leave types
@@ -2970,12 +3107,13 @@ router.get(
       }
 
       const userId = req.user.id;
-      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const year =
+        parseInt(req.query.year as string) || new Date().getFullYear();
 
       // Get user details including company and gender
       const userResult = await client.query(
         `SELECT company_id, gender FROM users WHERE id = $1`,
-        [userId]
+        [userId],
       );
 
       if (!userResult.rows.length) {
@@ -2985,7 +3123,9 @@ router.get(
       const { company_id: companyId, gender } = userResult.rows[0];
 
       if (!companyId) {
-        return res.status(400).json({ error: "User not associated with any company" });
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
       }
 
       // Get user's actual leave balances for active leave types with gender-specific filtering
@@ -3033,20 +3173,20 @@ router.get(
             OR $4 IS NULL
           )
         ORDER BY ltp.name ASC`,
-        [companyId, year, userId, gender]
+        [companyId, year, userId, gender],
       );
 
-      console.log('Leave types query result:', {
+      console.log("Leave types query result:", {
         userId,
         companyId,
         userGender: gender,
         rowCount: result.rows.length,
-        leaveTypes: result.rows.map(row => ({
+        leaveTypes: result.rows.map((row) => ({
           name: row.leave_type_name,
           genderSpecific: row.gender_specific,
           totalDays: row.total_days,
-          usedDays: row.used_days
-        }))
+          usedDays: row.used_days,
+        })),
       });
 
       res.json(result.rows);
@@ -3056,7 +3196,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
-export default router; 
+export default router;

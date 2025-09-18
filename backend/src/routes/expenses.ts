@@ -1,9 +1,9 @@
-import express, { Response, RequestHandler } from 'express';
-import { pool } from '../config/database';
-import { verifyToken } from '../middleware/auth';
-import { CustomRequest } from '../types';
-import multer from 'multer';
-import { PoolClient } from 'pg';
+import express, { Response, RequestHandler } from "express";
+import { pool } from "../config/database";
+import { verifyToken } from "../middleware/auth";
+import { CustomRequest } from "../types";
+import multer from "multer";
+import { PoolClient } from "pg";
 import NotificationService from "../services/notificationService";
 
 const router = express.Router();
@@ -30,7 +30,7 @@ const createNotification = async (
   title: string,
   message: string,
   type: string,
-  expenseDetails?: any
+  expenseDetails?: any,
 ) => {
   try {
     // Create in-app notification
@@ -38,7 +38,7 @@ const createNotification = async (
       userId,
       title,
       message,
-      type
+      type,
     );
 
     // Format the notification message with emojis and details
@@ -87,7 +87,7 @@ const createNotification = async (
           reason: expenseDetails.comments,
         },
       },
-      [userId.toString()]
+      [userId.toString()],
     );
   } catch (error) {
     console.error("Error in createNotification:", error);
@@ -123,7 +123,7 @@ router.get(
       // First check if the user has any expenses
       const checkQuery = await client.query(
         "SELECT COUNT(*) FROM expenses WHERE user_id = $1",
-        [req.user.id]
+        [req.user.id],
       );
 
       console.log("Found expenses count:", checkQuery.rows[0].count);
@@ -150,7 +150,7 @@ router.get(
       FROM expenses
       WHERE user_id = $1
       ORDER BY created_at DESC`,
-        [req.user.id]
+        [req.user.id],
       );
 
       console.log("Query results:", {
@@ -168,7 +168,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Group Admin routes should come first
@@ -218,7 +218,7 @@ router.get(
       JOIN users u ON e.user_id = u.id
       WHERE u.group_admin_id = $1
       ORDER BY e.created_at DESC`,
-        [req.user.id]
+        [req.user.id],
       );
 
       console.log("Query results:", {
@@ -237,7 +237,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Group Admin approval route
@@ -262,7 +262,7 @@ router.post(
          FROM expenses e 
          JOIN users u ON e.user_id = u.id 
          WHERE e.id = $1`,
-        [id]
+        [id],
       );
 
       if (expenseResult.rows.length === 0) {
@@ -283,7 +283,7 @@ router.post(
            AND group_admin_id = $4
          )
         RETURNING *`,
-        [approved ? "approved" : "rejected", comments || null, id, req.user.id]
+        [approved ? "approved" : "rejected", comments || null, id, req.user.id],
       );
 
       if (result.rows.length === 0) {
@@ -305,7 +305,7 @@ router.post(
           date: expense.date,
           route_taken: expense.route_taken,
           total_kilometers: expense.total_kilometers,
-        }
+        },
       );
 
       await client.query("COMMIT");
@@ -321,18 +321,22 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Group Admin report routes
-router.get('/group-admin/reports/expenses/summary', verifyToken, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (req.user?.role !== 'group-admin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+router.get(
+  "/group-admin/reports/expenses/summary",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (req.user?.role !== "group-admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       WITH employee_expenses AS (
         SELECT e.*
        FROM expenses e
@@ -345,26 +349,31 @@ router.get('/group-admin/reports/expenses/summary', verifyToken, async (req: Cus
         COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count,
         COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_count
       FROM employee_expenses`,
-      [req.user.id]
-    );
+        [req.user.id],
+      );
 
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching expense summary:', error);
-    res.status(500).json({ error: 'Failed to fetch expense summary' });
-  } finally {
-    client.release();
-  }
-});
-
-router.get('/group-admin/reports/expenses/by-employee', verifyToken, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (req.user?.role !== 'group-admin') {
-      return res.status(403).json({ error: 'Access denied' });
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error fetching expense summary:", error);
+      res.status(500).json({ error: "Failed to fetch expense summary" });
+    } finally {
+      client.release();
     }
+  },
+);
 
-    const result = await client.query(`
+router.get(
+  "/group-admin/reports/expenses/by-employee",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (req.user?.role !== "group-admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const result = await client.query(
+        `
       SELECT 
         u.name as employee_name, 
         CAST(COALESCE(SUM(e.total_amount), 0) AS FLOAT) as total_expenses,
@@ -376,17 +385,20 @@ router.get('/group-admin/reports/expenses/by-employee', verifyToken, async (req:
       AND u.role = 'employee'
       GROUP BY u.id, u.name
       ORDER BY total_expenses DESC`,
-      [req.user.id]
-    );
+        [req.user.id],
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching employee expense report:', error);
-    res.status(500).json({ error: 'Failed to fetch employee expense report' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching employee expense report:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch employee expense report" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Update the expense submission route
 router.post(
@@ -426,7 +438,7 @@ router.post(
       // Get user's company_id, active shift, and permissions
       const userResult = await client.query(
         "SELECT company_id, can_submit_expenses_anytime FROM users WHERE id = $1",
-        [req.user.id]
+        [req.user.id],
       );
       const company_id = userResult.rows[0]?.company_id;
       const canSubmitAnytime =
@@ -442,9 +454,9 @@ router.post(
          AND status = 'active' 
          ORDER BY start_time DESC 
          LIMIT 1`,
-        [req.user.id]
+        [req.user.id],
       );
-      
+
       if (activeShiftResult.rows.length > 0) {
         activeShift = activeShiftResult.rows[0];
         console.log("Found active shift:", activeShift);
@@ -473,15 +485,15 @@ router.post(
           req.body.department,
           req.body.designation,
           req.user.id,
-        ]
+        ],
       );
 
       // Get saved travel and expense details from request
       const savedTravelDetails = JSON.parse(
-        req.body.savedTravelDetails || "[]"
+        req.body.savedTravelDetails || "[]",
       );
       const savedExpenseDetails = JSON.parse(
-        req.body.savedExpenseDetails || "[]"
+        req.body.savedExpenseDetails || "[]",
       );
 
       // Combine current form data with saved details
@@ -512,7 +524,7 @@ router.post(
           detail.dailyAllowance ||
           detail.diesel ||
           detail.tollCharges ||
-          detail.otherExpenses
+          detail.otherExpenses,
       );
 
       let totalExpensesForShift = 0;
@@ -538,7 +550,9 @@ router.post(
           Number(expenseDetail.otherExpenses || 0);
 
         totalExpensesForShift += totalAmount;
-        totalKilometersForShift += parseNumericField(travelDetail.totalKilometers);
+        totalKilometersForShift += parseNumericField(
+          travelDetail.totalKilometers,
+        );
 
         const amountPayable = totalAmount - Number(req.body.advanceTaken || 0);
 
@@ -578,7 +592,7 @@ router.post(
             totalAmount,
             amountPayable,
             activeShift?.id || null, // Use null if no active shift (when canSubmitAnytime is true)
-          ]
+          ],
         );
 
         const expenseId = expenseResult.rows[0].id;
@@ -597,7 +611,7 @@ router.post(
                 file.mimetype,
                 file.size,
                 file.buffer,
-              ]
+              ],
             );
           }
         }
@@ -611,24 +625,25 @@ router.post(
           currentExpenses: activeShift.total_expenses,
           newExpenses: totalExpensesForShift,
           currentKilometers: activeShift.total_kilometers,
-          newKilometers: totalKilometersForShift
+          newKilometers: totalKilometersForShift,
         });
-        
+
         const currentTotalExpenses =
           parseFloat(activeShift.total_expenses) || 0;
         const newTotalExpenses = currentTotalExpenses + totalExpensesForShift;
-        
+
         const currentTotalKilometers =
           parseFloat(activeShift.total_kilometers) || 0;
-        const newTotalKilometers = currentTotalKilometers + totalKilometersForShift;
-        
+        const newTotalKilometers =
+          currentTotalKilometers + totalKilometersForShift;
+
         await client.query(
           `UPDATE employee_shifts 
          SET total_expenses = $1,
              total_kilometers = $2,
              updated_at = CURRENT_TIMESTAMP 
          WHERE id = $3`,
-          [newTotalExpenses, newTotalKilometers, activeShift.id]
+          [newTotalExpenses, newTotalKilometers, activeShift.id],
         );
       }
 
@@ -656,7 +671,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Finally add the generic routes
@@ -695,7 +710,7 @@ router.get("/:id", verifyToken, async (req: CustomRequest, res: Response) => {
           AND e.user_id = $3
         )
       )`,
-      [req.params.id, req.user.role, req.user.id]
+      [req.params.id, req.user.role, req.user.id],
     );
 
     if (result.rows.length === 0) {
@@ -774,7 +789,7 @@ router.get(
           AND e.user_id = $3
         )
       )`,
-        [req.params.id, req.user.role, req.user.id]
+        [req.params.id, req.user.role, req.user.id],
       );
 
       if (accessCheck.rows.length === 0) {
@@ -797,7 +812,7 @@ router.get(
       FROM expense_documents
       WHERE expense_id = $1
       ORDER BY created_at DESC`,
-        [req.params.id]
+        [req.params.id],
       );
 
       // Convert binary data to base64
@@ -817,7 +832,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 export default router;

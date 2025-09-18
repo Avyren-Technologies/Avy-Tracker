@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,16 +9,16 @@ import {
   TextInput,
   Modal,
   Platform,
-  Alert
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../../context/ThemeContext';
-import axios from 'axios';
-import AuthContext from '../../../../context/AuthContext';
-import * as IntentLauncher from 'expo-intent-launcher';
-import * as WebBrowser from 'expo-web-browser';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../../context/ThemeContext";
+import axios from "axios";
+import AuthContext from "../../../../context/AuthContext";
+import * as IntentLauncher from "expo-intent-launcher";
+import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 interface LeaveRequest {
   id: number;
@@ -32,14 +32,14 @@ interface LeaveRequest {
   end_date: string;
   days_requested: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'escalated';
+  status: "pending" | "approved" | "rejected" | "cancelled" | "escalated";
   rejection_reason?: string;
   requires_documentation: boolean;
-  documents: Array<{
+  documents: {
     id: number;
     file_name: string;
     file_type: string;
-  }>;
+  }[];
 }
 
 interface FilterState {
@@ -51,21 +51,21 @@ interface FilterState {
 export default function LeaveApprovals() {
   const { theme } = ThemeContext.useTheme();
   const { token } = AuthContext.useAuth();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [escalationReason, setEscalationReason] = useState('');
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [escalationReason, setEscalationReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    status: '',
-    employee: '',
-    leaveType: ''
+    status: "",
+    employee: "",
+    leaveType: "",
   });
 
   const fetchRequests = async () => {
@@ -73,15 +73,17 @@ export default function LeaveApprovals() {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin-leave/leave-requests`,
         {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
       // Filter for only pending requests
-      const pendingRequests = response.data.filter((request: LeaveRequest) => request.status === 'pending');
+      const pendingRequests = response.data.filter(
+        (request: LeaveRequest) => request.status === "pending",
+      );
       setRequests(pendingRequests);
       setFilteredRequests(pendingRequests);
     } catch (error) {
-      console.error('Error fetching leave requests:', error);
+      console.error("Error fetching leave requests:", error);
     } finally {
       setLoading(false);
     }
@@ -101,28 +103,39 @@ export default function LeaveApprovals() {
     let result = requests;
 
     if (filters.status) {
-      result = result.filter(request => 
-        request.status.toLowerCase() === filters.status.toLowerCase()
+      result = result.filter(
+        (request) =>
+          request.status.toLowerCase() === filters.status.toLowerCase(),
       );
     }
 
     if (filters.employee) {
-      result = result.filter(request => 
-        request.user_name.toLowerCase().includes(filters.employee.toLowerCase()) ||
-        request.employee_number.toLowerCase().includes(filters.employee.toLowerCase())
+      result = result.filter(
+        (request) =>
+          request.user_name
+            .toLowerCase()
+            .includes(filters.employee.toLowerCase()) ||
+          request.employee_number
+            .toLowerCase()
+            .includes(filters.employee.toLowerCase()),
       );
     }
 
     if (filters.leaveType) {
-      result = result.filter(request => 
-        request.leave_type_name.toLowerCase().includes(filters.leaveType.toLowerCase())
+      result = result.filter((request) =>
+        request.leave_type_name
+          .toLowerCase()
+          .includes(filters.leaveType.toLowerCase()),
       );
     }
 
     setFilteredRequests(result);
   }, [filters, requests]);
 
-  const handleAction = async (requestId: number, action: 'approve' | 'reject' | 'escalate') => {
+  const handleAction = async (
+    requestId: number,
+    action: "approve" | "reject" | "escalate",
+  ) => {
     setActionLoading(requestId);
     try {
       let response;
@@ -136,7 +149,7 @@ export default function LeaveApprovals() {
         response = await axios.post(
           `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin-leave/leave-requests/${requestId}/approve`,
           {},
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         // Send approval notification
@@ -152,13 +165,13 @@ export default function LeaveApprovals() {
               days_requested: request.days_requested,
             },
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
       } else if (action === "reject") {
         response = await axios.post(
           `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin-leave/leave-requests/${requestId}/reject`,
           { rejection_reason: rejectionReason },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         // Send rejection notification
@@ -175,7 +188,7 @@ export default function LeaveApprovals() {
             },
             reason: rejectionReason,
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
       } else {
         // Handle escalation
@@ -185,7 +198,7 @@ export default function LeaveApprovals() {
             escalation_reason: escalationReason,
             escalated_to: null, // This will be automatically assigned to a management user in the backend
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         // Send escalation notification to employee
@@ -202,12 +215,12 @@ export default function LeaveApprovals() {
             },
             reason: escalationReason,
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         // Send notification to management
         const managementNotificationTitle = `⚠️ Leave Request Escalation Required`;
-        const managementNotificationMessage = 
+        const managementNotificationMessage =
           `A leave request has been escalated for your review.\n\n` +
           `👤 Employee: ${request.user_name} (${request.employee_number})\n` +
           `📝 Leave Type: ${request.leave_type_name}\n` +
@@ -222,7 +235,7 @@ export default function LeaveApprovals() {
             message: managementNotificationMessage,
             type: "leave-escalation",
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
       }
 
@@ -239,40 +252,45 @@ export default function LeaveApprovals() {
           `Leave request has been ${action}${
             action === "approve" ? "d" : action === "reject" ? "ed" : "d"
           }`,
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     } catch (error) {
-      console.error('Error processing leave request:', error);
-      Alert.alert('Error', 'Failed to process leave request. Please try again.');
+      console.error("Error processing leave request:", error);
+      Alert.alert(
+        "Error",
+        "Failed to process leave request. Please try again.",
+      );
     } finally {
       setActionLoading(null);
       setSelectedRequest(null);
     }
   };
 
-  const handleViewDocument = async (doc: { file_name: string; file_type: string; id: number }) => {
+  const handleViewDocument = async (doc: {
+    file_name: string;
+    file_type: string;
+    id: number;
+  }) => {
     try {
       // First fetch the document data
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin-leave/document/${doc.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'text'
-        }
+          responseType: "text",
+        },
       );
 
       // Create a temporary file
       const fileUri = `${FileSystem.cacheDirectory}${doc.file_name}`;
-      await FileSystem.writeAsStringAsync(
-        fileUri,
-        response.data,
-        { encoding: FileSystem.EncodingType.Base64 }
-      );
+      await FileSystem.writeAsStringAsync(fileUri, response.data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      if (Platform.OS === 'android') {
+      if (Platform.OS === "android") {
         const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
           data: contentUri,
           flags: 1,
           type: doc.file_type,
@@ -282,7 +300,10 @@ export default function LeaveApprovals() {
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           await Sharing.shareAsync(fileUri, {
-            UTI: doc.file_type === 'application/pdf' ? 'com.adobe.pdf' : 'public.item',
+            UTI:
+              doc.file_type === "application/pdf"
+                ? "com.adobe.pdf"
+                : "public.item",
             mimeType: doc.file_type,
           });
         } else {
@@ -291,8 +312,8 @@ export default function LeaveApprovals() {
         }
       }
     } catch (error) {
-      console.error('Error viewing document:', error);
-      Alert.alert('Error', 'Failed to open document. Please try again.');
+      console.error("Error viewing document:", error);
+      Alert.alert("Error", "Failed to open document. Please try again.");
     }
   };
 
@@ -301,22 +322,31 @@ export default function LeaveApprovals() {
     value: string,
     onChange: (text: string) => void,
     placeholder: string,
-    icon: keyof typeof Ionicons.glyphMap
+    icon: keyof typeof Ionicons.glyphMap,
   ) => (
     <View className="mb-4">
-      <Text className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+      <Text
+        className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+      >
         {label}
       </Text>
-      <View className={`flex-row items-center px-4 py-2 rounded-lg ${
-        isDark ? 'bg-gray-800' : 'bg-white'
-      } border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-        <Ionicons name={icon} size={20} color={isDark ? '#9CA3AF' : '#6B7280'} style={{ marginRight: 8 }} />
+      <View
+        className={`flex-row items-center px-4 py-2 rounded-lg ${
+          isDark ? "bg-gray-800" : "bg-white"
+        } border ${isDark ? "border-gray-700" : "border-gray-200"}`}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={isDark ? "#9CA3AF" : "#6B7280"}
+          style={{ marginRight: 8 }}
+        />
         <TextInput
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-          className={`flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}
+          placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+          className={`flex-1 ${isDark ? "text-white" : "text-gray-900"}`}
         />
       </View>
     </View>
@@ -327,7 +357,7 @@ export default function LeaveApprovals() {
     onPress: () => void,
     color: string,
     icon: keyof typeof Ionicons.glyphMap,
-    isLoading: boolean
+    isLoading: boolean,
   ) => (
     <TouchableOpacity
       onPress={onPress}
@@ -335,12 +365,21 @@ export default function LeaveApprovals() {
       className={`flex-1 flex-row items-center justify-center p-3 rounded-lg ${color}`}
     >
       {isLoading ? (
-        <ActivityIndicator color="white" size="small" style={{ marginRight: 8 }} />
+        <ActivityIndicator
+          color="white"
+          size="small"
+          style={{ marginRight: 8 }}
+        />
       ) : (
-        <Ionicons name={icon} size={20} color="white" style={{ marginRight: 8 }} />
+        <Ionicons
+          name={icon}
+          size={20}
+          color="white"
+          style={{ marginRight: 8 }}
+        />
       )}
       <Text className="text-white font-medium">
-        {isLoading ? 'Processing...' : label}
+        {isLoading ? "Processing..." : label}
       </Text>
     </TouchableOpacity>
   );
@@ -348,7 +387,10 @@ export default function LeaveApprovals() {
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color={isDark ? '#60A5FA' : '#3B82F6'} />
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#60A5FA" : "#3B82F6"}
+        />
       </View>
     );
   }
@@ -360,14 +402,16 @@ export default function LeaveApprovals() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[isDark ? '#60A5FA' : '#3B82F6']}
-            tintColor={isDark ? '#60A5FA' : '#3B82F6'}
+            colors={[isDark ? "#60A5FA" : "#3B82F6"]}
+            tintColor={isDark ? "#60A5FA" : "#3B82F6"}
           />
         }
       >
         <View className="flex-1">
           {/* Filters */}
-          <View className={`p-4 mb-4 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
+          <View
+            className={`p-4 mb-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm`}
+          >
             {/* {renderFilter(
               'Status',
               filters.status,
@@ -376,29 +420,51 @@ export default function LeaveApprovals() {
               'flag-outline'
             )} */}
             {renderFilter(
-              'Employee',
+              "Employee",
               filters.employee,
-              (text) => setFilters(prev => ({ ...prev, employee: text })),
-              'Search by name or employee number',
-              'person-outline'
+              (text) => setFilters((prev) => ({ ...prev, employee: text })),
+              "Search by name or employee number",
+              "person-outline",
             )}
             {renderFilter(
-              'Leave Type',
+              "Leave Type",
               filters.leaveType,
-              (text) => setFilters(prev => ({ ...prev, leaveType: text })),
-              'Filter by leave type',
-              'layers-outline'
+              (text) => setFilters((prev) => ({ ...prev, leaveType: text })),
+              "Filter by leave type",
+              "layers-outline",
             )}
           </View>
 
           {/* Requests List */}
           {filteredRequests.length === 0 ? (
-            <View className={`flex-1 justify-center items-center p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>  
-              <Ionicons name="checkmark-circle-outline" size={50} color={isDark ? '#60A5FA' : '#3B82F6'} />
-              <Text className={`text-lg font-semibold mt-4 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>No Pending Approvals</Text>
-              <Text className={`text-center ${isDark ? 'text-gray-400' : 'text-gray-600'} mt-2`}>Currently, there are no pending leave requests from employees awaiting your review.</Text>
-              <TouchableOpacity onPress={onRefresh} className="mt-4 p-2 w-1/3 bg-blue-500 rounded-lg flex-row items-center justify-center">
-                <Ionicons name="refresh" size={20} color={isDark ? '#E0F2FE' : '#FFFFFF'} />
+            <View
+              className={`flex-1 justify-center items-center p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm`}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={50}
+                color={isDark ? "#60A5FA" : "#3B82F6"}
+              />
+              <Text
+                className={`text-lg font-semibold mt-4 ${isDark ? "text-gray-200" : "text-gray-800"}`}
+              >
+                No Pending Approvals
+              </Text>
+              <Text
+                className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"} mt-2`}
+              >
+                Currently, there are no pending leave requests from employees
+                awaiting your review.
+              </Text>
+              <TouchableOpacity
+                onPress={onRefresh}
+                className="mt-4 p-2 w-1/3 bg-blue-500 rounded-lg flex-row items-center justify-center"
+              >
+                <Ionicons
+                  name="refresh"
+                  size={20}
+                  color={isDark ? "#E0F2FE" : "#FFFFFF"}
+                />
                 <Text className="text-white text-center ml-2">Refresh</Text>
               </TouchableOpacity>
             </View>
@@ -406,49 +472,76 @@ export default function LeaveApprovals() {
             filteredRequests.map((request) => (
               <View
                 key={request.id}
-                className={`mb-4 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-sm`}
+                className={`mb-4 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} shadow-sm`}
               >
                 <View className="flex-row justify-between items-start mb-4">
                   <View>
-                    <Text className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {request.user_name}
                     </Text>
-                    <Text className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       {request.employee_number} • {request.department}
                     </Text>
                   </View>
-                  <View className={`px-3 py-1 rounded-full ${
-                    request.status === 'pending' ? 'bg-yellow-100' :
-                    request.status === 'approved' ? 'bg-green-100' :
-                    request.status === 'rejected' ? 'bg-red-100' :
-                    request.status === 'escalated' ? 'bg-purple-100' : 'bg-gray-100'
-                  }`}>
-                    <Text className={
-                      request.status === 'pending' ? 'text-yellow-800' :
-                      request.status === 'approved' ? 'text-green-800' :
-                      request.status === 'rejected' ? 'text-red-800' :
-                      request.status === 'escalated' ? 'text-purple-800' : 'text-gray-800'
-                    }>
+                  <View
+                    className={`px-3 py-1 rounded-full ${
+                      request.status === "pending"
+                        ? "bg-yellow-100"
+                        : request.status === "approved"
+                          ? "bg-green-100"
+                          : request.status === "rejected"
+                            ? "bg-red-100"
+                            : request.status === "escalated"
+                              ? "bg-purple-100"
+                              : "bg-gray-100"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        request.status === "pending"
+                          ? "text-yellow-800"
+                          : request.status === "approved"
+                            ? "text-green-800"
+                            : request.status === "rejected"
+                              ? "text-red-800"
+                              : request.status === "escalated"
+                                ? "text-purple-800"
+                                : "text-gray-800"
+                      }
+                    >
                       {request.status.toUpperCase()}
                     </Text>
                   </View>
                 </View>
 
                 <View className="mb-4">
-                  <Text className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <Text
+                    className={`font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
                     {request.leave_type_name} Leave
                   </Text>
-                  <Text className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                  <Text
+                    className={`${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    {new Date(request.start_date).toLocaleDateString()} -{" "}
+                    {new Date(request.end_date).toLocaleDateString()}
                   </Text>
-                  <Text className={`mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <Text
+                    className={`mt-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  >
                     {request.reason}
                   </Text>
                 </View>
 
                 {request.documents.length > 0 && (
                   <View className="mb-4">
-                    <Text className={`font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <Text
+                      className={`font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                    >
                       Documents
                     </Text>
                     {request.documents.map((doc) => (
@@ -456,55 +549,61 @@ export default function LeaveApprovals() {
                         key={doc.id}
                         onPress={() => handleViewDocument(doc)}
                         className={`flex-row items-center p-2 rounded-lg mb-2 ${
-                          isDark ? 'bg-gray-700' : 'bg-gray-100'
+                          isDark ? "bg-gray-700" : "bg-gray-100"
                         }`}
                       >
-                        <Ionicons 
-                          name={doc.file_type.includes('image') ? 'image' : 'document-text'} 
-                          size={20} 
-                          color={isDark ? '#9CA3AF' : '#6B7280'} 
+                        <Ionicons
+                          name={
+                            doc.file_type.includes("image")
+                              ? "image"
+                              : "document-text"
+                          }
+                          size={20}
+                          color={isDark ? "#9CA3AF" : "#6B7280"}
                         />
-                        <Text className={`ml-2 flex-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <Text
+                          className={`ml-2 flex-1 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                        >
                           {doc.file_name}
                         </Text>
-                        <Ionicons 
-                          name="eye-outline" 
-                          size={20} 
-                          color={isDark ? '#60A5FA' : '#3B82F6'} 
+                        <Ionicons
+                          name="eye-outline"
+                          size={20}
+                          color={isDark ? "#60A5FA" : "#3B82F6"}
                         />
                       </TouchableOpacity>
                     ))}
                   </View>
                 )}
 
-                {request.status === 'pending' && (
+                {request.status === "pending" && (
                   <View className="flex-row gap-2 space-x-2">
                     {renderActionButton(
-                      'Approve',
-                      () => handleAction(request.id, 'approve'),
-                      'bg-green-500',
-                      'checkmark-circle-outline',
-                      actionLoading === request.id
+                      "Approve",
+                      () => handleAction(request.id, "approve"),
+                      "bg-green-500",
+                      "checkmark-circle-outline",
+                      actionLoading === request.id,
                     )}
                     {renderActionButton(
-                      'Reject',
+                      "Reject",
                       () => {
                         setSelectedRequest(request.id);
                         setShowRejectModal(true);
                       },
-                      'bg-red-500',
-                      'close-circle-outline',
-                      actionLoading === request.id
+                      "bg-red-500",
+                      "close-circle-outline",
+                      actionLoading === request.id,
                     )}
                     {renderActionButton(
-                      'Escalate',
+                      "Escalate",
                       () => {
                         setSelectedRequest(request.id);
                         setShowEscalateModal(true);
                       },
-                      'bg-purple-500',
-                      'arrow-up-circle-outline',
-                      actionLoading === request.id
+                      "bg-purple-500",
+                      "arrow-up-circle-outline",
+                      actionLoading === request.id,
                     )}
                   </View>
                 )}
@@ -522,16 +621,20 @@ export default function LeaveApprovals() {
         onRequestClose={() => setShowRejectModal(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <Text className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
+            <Text
+              className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               Reject Leave Request
             </Text>
             <TextInput
               value={rejectionReason}
               onChangeText={setRejectionReason}
               placeholder="Enter reason for rejection"
-              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              className={`p-3 rounded-lg mb-4 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`p-3 rounded-lg mb-4 ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"}`}
               multiline
             />
             <View className="flex-row space-x-2 gap-2">
@@ -539,17 +642,25 @@ export default function LeaveApprovals() {
                 onPress={() => setShowRejectModal(false)}
                 className="flex-1 p-3 rounded-lg bg-gray-500"
               >
-                <Text className="text-white text-center font-medium">Cancel</Text>
+                <Text className="text-white text-center font-medium">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => selectedRequest && handleAction(selectedRequest, 'reject')}
-                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest ? 'bg-red-400' : 'bg-red-500'}`}
-                disabled={!rejectionReason.trim() || actionLoading === selectedRequest}
+                onPress={() =>
+                  selectedRequest && handleAction(selectedRequest, "reject")
+                }
+                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest ? "bg-red-400" : "bg-red-500"}`}
+                disabled={
+                  !rejectionReason.trim() || actionLoading === selectedRequest
+                }
               >
                 {actionLoading === selectedRequest ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-center font-medium">Reject</Text>
+                  <Text className="text-white text-center font-medium">
+                    Reject
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -565,16 +676,20 @@ export default function LeaveApprovals() {
         onRequestClose={() => setShowEscalateModal(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`w-11/12 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-            <Text className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <View
+            className={`w-11/12 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
+            <Text
+              className={`text-lg font-semibold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               Escalate to Management
             </Text>
             <TextInput
               value={escalationReason}
               onChangeText={setEscalationReason}
               placeholder="Enter reason for escalation"
-              placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-              className={`p-3 rounded-lg mb-4 ${isDark ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`p-3 rounded-lg mb-4 ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-900"}`}
               multiline
             />
             <View className="flex-row space-x-2 gap-2">
@@ -582,17 +697,25 @@ export default function LeaveApprovals() {
                 onPress={() => setShowEscalateModal(false)}
                 className="flex-1 p-3 rounded-lg bg-gray-500"
               >
-                <Text className="text-white text-center font-medium">Cancel</Text>
+                <Text className="text-white text-center font-medium">
+                  Cancel
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => selectedRequest && handleAction(selectedRequest, 'escalate')}
-                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest ? 'bg-purple-400' : 'bg-purple-500'}`}
-                disabled={!escalationReason.trim() || actionLoading === selectedRequest}
+                onPress={() =>
+                  selectedRequest && handleAction(selectedRequest, "escalate")
+                }
+                className={`flex-1 p-3 rounded-lg ${actionLoading === selectedRequest ? "bg-purple-400" : "bg-purple-500"}`}
+                disabled={
+                  !escalationReason.trim() || actionLoading === selectedRequest
+                }
               >
                 {actionLoading === selectedRequest ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white text-center font-medium">Escalate</Text>
+                  <Text className="text-white text-center font-medium">
+                    Escalate
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -601,4 +724,4 @@ export default function LeaveApprovals() {
       </Modal>
     </>
   );
-} 
+}

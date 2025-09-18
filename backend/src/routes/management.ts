@@ -1,10 +1,9 @@
-import express, { Response, RequestHandler } from 'express';
-import { authMiddleware } from '../middleware/auth';
-import { pool } from '../config/database';
-import { CustomRequest } from '../types';
-import multer from 'multer';
+import express, { Response, RequestHandler } from "express";
+import { authMiddleware } from "../middleware/auth";
+import { pool } from "../config/database";
+import { CustomRequest } from "../types";
+import multer from "multer";
 import { verifyToken } from "../middleware/auth";
-
 
 const router = express.Router();
 
@@ -21,8 +20,6 @@ const upload = multer({
 const convertToLocalTime = (isoString: string) => {
   return isoString.replace(/Z$/, ""); // Remove Z suffix to treat as local time
 };
-
-
 
 // Get management profile data
 router.get(
@@ -50,7 +47,7 @@ router.get(
       LEFT JOIN companies c ON u.company_id = c.id
       WHERE u.id = $1 AND u.role = 'management'
     `,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!result.rows[0]) {
@@ -71,7 +68,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Update management profile
@@ -136,7 +133,7 @@ router.put(
       LEFT JOIN companies c ON u.company_id = c.id
       WHERE u.id = $1
     `,
-        [updateResult.rows[0].id]
+        [updateResult.rows[0].id],
       );
 
       await client.query("COMMIT");
@@ -160,7 +157,7 @@ router.put(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Add this new endpoint
@@ -191,7 +188,7 @@ router.get(
           `SELECT COUNT(*) as total_teams 
          FROM users 
          WHERE company_id = $1 AND role = 'group-admin'`,
-          [companyId]
+          [companyId],
         );
         console.log("Teams query successful:", teamsResult.rows[0]);
       } catch (error) {
@@ -205,7 +202,7 @@ router.get(
           `SELECT user_limit 
          FROM companies 
          WHERE id = $1`,
-          [companyId]
+          [companyId],
         );
         console.log("User limit query successful:", userLimitResult.rows[0]);
       } catch (error) {
@@ -293,7 +290,7 @@ router.get(
       ORDER BY time DESC
       LIMIT 10
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get performance metrics (based on tasks)
@@ -315,7 +312,7 @@ router.get(
         ))::integer as team_performance
       FROM team_stats
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get attendance metrics
@@ -354,7 +351,7 @@ router.get(
         ROUND(attendance_rate)::integer as attendance_rate
       FROM attendance_summary
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get travel efficiency metrics
@@ -398,7 +395,7 @@ router.get(
         END as cost_trend
       FROM current_period, previous_period
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get expense overview
@@ -428,7 +425,7 @@ router.get(
         END as expense_trend
       FROM current_period, previous_period
     `,
-        [companyId]
+        [companyId],
       );
 
       // Return the response with real data
@@ -479,7 +476,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Add this new endpoint for analytics data
@@ -529,7 +526,7 @@ router.get(
       LEFT JOIN monthly_performance mp ON m.month = mp.month
       ORDER BY m.month
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get attendance data for last 5 days
@@ -573,7 +570,7 @@ router.get(
       LEFT JOIN daily_attendance da ON d.day = da.day
       ORDER BY d.day
     `,
-        [companyId]
+        [companyId],
       );
 
       // Get key metrics
@@ -651,7 +648,7 @@ router.get(
       CROSS JOIN task_stats ts
       CROSS JOIN efficiency_stats es
     `,
-        [companyId]
+        [companyId],
       );
 
       res.json({
@@ -660,7 +657,7 @@ router.get(
           datasets: [
             {
               data: performanceData.rows.map(
-                (row) => Number(row.performance) || 0
+                (row) => Number(row.performance) || 0,
               ),
             },
           ],
@@ -670,7 +667,7 @@ router.get(
           datasets: [
             {
               data: attendanceData.rows.map(
-                (row) => Number(row.attendance_rate) || 0
+                (row) => Number(row.attendance_rate) || 0,
               ),
             },
           ],
@@ -700,7 +697,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Helper function to calculate trend percentage
@@ -726,25 +723,27 @@ router.post(
         ? convertToLocalTime(startTime)
         : "CURRENT_TIMESTAMP";
 
-
-
       // Format the location as PostgreSQL point data type if provided
-      let locationQuery = '';
+      let locationQuery = "";
       let locationParam: number[] = []; // Explicitly type the array as number[]
-      
-      if (location && location.latitude !== undefined && location.longitude !== undefined) {
-        locationQuery = ', location_start = point($3, $4)';
+
+      if (
+        location &&
+        location.latitude !== undefined &&
+        location.longitude !== undefined
+      ) {
+        locationQuery = ", location_start = point($3, $4)";
         locationParam = [location.longitude, location.latitude]; // PostGIS expects (longitude, latitude)
       }
 
       // Start new shift with provided startTime and location
       const result = await client.query(
-        `INSERT INTO management_shifts (user_id, start_time, status${locationQuery ? ', location_start' : ''})
-       VALUES ($1, $2::timestamp, 'active'${locationQuery ? ', point($3, $4)' : ''})
+        `INSERT INTO management_shifts (user_id, start_time, status${locationQuery ? ", location_start" : ""})
+       VALUES ($1, $2::timestamp, 'active'${locationQuery ? ", point($3, $4)" : ""})
        RETURNING id, start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as start_time${
-         locationQuery ? ', location_start' : ''
+         locationQuery ? ", location_start" : ""
        }`,
-        [req.user.id, localStartTime, ...locationParam]
+        [req.user.id, localStartTime, ...locationParam],
       );
 
       res.json(result.rows[0]);
@@ -754,7 +753,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 router.post(
@@ -779,7 +778,7 @@ router.post(
         `SELECT id, start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as start_time 
        FROM management_shifts 
        WHERE user_id = $1 AND status = 'active'`,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (activeShift.rows.length === 0) {
@@ -787,27 +786,29 @@ router.post(
         return res.status(404).json({ error: "No active shift found" });
       }
 
-
-
       // Get total expenses for this shift period
       const expenses = await client.query(
         `SELECT COALESCE(SUM(total_amount), 0) as total_expenses
        FROM expenses
        WHERE user_id = $1 
        AND created_at BETWEEN $2 AND $3`,
-        [req.user.id, activeShift.rows[0].start_time, localEndTime]
+        [req.user.id, activeShift.rows[0].start_time, localEndTime],
       );
 
       // Format location data for update query if provided
-      let locationQuery = '';
+      let locationQuery = "";
       const queryParams = [
-        localEndTime, 
-        expenses.rows[0].total_expenses, 
-        activeShift.rows[0].id
+        localEndTime,
+        expenses.rows[0].total_expenses,
+        activeShift.rows[0].id,
       ];
-      
-      if (location && location.latitude !== undefined && location.longitude !== undefined) {
-        locationQuery = ', location_end = point($4, $5)';
+
+      if (
+        location &&
+        location.latitude !== undefined &&
+        location.longitude !== undefined
+      ) {
+        locationQuery = ", location_end = point($4, $5)";
         queryParams.push(location.longitude, location.latitude); // PostGIS expects (longitude, latitude)
       }
 
@@ -826,13 +827,11 @@ router.post(
          end_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as end_time,
          duration,
          status,
-         total_expenses${locationQuery ? ', location_start, location_end' : ''}`,
-        queryParams
+         total_expenses${locationQuery ? ", location_start, location_end" : ""}`,
+        queryParams,
       );
 
       await client.query("COMMIT");
-
-
 
       res.json(result.rows[0]);
     } catch (error) {
@@ -842,7 +841,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 router.get(
@@ -910,7 +909,7 @@ router.get(
       FROM daily_totals dt
       JOIN shift_details sd ON dt.date = sd.date
       ORDER BY dt.date DESC`,
-        [req.user.id, month + "-01"]
+        [req.user.id, month + "-01"],
       );
 
       // Add response logging
@@ -929,7 +928,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Add this new endpoint to get recent shifts
@@ -955,7 +954,7 @@ router.get(
       WHERE user_id = $1
       ORDER BY start_time DESC
       LIMIT 3`,
-        [req.user.id]
+        [req.user.id],
       );
 
       // Add timezone information to the response
@@ -971,20 +970,23 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get current active shift for a management user
-router.get('/shift/current', verifyToken, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/shift/current",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    // Get the current active shift for the management user
-    const result = await client.query(
-      `SELECT 
+      // Get the current active shift for the management user
+      const result = await client.query(
+        `SELECT 
         id,
         user_id,
         start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as start_time,
@@ -997,18 +999,19 @@ router.get('/shift/current', verifyToken, async (req: CustomRequest, res: Respon
       WHERE user_id = $1 AND status = 'active' AND end_time IS NULL
       ORDER BY start_time DESC
       LIMIT 1`,
-      [req.user.id]
-    );
+        [req.user.id],
+      );
 
-    // Return the shift data if found, null if not
-    const currentShift = result.rows.length > 0 ? result.rows[0] : null;
-    res.json(currentShift);
-  } catch (error) {
-    console.error('Error fetching current shift:', error);
-    res.status(500).json({ error: 'Failed to fetch current shift status' });
-  } finally {
-    client.release();
-  }
-});
+      // Return the shift data if found, null if not
+      const currentShift = result.rows.length > 0 ? result.rows[0] : null;
+      res.json(currentShift);
+    } catch (error) {
+      console.error("Error fetching current shift:", error);
+      res.status(500).json({ error: "Failed to fetch current shift status" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
-export default router; 
+export default router;

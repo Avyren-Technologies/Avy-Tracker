@@ -14,14 +14,14 @@ export interface CalendarTheme {
   textMonthFontSize: number;
   textMonthFontWeight: string;
   textDayHeaderFontSize: number;
-  'stylesheet.calendar.header': {
+  "stylesheet.calendar.header": {
     header: {
-      flexDirection: 'row';
-      justifyContent: 'space-between';
+      flexDirection: "row";
+      justifyContent: "space-between";
       paddingLeft: number;
       paddingRight: number;
       marginTop: number;
-      alignItems: 'center';
+      alignItems: "center";
     };
   };
-} 
+}

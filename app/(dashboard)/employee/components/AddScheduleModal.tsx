@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -9,10 +9,10 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { format } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
 
 interface AddScheduleModalProps {
   visible: boolean;
@@ -28,23 +28,23 @@ interface AddScheduleModalProps {
   isDark: boolean;
 }
 
-export default function AddScheduleModal({ 
-  visible, 
-  onClose, 
-  onSubmit, 
+export default function AddScheduleModal({
+  visible,
+  onClose,
+  onSubmit,
   selectedDate,
-  isDark 
+  isDark,
 }: AddScheduleModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
   const [time, setTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
+      Alert.alert("Error", "Title is required");
       return;
     }
 
@@ -54,18 +54,18 @@ export default function AddScheduleModal({
         title,
         description,
         location,
-        time: format(time, 'HH:mm'),
+        time: format(time, "HH:mm"),
         date: selectedDate,
       });
-      
+
       // Reset form (will only execute if submission was successful)
-      setTitle('');
-      setDescription('');
-      setLocation('');
+      setTitle("");
+      setDescription("");
+      setLocation("");
       setTime(new Date());
     } catch (error) {
-      console.error('Error submitting schedule:', error);
-      Alert.alert('Error', 'Failed to add schedule');
+      console.error("Error submitting schedule:", error);
+      Alert.alert("Error", "Failed to add schedule");
     } finally {
       setIsSubmitting(false);
     }
@@ -79,22 +79,26 @@ export default function AddScheduleModal({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={[
-          styles.modalContent,
-          { backgroundColor: isDark ? '#1F2937' : '#FFFFFF' }
-        ]}>
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" },
+          ]}
+        >
           <View style={styles.modalHeader}>
-            <Text style={[
-              styles.modalTitle,
-              { color: isDark ? '#FFFFFF' : '#111827' }
-            ]}>
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: isDark ? "#FFFFFF" : "#111827" },
+              ]}
+            >
               Add Schedule
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons 
-                name="close" 
-                size={24} 
-                color={isDark ? '#9CA3AF' : '#6B7280'} 
+              <Ionicons
+                name="close"
+                size={24}
+                color={isDark ? "#9CA3AF" : "#6B7280"}
               />
             </TouchableOpacity>
           </View>
@@ -102,13 +106,13 @@ export default function AddScheduleModal({
           <TextInput
             style={[
               styles.input,
-              { 
-                backgroundColor: isDark ? '#374151' : '#F3F4F6',
-                color: isDark ? '#FFFFFF' : '#111827'
-              }
+              {
+                backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                color: isDark ? "#FFFFFF" : "#111827",
+              },
             ]}
             placeholder="Title"
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
             value={title}
             onChangeText={setTitle}
           />
@@ -117,13 +121,13 @@ export default function AddScheduleModal({
             style={[
               styles.input,
               styles.textArea,
-              { 
-                backgroundColor: isDark ? '#374151' : '#F3F4F6',
-                color: isDark ? '#FFFFFF' : '#111827'
-              }
+              {
+                backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                color: isDark ? "#FFFFFF" : "#111827",
+              },
             ]}
             placeholder="Description"
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -133,13 +137,13 @@ export default function AddScheduleModal({
           <TextInput
             style={[
               styles.input,
-              { 
-                backgroundColor: isDark ? '#374151' : '#F3F4F6',
-                color: isDark ? '#FFFFFF' : '#111827'
-              }
+              {
+                backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                color: isDark ? "#FFFFFF" : "#111827",
+              },
             ]}
             placeholder="Location"
-            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+            placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
             value={location}
             onChangeText={setLocation}
           />
@@ -147,12 +151,12 @@ export default function AddScheduleModal({
           <TouchableOpacity
             style={[
               styles.timeButton,
-              { backgroundColor: isDark ? '#374151' : '#F3F4F6' }
+              { backgroundColor: isDark ? "#374151" : "#F3F4F6" },
             ]}
             onPress={() => setShowTimePicker(true)}
           >
-            <Text style={{ color: isDark ? '#FFFFFF' : '#111827' }}>
-              {format(time, 'hh:mm a')}
+            <Text style={{ color: isDark ? "#FFFFFF" : "#111827" }}>
+              {format(time, "hh:mm a")}
             </Text>
           </TouchableOpacity>
 
@@ -163,7 +167,7 @@ export default function AddScheduleModal({
               is24Hour={false}
               display="default"
               onChange={(event, selectedTime) => {
-                setShowTimePicker(Platform.OS === 'ios');
+                setShowTimePicker(Platform.OS === "ios");
                 if (selectedTime) {
                   setTime(selectedTime);
                 }
@@ -181,9 +185,9 @@ export default function AddScheduleModal({
             </TouchableOpacity>
             <TouchableOpacity
               style={[
-                styles.button, 
+                styles.button,
                 styles.submitButton,
-                isSubmitting && styles.buttonDisabled
+                isSubmitting && styles.buttonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={isSubmitting}
@@ -191,7 +195,11 @@ export default function AddScheduleModal({
               <View style={styles.buttonContent}>
                 {isSubmitting ? (
                   <>
-                    <ActivityIndicator size="small" color="#FFFFFF" style={styles.spinner} />
+                    <ActivityIndicator
+                      size="small"
+                      color="#FFFFFF"
+                      style={styles.spinner}
+                    />
                     <Text style={styles.buttonText}>Adding...</Text>
                   </>
                 ) : (
@@ -209,28 +217,28 @@ export default function AddScheduleModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
     padding: 20,
   },
   modalContent: {
     borderRadius: 12,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   input: {
     borderRadius: 8,
@@ -240,7 +248,7 @@ const styles = StyleSheet.create({
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   timeButton: {
     padding: 12,
@@ -248,8 +256,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: 12,
   },
   button: {
@@ -259,21 +267,21 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   cancelButton: {
-    backgroundColor: '#6B7280',
+    backgroundColor: "#6B7280",
   },
   submitButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   spinner: {
     marginRight: 8,
@@ -281,4 +289,4 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7,
   },
-}); 
+});

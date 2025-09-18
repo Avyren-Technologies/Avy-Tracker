@@ -18,19 +18,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import AuthContext from '../../context/AuthContext';
-import ThemeContext from '../../context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useIsFocused } from '@react-navigation/native';
-import { format, differenceInSeconds } from 'date-fns';
-import axios from 'axios';
-import TaskList from './components/TaskList';
-import BottomNav from '../../components/BottomNav';
-import { employeeNavItems } from './utils/navigationItems';
-import Constants from 'expo-constants';
-import { promptFaceConfiguration } from '../../utils/deepLinkUtils';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import AuthContext from "../../context/AuthContext";
+import ThemeContext from "../../context/ThemeContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
+import { format, differenceInSeconds } from "date-fns";
+import axios from "axios";
+import TaskList from "./components/TaskList";
+import BottomNav from "../../components/BottomNav";
+import { employeeNavItems } from "./utils/navigationItems";
+import Constants from "expo-constants";
+import { promptFaceConfiguration } from "../../utils/deepLinkUtils";
 // import PushNotificationService from '../../utils/pushNotificationService';
 
 const { width, height } = Dimensions.get("window");
@@ -86,20 +86,20 @@ export default function EmployeeDashboard() {
   // Fetch face registration status
   const fetchFaceRegistrationStatus = async () => {
     try {
-      setFaceRegistrationStatus(prev => ({ ...prev, loading: true }));
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
       const response = await axios.get(
         `${API_URL}/api/face-verification/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       setFaceRegistrationStatus({
         registered: response.data.face_registered || false,
         enabled: response.data.face_enabled !== false,
-        loading: false
+        loading: false,
       });
     } catch (error) {
       console.error("Error fetching face registration status:", error);
-      setFaceRegistrationStatus(prev => ({ ...prev, loading: false }));
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -143,7 +143,7 @@ export default function EmployeeDashboard() {
         title: "Set Up Face Verification",
         icon: "shield-outline",
         color: "#EF4444",
-        action: () => promptFaceConfiguration('dashboard-quick-action'),
+        action: () => promptFaceConfiguration("dashboard-quick-action"),
       });
     }
 
@@ -152,19 +152,19 @@ export default function EmployeeDashboard() {
 
   // Get shift management action based on current shift status
   const getShiftManagementAction = () => {
-    const isActiveShift = shiftStatus === 'Active Shift';
-    
+    const isActiveShift = shiftStatus === "Active Shift";
+
     return {
-      id: 'shift-management',
+      id: "shift-management",
       title: isActiveShift ? "End Shift" : "Start Shift",
       icon: isActiveShift ? "stop-circle-outline" : "play-circle-outline",
       color: isActiveShift ? "#EF4444" : "#10B981",
       action: () => router.push("/(dashboard)/shared/shiftTracker"),
-      subtitle: isActiveShift 
-        ? currentShiftDuration 
+      subtitle: isActiveShift
+        ? currentShiftDuration
           ? `Duration: ${currentShiftDuration}`
           : "Click to end your shift"
-        : "Click to start your shift"
+        : "Click to start your shift",
     };
   };
 
@@ -240,7 +240,7 @@ export default function EmployeeDashboard() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, []);
 
@@ -251,7 +251,7 @@ export default function EmployeeDashboard() {
     const updateDashboard = async () => {
       try {
         const shiftStatusData = await AsyncStorage.getItem(
-          `${user?.role}-shiftStatus`
+          `${user?.role}-shiftStatus`,
         );
 
         if (shiftStatusData) {
@@ -265,7 +265,7 @@ export default function EmployeeDashboard() {
             // Calculate duration in real-time
             const elapsedSeconds = differenceInSeconds(
               new Date(),
-              new Date(startTime)
+              new Date(startTime),
             );
             const hours = Math.floor(elapsedSeconds / 3600);
             const minutes = Math.floor((elapsedSeconds % 3600) / 60);
@@ -325,7 +325,7 @@ export default function EmployeeDashboard() {
   const getFilteredTasks = () => {
     if (activeTaskType === "All Tasks") return tasks;
     return tasks.filter(
-      (task) => task.status.toLowerCase() === activeTaskType.toLowerCase()
+      (task) => task.status.toLowerCase() === activeTaskType.toLowerCase(),
     );
   };
 
@@ -384,9 +384,8 @@ export default function EmployeeDashboard() {
       // Check cache first, unless forceRefresh is true
       if (!forceRefresh) {
         const cachedStats = await AsyncStorage.getItem("taskStats");
-        const cachedTimestamp = await AsyncStorage.getItem(
-          "taskStatsTimestamp"
-        );
+        const cachedTimestamp =
+          await AsyncStorage.getItem("taskStatsTimestamp");
 
         const now = new Date().getTime();
         const cacheAge = cachedTimestamp
@@ -410,7 +409,7 @@ export default function EmployeeDashboard() {
       await AsyncStorage.setItem("taskStats", JSON.stringify(response.data));
       await AsyncStorage.setItem(
         "taskStatsTimestamp",
-        new Date().getTime().toString()
+        new Date().getTime().toString(),
       );
 
       setTaskStats(response.data);
@@ -427,7 +426,7 @@ export default function EmployeeDashboard() {
       await axios.patch(
         `${API_URL}/api/tasks/${taskId}/status`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // Get the task that was updated
@@ -460,7 +459,7 @@ export default function EmployeeDashboard() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
       }
 
@@ -478,7 +477,11 @@ export default function EmployeeDashboard() {
   // Initial fetch for both tasks and stats
   useEffect(() => {
     const initialFetch = async () => {
-      await Promise.all([fetchTasks(), fetchTaskStats(), fetchFaceRegistrationStatus()]);
+      await Promise.all([
+        fetchTasks(),
+        fetchTaskStats(),
+        fetchFaceRegistrationStatus(),
+      ]);
     };
     initialFetch();
   }, []);
@@ -501,9 +504,12 @@ export default function EmployeeDashboard() {
   const TaskProgressBar = () => {
     // Set up auto-refresh interval
     useEffect(() => {
-      const intervalId = setInterval(() => {
-        fetchTaskStats();
-      }, 5 * 60 * 1000); // Refresh every 5 minutes
+      const intervalId = setInterval(
+        () => {
+          fetchTaskStats();
+        },
+        5 * 60 * 1000,
+      ); // Refresh every 5 minutes
 
       return () => clearInterval(intervalId);
     }, []); // Empty dependency array since fetchTaskStats is stable
@@ -635,7 +641,7 @@ export default function EmployeeDashboard() {
                     borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.completed,
-                      taskStats.total
+                      taskStats.total,
                     )}%`,
                   }}
                 />
@@ -683,7 +689,7 @@ export default function EmployeeDashboard() {
                     borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.inProgress,
-                      taskStats.total
+                      taskStats.total,
                     )}%`,
                   }}
                 />
@@ -731,7 +737,7 @@ export default function EmployeeDashboard() {
                     borderRadius: 4,
                     width: `${calculatePercentage(
                       taskStats.pending,
-                      taskStats.total
+                      taskStats.total,
                     )}%`,
                   }}
                 />
@@ -974,62 +980,110 @@ export default function EmployeeDashboard() {
               />
             }
           >
-          {/* Shift Management Section */}
-          <View style={styles.shiftManagementSection}>
-            <Text style={[styles.shiftManagementTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-              Shift Management
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.shiftManagementCard,
-                { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }
-              ]}
-              onPress={getShiftManagementAction().action}
-            >
-              <View style={[styles.shiftIconCircle, { backgroundColor: `${getShiftManagementAction().color}20` }]}>
-                <Ionicons name={getShiftManagementAction().icon as any} size={32} color={getShiftManagementAction().color} />
-              </View>
-              <View style={styles.shiftManagementContent}>
-                <Text style={[styles.shiftManagementText, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-                  {getShiftManagementAction().title}
-                </Text>
-                <Text style={[styles.shiftManagementSubtext, { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }]}>
-                  {getShiftManagementAction().subtitle}
-                </Text>
-              </View>
-              <Ionicons 
-                name="chevron-forward" 
-                size={20} 
-                color={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick Actions Section */}
-          <View style={styles.quickActionsSection}>
-            <Text style={[styles.quickActionsTitle, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-              Quick Actions
-            </Text>
-            <View style={styles.quickActionsGrid}>
-              {getQuickActions().map((action) => (
-                <TouchableOpacity
-                  key={action.id}
+            {/* Shift Management Section */}
+            <View style={styles.shiftManagementSection}>
+              <Text
+                style={[
+                  styles.shiftManagementTitle,
+                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                ]}
+              >
+                Shift Management
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.shiftManagementCard,
+                  { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+                ]}
+                onPress={getShiftManagementAction().action}
+              >
+                <View
                   style={[
-                    styles.quickActionCard,
-                    { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }
+                    styles.shiftIconCircle,
+                    {
+                      backgroundColor: `${getShiftManagementAction().color}20`,
+                    },
                   ]}
-                  onPress={action.action}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: `${action.color}20` }]}>
-                    <Ionicons name={action.icon as any} size={24} color={action.color} />
-                  </View>
-                  <Text style={[styles.quickActionText, { color: theme === 'dark' ? '#FFFFFF' : '#111827' }]}>
-                    {action.title}
+                  <Ionicons
+                    name={getShiftManagementAction().icon as any}
+                    size={32}
+                    color={getShiftManagementAction().color}
+                  />
+                </View>
+                <View style={styles.shiftManagementContent}>
+                  <Text
+                    style={[
+                      styles.shiftManagementText,
+                      { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                    ]}
+                  >
+                    {getShiftManagementAction().title}
                   </Text>
-                </TouchableOpacity>
-              ))}
+                  <Text
+                    style={[
+                      styles.shiftManagementSubtext,
+                      { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                    ]}
+                  >
+                    {getShiftManagementAction().subtitle}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                />
+              </TouchableOpacity>
             </View>
-          </View>
+
+            {/* Quick Actions Section */}
+            <View style={styles.quickActionsSection}>
+              <Text
+                style={[
+                  styles.quickActionsTitle,
+                  { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                ]}
+              >
+                Quick Actions
+              </Text>
+              <View style={styles.quickActionsGrid}>
+                {getQuickActions().map((action) => (
+                  <TouchableOpacity
+                    key={action.id}
+                    style={[
+                      styles.quickActionCard,
+                      {
+                        backgroundColor:
+                          theme === "dark" ? "#1F2937" : "#FFFFFF",
+                      },
+                    ]}
+                    onPress={action.action}
+                  >
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: `${action.color}20` },
+                      ]}
+                    >
+                      <Ionicons
+                        name={action.icon as any}
+                        size={24}
+                        color={action.color}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.quickActionText,
+                        { color: theme === "dark" ? "#FFFFFF" : "#111827" },
+                      ]}
+                    >
+                      {action.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
             {/* Status and Tasks Container */}
             <View
@@ -1364,30 +1418,30 @@ const styles = StyleSheet.create({
   },
   shiftManagementTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
     marginLeft: 6,
   },
   shiftManagementCard: {
-    width: '100%',
+    width: "100%",
     padding: 20,
     borderRadius: 16,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   shiftIconCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   shiftManagementContent: {
@@ -1395,12 +1449,12 @@ const styles = StyleSheet.create({
   },
   shiftManagementText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   shiftManagementSubtext: {
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: "400",
   },
   quickActionsSection: {
     paddingHorizontal: 16,
@@ -1409,7 +1463,7 @@ const styles = StyleSheet.create({
   },
   quickActionsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
     marginLeft: 6,
   },

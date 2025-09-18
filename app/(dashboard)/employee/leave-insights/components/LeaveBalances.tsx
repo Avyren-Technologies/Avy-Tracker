@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../../context/ThemeContext';
-import AuthContext from '../../../../context/AuthContext';
-import axios from 'axios';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../../context/ThemeContext";
+import AuthContext from "../../../../context/AuthContext";
+import axios from "axios";
 
 interface LeaveBalance {
   id: number;
@@ -26,8 +26,8 @@ interface LeaveBalance {
 export default function LeaveBalances({ className }: { className?: string }) {
   const { theme } = ThemeContext.useTheme();
   const { token } = AuthContext.useAuth();
-  const isDark = theme === 'dark';
-  
+  const isDark = theme === "dark";
+
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,12 +43,12 @@ export default function LeaveBalances({ className }: { className?: string }) {
       setError(null);
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave/balance?year=${selectedYear}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setBalances(response.data);
     } catch (error) {
-      console.error('Error fetching balances:', error);
-      setError('Failed to fetch leave balances');
+      console.error("Error fetching balances:", error);
+      setError("Failed to fetch leave balances");
     } finally {
       setLoading(false);
     }
@@ -60,19 +60,23 @@ export default function LeaveBalances({ className }: { className?: string }) {
     setRefreshing(false);
   };
 
-  const calculateAvailableDays = (total: number, used: number, pending: number) => {
+  const calculateAvailableDays = (
+    total: number,
+    used: number,
+    pending: number,
+  ) => {
     return Math.max(0, total - used - pending);
   };
 
   const handleYearChange = (increment: boolean) => {
     const currentYear = new Date().getFullYear();
     const newYear = selectedYear + (increment ? 1 : -1);
-    
+
     // Prevent selecting future years
     if (newYear > currentYear) {
       return;
     }
-    
+
     setSelectedYear(newYear);
   };
 
@@ -90,18 +94,25 @@ export default function LeaveBalances({ className }: { className?: string }) {
         <Ionicons
           name="alert-circle-outline"
           size={48}
-          color={isDark ? '#EF4444' : '#DC2626'}
+          color={isDark ? "#EF4444" : "#DC2626"}
         />
-        <Text className={`text-lg text-center mt-4 mb-2 ${
-          isDark ? 'text-white' : 'text-gray-900'
-        }`}>
+        <Text
+          className={`text-lg text-center mt-4 mb-2 ${
+            isDark ? "text-white" : "text-gray-900"
+          }`}
+        >
           {error}
         </Text>
         <TouchableOpacity
           onPress={fetchBalances}
           className="bg-blue-500 px-6 py-3 rounded-lg flex-row items-center mt-4"
         >
-          <Ionicons name="refresh" size={20} color="white" style={{ marginRight: 8 }} />
+          <Ionicons
+            name="refresh"
+            size={20}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
           <Text className="text-white font-medium">Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -112,21 +123,25 @@ export default function LeaveBalances({ className }: { className?: string }) {
     <View className={`flex-1 ${className}`}>
       {/* Header with Year Selection */}
       <View className="flex-row justify-between items-center mb-6">
-        <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text
+          className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+        >
           Leave Balances
         </Text>
         <View className="flex-row items-center space-x-4">
           <TouchableOpacity
             onPress={() => handleYearChange(false)}
-            className={`p-2 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}
+            className={`p-2 rounded-lg ${isDark ? "bg-gray-800" : "bg-gray-100"}`}
           >
             <Ionicons
               name="chevron-back"
               size={20}
-              color={isDark ? '#D1D5DB' : '#4B5563'}
+              color={isDark ? "#D1D5DB" : "#4B5563"}
             />
           </TouchableOpacity>
-          <Text className={`text-lg font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <Text
+            className={`text-lg font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+          >
             {selectedYear}
           </Text>
           <TouchableOpacity
@@ -135,11 +150,11 @@ export default function LeaveBalances({ className }: { className?: string }) {
             className={`p-2 rounded-lg ${
               selectedYear >= new Date().getFullYear()
                 ? isDark
-                  ? 'bg-gray-700'
-                  : 'bg-gray-200'
+                  ? "bg-gray-700"
+                  : "bg-gray-200"
                 : isDark
-                ? 'bg-gray-800'
-                : 'bg-gray-100'
+                  ? "bg-gray-800"
+                  : "bg-gray-100"
             }`}
           >
             <Ionicons
@@ -148,11 +163,11 @@ export default function LeaveBalances({ className }: { className?: string }) {
               color={
                 selectedYear >= new Date().getFullYear()
                   ? isDark
-                    ? '#6B7280'
-                    : '#9CA3AF'
+                    ? "#6B7280"
+                    : "#9CA3AF"
                   : isDark
-                  ? '#D1D5DB'
-                  : '#4B5563'
+                    ? "#D1D5DB"
+                    : "#4B5563"
               }
             />
           </TouchableOpacity>
@@ -161,8 +176,12 @@ export default function LeaveBalances({ className }: { className?: string }) {
 
       {/* Balance Cards */}
       {balances.length === 0 ? (
-        <View className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-          <Text className={`text-center ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <View
+          className={`p-6 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}
+        >
+          <Text
+            className={`text-center ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             No leave balances found for {selectedYear}
           </Text>
         </View>
@@ -173,8 +192,8 @@ export default function LeaveBalances({ className }: { className?: string }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#3B82F6']}
-              tintColor={isDark ? '#FFFFFF' : '#3B82F6'}
+              colors={["#3B82F6"]}
+              tintColor={isDark ? "#FFFFFF" : "#3B82F6"}
             />
           }
         >
@@ -182,28 +201,41 @@ export default function LeaveBalances({ className }: { className?: string }) {
             const availableDays = calculateAvailableDays(
               balance.total_days || 0,
               balance.used_days || 0,
-              balance.pending_days || 0
+              balance.pending_days || 0,
             );
-            const usagePercentage = ((balance.used_days + balance.pending_days) / balance.total_days) * 100;
-            
+            const usagePercentage =
+              ((balance.used_days + balance.pending_days) /
+                balance.total_days) *
+              100;
+
             return (
               <View
                 key={balance.id}
-                className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} mb-4`}
+                className={`p-4 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"} mb-4`}
               >
                 <View className="flex-row justify-between items-start mb-2">
                   <View>
-                    <Text className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {balance.name}
                     </Text>
-                    <Text className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {balance.is_paid ? 'Paid Leave' : 'Unpaid Leave'}
+                    <Text
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      {balance.is_paid ? "Paid Leave" : "Unpaid Leave"}
                     </Text>
                   </View>
-                  <View className={`px-3 py-1 rounded-full ${
-                    availableDays > 0 ? 'bg-blue-100' : 'bg-red-100'
-                  }`}>
-                    <Text className={availableDays > 0 ? 'text-blue-800' : 'text-red-800'}>
+                  <View
+                    className={`px-3 py-1 rounded-full ${
+                      availableDays > 0 ? "bg-blue-100" : "bg-red-100"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        availableDays > 0 ? "text-blue-800" : "text-red-800"
+                      }
+                    >
                       {availableDays} days left
                     </Text>
                   </View>
@@ -225,25 +257,33 @@ export default function LeaveBalances({ className }: { className?: string }) {
                 <View className="flex-row justify-between">
                   <View>
                     <Text className="text-sm text-gray-500">Total</Text>
-                    <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {balance.total_days || 0} days
                     </Text>
                   </View>
                   <View>
                     <Text className="text-sm text-gray-500">Used</Text>
-                    <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {balance.used_days || 0} days
                     </Text>
                   </View>
                   <View>
                     <Text className="text-sm text-gray-500">Pending</Text>
-                    <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {balance.pending_days || 0} days
                     </Text>
                   </View>
                   <View>
                     <Text className="text-sm text-gray-500">Available</Text>
-                    <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <Text
+                      className={`font-medium ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
                       {availableDays} days
                     </Text>
                   </View>
@@ -255,4 +295,4 @@ export default function LeaveBalances({ className }: { className?: string }) {
       )}
     </View>
   );
-} 
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -22,12 +22,16 @@ import AuthContext from "../../context/AuthContext";
 import ThemeContext from "../../context/ThemeContext";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import biometricAuthService, { BiometricSettings } from "../../utils/biometricAuth";
+import biometricAuthService, {
+  BiometricSettings,
+} from "../../utils/biometricAuth";
 
 const { width, height } = Dimensions.get("window");
 
 interface BaseSettingItem {
-  icon: keyof typeof Ionicons.glyphMap | keyof typeof MaterialCommunityIcons.glyphMap;
+  icon:
+    | keyof typeof Ionicons.glyphMap
+    | keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   subtitle?: string;
 }
@@ -67,12 +71,13 @@ export default function EmployeeSettings() {
     enabled: boolean;
     loading: boolean;
   }>({ registered: false, enabled: true, loading: true });
-  const [biometricSettings, setBiometricSettings] = React.useState<BiometricSettings>({
-    enabled: false,
-    required: false,
-  });
+  const [biometricSettings, setBiometricSettings] =
+    React.useState<BiometricSettings>({
+      enabled: false,
+      required: false,
+    });
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
-  const [biometricType, setBiometricType] = React.useState<string>('');
+  const [biometricType, setBiometricType] = React.useState<string>("");
   const [mfaEnabled, setMfaEnabled] = React.useState(false);
   const [mfaLoading, setMfaLoading] = React.useState(false);
 
@@ -128,7 +133,7 @@ export default function EmployeeSettings() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, [theme, floatingShapesAnim]);
 
@@ -165,7 +170,7 @@ export default function EmployeeSettings() {
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile-image/${user?.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response.data.image) {
         setProfileImage(response.data.image);
@@ -177,35 +182,37 @@ export default function EmployeeSettings() {
 
   const fetchFaceRegistrationStatus = async () => {
     try {
-      setFaceRegistrationStatus(prev => ({ ...prev, loading: true }));
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // CRITICAL FIX: Handle both old and new API response formats
-      const faceRegistered = response.data.face_registered !== undefined 
-        ? response.data.face_registered 
-        : response.data.registered || false;
-      
-      const faceEnabled = response.data.face_enabled !== undefined 
-        ? response.data.face_enabled 
-        : response.data.enabled !== false;
+      const faceRegistered =
+        response.data.face_registered !== undefined
+          ? response.data.face_registered
+          : response.data.registered || false;
+
+      const faceEnabled =
+        response.data.face_enabled !== undefined
+          ? response.data.face_enabled
+          : response.data.enabled !== false;
 
       setFaceRegistrationStatus({
         registered: faceRegistered,
         enabled: faceEnabled,
-        loading: false
+        loading: false,
       });
-      
-      console.log('✅ Face registration status updated:', {
+
+      console.log("✅ Face registration status updated:", {
         registered: faceRegistered,
         enabled: faceEnabled,
-        apiResponse: response.data
+        apiResponse: response.data,
       });
     } catch (error) {
       console.error("Error fetching face registration status:", error);
-      setFaceRegistrationStatus(prev => ({ ...prev, loading: false }));
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -213,7 +220,7 @@ export default function EmployeeSettings() {
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/auth/mfa-status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setMfaEnabled(response.data.enabled || false);
     } catch (error) {
@@ -247,24 +254,32 @@ export default function EmployeeSettings() {
     const handleDeepLink = async () => {
       try {
         // Check if there's a deep link parameter for face configuration
-        const deepLinkAction = await AsyncStorage.getItem('deepLink_faceConfiguration');
+        const deepLinkAction = await AsyncStorage.getItem(
+          "deepLink_faceConfiguration",
+        );
         if (deepLinkAction) {
-          await AsyncStorage.removeItem('deepLink_faceConfiguration');
+          await AsyncStorage.removeItem("deepLink_faceConfiguration");
 
           // Wait for face registration status to load
           if (!faceRegistrationStatus.loading) {
-            if (deepLinkAction === 'configure' && faceRegistrationStatus.registered) {
+            if (
+              deepLinkAction === "configure" &&
+              faceRegistrationStatus.registered
+            ) {
               handleFaceConfiguration();
-            } else if (deepLinkAction === 'register' && !faceRegistrationStatus.registered) {
+            } else if (
+              deepLinkAction === "register" &&
+              !faceRegistrationStatus.registered
+            ) {
               handleFaceRegistration();
-            } else if (deepLinkAction === 'setup') {
+            } else if (deepLinkAction === "setup") {
               // Handle 'setup' action by calling handleFaceSetup which determines the right action
               handleFaceSetup();
             }
           }
         }
       } catch (error) {
-        console.error('Error handling deep link:', error);
+        console.error("Error handling deep link:", error);
       }
     };
 
@@ -272,23 +287,24 @@ export default function EmployeeSettings() {
   }, [faceRegistrationStatus.loading, faceRegistrationStatus.registered]);
   const checkBiometricAvailability = async () => {
     try {
-      console.log('Checking biometric availability...');
-      
+      console.log("Checking biometric availability...");
+
       const isAvailable = await biometricAuthService.isBiometricAvailable();
-      console.log('Biometric available:', isAvailable);
+      console.log("Biometric available:", isAvailable);
       setBiometricAvailable(isAvailable);
-      
+
       if (isAvailable) {
         const type = await biometricAuthService.getPrimaryBiometricType();
-        console.log('Primary biometric type:', type);
+        console.log("Primary biometric type:", type);
         setBiometricType(type);
       } else {
-        console.log('Biometric not available - checking supported types...');
-        const supportedTypes = await biometricAuthService.getSupportedBiometricTypes();
-        console.log('Supported biometric types:', supportedTypes);
+        console.log("Biometric not available - checking supported types...");
+        const supportedTypes =
+          await biometricAuthService.getSupportedBiometricTypes();
+        console.log("Supported biometric types:", supportedTypes);
       }
     } catch (error) {
-      console.error('Error checking biometric availability:', error);
+      console.error("Error checking biometric availability:", error);
     }
   };
 
@@ -297,117 +313,132 @@ export default function EmployeeSettings() {
       const settings = await biometricAuthService.getBiometricSettings();
       setBiometricSettings(settings);
     } catch (error) {
-      console.error('Error loading biometric settings:', error);
+      console.error("Error loading biometric settings:", error);
     }
   };
 
   const handleBiometricToggle = async (enabled: boolean) => {
     try {
-      console.log('Biometric toggle requested:', enabled);
-      
+      console.log("Biometric toggle requested:", enabled);
+
       if (enabled) {
         // Test biometric authentication before enabling (allow setup mode)
         const result = await biometricAuthService.authenticateUser(
-          'Authenticate to enable biometric login',
-          true // allowSetup = true for initial setup
+          "Authenticate to enable biometric login",
+          true, // allowSetup = true for initial setup
         );
-        
-        console.log('Biometric authentication result:', result);
-        
+
+        console.log("Biometric authentication result:", result);
+
         if (result.success) {
           await biometricAuthService.setBiometricEnabled(true);
-          setBiometricSettings(prev => ({ ...prev, enabled: true }));
-          console.log('Biometric authentication enabled successfully');
+          setBiometricSettings((prev) => ({ ...prev, enabled: true }));
+          console.log("Biometric authentication enabled successfully");
         } else {
-          console.log('Biometric authentication failed:', result.error);
-          Alert.alert('Authentication Failed', result.error || 'Please try again');
+          console.log("Biometric authentication failed:", result.error);
+          Alert.alert(
+            "Authentication Failed",
+            result.error || "Please try again",
+          );
         }
       } else {
         await biometricAuthService.setBiometricEnabled(false);
-        setBiometricSettings(prev => ({ ...prev, enabled: false, required: false }));
-        console.log('Biometric authentication disabled');
+        setBiometricSettings((prev) => ({
+          ...prev,
+          enabled: false,
+          required: false,
+        }));
+        console.log("Biometric authentication disabled");
       }
     } catch (error) {
-      console.error('Error toggling biometric:', error);
-      Alert.alert('Error', 'Failed to update biometric settings');
+      console.error("Error toggling biometric:", error);
+      Alert.alert("Error", "Failed to update biometric settings");
     }
   };
 
   const handleBiometricRequiredToggle = async (required: boolean) => {
     try {
-      console.log('Biometric required toggle requested:', required);
-      
+      console.log("Biometric required toggle requested:", required);
+
       if (required) {
         // Test biometric authentication before requiring it (allow setup mode)
         const result = await biometricAuthService.authenticateUser(
-          'Authenticate to require biometric login',
-          true // allowSetup = true for setup
+          "Authenticate to require biometric login",
+          true, // allowSetup = true for setup
         );
-        
-        console.log('Biometric required authentication result:', result);
-        
+
+        console.log("Biometric required authentication result:", result);
+
         if (result.success) {
           await biometricAuthService.setBiometricRequired(true);
-          setBiometricSettings(prev => ({ ...prev, required: true }));
-          console.log('Biometric authentication required enabled');
+          setBiometricSettings((prev) => ({ ...prev, required: true }));
+          console.log("Biometric authentication required enabled");
         } else {
-          console.log('Biometric required authentication failed:', result.error);
-          Alert.alert('Authentication Failed', result.error || 'Please try again');
+          console.log(
+            "Biometric required authentication failed:",
+            result.error,
+          );
+          Alert.alert(
+            "Authentication Failed",
+            result.error || "Please try again",
+          );
         }
       } else {
         await biometricAuthService.setBiometricRequired(false);
-        setBiometricSettings(prev => ({ ...prev, required: false }));
-        console.log('Biometric authentication required disabled');
+        setBiometricSettings((prev) => ({ ...prev, required: false }));
+        console.log("Biometric authentication required disabled");
       }
     } catch (error) {
-      console.error('Error toggling biometric required:', error);
-      Alert.alert('Error', 'Failed to update biometric settings');
+      console.error("Error toggling biometric required:", error);
+      Alert.alert("Error", "Failed to update biometric settings");
     }
   };
 
   const handleMFAToggle = async (enabled: boolean) => {
     if (!user?.id) return;
-    
+
     setMfaLoading(true);
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/auth/setup-mfa`,
         {
           userId: user.id,
-          enable: enabled
+          enable: enabled,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       if (response.data.message) {
         setMfaEnabled(enabled);
         Alert.alert(
-          'Success', 
-          `MFA ${enabled ? 'enabled' : 'disabled'} successfully`,
-          [{ text: 'OK' }]
+          "Success",
+          `MFA ${enabled ? "enabled" : "disabled"} successfully`,
+          [{ text: "OK" }],
         );
       }
     } catch (error: any) {
-      console.error('Error updating MFA:', error);
+      console.error("Error updating MFA:", error);
       Alert.alert(
-        'Error', 
-        error.response?.data?.error || 'Failed to update MFA settings'
+        "Error",
+        error.response?.data?.error || "Failed to update MFA settings",
       );
     } finally {
       setMfaLoading(false);
     }
   };
 
-  const getBiometricIcon = (type: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+  const getBiometricIcon = (
+    type: string,
+  ): keyof typeof MaterialCommunityIcons.glyphMap => {
     switch (type) {
-      case 'fingerprint':
-        return 'fingerprint';
-      case 'face':
-        return 'face-recognition';
-      case 'iris':
-        return 'eye';
+      case "fingerprint":
+        return "fingerprint";
+      case "face":
+        return "face-recognition";
+      case "iris":
+        return "eye";
       default:
-        return 'fingerprint';
+        return "fingerprint";
     }
   };
 
@@ -438,8 +469,12 @@ export default function EmployeeSettings() {
       title: "Security",
       items: [
         {
-          icon: faceRegistrationStatus.registered ? "shield-checkmark-outline" : "shield-outline",
-          title: faceRegistrationStatus.registered ? "Face Configuration" : "Set Up Face Verification",
+          icon: faceRegistrationStatus.registered
+            ? "shield-checkmark-outline"
+            : "shield-outline",
+          title: faceRegistrationStatus.registered
+            ? "Face Configuration"
+            : "Set Up Face Verification",
           subtitle: faceRegistrationStatus.loading
             ? "Loading..."
             : faceRegistrationStatus.registered
@@ -466,24 +501,35 @@ export default function EmployeeSettings() {
       items: [
         {
           icon: getBiometricIcon(biometricType),
-          title: biometricAuthService.getBiometricTypeName(biometricType) + " Authentication",
-          subtitle: biometricAvailable ? "Use biometric authentication for login" : "Biometric authentication not available",
+          title:
+            biometricAuthService.getBiometricTypeName(biometricType) +
+            " Authentication",
+          subtitle: biometricAvailable
+            ? "Use biometric authentication for login"
+            : "Biometric authentication not available",
           type: "switch",
           value: biometricSettings.enabled,
           onChange: handleBiometricToggle,
         },
-        ...(biometricSettings.enabled ? [{
-          icon: "shield-checkmark-outline" as keyof typeof Ionicons.glyphMap,
-          title: "Require Biometric Login",
-          subtitle: "Always require biometric authentication to access the app",
-          type: "switch" as const,
-          value: biometricSettings.required,
-          onChange: handleBiometricRequiredToggle,
-        }] : []),
+        ...(biometricSettings.enabled
+          ? [
+              {
+                icon: "shield-checkmark-outline" as keyof typeof Ionicons.glyphMap,
+                title: "Require Biometric Login",
+                subtitle:
+                  "Always require biometric authentication to access the app",
+                type: "switch" as const,
+                value: biometricSettings.required,
+                onChange: handleBiometricRequiredToggle,
+              },
+            ]
+          : []),
         {
           icon: "two-factor-authentication",
           title: "Two-Factor Authentication",
-          subtitle: mfaLoading ? "Updating..." : "Use email verification codes for additional security",
+          subtitle: mfaLoading
+            ? "Updating..."
+            : "Use email verification codes for additional security",
           type: "switch",
           value: mfaEnabled,
           onChange: handleMFAToggle,
@@ -596,8 +642,8 @@ export default function EmployeeSettings() {
                 transform: [{ translateY: floatingOffset }],
               }}
             />
-             {/* Sky square */}
-             <Animated.View
+            {/* Sky square */}
+            <Animated.View
               style={{
                 position: "absolute",
                 bottom: height * 0.25,
@@ -917,9 +963,13 @@ export default function EmployeeSettings() {
                           borderColor: currentColors.primary,
                         }}
                       >
-                        {Object.keys(MaterialCommunityIcons.glyphMap).includes(item.icon) ? (
+                        {Object.keys(MaterialCommunityIcons.glyphMap).includes(
+                          item.icon,
+                        ) ? (
                           <MaterialCommunityIcons
-                            name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+                            name={
+                              item.icon as keyof typeof MaterialCommunityIcons.glyphMap
+                            }
                             size={18}
                             color={currentColors.primary}
                           />
@@ -1021,7 +1071,6 @@ export default function EmployeeSettings() {
             </Text>
           </View>
         </ScrollView>
-
 
         <Modal
           visible={showLogoutModal}
@@ -1167,28 +1216,28 @@ export default function EmployeeSettings() {
 
 const styles = StyleSheet.create({
   headerGradient: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   profileCard: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   profileImage: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
   },
   statusDot: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -1198,17 +1247,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionCard: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   settingItem: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   logoutButton: {
-    shadowColor: '#EF4444',
+    shadowColor: "#EF4444",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -1216,14 +1265,14 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
-    width: '85%',
+    width: "85%",
     padding: 20,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 3,
@@ -1232,4 +1281,4 @@ const styles = StyleSheet.create({
     shadowRadius: 4.65,
     elevation: 6,
   },
-}); 
+});

@@ -1,28 +1,32 @@
-import express, { Response } from 'express';
-import { pool } from '../config/database';
-import { authMiddleware } from '../middleware/auth';
-import { CustomRequest } from '../types';
+import express, { Response } from "express";
+import { pool } from "../config/database";
+import { authMiddleware } from "../middleware/auth";
+import { CustomRequest } from "../types";
 
 const router = express.Router();
 
 router.use((req, res, next) => {
-  console.log('Leave route accessed:', {
+  console.log("Leave route accessed:", {
     method: req.method,
     path: req.path,
-    headers: req.headers
+    headers: req.headers,
   });
   next();
 });
 
 // Get all leave requests for an employee
-router.get('/requests', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/requests",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       SELECT 
         lr.id,
         lr.start_date,
@@ -50,16 +54,19 @@ router.get('/requests', authMiddleware, async (req: CustomRequest, res: Response
       JOIN leave_types lt ON lr.leave_type_id = lt.id
       WHERE lr.user_id = $1
       ORDER BY lr.created_at DESC
-    `, [req.user.id]);
+    `,
+        [req.user.id],
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching leave requests:', error);
-    res.status(500).json({ error: 'Failed to fetch leave requests' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching leave requests:", error);
+      res.status(500).json({ error: "Failed to fetch leave requests" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Get employee's leave balance
 router.get(
@@ -78,7 +85,7 @@ router.get(
       // Get the user's company ID
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!userResult.rows.length) {
@@ -102,7 +109,7 @@ router.get(
       AND (lt.company_id IS NULL OR lt.company_id = $1)
       ORDER BY lt.name
     `,
-        [companyId]
+        [companyId],
       );
 
       if (!leaveTypesResult.rows.length) {
@@ -122,10 +129,12 @@ router.get(
       FROM leave_balances
       WHERE user_id = $1 AND year = $2
     `,
-        [req.user.id, year]
+        [req.user.id, year],
       );
-      
-      const existingLeaveTypeIds = existingBalancesResult.rows.map(row => row.leave_type_id);
+
+      const existingLeaveTypeIds = existingBalancesResult.rows.map(
+        (row) => row.leave_type_id,
+      );
 
       // For each leave type, check if a balance record exists, if not, create one
       for (const leaveType of leaveTypesResult.rows) {
@@ -146,11 +155,11 @@ router.get(
             updated_at
           ) VALUES ($1, $2, $3, 0, 0, $4, NOW(), NOW())
         `,
-            [req.user.id, leaveType.id, defaultDays, year]
+            [req.user.id, leaveType.id, defaultDays, year],
           );
-          
+
           console.log(
-            `Initialized leave balance for new leave type ${leaveType.id} for user ${req.user.id}`
+            `Initialized leave balance for new leave type ${leaveType.id} for user ${req.user.id}`,
           );
         }
       }
@@ -175,7 +184,7 @@ router.get(
       AND (lt.company_id IS NULL OR lt.company_id = $3)
       ORDER BY lt.name
     `,
-        [req.user.id, year, companyId]
+        [req.user.id, year, companyId],
       );
 
       await client.query("COMMIT");
@@ -190,7 +199,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get leave types with policies
@@ -207,7 +216,7 @@ router.get(
       // Get user's company ID
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!userResult.rows.length) {
@@ -238,7 +247,7 @@ router.get(
       AND (lt.company_id IS NULL OR lt.company_id = $1)
       ORDER BY lt.name
     `,
-        [companyId]
+        [companyId],
       );
 
       res.json(result.rows);
@@ -251,7 +260,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Submit leave request
@@ -280,7 +289,7 @@ router.post(
       // Get user's company ID and gender
       const userResult = await client.query(
         `SELECT company_id, gender FROM users WHERE id = $1`,
-        [userId.id]
+        [userId.id],
       );
 
       if (!userResult.rows.length) {
@@ -313,7 +322,7 @@ router.post(
         AND lt.is_active = true
         AND (lt.company_id IS NULL OR lt.company_id = $3)
       `,
-        [userId.id, leave_type_id, companyId]
+        [userId.id, leave_type_id, companyId],
       );
 
       if (!leaveTypeResult.rows.length) {
@@ -344,12 +353,14 @@ router.post(
       const days_requested = calculateWorkingDays(startDate, endDate);
 
       // Calculate available days
-      const total_available = leaveType.total_days + leaveType.carry_forward_days;
+      const total_available =
+        leaveType.total_days + leaveType.carry_forward_days;
       const used_and_pending = leaveType.used_days + leaveType.pending_days;
       const available_days = total_available - used_and_pending;
 
       // Validate maximum consecutive days
-      const max_consecutive = leaveType.policy_max_consecutive || leaveType.max_days;
+      const max_consecutive =
+        leaveType.policy_max_consecutive || leaveType.max_days;
       if (days_requested > max_consecutive) {
         await client.query("ROLLBACK");
         return res.status(400).json({
@@ -380,14 +391,15 @@ router.post(
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const noticeDays = Math.ceil(
-        (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        (startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       if (noticeDays < (leaveType.policy_notice_period || 0)) {
         await client.query("ROLLBACK");
         const earliestPossibleDate = new Date(today);
         earliestPossibleDate.setDate(
-          earliestPossibleDate.getDate() + (leaveType.policy_notice_period || 0)
+          earliestPossibleDate.getDate() +
+            (leaveType.policy_notice_period || 0),
         );
 
         return res.status(400).json({
@@ -427,7 +439,7 @@ router.post(
           reason,
           contact_number,
           leaveType.requires_documentation,
-        ]
+        ],
       );
 
       // Create or update leave balance
@@ -455,8 +467,8 @@ router.post(
           leaveType.policy_default_days || leaveType.max_days,
           leaveType.used_days,
           leaveType.pending_days,
-          days_requested
-        ]
+          days_requested,
+        ],
       );
 
       // Handle document uploads if any
@@ -478,7 +490,7 @@ router.post(
               doc.file_type,
               doc.file_data,
               doc.upload_method,
-            ]
+            ],
           );
         }
       }
@@ -502,7 +514,7 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get team calendar data for leave requests
@@ -517,17 +529,17 @@ router.get(
       }
 
       const { start_date, end_date } = req.query;
-      
+
       if (!start_date || !end_date) {
-        return res.status(400).json({ 
-          error: "start_date and end_date are required" 
+        return res.status(400).json({
+          error: "start_date and end_date are required",
         });
       }
 
       // Get user's company_id
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!userResult.rows.length) {
@@ -555,7 +567,7 @@ router.get(
           AND lr.end_date <= $3
           AND lr.status IN ('pending', 'approved')
         ORDER BY lr.start_date ASC`,
-        [companyId, start_date, end_date]
+        [companyId, start_date, end_date],
       );
 
       res.json(result.rows);
@@ -565,7 +577,7 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Get company holidays
@@ -580,17 +592,17 @@ router.get(
       }
 
       const { start_date, end_date } = req.query;
-      
+
       if (!start_date || !end_date) {
-        return res.status(400).json({ 
-          error: "start_date and end_date are required" 
+        return res.status(400).json({
+          error: "start_date and end_date are required",
         });
       }
 
       // Get user's company_id
       const userResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!userResult.rows.length) {
@@ -610,7 +622,7 @@ router.get(
           AND date >= $2 
           AND date <= $3
         ORDER BY date ASC`,
-        [companyId, start_date, end_date]
+        [companyId, start_date, end_date],
       );
 
       res.json(result.rows);
@@ -620,9 +632,8 @@ router.get(
     } finally {
       client.release();
     }
-  }
+  },
 );
-
 
 // Helper function to calculate working days between two dates (excluding weekends)
 function calculateWorkingDays(startDate: Date, endDate: Date): number {
@@ -654,7 +665,7 @@ router.post(
       // Verify ownership and status
       const verifyResult = await client.query(
         "SELECT lr.*, lb.id as balance_id FROM leave_requests lr JOIN leave_balances lb ON lr.user_id = lb.user_id AND lr.leave_type_id = lb.leave_type_id WHERE lr.id = $1 AND lr.user_id = $2 AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)",
-        [id, req.user?.id]
+        [id, req.user?.id],
       );
 
       if (!verifyResult.rows.length) {
@@ -672,13 +683,13 @@ router.post(
       // Update request status
       await client.query(
         "UPDATE leave_requests SET status = $1 WHERE id = $2",
-        ["cancelled", id]
+        ["cancelled", id],
       );
 
       // Update balance - remove pending days
       await client.query(
         "UPDATE leave_balances SET pending_days = pending_days - $1 WHERE id = $2",
-        [verifyResult.rows[0].days_requested, verifyResult.rows[0].balance_id]
+        [verifyResult.rows[0].days_requested, verifyResult.rows[0].balance_id],
       );
 
       await client.query("COMMIT");
@@ -690,36 +701,43 @@ router.post(
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Fetch document by ID
-router.get('/document/:id', authMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { id } = req.params;
+router.get(
+  "/document/:id",
+  authMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { id } = req.params;
 
-    const result = await client.query(`
+      const result = await client.query(
+        `
       SELECT file_name, file_type, file_data
       FROM leave_documents WHERE id = $1
-    `, [id]);
+    `,
+        [id],
+      );
 
-    if (!result.rows.length) {
-      return res.status(404).json({ error: 'Document not found' });
+      if (!result.rows.length) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("Error fetching document:", error);
+      res.status(500).json({ error: "Failed to fetch document" });
+    } finally {
+      client.release();
     }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching document:', error);
-    res.status(500).json({ error: 'Failed to fetch document' });
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 // Add this near the top of the routes
-router.get('/test', authMiddleware, (req: CustomRequest, res: Response) => {
-  res.json({ message: 'Leave routes are working' });
+router.get("/test", authMiddleware, (req: CustomRequest, res: Response) => {
+  res.json({ message: "Leave routes are working" });
 });
 
-export default router; 
+export default router;

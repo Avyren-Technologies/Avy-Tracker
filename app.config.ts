@@ -1,13 +1,13 @@
 // Import environment variables directly
-import 'dotenv/config';
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import "dotenv/config";
+import { ExpoConfig, ConfigContext } from "expo/config";
 
 // Define the configuration as a function that returns the ExpoConfig
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Avy Tracker",
   slug: "avy-tracker",
-  version: "1.0.3",
+  version: "1.0.5",
   orientation: "portrait",
   icon: "./assets/images/adaptive-icon.png",
   scheme: "myapp",
@@ -114,10 +114,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-local-authentication",
       {
-        faceIDPermission: "Allow Avy Tracker to use Face ID for secure authentication."
-      }
+        faceIDPermission:
+          "Allow Avy Tracker to use Face ID for secure authentication.",
+      },
     ],
-
   ],
   experiments: {
     typedRoutes: true,

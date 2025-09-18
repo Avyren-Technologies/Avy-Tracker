@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../context/ThemeContext';
-import { LoadingSpinner, ProgressBar } from './ProgressIndicators';
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../context/ThemeContext";
+import { LoadingSpinner, ProgressBar } from "./ProgressIndicators";
 
 interface AsyncLoadingStateProps {
   loading: boolean;
@@ -18,30 +18,30 @@ export const AsyncLoadingState: React.FC<AsyncLoadingStateProps> = ({
   loading,
   error,
   onRetry,
-  loadingText = 'Loading...',
-  errorTitle = 'Something went wrong',
-  retryText = 'Try Again',
-  children
+  loadingText = "Loading...",
+  errorTitle = "Something went wrong",
+  retryText = "Try Again",
+  children,
 }) => {
   const { theme } = ThemeContext.useTheme();
 
   const colors = {
     light: {
-      text: '#374151',
-      textSecondary: '#6B7280',
-      danger: '#EF4444',
-      primary: '#3B82F6',
-      background: '#F9FAFB',
-      border: '#E5E7EB'
+      text: "#374151",
+      textSecondary: "#6B7280",
+      danger: "#EF4444",
+      primary: "#3B82F6",
+      background: "#F9FAFB",
+      border: "#E5E7EB",
     },
     dark: {
-      text: '#F3F4F6',
-      textSecondary: '#9CA3AF',
-      danger: '#F87171',
-      primary: '#60A5FA',
-      background: '#1F2937',
-      border: '#374151'
-    }
+      text: "#F3F4F6",
+      textSecondary: "#9CA3AF",
+      danger: "#F87171",
+      primary: "#60A5FA",
+      background: "#1F2937",
+      border: "#374151",
+    },
   };
 
   const currentColors = colors[theme];
@@ -64,7 +64,7 @@ export const AsyncLoadingState: React.FC<AsyncLoadingStateProps> = ({
             borderWidth: 1,
             borderRadius: 12,
             padding: 24,
-            alignItems: 'center',
+            alignItems: "center",
             maxWidth: 300,
           }}
         >
@@ -74,28 +74,28 @@ export const AsyncLoadingState: React.FC<AsyncLoadingStateProps> = ({
               height: 60,
               borderRadius: 30,
               backgroundColor: currentColors.danger,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
               marginBottom: 16,
             }}
           >
             <Ionicons name="alert-circle" size={30} color="white" />
           </View>
-          
+
           <Text
             style={{ color: currentColors.text }}
             className="text-lg font-semibold mb-2 text-center"
           >
             {errorTitle}
           </Text>
-          
+
           <Text
             style={{ color: currentColors.textSecondary }}
             className="text-sm mb-6 text-center"
           >
             {error}
           </Text>
-          
+
           {onRetry && (
             <TouchableOpacity
               onPress={onRetry}
@@ -106,9 +106,7 @@ export const AsyncLoadingState: React.FC<AsyncLoadingStateProps> = ({
                 borderRadius: 8,
               }}
             >
-              <Text className="text-white font-medium">
-                {retryText}
-              </Text>
+              <Text className="text-white font-medium">{retryText}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -120,46 +118,46 @@ export const AsyncLoadingState: React.FC<AsyncLoadingStateProps> = ({
 };
 
 interface ProgressiveLoadingProps {
-  steps: Array<{
+  steps: {
     key: string;
     label: string;
     completed: boolean;
     loading: boolean;
     error?: string;
-  }>;
+  }[];
   onRetryStep?: (stepKey: string) => void;
 }
 
 export const ProgressiveLoading: React.FC<ProgressiveLoadingProps> = ({
   steps,
-  onRetryStep
+  onRetryStep,
 }) => {
   const { theme } = ThemeContext.useTheme();
 
   const colors = {
     light: {
-      text: '#374151',
-      textSecondary: '#6B7280',
-      success: '#10B981',
-      danger: '#EF4444',
-      primary: '#3B82F6',
-      background: '#F9FAFB',
-      border: '#E5E7EB'
+      text: "#374151",
+      textSecondary: "#6B7280",
+      success: "#10B981",
+      danger: "#EF4444",
+      primary: "#3B82F6",
+      background: "#F9FAFB",
+      border: "#E5E7EB",
     },
     dark: {
-      text: '#F3F4F6',
-      textSecondary: '#9CA3AF',
-      success: '#34D399',
-      danger: '#F87171',
-      primary: '#60A5FA',
-      background: '#1F2937',
-      border: '#374151'
-    }
+      text: "#F3F4F6",
+      textSecondary: "#9CA3AF",
+      success: "#34D399",
+      danger: "#F87171",
+      primary: "#60A5FA",
+      background: "#1F2937",
+      border: "#374151",
+    },
   };
 
   const currentColors = colors[theme];
 
-  const completedSteps = steps.filter(step => step.completed).length;
+  const completedSteps = steps.filter((step) => step.completed).length;
   const totalSteps = steps.length;
   const overallProgress = (completedSteps / totalSteps) * 100;
 
@@ -201,8 +199,8 @@ export const ProgressiveLoading: React.FC<ProgressiveLoadingProps> = ({
                     height: 24,
                     borderRadius: 12,
                     backgroundColor: currentColors.success,
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    justifyContent: "center",
+                    alignItems: "center",
                     marginRight: 12,
                   }}
                 >
@@ -219,8 +217,8 @@ export const ProgressiveLoading: React.FC<ProgressiveLoadingProps> = ({
                     height: 24,
                     borderRadius: 12,
                     backgroundColor: currentColors.danger,
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    justifyContent: "center",
+                    alignItems: "center",
                     marginRight: 12,
                   }}
                 >
@@ -234,8 +232,8 @@ export const ProgressiveLoading: React.FC<ProgressiveLoadingProps> = ({
                     borderRadius: 12,
                     borderWidth: 2,
                     borderColor: currentColors.border,
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    justifyContent: "center",
+                    alignItems: "center",
                     marginRight: 12,
                   }}
                 >
@@ -254,8 +252,8 @@ export const ProgressiveLoading: React.FC<ProgressiveLoadingProps> = ({
                     color: step.completed
                       ? currentColors.success
                       : step.error
-                      ? currentColors.danger
-                      : currentColors.text,
+                        ? currentColors.danger
+                        : currentColors.text,
                   }}
                   className="text-sm font-medium"
                 >
@@ -307,19 +305,19 @@ interface DataLoadingSkeletonProps {
 export const DataLoadingSkeleton: React.FC<DataLoadingSkeletonProps> = ({
   lines = 3,
   showAvatar = false,
-  animated = true
+  animated = true,
 }) => {
   const { theme } = ThemeContext.useTheme();
 
   const colors = {
     light: {
-      skeleton: '#E5E7EB',
-      skeletonHighlight: '#F3F4F6'
+      skeleton: "#E5E7EB",
+      skeletonHighlight: "#F3F4F6",
     },
     dark: {
-      skeleton: '#374151',
-      skeletonHighlight: '#4B5563'
-    }
+      skeleton: "#374151",
+      skeletonHighlight: "#4B5563",
+    },
   };
 
   const currentColors = colors[theme];
@@ -338,7 +336,7 @@ export const DataLoadingSkeleton: React.FC<DataLoadingSkeletonProps> = ({
             }}
           />
         )}
-        
+
         <View className="flex-1">
           {Array.from({ length: lines }).map((_, index) => (
             <View
@@ -348,7 +346,7 @@ export const DataLoadingSkeleton: React.FC<DataLoadingSkeletonProps> = ({
                 backgroundColor: currentColors.skeleton,
                 borderRadius: 8,
                 marginBottom: 8,
-                width: index === lines - 1 ? '60%' : '100%',
+                width: index === lines - 1 ? "60%" : "100%",
               }}
             />
           ))}
@@ -361,13 +359,13 @@ export const DataLoadingSkeleton: React.FC<DataLoadingSkeletonProps> = ({
 interface InlineLoadingProps {
   loading: boolean;
   text?: string;
-  size?: 'small' | 'large';
+  size?: "small" | "large";
 }
 
 export const InlineLoading: React.FC<InlineLoadingProps> = ({
   loading,
   text,
-  size = 'small'
+  size = "small",
 }) => {
   if (!loading) return null;
 

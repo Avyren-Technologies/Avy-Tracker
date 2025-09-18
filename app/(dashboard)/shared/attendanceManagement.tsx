@@ -121,7 +121,7 @@ export default function AttendanceManagement() {
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/attendance/${month}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // Log raw data from database
@@ -132,22 +132,22 @@ export default function AttendanceManagement() {
             start: shift.shift_start,
             end: shift.shift_end,
             expenses: shift.total_expenses,
-            distance: shift.total_distance
+            distance: shift.total_distance,
           });
         });
       });
 
       const data = response.data.reduce((acc: any, curr: AttendanceData) => {
         const localDate = format(new Date(curr.date), "yyyy-MM-dd");
-        
+
         // Make sure shift expenses are properly preserved, whether ongoing or completed
-        const processedShifts = curr.shifts.map(shift => ({
+        const processedShifts = curr.shifts.map((shift) => ({
           ...shift,
           total_expenses: parseNumber(shift.total_expenses), // Ensure proper parsing
           total_distance: parseNumber(shift.total_distance), // Ensure proper parsing
-          total_hours: parseNumber(shift.total_hours) // Ensure proper parsing
+          total_hours: parseNumber(shift.total_hours), // Ensure proper parsing
         }));
-        
+
         acc[localDate] = {
           ...curr,
           date: localDate,
@@ -173,7 +173,7 @@ export default function AttendanceManagement() {
               ? shift.shift_end.substring(11, 19)
               : "Ongoing",
             expenses: shift.total_expenses,
-            distance: shift.total_distance
+            distance: shift.total_distance,
           });
         });
       });
@@ -184,7 +184,7 @@ export default function AttendanceManagement() {
       console.error("Error fetching attendance:", error);
       Alert.alert(
         "Error",
-        "Failed to fetch attendance data. Please try again later."
+        "Failed to fetch attendance data. Please try again later.",
       );
     } finally {
       setIsLoading(false);
@@ -198,16 +198,16 @@ export default function AttendanceManagement() {
         // Ensure we're adding numbers, not strings
         const dayExpenses = parseNumber(curr.total_expenses);
         const dayHours = parseNumber(curr.total_hours);
-        
+
         console.log(`Day expenses for ${curr.date}: ${dayExpenses}`);
-        
+
         return {
           totalDays: acc.totalDays + 1,
           totalHours: acc.totalHours + dayHours,
           totalExpenses: acc.totalExpenses + dayExpenses,
         };
       },
-      { totalDays: 0, totalHours: 0, totalExpenses: 0 }
+      { totalDays: 0, totalHours: 0, totalExpenses: 0 },
     );
 
     setMonthStats({
@@ -223,12 +223,12 @@ export default function AttendanceManagement() {
     const currentMonth = new Date(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
-      1
+      1,
     );
     const lastDay = new Date(
       selectedDate.getFullYear(),
       selectedDate.getMonth() + 1,
-      0
+      0,
     );
 
     for (
@@ -268,8 +268,8 @@ export default function AttendanceManagement() {
         "No Attendance Data",
         `No attendance record found for ${format(
           selectedDate,
-          "MMMM d, yyyy"
-        )}.`
+          "MMMM d, yyyy",
+        )}.`,
       );
     }
   };
@@ -474,7 +474,7 @@ export default function AttendanceManagement() {
                   >
                     {parseNumber(
                       attendanceData[format(selectedDate, "yyyy-MM-dd")]
-                        .total_hours
+                        .total_hours,
                     )?.toFixed(1) || "0.0"}{" "}
                     hrs
                   </Text>
@@ -494,7 +494,7 @@ export default function AttendanceManagement() {
                   >
                     {parseNumber(
                       attendanceData[format(selectedDate, "yyyy-MM-dd")]
-                        .total_distance
+                        .total_distance,
                     )?.toFixed(1) || "0.0"}{" "}
                     km
                   </Text>
@@ -516,7 +516,7 @@ export default function AttendanceManagement() {
                     {(() => {
                       const expenseValue = parseNumber(
                         attendanceData[format(selectedDate, "yyyy-MM-dd")]
-                          .total_expenses
+                          .total_expenses,
                       );
                       console.log(`Displaying total expenses: ${expenseValue}`);
                       return expenseValue.toFixed(2) || "0.00";
@@ -635,7 +635,7 @@ export default function AttendanceManagement() {
                     ))}
                   </View>
                 </View>
-              )
+              ),
             )}
           </View>
         ) : (

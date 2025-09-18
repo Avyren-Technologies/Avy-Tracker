@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,19 +12,19 @@ import {
   StatusBar,
   StyleSheet,
   RefreshControl,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../../context/ThemeContext';
-import AuthContext from '../../../../context/AuthContext';
-import axios from 'axios';
-import Modal from 'react-native-modal';
-import { format, differenceInDays } from 'date-fns';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
-  
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../../context/ThemeContext";
+import AuthContext from "../../../../context/AuthContext";
+import axios from "axios";
+import Modal from "react-native-modal";
+import { format, differenceInDays } from "date-fns";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
+
 interface LeaveType {
   leave_type_id: number;
   leave_type_name: string;
@@ -50,7 +50,7 @@ interface LeaveRequest {
   end_date: string;
   days_requested: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'escalated';
+  status: "pending" | "approved" | "rejected" | "escalated";
   rejection_reason?: string;
   contact_number: string;
   requires_documentation: boolean;
@@ -64,20 +64,20 @@ interface Document {
   file_name: string;
   file_type: string;
   file_data: string;
-  upload_method: 'camera' | 'file';
+  upload_method: "camera" | "file";
 }
 
 interface ErrorModalState {
   visible: boolean;
   title: string;
   message: string;
-  type: 'error' | 'success' | 'warning';
+  type: "error" | "success" | "warning";
 }
 
 export default function LeaveRequests() {
   const router = useRouter();
   const { theme } = ThemeContext.useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
   const { token, user } = AuthContext.useAuth();
 
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -88,26 +88,30 @@ export default function LeaveRequests() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState<"start" | "end" | null>(
+    null,
+  );
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(null);
+  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(
+    null,
+  );
 
   // Form state
   const [formData, setFormData] = useState({
-    leave_type_id: '',
+    leave_type_id: "",
     start_date: new Date(),
     end_date: new Date(),
-    reason: '',
-    contact_number: '',
-    documentation_url: ''
+    reason: "",
+    contact_number: "",
+    documentation_url: "",
   });
 
   // Error modal state
   const [errorModal, setErrorModal] = useState<ErrorModalState>({
     visible: false,
-    title: '',
-    message: '',
-    type: 'error'
+    title: "",
+    message: "",
+    type: "error",
   });
 
   useEffect(() => {
@@ -120,24 +124,25 @@ export default function LeaveRequests() {
       setLeaveTypesLoading(true);
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
-      console.log('Leave types response:', response.data);
-      
+
+      console.log("Leave types response:", response.data);
+
       if (response.data && Array.isArray(response.data)) {
         // Validate and transform the data to ensure all required fields exist
         const validatedLeaveTypes = response.data
-          .filter((type: any) => 
-            type && 
-            type.leave_type_id !== undefined && 
-            type.leave_type_name && 
-            type.is_active === true
+          .filter(
+            (type: any) =>
+              type &&
+              type.leave_type_id !== undefined &&
+              type.leave_type_name &&
+              type.is_active === true,
           )
           .map((type: any) => ({
             leave_type_id: type.leave_type_id,
             leave_type_name: type.leave_type_name,
-            description: type.description || '',
+            description: type.description || "",
             requires_documentation: type.requires_documentation || false,
             max_days: type.max_days || 0,
             is_paid: type.is_paid !== undefined ? type.is_paid : true,
@@ -147,27 +152,27 @@ export default function LeaveRequests() {
             pending_days: type.pending_days || 0,
             carry_forward_days: type.carry_forward_days || 0,
             year: type.year || new Date().getFullYear(),
-            gender_specific: type.gender_specific || null
+            gender_specific: type.gender_specific || null,
           }));
-        
-        console.log('Validated leave types:', validatedLeaveTypes);
+
+        console.log("Validated leave types:", validatedLeaveTypes);
         setLeaveTypes(validatedLeaveTypes);
       } else {
-        console.error('Invalid leave types data format:', response.data);
+        console.error("Invalid leave types data format:", response.data);
         setErrorModal({
           visible: true,
-          title: 'Data Error',
-          message: 'Invalid leave types data received from server',
-          type: 'error'
+          title: "Data Error",
+          message: "Invalid leave types data received from server",
+          type: "error",
         });
       }
     } catch (error) {
-      console.error('Error fetching leave types:', error);
+      console.error("Error fetching leave types:", error);
       setErrorModal({
         visible: true,
-        title: 'Error',
-        message: 'Failed to fetch leave types. Please try again.',
-        type: 'error'
+        title: "Error",
+        message: "Failed to fetch leave types. Please try again.",
+        type: "error",
       });
     } finally {
       setLeaveTypesLoading(false);
@@ -179,7 +184,7 @@ export default function LeaveRequests() {
       setLoading(true);
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-requests`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data) {
@@ -187,8 +192,8 @@ export default function LeaveRequests() {
         setError(null);
       }
     } catch (error: any) {
-      console.error('Error fetching requests:', error);
-      setError(error.response?.data?.error || 'Failed to fetch requests');
+      console.error("Error fetching requests:", error);
+      setError(error.response?.data?.error || "Failed to fetch requests");
     } finally {
       setLoading(false);
     }
@@ -201,40 +206,43 @@ export default function LeaveRequests() {
   };
 
   // Function to handle document upload
-  const handleDocumentUpload = async (method: 'camera' | 'file') => {
+  const handleDocumentUpload = async (method: "camera" | "file") => {
     try {
-      if (method === 'camera') {
+      if (method === "camera") {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
+        if (status !== "granted") {
           setErrorModal({
             visible: true,
-            title: 'Permission Required',
-            message: 'Please enable camera access to take photos',
-            type: 'error'
+            title: "Permission Required",
+            message: "Please enable camera access to take photos",
+            type: "error",
           });
           return;
         }
-        
+
         const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: 'images',
+          mediaTypes: "images",
           quality: 0.7,
           base64: true,
         });
 
         if (!result.canceled && result.assets[0]) {
           const asset = result.assets[0];
-          const fileName = asset.uri.split('/').pop() || 'photo.jpg';
-          
-          setDocuments(prev => [...prev, {
-            file_name: fileName,
-            file_type: 'image/jpeg',
-            file_data: asset.base64!,
-            upload_method: 'camera'
-          }]);
+          const fileName = asset.uri.split("/").pop() || "photo.jpg";
+
+          setDocuments((prev) => [
+            ...prev,
+            {
+              file_name: fileName,
+              file_type: "image/jpeg",
+              file_data: asset.base64!,
+              upload_method: "camera",
+            },
+          ]);
         }
       } else {
         const result = await DocumentPicker.getDocumentAsync({
-          type: ['image/*', 'application/pdf'],
+          type: ["image/*", "application/pdf"],
           copyToCacheDirectory: true,
         });
 
@@ -243,36 +251,39 @@ export default function LeaveRequests() {
           const response = await fetch(asset.uri);
           const blob = await response.blob();
           const reader = new FileReader();
-          
+
           reader.onload = () => {
-            const base64Data = reader.result?.toString().split(',')[1];
+            const base64Data = reader.result?.toString().split(",")[1];
             if (base64Data) {
-              setDocuments(prev => [...prev, {
-                file_name: asset.name,
-                file_type: asset.mimeType || 'application/octet-stream',
-                file_data: base64Data,
-                upload_method: 'file'
-              }]);
+              setDocuments((prev) => [
+                ...prev,
+                {
+                  file_name: asset.name,
+                  file_type: asset.mimeType || "application/octet-stream",
+                  file_data: base64Data,
+                  upload_method: "file",
+                },
+              ]);
             }
           };
-          
+
           reader.readAsDataURL(blob);
         }
       }
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error("Error uploading document:", error);
       setErrorModal({
         visible: true,
-        title: 'Upload Failed',
-        message: 'Failed to upload document. Please try again.',
-        type: 'error'
+        title: "Upload Failed",
+        message: "Failed to upload document. Please try again.",
+        type: "error",
       });
     }
   };
 
   // Function to remove document
   const removeDocument = (index: number) => {
-    setDocuments(prev => prev.filter((_, i) => i !== index));
+    setDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -282,9 +293,9 @@ export default function LeaveRequests() {
       if (!user?.id) {
         setErrorModal({
           visible: true,
-          title: 'Authentication Error',
-          message: 'User not authenticated. Please log in again.',
-          type: 'error'
+          title: "Authentication Error",
+          message: "User not authenticated. Please log in again.",
+          type: "error",
         });
         return;
       }
@@ -295,9 +306,10 @@ export default function LeaveRequests() {
       if (!phoneRegex.test(phoneNumber)) {
         setErrorModal({
           visible: true,
-          title: 'Invalid Phone Number',
-          message: 'Please enter a valid phone number starting with +91 followed by 10 digits',
-          type: 'error'
+          title: "Invalid Phone Number",
+          message:
+            "Please enter a valid phone number starting with +91 followed by 10 digits",
+          type: "error",
         });
         return;
       }
@@ -306,23 +318,24 @@ export default function LeaveRequests() {
       if (selectedLeaveType?.requires_documentation && documents.length === 0) {
         setErrorModal({
           visible: true,
-          title: 'Documentation Required',
-          message: 'Please upload required documentation for this leave type',
-          type: 'warning'
+          title: "Documentation Required",
+          message: "Please upload required documentation for this leave type",
+          type: "warning",
         });
         return;
       }
 
       // Calculate days
-      const daysRequested = differenceInDays(formData.end_date, formData.start_date) + 1;
+      const daysRequested =
+        differenceInDays(formData.end_date, formData.start_date) + 1;
 
       // Validate leave type selection
       if (!formData.leave_type_id) {
         setErrorModal({
           visible: true,
-          title: 'Leave Type Required',
-          message: 'Please select a leave type',
-          type: 'error'
+          title: "Leave Type Required",
+          message: "Please select a leave type",
+          type: "error",
         });
         return;
       }
@@ -331,9 +344,9 @@ export default function LeaveRequests() {
       if (formData.end_date < formData.start_date) {
         setErrorModal({
           visible: true,
-          title: 'Invalid Dates',
-          message: 'End date cannot be before start date',
-          type: 'error'
+          title: "Invalid Dates",
+          message: "End date cannot be before start date",
+          type: "error",
         });
         return;
       }
@@ -344,9 +357,9 @@ export default function LeaveRequests() {
       if (formData.start_date < today) {
         setErrorModal({
           visible: true,
-          title: 'Invalid Start Date',
-          message: 'Start date cannot be in the past',
-          type: 'error'
+          title: "Invalid Start Date",
+          message: "Start date cannot be in the past",
+          type: "error",
         });
         return;
       }
@@ -355,9 +368,9 @@ export default function LeaveRequests() {
       if (!formData.reason.trim()) {
         setErrorModal({
           visible: true,
-          title: 'Reason Required',
-          message: 'Please provide a reason for your leave request',
-          type: 'error'
+          title: "Reason Required",
+          message: "Please provide a reason for your leave request",
+          type: "error",
         });
         return;
       }
@@ -367,16 +380,16 @@ export default function LeaveRequests() {
         {
           user_id: user.id,
           leave_type_id: parseInt(formData.leave_type_id),
-          start_date: format(formData.start_date, 'yyyy-MM-dd'),
-          end_date: format(formData.end_date, 'yyyy-MM-dd'),
+          start_date: format(formData.start_date, "yyyy-MM-dd"),
+          end_date: format(formData.end_date, "yyyy-MM-dd"),
           reason: formData.reason,
           contact_number: phoneNumber,
           days_requested: daysRequested,
-          documents: documents
+          documents: documents,
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
 
       if (response.data) {
@@ -385,47 +398,53 @@ export default function LeaveRequests() {
         resetForm();
         setErrorModal({
           visible: true,
-          title: 'Success',
-          message: 'Leave request submitted successfully',
-          type: 'success'
+          title: "Success",
+          message: "Leave request submitted successfully",
+          type: "success",
         });
       }
     } catch (error: any) {
-      console.error('Error submitting request:', error);
-      
+      console.error("Error submitting request:", error);
+
       const errorMessage = error.response?.data?.error || error.message;
       const errorDetails = error.response?.data?.details;
-      let userFriendlyMessage = 'Failed to submit request. Please try again.';
-      let errorType: 'error' | 'warning' = 'error';
-      let errorTitle = 'Request Failed';
+      let userFriendlyMessage = "Failed to submit request. Please try again.";
+      let errorType: "error" | "warning" = "error";
+      let errorTitle = "Request Failed";
 
-      if (errorMessage.includes('Notice period requirement not met') && errorDetails) {
-        errorTitle = 'Notice Period Required';
-        userFriendlyMessage = `This leave type requires ${errorDetails.required_days} days notice. The earliest possible start date is ${format(new Date(errorDetails.earliest_possible_date), 'MMM dd, yyyy')}.`;
-        errorType = 'warning';
-      } else if (errorMessage.includes('Insufficient leave balance')) {
-        errorTitle = 'Insufficient Leave Balance';
+      if (
+        errorMessage.includes("Notice period requirement not met") &&
+        errorDetails
+      ) {
+        errorTitle = "Notice Period Required";
+        userFriendlyMessage = `This leave type requires ${errorDetails.required_days} days notice. The earliest possible start date is ${format(new Date(errorDetails.earliest_possible_date), "MMM dd, yyyy")}.`;
+        errorType = "warning";
+      } else if (errorMessage.includes("Insufficient leave balance")) {
+        errorTitle = "Insufficient Leave Balance";
         userFriendlyMessage = `You don't have enough leave balance for this request. Please check your available balance before requesting leaves.`;
-        errorType = 'warning';
-      } else if (errorMessage.includes('Cannot request more than')) {
-        errorTitle = 'Maximum Days Exceeded';
-        userFriendlyMessage = 'You cannot request more than the maximum consecutive days allowed for this leave type.';
-        errorType = 'warning';
-      } else if (errorMessage.includes('overlapping')) {
-        errorTitle = 'Overlapping Request';
-        userFriendlyMessage = 'This leave request overlaps with an existing request.';
-        errorType = 'warning';
-      } else if (errorMessage.includes('minimum service')) {
-        errorTitle = 'Service Period Not Met';
-        userFriendlyMessage = 'You have not completed the minimum service period required for this leave type.';
-        errorType = 'warning';
+        errorType = "warning";
+      } else if (errorMessage.includes("Cannot request more than")) {
+        errorTitle = "Maximum Days Exceeded";
+        userFriendlyMessage =
+          "You cannot request more than the maximum consecutive days allowed for this leave type.";
+        errorType = "warning";
+      } else if (errorMessage.includes("overlapping")) {
+        errorTitle = "Overlapping Request";
+        userFriendlyMessage =
+          "This leave request overlaps with an existing request.";
+        errorType = "warning";
+      } else if (errorMessage.includes("minimum service")) {
+        errorTitle = "Service Period Not Met";
+        userFriendlyMessage =
+          "You have not completed the minimum service period required for this leave type.";
+        errorType = "warning";
       }
 
       setErrorModal({
         visible: true,
         title: errorTitle,
         message: userFriendlyMessage,
-        type: errorType
+        type: errorType,
       });
     } finally {
       setSubmitting(false);
@@ -434,12 +453,12 @@ export default function LeaveRequests() {
 
   const resetForm = () => {
     setFormData({
-      leave_type_id: '',
+      leave_type_id: "",
       start_date: new Date(),
       end_date: new Date(),
-      reason: '',
-      contact_number: '',
-      documentation_url: '',
+      reason: "",
+      contact_number: "",
+      documentation_url: "",
     });
     setDocuments([]);
     setSelectedLeaveType(null);
@@ -447,14 +466,14 @@ export default function LeaveRequests() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'escalated':
-        return 'bg-purple-100 text-purple-800';
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      case "escalated":
+        return "bg-purple-100 text-purple-800";
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-yellow-100 text-yellow-800";
     }
   };
 
@@ -462,32 +481,32 @@ export default function LeaveRequests() {
   const handleLeaveTypeChange = (value: string) => {
     if (!value) {
       setSelectedLeaveType(null);
-      setFormData(prev => ({ ...prev, leave_type_id: '' }));
+      setFormData((prev) => ({ ...prev, leave_type_id: "" }));
       return;
     }
-    
-    const selectedType = leaveTypes.find(type => 
-      type.leave_type_id && type.leave_type_id.toString() === value
+
+    const selectedType = leaveTypes.find(
+      (type) => type.leave_type_id && type.leave_type_id.toString() === value,
     );
     setSelectedLeaveType(selectedType || null);
-    setFormData(prev => ({ ...prev, leave_type_id: value }));
+    setFormData((prev) => ({ ...prev, leave_type_id: value }));
   };
 
   // Update the document preview icon logic
   const getDocumentIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) {
-      return 'image';
-    } else if (fileType.includes('pdf')) {
-      return 'document-text';
+    if (fileType.startsWith("image/")) {
+      return "image";
+    } else if (fileType.includes("pdf")) {
+      return "document-text";
     }
-    return 'document-outline';
+    return "document-outline";
   };
 
   if (loading && !refreshing) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#3B82F6" />
-        <Text className={`mt-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <Text className={`mt-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
           Loading leave requests...
         </Text>
       </View>
@@ -602,7 +621,7 @@ export default function LeaveRequests() {
                 </Text>
                 <View
                   className={`px-2 py-1 rounded ${getStatusColor(
-                    request.status
+                    request.status,
                   )}`}
                 >
                   <Text className="text-sm capitalize">{request.status}</Text>
@@ -713,7 +732,9 @@ export default function LeaveRequests() {
                 {leaveTypesLoading ? (
                   <View className="p-3 items-center">
                     <ActivityIndicator size="small" color="#3B82F6" />
-                    <Text className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <Text
+                      className={`mt-2 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       Loading leave types...
                     </Text>
                   </View>
@@ -727,8 +748,12 @@ export default function LeaveRequests() {
                     {leaveTypes.map((type) => (
                       <Picker.Item
                         key={type.leave_type_id || `type-${Math.random()}`}
-                        label={type.leave_type_name || 'Unknown Leave Type'}
-                        value={type.leave_type_id ? type.leave_type_id.toString() : ''}
+                        label={type.leave_type_name || "Unknown Leave Type"}
+                        value={
+                          type.leave_type_id
+                            ? type.leave_type_id.toString()
+                            : ""
+                        }
                       />
                     ))}
                   </Picker>
@@ -1017,14 +1042,14 @@ export default function LeaveRequests() {
 
 const styles = StyleSheet.create({
   header: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   backButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
@@ -1036,7 +1061,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   fabButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -1044,81 +1069,81 @@ const styles = StyleSheet.create({
   },
 });
 
-const StatusModal = ({ 
-  visible, 
-  title, 
-  message, 
-  type, 
-  onClose 
+const StatusModal = ({
+  visible,
+  title,
+  message,
+  type,
+  onClose,
 }: ErrorModalState & { onClose: () => void }) => {
   const { theme } = ThemeContext.useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   const getIconName = () => {
     switch (type) {
-      case 'success':
-        return 'checkmark-circle';
-      case 'warning':
-        return 'warning';
-      case 'error':
-        return 'close-circle';
+      case "success":
+        return "checkmark-circle";
+      case "warning":
+        return "warning";
+      case "error":
+        return "close-circle";
       default:
-        return 'information-circle';
+        return "information-circle";
     }
   };
 
   const getIconColor = () => {
     switch (type) {
-      case 'success':
-        return '#10B981';
-      case 'warning':
-        return '#F59E0B';
-      case 'error':
-        return '#EF4444';
+      case "success":
+        return "#10B981";
+      case "warning":
+        return "#F59E0B";
+      case "error":
+        return "#EF4444";
       default:
-        return '#3B82F6';
+        return "#3B82F6";
     }
   };
 
   return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={onClose}
-      style={{ margin: 0 }}
-    >
-      <View className={`m-4 p-6 rounded-2xl ${
-        isDark ? 'bg-gray-800' : 'bg-white'
-      }`}>
+    <Modal isVisible={visible} onBackdropPress={onClose} style={{ margin: 0 }}>
+      <View
+        className={`m-4 p-6 rounded-2xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+      >
         <View className="items-center mb-4">
-          <Ionicons
-            name={getIconName()}
-            size={48}
-            color={getIconColor()}
-          />
+          <Ionicons name={getIconName()} size={48} color={getIconColor()} />
         </View>
-        
-        <Text className={`text-xl font-semibold text-center mb-2 ${
-          isDark ? 'text-white' : 'text-gray-900'
-        }`}>
+
+        <Text
+          className={`text-xl font-semibold text-center mb-2 ${
+            isDark ? "text-white" : "text-gray-900"
+          }`}
+        >
           {title}
         </Text>
-        
-        <Text className={`text-center mb-6 ${
-          isDark ? 'text-gray-300' : 'text-gray-600'
-        }`}>
+
+        <Text
+          className={`text-center mb-6 ${
+            isDark ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
           {message}
         </Text>
-        
+
         <TouchableOpacity
           onPress={onClose}
           className={`py-3 px-6 rounded-lg ${
-            type === 'error' ? 'bg-red-500' :
-            type === 'success' ? 'bg-green-500' :
-            type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+            type === "error"
+              ? "bg-red-500"
+              : type === "success"
+                ? "bg-green-500"
+                : type === "warning"
+                  ? "bg-yellow-500"
+                  : "bg-blue-500"
           }`}
         >
           <Text className="text-white text-center font-medium">
-            {type === 'error' ? 'Try Again' : 'OK'}
+            {type === "error" ? "Try Again" : "OK"}
           </Text>
         </TouchableOpacity>
       </View>

@@ -1,12 +1,12 @@
 /**
  * Progress Indicators Components
- * 
+ *
  * Various progress indicators for face verification
  */
 
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ProgressBarProps {
   progress: number; // 0-100
@@ -16,12 +16,12 @@ interface ProgressBarProps {
   color?: string;
 }
 
-export function ProgressBar({ 
-  progress, 
-  height = 6, 
-  showPercentage = false, 
+export function ProgressBar({
+  progress,
+  height = 6,
+  showPercentage = false,
   animated = true,
-  color = '#3b82f6'
+  color = "#3b82f6",
 }: ProgressBarProps) {
   const animatedWidth = useRef(new Animated.Value(0)).current;
 
@@ -48,8 +48,8 @@ export function ProgressBar({
               backgroundColor: color,
               width: animatedWidth.interpolate({
                 inputRange: [0, 100],
-                outputRange: ['0%', '100%'],
-                extrapolate: 'clamp',
+                outputRange: ["0%", "100%"],
+                extrapolate: "clamp",
               }),
             },
           ]}
@@ -69,11 +69,11 @@ interface CountdownTimerProps {
   showText?: boolean;
 }
 
-export function CountdownTimer({ 
-  seconds, 
-  onComplete, 
+export function CountdownTimer({
+  seconds,
+  onComplete,
   size = 60,
-  showText = true 
+  showText = true,
 }: CountdownTimerProps) {
   const animatedValue = useRef(new Animated.Value(seconds)).current;
 
@@ -110,10 +110,10 @@ interface SuccessAnimationProps {
   message?: string;
 }
 
-export function SuccessAnimation({ 
-  visible, 
-  onComplete, 
-  message = 'Success!' 
+export function SuccessAnimation({
+  visible,
+  onComplete,
+  message = "Success!",
 }: SuccessAnimationProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -171,10 +171,10 @@ interface FailureAnimationProps {
   message?: string;
 }
 
-export function FailureAnimation({ 
-  visible, 
-  onComplete, 
-  message = 'Failed!' 
+export function FailureAnimation({
+  visible,
+  onComplete,
+  message = "Failed!",
 }: FailureAnimationProps) {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -188,10 +188,26 @@ export function FailureAnimation({
           useNativeDriver: true,
         }),
         Animated.sequence([
-          Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+          Animated.timing(shakeAnim, {
+            toValue: 10,
+            duration: 50,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -10,
+            duration: 50,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 10,
+            duration: 50,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 50,
+            useNativeDriver: true,
+          }),
         ]),
         Animated.delay(1000),
         Animated.timing(opacityAnim, {
@@ -226,66 +242,84 @@ export function FailureAnimation({
 }
 
 // Additional progress components for compatibility
-export function CircularProgress({ 
-  progress, 
-  size = 60, 
-  color = '#3b82f6',
+export function CircularProgress({
+  progress,
+  size = 60,
+  color = "#3b82f6",
   strokeWidth,
-  showPercentage
-}: { 
-  progress: number; 
-  size?: number; 
+  showPercentage,
+}: {
+  progress: number;
+  size?: number;
   color?: string;
   strokeWidth?: number;
   showPercentage?: boolean;
 }) {
   return (
-    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color, fontSize: size * 0.2, fontWeight: 'bold' }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color, fontSize: size * 0.2, fontWeight: "bold" }}>
         {Math.round(progress)}%
       </Text>
     </View>
   );
 }
 
-export function LoadingSpinner({ 
-  size = 'large', 
-  color = '#3b82f6',
-  text
-}: { 
-  size?: 'small' | 'large'; 
+export function LoadingSpinner({
+  size = "large",
+  color = "#3b82f6",
+  text,
+}: {
+  size?: "small" | "large";
   color?: string;
   text?: string;
 }) {
   return (
-    <Animated.View style={{ opacity: 1, alignItems: 'center' }}>
+    <Animated.View style={{ opacity: 1, alignItems: "center" }}>
       <Text>Loading...</Text>
-      {text && <Text style={{ marginTop: 4, fontSize: 12, color }}>{text}</Text>}
+      {text && (
+        <Text style={{ marginTop: 4, fontSize: 12, color }}>{text}</Text>
+      )}
     </Animated.View>
   );
 }
 
-export function StepProgress({ 
-  steps, 
+export function StepProgress({
+  steps,
   currentStep,
-  completedSteps
-}: { 
-  steps: string[]; 
+  completedSteps,
+}: {
+  steps: string[];
   currentStep: number;
   completedSteps?: number[];
 }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
       {steps.map((step, index) => {
-        const isCompleted = completedSteps?.includes(index) || index < currentStep;
+        const isCompleted =
+          completedSteps?.includes(index) || index < currentStep;
         const isCurrent = index === currentStep;
         return (
-          <View key={index} style={{ 
-            padding: 8, 
-            backgroundColor: isCompleted || isCurrent ? '#3b82f6' : '#e5e7eb',
-            borderRadius: 4 
-          }}>
-            <Text style={{ color: isCompleted || isCurrent ? 'white' : '#6b7280', fontSize: 12 }}>
+          <View
+            key={index}
+            style={{
+              padding: 8,
+              backgroundColor: isCompleted || isCurrent ? "#3b82f6" : "#e5e7eb",
+              borderRadius: 4,
+            }}
+          >
+            <Text
+              style={{
+                color: isCompleted || isCurrent ? "white" : "#6b7280",
+                fontSize: 12,
+              }}
+            >
               {step}
             </Text>
           </View>
@@ -297,15 +331,15 @@ export function StepProgress({
 
 const styles = StyleSheet.create({
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
   },
   progressTrack: {
     flex: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
     borderRadius: 3,
@@ -313,59 +347,59 @@ const styles = StyleSheet.create({
   progressText: {
     marginLeft: 8,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     minWidth: 35,
   },
   countdownContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   countdownCircle: {
     borderRadius: 50,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
     borderWidth: 3,
-    borderColor: '#3b82f6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#3b82f6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   countdownText: {
-    fontWeight: 'bold',
-    color: '#3b82f6',
+    fontWeight: "bold",
+    color: "#3b82f6",
   },
   countdownLabel: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
   },
   animationContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   successIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#10b981",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   failureIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ef4444',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   animationText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#1f2937",
+    textAlign: "center",
   },
 });

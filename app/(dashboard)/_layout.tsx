@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
-import ThemeContext from '../context/ThemeContext';
-import AuthContext from '../context/AuthContext';
-import PermissionsModal from '../components/PermissionsModal';
-import PermissionsManager from '../utils/permissionsManager';
+import React, { useEffect, useState } from "react";
+import { Stack } from "expo-router";
+import ThemeContext from "../context/ThemeContext";
+import AuthContext from "../context/AuthContext";
+import PermissionsModal from "../components/PermissionsModal";
+import PermissionsManager from "../utils/permissionsManager";
 
 export default function DashboardLayout() {
   const { theme } = ThemeContext.useTheme();
@@ -17,21 +17,23 @@ export default function DashboardLayout() {
 
       try {
         // Check if permissions have been requested before
-        const permissionsRequested = await PermissionsManager.havePermissionsBeenRequested();
-        
+        const permissionsRequested =
+          await PermissionsManager.havePermissionsBeenRequested();
+
         if (!permissionsRequested) {
           // If permissions haven't been requested yet, show the modal
           setShowPermissionsModal(true);
         } else {
           // Permissions were requested before, now check if notification permission was granted
           // If granted, set up notification services
-          const notificationStatus = await PermissionsManager.checkNotificationPermissions();
-          if (notificationStatus === 'granted') {
+          const notificationStatus =
+            await PermissionsManager.checkNotificationPermissions();
+          if (notificationStatus === "granted") {
             await PermissionsManager.setupNotificationChannel();
           }
         }
       } catch (error) {
-        console.error('Error checking permissions:', error);
+        console.error("Error checking permissions:", error);
       }
     };
 
@@ -44,48 +46,33 @@ export default function DashboardLayout() {
 
   return (
     <>
-      <Stack 
-        screenOptions={{ 
+      <Stack
+        screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+            backgroundColor: theme === "dark" ? "#111827" : "#ffffff",
           },
-          animation: 'fade'
+          animation: "fade",
         }}
       >
-        <Stack.Screen 
-          name="index" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="employee" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="Group-Admin" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="management" 
-          options={{ headerShown: false }} 
-        />
-        <Stack.Screen 
-          name="super-admin" 
-          options={{ headerShown: false }} 
-        />
-        
-        <Stack.Screen 
-          name="management/group-admin-management" 
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="employee" options={{ headerShown: false }} />
+        <Stack.Screen name="Group-Admin" options={{ headerShown: false }} />
+        <Stack.Screen name="management" options={{ headerShown: false }} />
+        <Stack.Screen name="super-admin" options={{ headerShown: false }} />
+
+        <Stack.Screen
+          name="management/group-admin-management"
           options={{
             headerShown: true,
-            title: 'Group Admin Management',
-            headerTintColor: theme === 'dark' ? '#F9FAFB' : '#111827',
+            title: "Group Admin Management",
+            headerTintColor: theme === "dark" ? "#F9FAFB" : "#111827",
             headerStyle: {
-              backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF',
+              backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF",
             },
             headerShadowVisible: false,
-            presentation: 'modal',
-            animation: 'slide_from_right'
+            presentation: "modal",
+            animation: "slide_from_right",
           }}
         />
       </Stack>

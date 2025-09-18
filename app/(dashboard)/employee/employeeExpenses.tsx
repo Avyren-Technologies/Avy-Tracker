@@ -34,9 +34,9 @@ import axios from "axios";
 import Modal from "react-native-modal";
 import numberToWords from "./components/NumberToWords";
 import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 
 const { width, height } = Dimensions.get("window");
-import Constants from "expo-constants";
 
 interface TravelDetail {
   id: number;
@@ -109,7 +109,7 @@ const CACHE_KEYS = {
 
 const calculateTravelTime = (
   startTime: string | Date,
-  endTime: string | Date
+  endTime: string | Date,
 ) => {
   if (!startTime || !endTime) return "--:--";
 
@@ -125,7 +125,7 @@ const calculateTravelTime = (
 const calculateAverageSpeed = (
   distance: string,
   startTime: string | Date,
-  endTime: string | Date
+  endTime: string | Date,
 ) => {
   if (!distance || !startTime || !endTime) return "--";
 
@@ -193,7 +193,7 @@ export default function EmployeeExpenses() {
     location: "",
   });
   const [savedTravelDetails, setSavedTravelDetails] = useState<TravelDetail[]>(
-    []
+    [],
   );
   const [companyName, setCompanyName] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -250,7 +250,7 @@ export default function EmployeeExpenses() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, []);
 
@@ -263,7 +263,8 @@ export default function EmployeeExpenses() {
       "tollCharges",
       "otherExpenses",
     ].map(
-      (key) => parseFloat(formData[key as keyof typeof formData] as string) || 0
+      (key) =>
+        parseFloat(formData[key as keyof typeof formData] as string) || 0,
     );
     return values.reduce((acc, curr) => acc + curr, 0);
   }, [formData]);
@@ -341,7 +342,7 @@ export default function EmployeeExpenses() {
         // First check if we already have a valid user and token from context
         if (!user || !token) {
           console.log(
-            "No user or token in context, attempting token refresh..."
+            "No user or token in context, attempting token refresh...",
           );
           const currentToken = await refreshToken();
           if (!currentToken) {
@@ -359,12 +360,11 @@ export default function EmployeeExpenses() {
         }
 
         // Set token in axios headers
-        axios.defaults.headers.common[
-          "Authorization"
-        ] = `Bearer ${activeToken}`;
+        axios.defaults.headers.common["Authorization"] =
+          `Bearer ${activeToken}`;
 
         const employeeResponse = await axios.get<EmployeeDetails>(
-          `${API_URL}/api/employee/details`
+          `${API_URL}/api/employee/details`,
         );
 
         // Update form data with employee details
@@ -378,7 +378,7 @@ export default function EmployeeExpenses() {
 
         // Update company name
         setCompanyName(
-          employeeResponse.data.company_name || "Company Not Assigned"
+          employeeResponse.data.company_name || "Company Not Assigned",
         );
 
         // Also update employeeDetails state
@@ -404,18 +404,18 @@ export default function EmployeeExpenses() {
                   router.replace("/(auth)/signin");
                 },
               },
-            ]
+            ],
           );
         } else {
           // For other errors, just show an error message without redirecting
           console.warn(
             "Failed to fetch employee details, but staying on page:",
-            error?.message || "Unknown error"
+            error?.message || "Unknown error",
           );
           Alert.alert(
             "Warning",
             "Failed to fetch employee details. Some information may not be available.",
-            [{ text: "OK", style: "default" }]
+            [{ text: "OK", style: "default" }],
           );
         }
       }
@@ -464,19 +464,19 @@ export default function EmployeeExpenses() {
         `${API_URL}/api/employee/permissions`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const canSubmitAnytime =
         userPermissionsResponse.data?.permissions?.includes(
-          "can_submit_expenses_anytime"
+          "can_submit_expenses_anytime",
         ) || false;
 
       // Only check for active shift if user cannot submit anytime
       if (!canSubmitAnytime) {
         // Check for active shift
         const shiftStatus = await AsyncStorage.getItem(
-          `${user?.role}-shiftStatus`
+          `${user?.role}-shiftStatus`,
         );
         console.warn("shiftStatus", shiftStatus);
         if (!shiftStatus) {
@@ -484,7 +484,7 @@ export default function EmployeeExpenses() {
           Alert.alert(
             "No Active Shift",
             "You must have an active shift to submit expenses. Please start a shift first.",
-            [{ text: "OK", style: "default" }]
+            [{ text: "OK", style: "default" }],
           );
           setIsSubmitting(false);
           return;
@@ -496,7 +496,7 @@ export default function EmployeeExpenses() {
           Alert.alert(
             "No Active Shift",
             "You must have an active shift to submit expenses. Please start a shift first.",
-            [{ text: "OK", style: "default" }]
+            [{ text: "OK", style: "default" }],
           );
           setIsSubmitting(false);
           return;
@@ -518,7 +518,7 @@ export default function EmployeeExpenses() {
         });
         Alert.alert(
           "Error",
-          "Employee details are missing. Please try refreshing the page."
+          "Employee details are missing. Please try refreshing the page.",
         );
         return;
       }
@@ -537,11 +537,11 @@ export default function EmployeeExpenses() {
       // Add saved details from AsyncStorage
       formDataToSend.append(
         "savedTravelDetails",
-        JSON.stringify(savedTravelDetails)
+        JSON.stringify(savedTravelDetails),
       );
       formDataToSend.append(
         "savedExpenseDetails",
-        JSON.stringify(savedExpenseDetails)
+        JSON.stringify(savedExpenseDetails),
       );
 
       // Add all the expense details
@@ -556,7 +556,7 @@ export default function EmployeeExpenses() {
       formDataToSend.append("totalKilometers", formData.totalKilometers);
       formDataToSend.append(
         "startDateTime",
-        formData.startDateTime.toISOString()
+        formData.startDateTime.toISOString(),
       );
       formDataToSend.append("endDateTime", formData.endDateTime.toISOString());
       formDataToSend.append("routeTaken", formData.routeTaken);
@@ -574,7 +574,7 @@ export default function EmployeeExpenses() {
       formDataToSend.append("totalAmount", calculatedTotalAmount.toString());
       formDataToSend.append(
         "amountPayable",
-        calculatedAmountPayable.toString()
+        calculatedAmountPayable.toString(),
       );
 
       // Add supporting documents
@@ -605,7 +605,7 @@ export default function EmployeeExpenses() {
             "Content-Type": "multipart/form-data",
           },
           timeout: 30000,
-        }
+        },
       );
 
       console.log("Submission response:", response.data);
@@ -629,9 +629,9 @@ export default function EmployeeExpenses() {
           title: `💰 New Expense Report - ${user?.name} (${formData.employeeNumber})`,
           message: `📊 Expense Details:\n🗓️ Date: ${format(
             formData.date,
-            "dd/MM/yyyy"
+            "dd/MM/yyyy",
           )}\n💵 Total Amount: ₹${calculatedTotalAmount.toFixed(
-            2
+            2,
           )}\n🚗 Travel: ${formData.totalKilometers}km\n📍 Route: ${
             formData.routeTaken
           }\n\n💼 Department: ${formData.department}\n👤 Designation: ${
@@ -643,7 +643,7 @@ export default function EmployeeExpenses() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       // Auto hide after 2 seconds
@@ -663,7 +663,7 @@ export default function EmployeeExpenses() {
         {
           cancelable: true,
           userInterfaceStyle: theme === "dark" ? "dark" : "light",
-        }
+        },
       );
     } finally {
       setIsSubmitting(false);
@@ -693,12 +693,12 @@ export default function EmployeeExpenses() {
       (acc, key) =>
         acc +
         (parseFloat(formData[key as keyof typeof formData] as string) || 0),
-      0
+      0,
     );
 
     const savedExpenseTotal = savedExpenseDetails.reduce(
       (acc, expense) => acc + expense.totalAmount,
-      0
+      0,
     );
 
     return currentExpenseTotal + savedExpenseTotal;
@@ -721,7 +721,7 @@ export default function EmployeeExpenses() {
           currentDate.getMonth(),
           currentDate.getDate(),
           prev.startDateTime.getHours(),
-          prev.startDateTime.getMinutes()
+          prev.startDateTime.getMinutes(),
         ),
       }));
       if (Platform.OS === "android") {
@@ -737,7 +737,7 @@ export default function EmployeeExpenses() {
           prev.startDateTime.getMonth(),
           prev.startDateTime.getDate(),
           currentDate.getHours(),
-          currentDate.getMinutes()
+          currentDate.getMinutes(),
         ),
       }));
       setPickerMode("date");
@@ -756,7 +756,7 @@ export default function EmployeeExpenses() {
           currentDate.getMonth(),
           currentDate.getDate(),
           prev.endDateTime.getHours(),
-          prev.endDateTime.getMinutes()
+          prev.endDateTime.getMinutes(),
         ),
       }));
       if (Platform.OS === "android") {
@@ -772,7 +772,7 @@ export default function EmployeeExpenses() {
           prev.endDateTime.getMonth(),
           prev.endDateTime.getDate(),
           currentDate.getHours(),
-          currentDate.getMinutes()
+          currentDate.getMinutes(),
         ),
       }));
       setPickerMode("date");
@@ -830,12 +830,12 @@ export default function EmployeeExpenses() {
     try {
       await AsyncStorage.setItem(
         "savedTravelDetails",
-        JSON.stringify(updatedDetails)
+        JSON.stringify(updatedDetails),
       );
       handleTravelDetailsReset(); // Reset form after saving
       Alert.alert(
         "Success",
-        `Travel Details ${updatedDetails.length} saved successfully`
+        `Travel Details ${updatedDetails.length} saved successfully`,
       );
     } catch (error) {
       console.error("Error saving travel details:", error);
@@ -890,7 +890,7 @@ export default function EmployeeExpenses() {
     try {
       await AsyncStorage.setItem(
         "employeeDetails",
-        JSON.stringify(updatedDetails)
+        JSON.stringify(updatedDetails),
       );
     } catch (error) {
       console.error("Error saving employee details:", error);
@@ -912,21 +912,21 @@ export default function EmployeeExpenses() {
           style: "destructive",
           onPress: async () => {
             const updatedDetails = savedTravelDetails.filter(
-              (detail) => detail.id !== id
+              (detail) => detail.id !== id,
             );
             setSavedTravelDetails(updatedDetails);
 
             try {
               await AsyncStorage.setItem(
                 "savedTravelDetails",
-                JSON.stringify(updatedDetails)
+                JSON.stringify(updatedDetails),
               );
             } catch (error) {
               console.error("Error saving updated travel details:", error);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -986,7 +986,7 @@ export default function EmployeeExpenses() {
       // Save to AsyncStorage
       await AsyncStorage.setItem(
         "savedExpenseDetails",
-        JSON.stringify(updatedDetails)
+        JSON.stringify(updatedDetails),
       );
       setSavedExpenseDetails(updatedDetails);
 
@@ -995,7 +995,7 @@ export default function EmployeeExpenses() {
 
       Alert.alert(
         "Success",
-        `Expense Details ${updatedDetails.length} saved successfully`
+        `Expense Details ${updatedDetails.length} saved successfully`,
       );
     } catch (error) {
       console.error("Error saving expense details:", error);
@@ -1034,14 +1034,14 @@ export default function EmployeeExpenses() {
           style: "destructive",
           onPress: async () => {
             const updatedDetails = savedExpenseDetails.filter(
-              (detail) => detail.id !== id
+              (detail) => detail.id !== id,
             );
             setSavedExpenseDetails(updatedDetails);
 
             try {
               await AsyncStorage.setItem(
                 "savedExpenseDetails",
-                JSON.stringify(updatedDetails)
+                JSON.stringify(updatedDetails),
               );
             } catch (error) {
               console.error("Error saving updated expense details:", error);
@@ -1052,7 +1052,7 @@ export default function EmployeeExpenses() {
       {
         cancelable: true,
         userInterfaceStyle: theme === "dark" ? "dark" : "light",
-      }
+      },
     );
   };
 
@@ -1060,7 +1060,7 @@ export default function EmployeeExpenses() {
   const loadCachedEmployeeDetails = async () => {
     try {
       const cachedDetails = await AsyncStorage.getItem(
-        CACHE_KEYS.EMPLOYEE_DETAILS
+        CACHE_KEYS.EMPLOYEE_DETAILS,
       );
       if (cachedDetails) {
         const details = JSON.parse(cachedDetails);
@@ -1082,7 +1082,7 @@ export default function EmployeeExpenses() {
     try {
       await AsyncStorage.setItem(
         CACHE_KEYS.EMPLOYEE_DETAILS,
-        JSON.stringify(details)
+        JSON.stringify(details),
       );
     } catch (error) {
       console.error("Error saving employee details to cache:", error);
@@ -1101,7 +1101,7 @@ export default function EmployeeExpenses() {
       if (status !== "granted") {
         Alert.alert(
           "Permission needed",
-          "Camera permission is required to take photos"
+          "Camera permission is required to take photos",
         );
         return;
       }
@@ -1178,7 +1178,7 @@ export default function EmployeeExpenses() {
             }));
           },
         },
-      ]
+      ],
     );
   };
 
@@ -1768,7 +1768,7 @@ export default function EmployeeExpenses() {
               >
                 {calculateTravelTime(
                   formData.startDateTime,
-                  formData.endDateTime
+                  formData.endDateTime,
                 )}
               </Text>
             </View>
@@ -1794,7 +1794,7 @@ export default function EmployeeExpenses() {
                 {calculateAverageSpeed(
                   formData.totalKilometers,
                   formData.startDateTime,
-                  formData.endDateTime
+                  formData.endDateTime,
                 )}
               </Text>
             </View>
@@ -1885,7 +1885,7 @@ export default function EmployeeExpenses() {
                       >
                         {`${detail.totalKilometers}km • ${format(
                           new Date(detail.startDateTime),
-                          "dd MMM yyyy"
+                          "dd MMM yyyy",
                         )}`}
                       </Text>
                     </View>

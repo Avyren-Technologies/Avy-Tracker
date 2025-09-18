@@ -6,7 +6,7 @@ export async function logError(
   message: string,
   userId?: number,
   metadata?: any,
-  stackTrace?: string
+  stackTrace?: string,
 ): Promise<void> {
   try {
     // Ensure we always have a valid timestamp
@@ -24,7 +24,7 @@ export async function logError(
         userId || null,
         metadata ? JSON.stringify(metadata) : null,
         stackTrace || null,
-      ]
+      ],
     );
   } catch (loggingError) {
     // Don't throw here - just console log the error to avoid crash cycles
@@ -43,7 +43,7 @@ export async function logError(
 export function logLocationError(
   error: any,
   userId?: number,
-  locationData?: any
+  locationData?: any,
 ): void {
   const errorType = error?.code || "UnknownError";
   const message = error?.message || String(error);
@@ -55,14 +55,14 @@ export function logLocationError(
     message,
     userId,
     { locationData },
-    stackTrace
+    stackTrace,
   );
 }
 
 export function logGeofenceError(
   error: any,
   userId?: number,
-  geofenceData?: any
+  geofenceData?: any,
 ): void {
   const errorType = error?.code || "UnknownError";
   const message = error?.message || String(error);
@@ -74,14 +74,14 @@ export function logGeofenceError(
     message,
     userId,
     { geofenceData },
-    stackTrace
+    stackTrace,
   );
 }
 
 export function logSocketError(
   error: any,
   userId?: number,
-  socketData?: any
+  socketData?: any,
 ): void {
   const errorType = error?.code || "UnknownError";
   const message = error?.message || String(error);
@@ -93,6 +93,6 @@ export function logSocketError(
     message,
     userId,
     { socketData },
-    stackTrace
+    stackTrace,
   );
 }

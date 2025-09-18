@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-} from 'react-native';
+} from "react-native";
 
 interface Props {
   visible: boolean;
@@ -16,13 +16,18 @@ interface Props {
   isDark: boolean;
 }
 
-export default function RejectModal({ visible, onClose, onReject, isDark }: Props) {
-  const [reason, setReason] = useState('');
+export default function RejectModal({
+  visible,
+  onClose,
+  onReject,
+  isDark,
+}: Props) {
+  const [reason, setReason] = useState("");
 
   const handleReject = () => {
     if (reason.trim()) {
       onReject(reason.trim());
-      setReason('');
+      setReason("");
       onClose();
     }
   };
@@ -84,10 +89,10 @@ export default function RejectModal({ visible, onClose, onReject, isDark }: Prop
 
 const styles = StyleSheet.create({
   modalContent: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
-}); 
+});

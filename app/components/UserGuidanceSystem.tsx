@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,22 @@ import {
   Modal,
   AccessibilityInfo,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import { FaceDetectionData, FaceQuality } from '../types/faceDetection';
-import { FaceVerificationErrorType } from '../types/faceVerificationErrors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import { FaceDetectionData, FaceQuality } from "../types/faceDetection";
+import { FaceVerificationErrorType } from "../types/faceVerificationErrors";
 
 // Import guidance components
-import FacePositioningGuide from './FacePositioningGuide';
-import LightingConditionFeedback from './LightingConditionFeedback';
-import VerificationTutorial from './VerificationTutorial';
-import TroubleshootingGuide from './TroubleshootingGuide';
-import AccessibilityHelper from './AccessibilityHelper';
+import FacePositioningGuide from "./FacePositioningGuide";
+import LightingConditionFeedback from "./LightingConditionFeedback";
+import VerificationTutorial from "./VerificationTutorial";
+import TroubleshootingGuide from "./TroubleshootingGuide";
+import AccessibilityHelper from "./AccessibilityHelper";
 
 interface UserGuidanceSystemProps {
   visible: boolean;
-  mode: 'register' | 'verify';
+  mode: "register" | "verify";
   faceData: FaceDetectionData | null;
   faceQuality: FaceQuality | null;
   currentError?: FaceVerificationErrorType;
@@ -43,10 +43,10 @@ interface GuidanceState {
 
 /**
  * User Guidance System Component
- * 
+ *
  * Orchestrates all user guidance and help features for face verification.
  * Provides intelligent guidance based on current state and user needs.
- * 
+ *
  * Requirements addressed:
  * - 1.7: User guidance and help features
  * - 6.3: Real-time feedback and progress indicators
@@ -63,12 +63,12 @@ export default function UserGuidanceSystem({
   enableVoiceGuidance = true,
 }: UserGuidanceSystemProps) {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#1f2937', '#f8fafc');
-  const primaryColor = useThemeColor('#3b82f6', '#60a5fa');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const warningColor = useThemeColor('#f59e0b', '#fbbf24');
-  const errorColor = useThemeColor('#ef4444', '#f87171');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#1f2937", "#f8fafc");
+  const primaryColor = useThemeColor("#3b82f6", "#60a5fa");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const warningColor = useThemeColor("#f59e0b", "#fbbf24");
+  const errorColor = useThemeColor("#ef4444", "#f87171");
 
   const [guidanceState, setGuidanceState] = useState<GuidanceState>({
     showPositioningGuide: true,
@@ -98,9 +98,9 @@ export default function UserGuidanceSystem({
     try {
       const isEnabled = await AccessibilityInfo.isScreenReaderEnabled();
       setIsScreenReaderEnabled(isEnabled);
-      
+
       if (isEnabled) {
-        setGuidanceState(prev => ({
+        setGuidanceState((prev) => ({
           ...prev,
           accessibilitySettings: {
             ...prev.accessibilitySettings,
@@ -110,24 +110,30 @@ export default function UserGuidanceSystem({
         }));
       }
     } catch (error) {
-      console.error('Error checking screen reader status:', error);
+      console.error("Error checking screen reader status:", error);
     }
   }, []);
 
   /**
    * Announce message to screen readers
    */
-  const announceToScreenReader = useCallback((message: string) => {
-    if (Platform.OS === 'ios' && guidanceState.accessibilitySettings.voiceGuidance) {
-      AccessibilityInfo.announceForAccessibility(message);
-    }
-  }, [guidanceState.accessibilitySettings.voiceGuidance]);
+  const announceToScreenReader = useCallback(
+    (message: string) => {
+      if (
+        Platform.OS === "ios" &&
+        guidanceState.accessibilitySettings.voiceGuidance
+      ) {
+        AccessibilityInfo.announceForAccessibility(message);
+      }
+    },
+    [guidanceState.accessibilitySettings.voiceGuidance],
+  );
 
   /**
    * Show tutorial
    */
   const showTutorial = useCallback(() => {
-    setGuidanceState(prev => ({ ...prev, showTutorial: true }));
+    setGuidanceState((prev) => ({ ...prev, showTutorial: true }));
     setShowMainMenu(false);
     announceToScreenReader(`Starting ${mode} tutorial`);
   }, [mode, announceToScreenReader]);
@@ -136,30 +142,32 @@ export default function UserGuidanceSystem({
    * Show troubleshooting guide
    */
   const showTroubleshooting = useCallback(() => {
-    setGuidanceState(prev => ({ ...prev, showTroubleshooting: true }));
+    setGuidanceState((prev) => ({ ...prev, showTroubleshooting: true }));
     setShowMainMenu(false);
-    announceToScreenReader('Opening troubleshooting guide');
+    announceToScreenReader("Opening troubleshooting guide");
   }, [announceToScreenReader]);
 
   /**
    * Show accessibility helper
    */
   const showAccessibilityHelper = useCallback(() => {
-    setGuidanceState(prev => ({ ...prev, showAccessibilityHelper: true }));
+    setGuidanceState((prev) => ({ ...prev, showAccessibilityHelper: true }));
     setShowMainMenu(false);
-    announceToScreenReader('Opening accessibility settings');
+    announceToScreenReader("Opening accessibility settings");
   }, [announceToScreenReader]);
 
   /**
    * Toggle positioning guide
    */
   const togglePositioningGuide = useCallback(() => {
-    setGuidanceState(prev => ({
+    setGuidanceState((prev) => ({
       ...prev,
       showPositioningGuide: !prev.showPositioningGuide,
     }));
     announceToScreenReader(
-      guidanceState.showPositioningGuide ? 'Positioning guide hidden' : 'Positioning guide shown'
+      guidanceState.showPositioningGuide
+        ? "Positioning guide hidden"
+        : "Positioning guide shown",
     );
   }, [guidanceState.showPositioningGuide, announceToScreenReader]);
 
@@ -167,12 +175,14 @@ export default function UserGuidanceSystem({
    * Toggle lighting feedback
    */
   const toggleLightingFeedback = useCallback(() => {
-    setGuidanceState(prev => ({
+    setGuidanceState((prev) => ({
       ...prev,
       showLightingFeedback: !prev.showLightingFeedback,
     }));
     announceToScreenReader(
-      guidanceState.showLightingFeedback ? 'Lighting feedback hidden' : 'Lighting feedback shown'
+      guidanceState.showLightingFeedback
+        ? "Lighting feedback hidden"
+        : "Lighting feedback shown",
     );
   }, [guidanceState.showLightingFeedback, announceToScreenReader]);
 
@@ -180,32 +190,35 @@ export default function UserGuidanceSystem({
    * Handle tutorial completion
    */
   const handleTutorialComplete = useCallback(() => {
-    setGuidanceState(prev => ({
+    setGuidanceState((prev) => ({
       ...prev,
       showTutorial: false,
       tutorialCompleted: true,
     }));
-    announceToScreenReader('Tutorial completed successfully');
+    announceToScreenReader("Tutorial completed successfully");
   }, [announceToScreenReader]);
 
   /**
    * Handle tutorial skip
    */
   const handleTutorialSkip = useCallback(() => {
-    setGuidanceState(prev => ({ ...prev, showTutorial: false }));
-    announceToScreenReader('Tutorial skipped');
+    setGuidanceState((prev) => ({ ...prev, showTutorial: false }));
+    announceToScreenReader("Tutorial skipped");
   }, [announceToScreenReader]);
 
   /**
    * Handle accessibility settings change
    */
-  const handleAccessibilitySettingsChange = useCallback((settings: any) => {
-    setGuidanceState(prev => ({
-      ...prev,
-      accessibilitySettings: settings,
-    }));
-    announceToScreenReader('Accessibility settings updated');
-  }, [announceToScreenReader]);
+  const handleAccessibilitySettingsChange = useCallback(
+    (settings: any) => {
+      setGuidanceState((prev) => ({
+        ...prev,
+        accessibilitySettings: settings,
+      }));
+      announceToScreenReader("Accessibility settings updated");
+    },
+    [announceToScreenReader],
+  );
 
   /**
    * Get guidance priority based on current state
@@ -216,9 +229,9 @@ export default function UserGuidanceSystem({
     // Error-based guidance has highest priority
     if (currentError) {
       priorities.push({
-        type: 'troubleshooting',
+        type: "troubleshooting",
         priority: 10,
-        message: 'Troubleshooting needed',
+        message: "Troubleshooting needed",
         action: showTroubleshooting,
       });
     }
@@ -226,35 +239,43 @@ export default function UserGuidanceSystem({
     // Poor lighting conditions
     if (faceQuality && faceQuality.lighting < 0.4) {
       priorities.push({
-        type: 'lighting',
+        type: "lighting",
         priority: 8,
-        message: 'Improve lighting conditions',
-        action: () => setGuidanceState(prev => ({ ...prev, showLightingFeedback: true })),
+        message: "Improve lighting conditions",
+        action: () =>
+          setGuidanceState((prev) => ({ ...prev, showLightingFeedback: true })),
       });
     }
 
     // Poor positioning
     if (faceQuality && faceQuality.size < 0.3) {
       priorities.push({
-        type: 'positioning',
+        type: "positioning",
         priority: 7,
-        message: 'Adjust face position',
-        action: () => setGuidanceState(prev => ({ ...prev, showPositioningGuide: true })),
+        message: "Adjust face position",
+        action: () =>
+          setGuidanceState((prev) => ({ ...prev, showPositioningGuide: true })),
       });
     }
 
     // Tutorial for new users
     if (!guidanceState.tutorialCompleted) {
       priorities.push({
-        type: 'tutorial',
+        type: "tutorial",
         priority: 5,
-        message: 'Learn how to use face verification',
+        message: "Learn how to use face verification",
         action: showTutorial,
       });
     }
 
     return priorities.sort((a, b) => b.priority - a.priority);
-  }, [currentError, faceQuality, guidanceState.tutorialCompleted, showTroubleshooting, showTutorial]);
+  }, [
+    currentError,
+    faceQuality,
+    guidanceState.tutorialCompleted,
+    showTroubleshooting,
+    showTutorial,
+  ]);
 
   /**
    * Get current guidance status
@@ -262,45 +283,52 @@ export default function UserGuidanceSystem({
   const getGuidanceStatus = useCallback(() => {
     if (currentError) {
       return {
-        status: 'error',
-        message: 'Issue detected - tap for help',
+        status: "error",
+        message: "Issue detected - tap for help",
         color: errorColor,
-        icon: 'warning' as keyof typeof Ionicons.glyphMap,
+        icon: "warning" as keyof typeof Ionicons.glyphMap,
       };
     }
 
     if (faceQuality) {
       if (faceQuality.isValid && faceQuality.overall >= 0.8) {
         return {
-          status: 'excellent',
-          message: 'Perfect positioning',
+          status: "excellent",
+          message: "Perfect positioning",
           color: successColor,
-          icon: 'checkmark-circle' as keyof typeof Ionicons.glyphMap,
+          icon: "checkmark-circle" as keyof typeof Ionicons.glyphMap,
         };
       } else if (faceQuality.overall >= 0.6) {
         return {
-          status: 'good',
-          message: 'Good - minor adjustments',
+          status: "good",
+          message: "Good - minor adjustments",
           color: warningColor,
-          icon: 'thumbs-up' as keyof typeof Ionicons.glyphMap,
+          icon: "thumbs-up" as keyof typeof Ionicons.glyphMap,
         };
       } else {
         return {
-          status: 'needs-improvement',
-          message: 'Needs adjustment',
+          status: "needs-improvement",
+          message: "Needs adjustment",
           color: warningColor,
-          icon: 'information-circle' as keyof typeof Ionicons.glyphMap,
+          icon: "information-circle" as keyof typeof Ionicons.glyphMap,
         };
       }
     }
 
     return {
-      status: 'waiting',
-      message: 'Position your face',
+      status: "waiting",
+      message: "Position your face",
       color: primaryColor,
-      icon: 'scan' as keyof typeof Ionicons.glyphMap,
+      icon: "scan" as keyof typeof Ionicons.glyphMap,
     };
-  }, [currentError, faceQuality, errorColor, successColor, warningColor, primaryColor]);
+  }, [
+    currentError,
+    faceQuality,
+    errorColor,
+    successColor,
+    warningColor,
+    primaryColor,
+  ]);
 
   // Check screen reader status on mount
   useEffect(() => {
@@ -346,7 +374,9 @@ export default function UserGuidanceSystem({
             faceData={faceData}
             faceQuality={faceQuality}
             isVisible={true}
-            enableVoiceGuidance={guidanceState.accessibilitySettings.voiceGuidance}
+            enableVoiceGuidance={
+              guidanceState.accessibilitySettings.voiceGuidance
+            }
           />
         </View>
       )}
@@ -377,7 +407,12 @@ export default function UserGuidanceSystem({
 
         {/* Main Menu */}
         {showMainMenu && (
-          <View style={[styles.mainMenu, { backgroundColor, borderColor: 'rgba(0,0,0,0.1)' }]}>
+          <View
+            style={[
+              styles.mainMenu,
+              { backgroundColor, borderColor: "rgba(0,0,0,0.1)" },
+            ]}
+          >
             <TouchableOpacity
               onPress={showTutorial}
               style={styles.menuItem}
@@ -419,7 +454,7 @@ export default function UserGuidanceSystem({
             <TouchableOpacity
               onPress={togglePositioningGuide}
               style={styles.menuItem}
-              accessibilityLabel={`${guidanceState.showPositioningGuide ? 'Hide' : 'Show'} positioning guide`}
+              accessibilityLabel={`${guidanceState.showPositioningGuide ? "Hide" : "Show"} positioning guide`}
               accessibilityHint="Toggle the face positioning guide overlay"
             >
               <Ionicons
@@ -428,23 +463,26 @@ export default function UserGuidanceSystem({
                 color={textColor}
               />
               <Text style={[styles.menuText, { color: textColor }]}>
-                {guidanceState.showPositioningGuide ? 'Hide' : 'Show'} Positioning
+                {guidanceState.showPositioningGuide ? "Hide" : "Show"}{" "}
+                Positioning
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={toggleLightingFeedback}
               style={styles.menuItem}
-              accessibilityLabel={`${guidanceState.showLightingFeedback ? 'Hide' : 'Show'} lighting feedback`}
+              accessibilityLabel={`${guidanceState.showLightingFeedback ? "Hide" : "Show"} lighting feedback`}
               accessibilityHint="Toggle the lighting condition feedback"
             >
               <Ionicons
-                name={guidanceState.showLightingFeedback ? "bulb" : "bulb-outline"}
+                name={
+                  guidanceState.showLightingFeedback ? "bulb" : "bulb-outline"
+                }
                 size={20}
                 color={textColor}
               />
               <Text style={[styles.menuText, { color: textColor }]}>
-                {guidanceState.showLightingFeedback ? 'Hide' : 'Show'} Lighting
+                {guidanceState.showLightingFeedback ? "Hide" : "Show"} Lighting
               </Text>
             </TouchableOpacity>
           </View>
@@ -464,7 +502,9 @@ export default function UserGuidanceSystem({
       {/* Troubleshooting Guide Modal */}
       <TroubleshootingGuide
         visible={guidanceState.showTroubleshooting}
-        onClose={() => setGuidanceState(prev => ({ ...prev, showTroubleshooting: false }))}
+        onClose={() =>
+          setGuidanceState((prev) => ({ ...prev, showTroubleshooting: false }))
+        }
         initialError={currentError}
         enableVoiceGuidance={guidanceState.accessibilitySettings.voiceGuidance}
       />
@@ -472,7 +512,12 @@ export default function UserGuidanceSystem({
       {/* Accessibility Helper Modal */}
       <AccessibilityHelper
         visible={guidanceState.showAccessibilityHelper}
-        onClose={() => setGuidanceState(prev => ({ ...prev, showAccessibilityHelper: false }))}
+        onClose={() =>
+          setGuidanceState((prev) => ({
+            ...prev,
+            showAccessibilityHelper: false,
+          }))
+        }
         onSettingsChange={handleAccessibilitySettingsChange}
         currentSettings={guidanceState.accessibilitySettings}
       />
@@ -482,28 +527,28 @@ export default function UserGuidanceSystem({
 
 const styles = StyleSheet.create({
   lightingContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 100,
     left: 0,
     right: 0,
     zIndex: 999,
   },
   controlPanel: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
     borderRadius: 16,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 1001,
   },
   statusButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderWidth: 2,
     borderRadius: 16,
@@ -511,7 +556,7 @@ const styles = StyleSheet.create({
   statusText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 12,
     marginRight: 8,
   },
@@ -520,19 +565,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   menuText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 12,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
     marginVertical: 8,
     marginHorizontal: 16,
   },

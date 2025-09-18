@@ -1,11 +1,10 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
-import fs from 'fs';
-import path from 'path';
+import { Pool } from "pg";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 
-const caPath = path.join(__dirname, 'ca.pem');
-
+const caPath = path.join(__dirname, "ca.pem");
 
 dotenv.config();
 
@@ -23,28 +22,30 @@ export const pool = new Pool({
 export const initDB = async () => {
   try {
     await seedUsers();
-    
+
     // Setup face verification system
     try {
-      const { setupFaceVerification } = await import('../scripts/setupFaceVerification');
+      const { setupFaceVerification } = await import(
+        "../scripts/setupFaceVerification"
+      );
       await setupFaceVerification();
     } catch (error) {
-      console.warn('Face verification setup failed:', error);
-      console.warn('Face verification features may not work properly');
+      console.warn("Face verification setup failed:", error);
+      console.warn("Face verification features may not work properly");
     }
-    
-    console.log('Database initialized successfully');
+
+    console.log("Database initialized successfully");
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error("Error initializing database:", error);
     throw error;
   }
 };
 
 export const seedUsers = async () => {
   try {
-    const existingUsers = await pool.query('SELECT * FROM users');
+    const existingUsers = await pool.query("SELECT * FROM users");
     if (existingUsers.rows.length > 0) {
-      console.log('Users already exist, skipping seed');
+      console.log("Users already exist, skipping seed");
       return;
     }
 
@@ -52,45 +53,45 @@ export const seedUsers = async () => {
 
     const users = [
       {
-        name: 'Loginware Employee',
-        email: 'employee1@loginwaresofttec.com',
-        phone: '+919876543974',
-        hashedPassword: await bcrypt.hash('Loginware_employee1', salt),
-        role: 'employee'
+        name: "Loginware Employee",
+        email: "employee1@loginwaresofttec.com",
+        phone: "+919876543974",
+        hashedPassword: await bcrypt.hash("Loginware_employee1", salt),
+        role: "employee",
       },
       {
-        name: 'Loginware Admin',
-        email: 'admin@loginwaresofttec.com',
-        phone: '+919876543288',
-        hashedPassword: await bcrypt.hash('Loginware_admin1', salt),
-        role: 'group-admin'
+        name: "Loginware Admin",
+        email: "admin@loginwaresofttec.com",
+        phone: "+919876543288",
+        hashedPassword: await bcrypt.hash("Loginware_admin1", salt),
+        role: "group-admin",
       },
       {
-        name: 'Loginware Manager',
-        email: 'manager@loginwaresofttec.com',
-        phone: '+919876543839',
-        hashedPassword: await bcrypt.hash('Loginware_manager1', salt),
-        role: 'management'
+        name: "Loginware Manager",
+        email: "manager@loginwaresofttec.com",
+        phone: "+919876543839",
+        hashedPassword: await bcrypt.hash("Loginware_manager1", salt),
+        role: "management",
       },
       {
-        name: 'Loginware Super Admin',
-        email: 'super@loginwaresofttec.com',
-        phone: '+919876543253',
-        hashedPassword: await bcrypt.hash('Loginware_super1', salt),
-        role: 'super-admin'
-      }
+        name: "Loginware Super Admin",
+        email: "super@loginwaresofttec.com",
+        phone: "+919876543253",
+        hashedPassword: await bcrypt.hash("Loginware_super1", salt),
+        role: "super-admin",
+      },
     ];
 
     for (const user of users) {
       await pool.query(
         `INSERT INTO users (name, email, phone, password, role)
          VALUES ($1, $2, $3, $4, $5)`,
-        [user.name, user.email, user.phone, user.hashedPassword, user.role]
+        [user.name, user.email, user.phone, user.hashedPassword, user.role],
       );
     }
 
-    console.log('Test users created successfully');
+    console.log("Test users created successfully");
   } catch (error) {
-    console.error('Error seeding users:', error);
+    console.error("Error seeding users:", error);
   }
 };

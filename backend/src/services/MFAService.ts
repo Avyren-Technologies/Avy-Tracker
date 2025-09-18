@@ -1,14 +1,14 @@
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
-import { pool } from '../config/database';
-import { MFAToken, MFAVerificationRequest } from '../types';
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+import { pool } from "../config/database";
+import { MFAToken, MFAVerificationRequest } from "../types";
 
 export class MFAService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -24,32 +24,32 @@ export class MFAService {
     try {
       // Check if user exists
       const userResult = await client.query(
-        'SELECT id, name FROM users WHERE email = $1',
-        [email]
+        "SELECT id, name FROM users WHERE email = $1",
+        [email],
       );
 
       if (userResult.rows.length === 0) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       const user = userResult.rows[0];
 
       // Generate 6-digit OTP
       const otp = crypto.randomInt(100000, 999999).toString();
-      
+
       // Set expiration to 10 minutes from now
       const expires = new Date(Date.now() + 10 * 60 * 1000);
 
       // Store OTP in database (encrypted)
-      const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
-      
+      const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
       await client.query(
         `UPDATE users 
          SET mfa_otp = $1, 
              mfa_otp_expires = $2, 
              mfa_otp_attempts = 0
          WHERE id = $3`,
-        [hashedOTP, expires, user.id]
+        [hashedOTP, expires, user.id],
       );
 
       // Send OTP via email
@@ -64,7 +64,10 @@ export class MFAService {
   /**
    * Verify MFA OTP
    */
-  async verifyOTP(email: string, otp: string): Promise<{ success: boolean; message: string; userId?: number }> {
+  async verifyOTP(
+    email: string,
+    otp: string,
+  ): Promise<{ success: boolean; message: string; userId?: number }> {
     const client = await pool.connect();
     try {
       // Get user and OTP details
@@ -72,44 +75,47 @@ export class MFAService {
         `SELECT id, mfa_otp, mfa_otp_expires, mfa_otp_attempts 
          FROM users 
          WHERE email = $1`,
-        [email]
+        [email],
       );
 
       if (userResult.rows.length === 0) {
-        return { success: false, message: 'User not found' };
+        return { success: false, message: "User not found" };
       }
 
       const user = userResult.rows[0];
 
       // Check if OTP exists and is not expired
       if (!user.mfa_otp || !user.mfa_otp_expires) {
-        return { success: false, message: 'No active OTP found' };
+        return { success: false, message: "No active OTP found" };
       }
 
       if (new Date() > user.mfa_otp_expires) {
         // Clear expired OTP
         await client.query(
-          'UPDATE users SET mfa_otp = NULL, mfa_otp_expires = NULL WHERE id = $1',
-          [user.id]
+          "UPDATE users SET mfa_otp = NULL, mfa_otp_expires = NULL WHERE id = $1",
+          [user.id],
         );
-        return { success: false, message: 'OTP has expired' };
+        return { success: false, message: "OTP has expired" };
       }
 
       // Check if too many attempts
       if (user.mfa_otp_attempts >= 5) {
-        return { success: false, message: 'Too many failed attempts. Please request a new OTP' };
+        return {
+          success: false,
+          message: "Too many failed attempts. Please request a new OTP",
+        };
       }
 
       // Verify OTP
-      const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
-      
+      const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
       if (user.mfa_otp !== hashedOTP) {
         // Increment failed attempts
         await client.query(
-          'UPDATE users SET mfa_otp_attempts = mfa_otp_attempts + 1 WHERE id = $1',
-          [user.id]
+          "UPDATE users SET mfa_otp_attempts = mfa_otp_attempts + 1 WHERE id = $1",
+          [user.id],
         );
-        return { success: false, message: 'Invalid OTP' };
+        return { success: false, message: "Invalid OTP" };
       }
 
       // OTP is valid - clear it and update last used
@@ -120,13 +126,13 @@ export class MFAService {
              mfa_otp_attempts = 0,
              mfa_last_used = NOW()
          WHERE id = $1`,
-        [user.id]
+        [user.id],
       );
 
-      return { 
-        success: true, 
-        message: 'OTP verified successfully',
-        userId: user.id
+      return {
+        success: true,
+        message: "OTP verified successfully",
+        userId: user.id,
       };
     } finally {
       client.release();
@@ -136,11 +142,15 @@ export class MFAService {
   /**
    * Send OTP email
    */
-  private async sendOTPEmail(email: string, userName: string, otp: string): Promise<void> {
+  private async sendOTPEmail(
+    email: string,
+    userName: string,
+    otp: string,
+  ): Promise<void> {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: 'Avy Tracker - Multi-Factor Authentication Code',
+      subject: "Avy Tracker - Multi-Factor Authentication Code",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #3B82F6, #0EA5E9); padding: 30px; border-radius: 15px; text-align: center;">
@@ -193,7 +203,7 @@ Security Notice: Never share this code with anyone. Avy Tracker staff will never
 If you didn't request this code, please contact your administrator immediately.
 
 This is an automated message from Avy Tracker. Please do not reply to this email.
-      `
+      `,
     };
 
     await this.transporter.sendMail(mailOptions);
@@ -210,11 +220,11 @@ This is an automated message from Avy Tracker. Please do not reply to this email
          SET mfa_enabled = true, 
              mfa_setup_date = NOW()
          WHERE id = $1`,
-        [userId]
+        [userId],
       );
       return true;
     } catch (error) {
-      console.error('Error enabling MFA:', error);
+      console.error("Error enabling MFA:", error);
       return false;
     } finally {
       client.release();
@@ -235,11 +245,11 @@ This is an automated message from Avy Tracker. Please do not reply to this email
              mfa_otp_attempts = 0,
              mfa_setup_date = NULL
          WHERE id = $1`,
-        [userId]
+        [userId],
       );
       return true;
     } catch (error) {
-      console.error('Error disabling MFA:', error);
+      console.error("Error disabling MFA:", error);
       return false;
     } finally {
       client.release();
@@ -249,14 +259,16 @@ This is an automated message from Avy Tracker. Please do not reply to this email
   /**
    * Get MFA status for a user
    */
-  async getMFAStatus(userId: number): Promise<{ enabled: boolean; setupDate?: Date; lastUsed?: Date }> {
+  async getMFAStatus(
+    userId: number,
+  ): Promise<{ enabled: boolean; setupDate?: Date; lastUsed?: Date }> {
     const client = await pool.connect();
     try {
       const result = await client.query(
         `SELECT mfa_enabled, mfa_setup_date, mfa_last_used 
          FROM users 
          WHERE id = $1`,
-        [userId]
+        [userId],
       );
 
       if (result.rows.length === 0) {
@@ -267,7 +279,7 @@ This is an automated message from Avy Tracker. Please do not reply to this email
       return {
         enabled: user.mfa_enabled || false,
         setupDate: user.mfa_setup_date,
-        lastUsed: user.mfa_last_used
+        lastUsed: user.mfa_last_used,
       };
     } finally {
       client.release();
@@ -281,8 +293,8 @@ This is an automated message from Avy Tracker. Please do not reply to this email
     const client = await pool.connect();
     try {
       const result = await client.query(
-        'SELECT mfa_enabled FROM users WHERE id = $1',
-        [userId]
+        "SELECT mfa_enabled FROM users WHERE id = $1",
+        [userId],
       );
 
       if (result.rows.length === 0) {

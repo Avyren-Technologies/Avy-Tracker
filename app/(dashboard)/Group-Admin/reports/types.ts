@@ -1,8 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
-export type ReportType = 'expense' | 'attendance' | 'task' | 'travel' | 'performance' | 'leave';
+export type ReportType =
+  | "expense"
+  | "attendance"
+  | "task"
+  | "travel"
+  | "performance"
+  | "leave";
 export type IconName = keyof typeof Ionicons.glyphMap;
-export type Theme = 'light' | 'dark';
+export type Theme = "light" | "dark";
 
 export interface ReportAnalytics {
   total: number;
@@ -12,7 +18,7 @@ export interface ReportAnalytics {
 }
 
 export interface ReportSection {
-  type: 'expense' | 'attendance' | 'task' | 'travel' | 'performance' | 'leave';
+  type: "expense" | "attendance" | "task" | "travel" | "performance" | "leave";
   title: string;
   description?: string;
 }
@@ -24,4 +30,4 @@ export interface Report {
   date: string;
   amount: number | null;
   status: string | null;
-} 
+}

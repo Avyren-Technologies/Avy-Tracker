@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,23 +7,23 @@ import {
   ScrollView,
   Switch,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import UserGuidanceSystem from '../components/UserGuidanceSystem';
-import { FaceDetectionData, FaceQuality } from '../types/faceDetection';
-import { FaceVerificationErrorType } from '../types/faceVerificationErrors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import UserGuidanceSystem from "../components/UserGuidanceSystem";
+import { FaceDetectionData, FaceQuality } from "../types/faceDetection";
+import { FaceVerificationErrorType } from "../types/faceVerificationErrors";
 
 /**
  * User Guidance System Test Component
- * 
+ *
  * Tests all user guidance and help features including:
  * - Face positioning guidance
  * - Lighting condition feedback
  * - Step-by-step tutorials
  * - Troubleshooting guides
  * - Accessibility features
- * 
+ *
  * Requirements tested:
  * - 1.7: User guidance and help features
  * - 6.3: Real-time feedback and progress indicators
@@ -31,33 +31,41 @@ import { FaceVerificationErrorType } from '../types/faceVerificationErrors';
  */
 export default function UserGuidanceSystemTest() {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#1f2937', '#f8fafc');
-  const primaryColor = useThemeColor('#3b82f6', '#60a5fa');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const warningColor = useThemeColor('#f59e0b', '#fbbf24');
-  const errorColor = useThemeColor('#ef4444', '#f87171');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#1f2937", "#f8fafc");
+  const primaryColor = useThemeColor("#3b82f6", "#60a5fa");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const warningColor = useThemeColor("#f59e0b", "#fbbf24");
+  const errorColor = useThemeColor("#ef4444", "#f87171");
 
   // Test state
   const [guidanceVisible, setGuidanceVisible] = useState(false);
-  const [mode, setMode] = useState<'register' | 'verify'>('verify');
+  const [mode, setMode] = useState<"register" | "verify">("verify");
   const [enableVoiceGuidance, setEnableVoiceGuidance] = useState(true);
-  const [currentError, setCurrentError] = useState<FaceVerificationErrorType | undefined>();
+  const [currentError, setCurrentError] = useState<
+    FaceVerificationErrorType | undefined
+  >();
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
 
   // Mock face data for testing
-  const [mockFaceData, setMockFaceData] = useState<FaceDetectionData | null>(null);
-  const [mockFaceQuality, setMockFaceQuality] = useState<FaceQuality | null>(null);
+  const [mockFaceData, setMockFaceData] = useState<FaceDetectionData | null>(
+    null,
+  );
+  const [mockFaceQuality, setMockFaceQuality] = useState<FaceQuality | null>(
+    null,
+  );
 
   /**
    * Generate mock face data for testing different scenarios
    */
-  const generateMockFaceData = (scenario: string): { faceData: FaceDetectionData; faceQuality: FaceQuality } => {
+  const generateMockFaceData = (
+    scenario: string,
+  ): { faceData: FaceDetectionData; faceQuality: FaceQuality } => {
     const baseData: FaceDetectionData = {
       bounds: { x: 100, y: 100, width: 200, height: 250 },
       leftEyeOpenProbability: 0.8,
       rightEyeOpenProbability: 0.8,
-      faceId: 'test_face_1',
+      faceId: "test_face_1",
       rollAngle: 0,
       yawAngle: 0,
     };
@@ -66,7 +74,7 @@ export default function UserGuidanceSystemTest() {
     let faceQuality: FaceQuality;
 
     switch (scenario) {
-      case 'perfect':
+      case "perfect":
         faceQuality = {
           lighting: 0.9,
           size: 0.7,
@@ -75,7 +83,7 @@ export default function UserGuidanceSystemTest() {
           isValid: true,
         };
         break;
-      case 'poor-lighting':
+      case "poor-lighting":
         faceData.leftEyeOpenProbability = 0.3;
         faceData.rightEyeOpenProbability = 0.3;
         faceQuality = {
@@ -86,7 +94,7 @@ export default function UserGuidanceSystemTest() {
           isValid: false,
         };
         break;
-      case 'too-small':
+      case "too-small":
         faceData.bounds = { x: 150, y: 150, width: 100, height: 125 };
         faceQuality = {
           lighting: 0.8,
@@ -96,7 +104,7 @@ export default function UserGuidanceSystemTest() {
           isValid: false,
         };
         break;
-      case 'wrong-angle':
+      case "wrong-angle":
         faceData.rollAngle = 25;
         faceData.yawAngle = 20;
         faceQuality = {
@@ -107,7 +115,7 @@ export default function UserGuidanceSystemTest() {
           isValid: false,
         };
         break;
-      case 'no-face':
+      case "no-face":
       default:
         return { faceData: null as any, faceQuality: null as any };
     }
@@ -120,38 +128,38 @@ export default function UserGuidanceSystemTest() {
    */
   const testScenarios = [
     {
-      id: 'perfect',
-      name: 'Perfect Conditions',
-      description: 'Optimal face positioning and lighting',
-      icon: 'checkmark-circle' as keyof typeof Ionicons.glyphMap,
+      id: "perfect",
+      name: "Perfect Conditions",
+      description: "Optimal face positioning and lighting",
+      icon: "checkmark-circle" as keyof typeof Ionicons.glyphMap,
       color: successColor,
     },
     {
-      id: 'poor-lighting',
-      name: 'Poor Lighting',
-      description: 'Insufficient lighting conditions',
-      icon: 'bulb-outline' as keyof typeof Ionicons.glyphMap,
+      id: "poor-lighting",
+      name: "Poor Lighting",
+      description: "Insufficient lighting conditions",
+      icon: "bulb-outline" as keyof typeof Ionicons.glyphMap,
       color: warningColor,
     },
     {
-      id: 'too-small',
-      name: 'Face Too Small',
-      description: 'Face is too far from camera',
-      icon: 'contract' as keyof typeof Ionicons.glyphMap,
+      id: "too-small",
+      name: "Face Too Small",
+      description: "Face is too far from camera",
+      icon: "contract" as keyof typeof Ionicons.glyphMap,
       color: warningColor,
     },
     {
-      id: 'wrong-angle',
-      name: 'Wrong Angle',
-      description: 'Face is tilted or turned away',
-      icon: 'refresh' as keyof typeof Ionicons.glyphMap,
+      id: "wrong-angle",
+      name: "Wrong Angle",
+      description: "Face is tilted or turned away",
+      icon: "refresh" as keyof typeof Ionicons.glyphMap,
       color: warningColor,
     },
     {
-      id: 'no-face',
-      name: 'No Face Detected',
-      description: 'No face visible in frame',
-      icon: 'person-outline' as keyof typeof Ionicons.glyphMap,
+      id: "no-face",
+      name: "No Face Detected",
+      description: "No face visible in frame",
+      icon: "person-outline" as keyof typeof Ionicons.glyphMap,
       color: errorColor,
     },
   ];
@@ -161,38 +169,38 @@ export default function UserGuidanceSystemTest() {
    */
   const errorScenarios = [
     {
-      id: 'no-face-detected',
-      name: 'No Face Detected',
+      id: "no-face-detected",
+      name: "No Face Detected",
       error: FaceVerificationErrorType.NO_FACE_DETECTED,
     },
     {
-      id: 'poor-lighting',
-      name: 'Poor Lighting',
+      id: "poor-lighting",
+      name: "Poor Lighting",
       error: FaceVerificationErrorType.POOR_LIGHTING,
     },
     {
-      id: 'multiple-faces',
-      name: 'Multiple Faces',
+      id: "multiple-faces",
+      name: "Multiple Faces",
       error: FaceVerificationErrorType.MULTIPLE_FACES,
     },
     {
-      id: 'no-liveness',
-      name: 'No Liveness Detected',
+      id: "no-liveness",
+      name: "No Liveness Detected",
       error: FaceVerificationErrorType.NO_LIVENESS_DETECTED,
     },
     {
-      id: 'camera-permission',
-      name: 'Camera Permission Denied',
+      id: "camera-permission",
+      name: "Camera Permission Denied",
       error: FaceVerificationErrorType.CAMERA_PERMISSION_DENIED,
     },
     {
-      id: 'network-error',
-      name: 'Network Error',
+      id: "network-error",
+      name: "Network Error",
       error: FaceVerificationErrorType.NETWORK_ERROR,
     },
     {
-      id: 'low-confidence',
-      name: 'Low Confidence',
+      id: "low-confidence",
+      name: "Low Confidence",
       error: FaceVerificationErrorType.LOW_CONFIDENCE,
     },
   ];
@@ -204,17 +212,17 @@ export default function UserGuidanceSystemTest() {
     const { faceData, faceQuality } = generateMockFaceData(scenarioId);
     setMockFaceData(faceData);
     setMockFaceQuality(faceQuality);
-    
+
     // Clear any existing error
     setCurrentError(undefined);
-    
+
     // Mark test as executed
-    setTestResults(prev => ({ ...prev, [`scenario_${scenarioId}`]: true }));
-    
+    setTestResults((prev) => ({ ...prev, [`scenario_${scenarioId}`]: true }));
+
     Alert.alert(
-      'Scenario Applied',
-      `Applied "${testScenarios.find(s => s.id === scenarioId)?.name}" scenario. Check the guidance system response.`,
-      [{ text: 'OK' }]
+      "Scenario Applied",
+      `Applied "${testScenarios.find((s) => s.id === scenarioId)?.name}" scenario. Check the guidance system response.`,
+      [{ text: "OK" }],
     );
   };
 
@@ -223,24 +231,24 @@ export default function UserGuidanceSystemTest() {
    */
   const applyErrorScenario = (error: FaceVerificationErrorType) => {
     setCurrentError(error);
-    
+
     // Set appropriate face data for the error
     if (error === FaceVerificationErrorType.NO_FACE_DETECTED) {
       setMockFaceData(null);
       setMockFaceQuality(null);
     } else if (error === FaceVerificationErrorType.POOR_LIGHTING) {
-      const { faceData, faceQuality } = generateMockFaceData('poor-lighting');
+      const { faceData, faceQuality } = generateMockFaceData("poor-lighting");
       setMockFaceData(faceData);
       setMockFaceQuality(faceQuality);
     }
-    
+
     // Mark test as executed
-    setTestResults(prev => ({ ...prev, [`error_${error}`]: true }));
-    
+    setTestResults((prev) => ({ ...prev, [`error_${error}`]: true }));
+
     Alert.alert(
-      'Error Applied',
+      "Error Applied",
       `Applied "${error}" error. The troubleshooting guide should activate automatically.`,
-      [{ text: 'OK' }]
+      [{ text: "OK" }],
     );
   };
 
@@ -248,11 +256,11 @@ export default function UserGuidanceSystemTest() {
    * Test accessibility features
    */
   const testAccessibilityFeatures = () => {
-    setTestResults(prev => ({ ...prev, accessibility_tested: true }));
+    setTestResults((prev) => ({ ...prev, accessibility_tested: true }));
     Alert.alert(
-      'Accessibility Test',
-      'Open the guidance system and access the accessibility settings to test:\n\n• Voice guidance\n• Haptic feedback\n• High contrast mode\n• Large text\n• Screen reader optimization',
-      [{ text: 'OK' }]
+      "Accessibility Test",
+      "Open the guidance system and access the accessibility settings to test:\n\n• Voice guidance\n• Haptic feedback\n• High contrast mode\n• Large text\n• Screen reader optimization",
+      [{ text: "OK" }],
     );
   };
 
@@ -260,11 +268,11 @@ export default function UserGuidanceSystemTest() {
    * Test tutorial system
    */
   const testTutorialSystem = () => {
-    setTestResults(prev => ({ ...prev, tutorial_tested: true }));
+    setTestResults((prev) => ({ ...prev, tutorial_tested: true }));
     Alert.alert(
-      'Tutorial Test',
-      'Open the guidance system and start the tutorial to test:\n\n• Step-by-step instructions\n• Voice guidance\n• Progress indicators\n• Navigation controls',
-      [{ text: 'OK' }]
+      "Tutorial Test",
+      "Open the guidance system and start the tutorial to test:\n\n• Step-by-step instructions\n• Voice guidance\n• Progress indicators\n• Navigation controls",
+      [{ text: "OK" }],
     );
   };
 
@@ -273,12 +281,12 @@ export default function UserGuidanceSystemTest() {
    */
   const runComprehensiveTest = () => {
     Alert.alert(
-      'Comprehensive Test',
-      'This will run through all test scenarios automatically. Watch the guidance system responses.',
+      "Comprehensive Test",
+      "This will run through all test scenarios automatically. Watch the guidance system responses.",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Start Test',
+          text: "Start Test",
           onPress: () => {
             let index = 0;
             const runNextTest = () => {
@@ -287,13 +295,13 @@ export default function UserGuidanceSystemTest() {
                 index++;
                 setTimeout(runNextTest, 3000);
               } else {
-                Alert.alert('Test Complete', 'All scenarios have been tested.');
+                Alert.alert("Test Complete", "All scenarios have been tested.");
               }
             };
             runNextTest();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -320,21 +328,23 @@ export default function UserGuidanceSystemTest() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Controls */}
-        <View style={[styles.section, { borderColor: 'rgba(0,0,0,0.1)' }]}>
+        <View style={[styles.section, { borderColor: "rgba(0,0,0,0.1)" }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Controls
           </Text>
-          
+
           <View style={styles.controlRow}>
             <Text style={[styles.controlLabel, { color: textColor }]}>
               Mode:
             </Text>
             <TouchableOpacity
-              onPress={() => setMode(mode === 'register' ? 'verify' : 'register')}
+              onPress={() =>
+                setMode(mode === "register" ? "verify" : "register")
+              }
               style={[styles.modeButton, { backgroundColor: primaryColor }]}
             >
               <Text style={styles.modeButtonText}>
-                {mode === 'register' ? 'Registration' : 'Verification'}
+                {mode === "register" ? "Registration" : "Verification"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -346,8 +356,11 @@ export default function UserGuidanceSystemTest() {
             <Switch
               value={enableVoiceGuidance}
               onValueChange={setEnableVoiceGuidance}
-              trackColor={{ false: 'rgba(0,0,0,0.1)', true: primaryColor + '40' }}
-              thumbColor={enableVoiceGuidance ? primaryColor : '#f4f3f4'}
+              trackColor={{
+                false: "rgba(0,0,0,0.1)",
+                true: primaryColor + "40",
+              }}
+              thumbColor={enableVoiceGuidance ? primaryColor : "#f4f3f4"}
             />
           </View>
 
@@ -366,17 +379,17 @@ export default function UserGuidanceSystemTest() {
               color="#ffffff"
             />
             <Text style={styles.toggleButtonText}>
-              {guidanceVisible ? 'Hide Guidance' : 'Show Guidance'}
+              {guidanceVisible ? "Hide Guidance" : "Show Guidance"}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Test Scenarios */}
-        <View style={[styles.section, { borderColor: 'rgba(0,0,0,0.1)' }]}>
+        <View style={[styles.section, { borderColor: "rgba(0,0,0,0.1)" }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Face Detection Scenarios
           </Text>
-          
+
           {testScenarios.map((scenario) => (
             <TouchableOpacity
               key={scenario.id}
@@ -385,8 +398,8 @@ export default function UserGuidanceSystemTest() {
                 styles.scenarioButton,
                 {
                   backgroundColor: testResults[`scenario_${scenario.id}`]
-                    ? scenario.color + '20'
-                    : 'transparent',
+                    ? scenario.color + "20"
+                    : "transparent",
                   borderColor: scenario.color,
                 },
               ]}
@@ -396,23 +409,29 @@ export default function UserGuidanceSystemTest() {
                 <Text style={[styles.scenarioName, { color: textColor }]}>
                   {scenario.name}
                 </Text>
-                <Text style={[styles.scenarioDescription, { color: textColor }]}>
+                <Text
+                  style={[styles.scenarioDescription, { color: textColor }]}
+                >
                   {scenario.description}
                 </Text>
               </View>
               {testResults[`scenario_${scenario.id}`] && (
-                <Ionicons name="checkmark-circle" size={20} color={successColor} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color={successColor}
+                />
               )}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Error Scenarios */}
-        <View style={[styles.section, { borderColor: 'rgba(0,0,0,0.1)' }]}>
+        <View style={[styles.section, { borderColor: "rgba(0,0,0,0.1)" }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Error Scenarios
           </Text>
-          
+
           {errorScenarios.map((errorScenario) => (
             <TouchableOpacity
               key={errorScenario.id}
@@ -421,8 +440,8 @@ export default function UserGuidanceSystemTest() {
                 styles.errorButton,
                 {
                   backgroundColor: testResults[`error_${errorScenario.error}`]
-                    ? errorColor + '20'
-                    : 'transparent',
+                    ? errorColor + "20"
+                    : "transparent",
                   borderColor: errorColor,
                 },
               ]}
@@ -432,26 +451,30 @@ export default function UserGuidanceSystemTest() {
                 {errorScenario.name}
               </Text>
               {testResults[`error_${errorScenario.error}`] && (
-                <Ionicons name="checkmark-circle" size={16} color={successColor} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={16}
+                  color={successColor}
+                />
               )}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Feature Tests */}
-        <View style={[styles.section, { borderColor: 'rgba(0,0,0,0.1)' }]}>
+        <View style={[styles.section, { borderColor: "rgba(0,0,0,0.1)" }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Feature Tests
           </Text>
-          
+
           <TouchableOpacity
             onPress={testAccessibilityFeatures}
             style={[
               styles.featureButton,
               {
                 backgroundColor: testResults.accessibility_tested
-                  ? successColor + '20'
-                  : 'transparent',
+                  ? successColor + "20"
+                  : "transparent",
                 borderColor: successColor,
               },
             ]}
@@ -466,7 +489,11 @@ export default function UserGuidanceSystemTest() {
               </Text>
             </View>
             {testResults.accessibility_tested && (
-              <Ionicons name="checkmark-circle" size={20} color={successColor} />
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={successColor}
+              />
             )}
           </TouchableOpacity>
 
@@ -476,8 +503,8 @@ export default function UserGuidanceSystemTest() {
               styles.featureButton,
               {
                 backgroundColor: testResults.tutorial_tested
-                  ? successColor + '20'
-                  : 'transparent',
+                  ? successColor + "20"
+                  : "transparent",
                 borderColor: primaryColor,
               },
             ]}
@@ -492,7 +519,11 @@ export default function UserGuidanceSystemTest() {
               </Text>
             </View>
             {testResults.tutorial_tested && (
-              <Ionicons name="checkmark-circle" size={20} color={successColor} />
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color={successColor}
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -500,7 +531,10 @@ export default function UserGuidanceSystemTest() {
         {/* Comprehensive Test */}
         <TouchableOpacity
           onPress={runComprehensiveTest}
-          style={[styles.comprehensiveButton, { backgroundColor: warningColor }]}
+          style={[
+            styles.comprehensiveButton,
+            { backgroundColor: warningColor },
+          ]}
         >
           <Ionicons name="play-circle" size={24} color="#ffffff" />
           <Text style={styles.comprehensiveButtonText}>
@@ -518,7 +552,7 @@ export default function UserGuidanceSystemTest() {
         currentError={currentError}
         onClose={() => setGuidanceVisible(false)}
         onPositionCorrect={() => {
-          Alert.alert('Position Correct', 'Face positioning is optimal!');
+          Alert.alert("Position Correct", "Face positioning is optimal!");
         }}
         enableVoiceGuidance={enableVoiceGuidance}
       />
@@ -534,11 +568,11 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   subtitle: {
@@ -557,18 +591,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
   },
   controlRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   controlLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   modeButton: {
     paddingHorizontal: 16,
@@ -576,27 +610,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   modeButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   toggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 25,
     marginTop: 8,
   },
   toggleButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   scenarioButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderWidth: 1,
     borderRadius: 12,
@@ -608,7 +642,7 @@ const styles = StyleSheet.create({
   },
   scenarioName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   scenarioDescription: {
@@ -616,8 +650,8 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   errorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     borderWidth: 1,
     borderRadius: 8,
@@ -626,12 +660,12 @@ const styles = StyleSheet.create({
   errorName: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 12,
   },
   featureButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderWidth: 1,
     borderRadius: 12,
@@ -643,7 +677,7 @@ const styles = StyleSheet.create({
   },
   featureName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   featureDescription: {
@@ -651,17 +685,17 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   comprehensiveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
     borderRadius: 25,
     marginBottom: 20,
   },
   comprehensiveButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 12,
   },
 });

@@ -1,4 +1,4 @@
-import { NavItem } from '../../../types/nav';
+import { NavItem } from "../../../types/nav";
 
 export const employeeNavItems: NavItem[] = [
   {
@@ -31,4 +31,4 @@ export const employeeNavItems: NavItem[] = [
     label: "Profile",
     href: "/(dashboard)/employee/profile",
   },
-]; 
+];

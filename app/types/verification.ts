@@ -1,4 +1,4 @@
-import { FaceVerificationResult } from './faceDetection';
+import { FaceVerificationResult } from "./faceDetection";
 
 export interface LocationResult {
   success: boolean;
@@ -14,7 +14,7 @@ export interface LocationResult {
 }
 
 export interface VerificationStep {
-  type: 'location' | 'face';
+  type: "location" | "face";
   required: boolean;
   completed: boolean;
   result?: LocationResult | FaceVerificationResult;
@@ -28,10 +28,15 @@ export interface VerificationStep {
 export interface VerificationFlowState {
   sessionId: string;
   userId: number;
-  shiftAction: 'start' | 'end';
+  shiftAction: "start" | "end";
   steps: VerificationStep[];
   currentStepIndex: number;
-  overallStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | 'overridden';
+  overallStatus:
+    | "pending"
+    | "in_progress"
+    | "completed"
+    | "failed"
+    | "overridden";
   confidenceScore: number;
   fallbackMode: boolean;
   canOverride: boolean;
@@ -45,7 +50,7 @@ export interface VerificationAuditEntry {
   timestamp: number;
   event: string;
   details: any;
-  stepType?: 'location' | 'face';
+  stepType?: "location" | "face";
   success?: boolean;
   error?: string;
   latency?: number;
@@ -63,7 +68,7 @@ export interface VerificationConfig {
 
 export interface VerificationFlowSummary {
   sessionId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'overridden';
+  status: "pending" | "in_progress" | "completed" | "failed" | "overridden";
   progress: string;
   confidenceScore: number;
   totalLatency: number | null;
@@ -77,7 +82,7 @@ export interface VerificationFlowSummary {
 export interface VerificationPerformanceMetrics {
   sessionId: string;
   userId: number;
-  shiftAction: 'start' | 'end';
+  shiftAction: "start" | "end";
   totalLatency: number;
   stepCount: number;
   completedSteps: number;
@@ -85,20 +90,25 @@ export interface VerificationPerformanceMetrics {
   retryCount: number;
   confidenceScore: number;
   fallbackMode: boolean;
-  overallStatus: 'pending' | 'in_progress' | 'completed' | 'failed' | 'overridden';
+  overallStatus:
+    | "pending"
+    | "in_progress"
+    | "completed"
+    | "failed"
+    | "overridden";
   avgStepLatency: number;
   maxStepLatency: number;
-  stepBreakdown: Array<{
-    type: 'location' | 'face';
+  stepBreakdown: {
+    type: "location" | "face";
     latency: number;
     retries: number;
-  }>;
+  }[];
   auditLogEntries: number;
   timestamp: number;
 }
 
 export interface VerificationStepMetrics {
-  type: 'location' | 'face';
+  type: "location" | "face";
   startTime: number;
   endTime?: number;
   latency?: number;

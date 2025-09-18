@@ -1,5 +1,5 @@
-import { Redis, RedisOptions } from 'ioredis';
-import { EventEmitter } from 'events';
+import { Redis, RedisOptions } from "ioredis";
+import { EventEmitter } from "events";
 
 /**
  * Robust Redis Manager for handling connection issues and graceful fallbacks
@@ -12,7 +12,8 @@ export class RedisManager extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private readonly baseReconnectDelay: number = 1000; // 1 second
   private readonly maxReconnectDelay: number = 30000; // 30 seconds
-  private localCache: Map<string, { value: string; expiry: number }> = new Map();
+  private localCache: Map<string, { value: string; expiry: number }> =
+    new Map();
   private useFallback: boolean = false;
 
   /**
@@ -21,11 +22,12 @@ export class RedisManager extends EventEmitter {
    * @param options Redis connection options
    */
   constructor(
-    private readonly redisUrl: string = process.env.REDIS_URL || 'redis://localhost:6379',
-    private readonly options: RedisOptions = {}
+    private readonly redisUrl: string = process.env.REDIS_URL ||
+      "redis://localhost:6379",
+    private readonly options: RedisOptions = {},
   ) {
     super();
-    
+
     // Set up connection retry and error handling
     this.connect();
   }
@@ -45,23 +47,23 @@ export class RedisManager extends EventEmitter {
         retryStrategy: (times: number) => {
           const delay = Math.min(
             this.baseReconnectDelay * Math.pow(2, times),
-            this.maxReconnectDelay
+            this.maxReconnectDelay,
           );
           return delay;
         },
         // Error handler is set in setupEventHandlers
-        ...this.options
+        ...this.options,
       };
 
       // Create new Redis instance
       this.redis = new Redis(this.redisUrl, connectionOptions);
-      
+
       // Setup event handlers
       this.setupEventHandlers();
-      
-      console.log('Redis connection initialized');
+
+      console.log("Redis connection initialized");
     } catch (error) {
-      console.error('Failed to initialize Redis connection:', error);
+      console.error("Failed to initialize Redis connection:", error);
       this.handleConnectionFailure(error);
     }
   }
@@ -72,47 +74,47 @@ export class RedisManager extends EventEmitter {
   private setupEventHandlers(): void {
     if (!this.redis) return;
 
-    this.redis.on('connect', () => {
-      console.log('Redis connected');
+    this.redis.on("connect", () => {
+      console.log("Redis connected");
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.useFallback = false;
-      this.emit('connect');
+      this.emit("connect");
     });
 
-    this.redis.on('ready', () => {
-      console.log('Redis ready');
-      this.emit('ready');
+    this.redis.on("ready", () => {
+      console.log("Redis ready");
+      this.emit("ready");
     });
 
-    this.redis.on('error', (error) => {
-      console.error('Redis error:', error);
-      this.emit('error', error);
-      
+    this.redis.on("error", (error) => {
+      console.error("Redis error:", error);
+      this.emit("error", error);
+
       // Don't handle connection errors here, they're handled by 'close' event
       if (!this.isConnected) {
         this.handleConnectionFailure(error);
       }
     });
 
-    this.redis.on('close', () => {
-      console.log('Redis connection closed');
+    this.redis.on("close", () => {
+      console.log("Redis connection closed");
       this.isConnected = false;
-      this.emit('close');
-      
-      this.handleConnectionFailure(new Error('Connection closed'));
+      this.emit("close");
+
+      this.handleConnectionFailure(new Error("Connection closed"));
     });
 
-    this.redis.on('reconnecting', (delay: number) => {
+    this.redis.on("reconnecting", (delay: number) => {
       console.log(`Redis reconnecting in ${delay}ms...`);
-      this.emit('reconnecting', delay);
+      this.emit("reconnecting", delay);
     });
 
     // Added to prevent unhandled error events
-    this.redis.on('end', () => {
-      console.log('Redis connection ended');
+    this.redis.on("end", () => {
+      console.log("Redis connection ended");
       this.isConnected = false;
-      this.emit('end');
+      this.emit("end");
     });
   }
 
@@ -126,25 +128,31 @@ export class RedisManager extends EventEmitter {
     if (this.reconnectAttempts <= this.maxReconnectAttempts) {
       const delay = Math.min(
         this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-        this.maxReconnectDelay
+        this.maxReconnectDelay,
       );
-      
-      console.log(`Scheduling Redis reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
-      
+
+      console.log(
+        `Scheduling Redis reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`,
+      );
+
       // Clear any existing timer
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
       }
-      
+
       // Schedule reconnect
       this.reconnectTimer = setTimeout(() => {
-        console.log(`Attempting to reconnect to Redis (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        console.log(
+          `Attempting to reconnect to Redis (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`,
+        );
         this.connect();
       }, delay);
     } else {
-      console.warn('Max Redis reconnect attempts reached, switching to fallback mode');
+      console.warn(
+        "Max Redis reconnect attempts reached, switching to fallback mode",
+      );
       this.useFallback = true;
-      this.emit('fallback');
+      this.emit("fallback");
     }
   }
 
@@ -158,7 +166,7 @@ export class RedisManager extends EventEmitter {
       if (this.useFallback || !this.isConnected || !this.redis) {
         return this.getFromLocalCache(key);
       }
-      
+
       const value = await this.redis.get(key);
       return value;
     } catch (error) {
@@ -178,11 +186,11 @@ export class RedisManager extends EventEmitter {
     try {
       // Always update local cache regardless of Redis connection status
       this.updateLocalCache(key, value, ttl);
-      
+
       if (this.useFallback || !this.isConnected || !this.redis) {
         return true; // Stored in local cache
       }
-      
+
       if (ttl) {
         await this.redis.setex(key, ttl, value);
       } else {
@@ -204,11 +212,11 @@ export class RedisManager extends EventEmitter {
     try {
       // Always remove from local cache
       this.localCache.delete(key);
-      
+
       if (this.useFallback || !this.isConnected || !this.redis) {
         return true; // Removed from local cache
       }
-      
+
       await this.redis.del(key);
       return true;
     } catch (error) {
@@ -225,16 +233,18 @@ export class RedisManager extends EventEmitter {
   async pipeline(pipeline: (pipeline: any) => void): Promise<any[]> {
     try {
       if (this.useFallback || !this.isConnected || !this.redis) {
-        console.warn('Redis not available, pipeline operations in fallback mode may be incomplete');
+        console.warn(
+          "Redis not available, pipeline operations in fallback mode may be incomplete",
+        );
         return [];
       }
-      
+
       const pipe = this.redis.pipeline();
       pipeline(pipe);
       const results = await pipe.exec();
       return results || [];
     } catch (error) {
-      console.error('Error executing Redis pipeline:', error);
+      console.error("Error executing Redis pipeline:", error);
       return [];
     }
   }
@@ -245,7 +255,7 @@ export class RedisManager extends EventEmitter {
    */
   getClient(): Redis | null {
     if (this.useFallback || !this.isConnected) {
-      console.warn('Redis not connected, operations may fail');
+      console.warn("Redis not connected, operations may fail");
     }
     return this.redis;
   }
@@ -262,7 +272,7 @@ export class RedisManager extends EventEmitter {
    * Force reconnect to Redis
    */
   forceReconnect(): void {
-    console.log('Forcing Redis reconnection...');
+    console.log("Forcing Redis reconnection...");
     this.reconnectAttempts = 0;
     this.useFallback = false;
     this.connect();
@@ -275,11 +285,11 @@ export class RedisManager extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
-    
+
     if (this.redis) {
       this.redis.disconnect();
     }
-    
+
     this.localCache.clear();
     this.removeAllListeners();
   }
@@ -292,13 +302,13 @@ export class RedisManager extends EventEmitter {
   private getFromLocalCache(key: string): string | null {
     const cachedItem = this.localCache.get(key);
     if (!cachedItem) return null;
-    
+
     if (cachedItem.expiry && cachedItem.expiry < Date.now()) {
       // Expired
       this.localCache.delete(key);
       return null;
     }
-    
+
     return cachedItem.value;
   }
 
@@ -309,9 +319,9 @@ export class RedisManager extends EventEmitter {
    * @param ttl TTL in seconds
    */
   private updateLocalCache(key: string, value: string, ttl?: number): void {
-    const expiry = ttl ? Date.now() + (ttl * 1000) : undefined;
+    const expiry = ttl ? Date.now() + ttl * 1000 : undefined;
     this.localCache.set(key, { value, expiry: expiry || 0 });
-    
+
     // Clean up expired items occasionally
     if (Math.random() < 0.1) {
       this.cleanupExpiredCache();
@@ -329,4 +339,4 @@ export class RedisManager extends EventEmitter {
       }
     }
   }
-} 
+}

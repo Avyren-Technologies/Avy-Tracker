@@ -14,7 +14,7 @@ class NotificationAnalyticsService {
     notificationId: number,
     userId: number,
     action: NotificationAnalytics["action"],
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ) {
     const client = await pool.connect();
     try {
@@ -23,7 +23,7 @@ class NotificationAnalyticsService {
          (notification_id, user_id, action, metadata) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
-        [notificationId, userId, action, metadata]
+        [notificationId, userId, action, metadata],
       );
       return result.rows[0];
     } finally {
@@ -38,7 +38,7 @@ class NotificationAnalyticsService {
       action?: NotificationAnalytics["action"];
       startDate?: Date;
       endDate?: Date;
-    } = {}
+    } = {},
   ) {
     const client = await pool.connect();
     try {
@@ -123,7 +123,7 @@ class NotificationAnalyticsService {
         WHERE n.user_id = $1
         AND n.created_at >= NOW() - INTERVAL '30 days'
       `,
-        [userId]
+        [userId],
       );
 
       return result.rows[0];
@@ -192,7 +192,7 @@ class NotificationAnalyticsService {
         LEFT JOIN notification_analytics a ON n.id = a.notification_id
         WHERE n.batch_id = $1
       `,
-        [batchId]
+        [batchId],
       );
 
       return result.rows[0];

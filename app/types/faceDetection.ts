@@ -59,7 +59,7 @@ export interface EnhancedFaceDetectionData extends FaceDetectionData {
   attributes: FaceAttributes;
 }
 
-// Enhanced verification result as per documentation  
+// Enhanced verification result as per documentation
 export interface EnhancedFaceVerificationResult extends FaceVerificationResult {
   factors: VerificationFactors;
   metadata: VerificationMetadata;
@@ -81,7 +81,7 @@ export interface CapturedPhoto {
 }
 
 export interface FaceDetectionOptions {
-  performanceMode?: 'fast' | 'accurate';
+  performanceMode?: "fast" | "accurate";
   enableLivenessDetection?: boolean;
   minFaceSize?: number;
   maxFaceSize?: number;
@@ -122,7 +122,7 @@ export interface UseFaceDetectionReturn {
   getCameraInstance: () => any; // Get direct camera instance
   hasTakePhotoMethod: () => boolean; // Check if takePhoto method is available
   getGlobalCameraInstance: () => any; // Most reliable camera access method
-  
+
   // CRITICAL FIX: Camera keep-alive functions to prevent native view detachment
   enableCameraKeepAlive: () => void; // Enable camera keep-alive during critical transitions
   disableCameraKeepAlive: () => void; // Disable camera keep-alive after completion
@@ -160,61 +160,65 @@ export interface FaceVerificationError {
 
 export enum FaceVerificationErrorType {
   // Camera and Hardware Errors
-  CAMERA_PERMISSION_DENIED = 'CAMERA_PERMISSION_DENIED',
-  CAMERA_NOT_AVAILABLE = 'CAMERA_NOT_AVAILABLE',
-  CAMERA_INITIALIZATION_FAILED = 'CAMERA_INITIALIZATION_FAILED',
-  CAMERA_HARDWARE_ERROR = 'CAMERA_HARDWARE_ERROR',
-  
+  CAMERA_PERMISSION_DENIED = "CAMERA_PERMISSION_DENIED",
+  CAMERA_NOT_AVAILABLE = "CAMERA_NOT_AVAILABLE",
+  CAMERA_INITIALIZATION_FAILED = "CAMERA_INITIALIZATION_FAILED",
+  CAMERA_HARDWARE_ERROR = "CAMERA_HARDWARE_ERROR",
+
   // Face Detection Errors
-  NO_FACE_DETECTED = 'NO_FACE_DETECTED',
-  MULTIPLE_FACES = 'MULTIPLE_FACES',
-  FACE_TOO_SMALL = 'FACE_TOO_SMALL',
-  FACE_TOO_LARGE = 'FACE_TOO_LARGE',
-  FACE_NOT_CENTERED = 'FACE_NOT_CENTERED',
-  FACE_ANGLE_INVALID = 'FACE_ANGLE_INVALID',
-  
+  NO_FACE_DETECTED = "NO_FACE_DETECTED",
+  MULTIPLE_FACES = "MULTIPLE_FACES",
+  FACE_TOO_SMALL = "FACE_TOO_SMALL",
+  FACE_TOO_LARGE = "FACE_TOO_LARGE",
+  FACE_NOT_CENTERED = "FACE_NOT_CENTERED",
+  FACE_ANGLE_INVALID = "FACE_ANGLE_INVALID",
+
   // Lighting and Quality Errors
-  POOR_LIGHTING = 'POOR_LIGHTING',
-  TOO_BRIGHT = 'TOO_BRIGHT',
-  TOO_DARK = 'TOO_DARK',
-  BLURRY_IMAGE = 'BLURRY_IMAGE',
-  LOW_IMAGE_QUALITY = 'LOW_IMAGE_QUALITY',
-  
+  POOR_LIGHTING = "POOR_LIGHTING",
+  TOO_BRIGHT = "TOO_BRIGHT",
+  TOO_DARK = "TOO_DARK",
+  BLURRY_IMAGE = "BLURRY_IMAGE",
+  LOW_IMAGE_QUALITY = "LOW_IMAGE_QUALITY",
+
   // Liveness Detection Errors
-  NO_LIVENESS_DETECTED = 'NO_LIVENESS_DETECTED',
-  LIVENESS_TIMEOUT = 'LIVENESS_TIMEOUT',
-  INSUFFICIENT_MOVEMENT = 'INSUFFICIENT_MOVEMENT',
-  FAKE_FACE_DETECTED = 'FAKE_FACE_DETECTED',
-  
+  NO_LIVENESS_DETECTED = "NO_LIVENESS_DETECTED",
+  LIVENESS_TIMEOUT = "LIVENESS_TIMEOUT",
+  INSUFFICIENT_MOVEMENT = "INSUFFICIENT_MOVEMENT",
+  FAKE_FACE_DETECTED = "FAKE_FACE_DETECTED",
+
   // Verification Errors
-  LOW_CONFIDENCE = 'LOW_CONFIDENCE',
-  FACE_NOT_REGISTERED = 'FACE_NOT_REGISTERED',
-  VERIFICATION_FAILED = 'VERIFICATION_FAILED',
-  ENCODING_GENERATION_FAILED = 'ENCODING_GENERATION_FAILED',
-  
+  LOW_CONFIDENCE = "LOW_CONFIDENCE",
+  FACE_NOT_REGISTERED = "FACE_NOT_REGISTERED",
+  VERIFICATION_FAILED = "VERIFICATION_FAILED",
+  ENCODING_GENERATION_FAILED = "ENCODING_GENERATION_FAILED",
+
   // Network and Storage Errors
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  SERVER_ERROR = 'SERVER_ERROR',
-  STORAGE_ERROR = 'STORAGE_ERROR',
-  SYNC_ERROR = 'SYNC_ERROR',
-  
+  NETWORK_ERROR = "NETWORK_ERROR",
+  SERVER_ERROR = "SERVER_ERROR",
+  STORAGE_ERROR = "STORAGE_ERROR",
+  SYNC_ERROR = "SYNC_ERROR",
+
   // Security and Rate Limiting
-  TOO_MANY_ATTEMPTS = 'TOO_MANY_ATTEMPTS',
-  ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
-  SECURITY_VIOLATION = 'SECURITY_VIOLATION',
-  
+  TOO_MANY_ATTEMPTS = "TOO_MANY_ATTEMPTS",
+  ACCOUNT_LOCKED = "ACCOUNT_LOCKED",
+  SECURITY_VIOLATION = "SECURITY_VIOLATION",
+
   // System Errors
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
-  MEMORY_ERROR = 'MEMORY_ERROR',
-  PROCESSING_ERROR = 'PROCESSING_ERROR'
+  UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  TIMEOUT_ERROR = "TIMEOUT_ERROR",
+  MEMORY_ERROR = "MEMORY_ERROR",
+  PROCESSING_ERROR = "PROCESSING_ERROR",
 }
 
 // Camera permission status types
-export type CameraPermissionStatus = 'authorized' | 'denied' | 'restricted' | 'not-determined';
+export type CameraPermissionStatus =
+  | "authorized"
+  | "denied"
+  | "restricted"
+  | "not-determined";
 
 // Performance mode for face detection
-export type PerformanceMode = 'fast' | 'accurate';
+export type PerformanceMode = "fast" | "accurate";
 
 // Face registration status
 export interface FaceRegistrationStatus {

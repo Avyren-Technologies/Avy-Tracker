@@ -1,5 +1,5 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
-import { format } from 'date-fns';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
+import { format } from "date-fns";
 
 interface AttendanceData {
   summary: {
@@ -15,9 +15,9 @@ interface AttendanceData {
       startDate: string;
       endDate: string;
       totalDays: number;
-    }
+    };
   };
-  dailyStats: Array<{
+  dailyStats: {
     date: string;
     presentCount: number;
     onTimeCount: number;
@@ -26,8 +26,8 @@ interface AttendanceData {
     totalExpenses: number;
     completedShifts: number;
     incompleteShifts: number;
-  }>;
-  employeeStats: Array<{
+  }[];
+  employeeStats: {
     id: number;
     employeeName: string;
     employeeNumber: string;
@@ -44,8 +44,8 @@ interface AttendanceData {
       active: number;
       incomplete: number;
     };
-  }>;
-  employeeAttendanceData?: Array<{
+  }[];
+  employeeAttendanceData?: {
     id: number;
     name: string;
     employeeNumber: string;
@@ -63,11 +63,11 @@ interface AttendanceData {
       activeShifts: number;
       incompleteShifts: number;
     };
-    dailyRecords: Array<{
+    dailyRecords: {
       date: string;
       dayOfWeek: string;
       status: string;
-      shifts: Array<{
+      shifts: {
         id: number;
         startTime: string;
         endTime: string;
@@ -78,8 +78,8 @@ interface AttendanceData {
         startLocation: string;
         endLocation: string;
         endedAutomatically: boolean;
-      }>;
-      expenses: Array<{
+      }[];
+      expenses: {
         id: number;
         total: number;
         kilometers: number;
@@ -90,7 +90,7 @@ interface AttendanceData {
         other: number;
         status: string;
         comments: string;
-      }>;
+      }[];
       leave?: {
         leaveType: string;
         isPaid: boolean;
@@ -102,9 +102,9 @@ interface AttendanceData {
         totalDistance: number;
         totalExpenses: number;
         shiftsCount: number;
-      }
-    }>;
-  }>;
+      };
+    }[];
+  }[];
   companyInfo: {
     name: string;
     logo: string;
@@ -118,7 +118,7 @@ interface AttendanceData {
     department?: string;
     dateRangePreset?: string;
   };
-  leaveInfo?: Array<{
+  leaveInfo?: {
     employeeId: number;
     employeeName: string;
     employeeNumber: string;
@@ -128,37 +128,43 @@ interface AttendanceData {
     leaveType: string;
     isPaid: boolean;
     reason?: string;
-  }>;
+  }[];
 }
 
-export const generateAttendanceReport = (data: AttendanceData, options: TemplateOptions): string => {
+export const generateAttendanceReport = (
+  data: AttendanceData,
+  options: TemplateOptions,
+): string => {
   // Format dates for display
-  const startDate = data.summary.reportPeriod?.startDate || data.filterOptions?.startDate || '';
-  const endDate = data.summary.reportPeriod?.endDate || data.filterOptions?.endDate || '';
-  
+  const startDate =
+    data.summary.reportPeriod?.startDate || data.filterOptions?.startDate || "";
+  const endDate =
+    data.summary.reportPeriod?.endDate || data.filterOptions?.endDate || "";
+
   // Format date range for title
-  const dateRangeTitle = startDate && endDate 
-    ? `${formatDateString(startDate)} – ${formatDateString(endDate)}`
-    : "Last 30 Days";
+  const dateRangeTitle =
+    startDate && endDate
+      ? `${formatDateString(startDate)} – ${formatDateString(endDate)}`
+      : "Last 30 Days";
 
   // Format filters
-  const employeeFilter = options.filters?.employee || '';
-  const departmentFilter = options.filters?.department || '';
-  
+  const employeeFilter = options.filters?.employee || "";
+  const departmentFilter = options.filters?.department || "";
+
   // Calculate leave days total
-  const totalLeaveDays = data.leaveInfo 
+  const totalLeaveDays = data.leaveInfo
     ? data.leaveInfo.reduce((sum, leave) => sum + leave.daysCount, 0)
     : 0;
 
   // Generate detailed attendance data
   const detailedAttendance = generateDetailedAttendanceTable(data);
-  
+
   // Generate per-employee summary
   const employeeSummary = generateEmployeeSummary(data);
 
   const content = `
     <div class="report-container">
-      <h1 class="main-title">${data.companyInfo?.name || 'Company'} – Attendance & Shift Report</h1>
+      <h1 class="main-title">${data.companyInfo?.name || "Company"} – Attendance & Shift Report</h1>
       
       <div class="header-meta">
         <div class="meta-item"><strong>Date Range:</strong> ${dateRangeTitle}</div>
@@ -199,7 +205,9 @@ export const generateAttendanceReport = (data: AttendanceData, options: Template
         </div>
       </div>
 
-      ${data.leaveInfo && data.leaveInfo.length > 0 ? `
+      ${
+        data.leaveInfo && data.leaveInfo.length > 0
+          ? `
         <div class="section">
           <h2>2. Leave Summary</h2>
           <p class="section-description">List of all leaves approved (or pending) in the above date range.</p>
@@ -215,20 +223,26 @@ export const generateAttendanceReport = (data: AttendanceData, options: Template
               </tr>
             </thead>
             <tbody>
-              ${data.leaveInfo.map(leave => `
+              ${data.leaveInfo
+                .map(
+                  (leave) => `
                 <tr>
                   <td>${leave.employeeName} (${leave.employeeNumber})</td>
                   <td>${leave.leaveType}</td>
                   <td>${formatDateString(leave.startDate)}</td>
                   <td>${formatDateString(leave.endDate)}</td>
                   <td>${leave.daysCount}</td>
-                  <td>${leave.isPaid ? 'Paid' : 'Unpaid'}</td>
+                  <td>${leave.isPaid ? "Paid" : "Unpaid"}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
 
       <div class="section">
         <h2>3. Detailed Attendance & Shift Log</h2>
@@ -388,8 +402,8 @@ export const generateAttendanceReport = (data: AttendanceData, options: Template
     filters: {
       dateRange: dateRangeTitle,
       employee: employeeFilter,
-      department: departmentFilter
-    }
+      department: departmentFilter,
+    },
   });
 };
 
@@ -397,24 +411,24 @@ export const generateAttendanceReport = (data: AttendanceData, options: Template
 function formatDateString(dateStr: string): string {
   try {
     // Handle different date formats
-    if (!dateStr) return '–';
-    
+    if (!dateStr) return "–";
+
     // Try to parse the date in several formats
     let date;
-    
+
     // For ISO date strings (YYYY-MM-DD)
-    if (dateStr.includes('-')) {
+    if (dateStr.includes("-")) {
       date = new Date(dateStr);
-    } 
+    }
     // For date strings formatted like "MM/DD/YYYY" from toLocaleDateString()
-    else if (dateStr.includes('/')) {
-      const parts = dateStr.split('/');
+    else if (dateStr.includes("/")) {
+      const parts = dateStr.split("/");
       if (parts.length === 3) {
         // Assume MM/DD/YYYY format from US locale
         const month = parseInt(parts[0]) - 1; // Month is 0-indexed
         const day = parseInt(parts[1]);
         const year = parseInt(parts[2]);
-        
+
         // Create date using UTC to avoid timezone issues
         date = new Date(Date.UTC(year, month, day));
       } else {
@@ -423,50 +437,53 @@ function formatDateString(dateStr: string): string {
     } else {
       date = new Date(dateStr);
     }
-    
+
     if (isNaN(date.getTime())) {
       return dateStr; // Return original if parsing failed
     }
-    
+
     // Format as DD/MM/YYYY (Indian format)
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error("Error formatting date:", error);
     return dateStr; // Return original if any error occurs
   }
 }
 
 // Helper function to convert minutes to hours and minutes format
 function formatDuration(hours: number): string {
-  if (isNaN(hours) || hours === 0) return '–';
-  
+  if (isNaN(hours) || hours === 0) return "–";
+
   const totalMinutes = Math.round(hours * 60);
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
-  
-  return `${h} h ${m > 0 ? `${m} m` : ''}`;
+
+  return `${h} h ${m > 0 ? `${m} m` : ""}`;
 }
 
 // Generate the detailed attendance table
 function generateDetailedAttendanceTable(data: AttendanceData): string {
-  if (!data.employeeAttendanceData || data.employeeAttendanceData.length === 0) {
-    return '<p>No detailed attendance data available.</p>';
+  if (
+    !data.employeeAttendanceData ||
+    data.employeeAttendanceData.length === 0
+  ) {
+    return "<p>No detailed attendance data available.</p>";
   }
 
   // Group records by employee
-  let tableContent = '';
-  
+  let tableContent = "";
+
   // Sort employees by name
-  const sortedEmployees = [...data.employeeAttendanceData].sort((a, b) => 
-    a.name.localeCompare(b.name)
+  const sortedEmployees = [...data.employeeAttendanceData].sort((a, b) =>
+    a.name.localeCompare(b.name),
   );
-  
+
   // Loop through each employee
-  sortedEmployees.forEach(employee => {
+  sortedEmployees.forEach((employee) => {
     // Create employee header
     tableContent += `
       <div class="employee-section">
@@ -502,69 +519,70 @@ function generateDetailedAttendanceTable(data: AttendanceData): string {
           </thead>
           <tbody>
     `;
-    
+
     // Sort daily records by date (descending)
     const sortedDailyRecords = [...employee.dailyRecords].sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
     });
-    
+
     // Add each day's attendance record
-    sortedDailyRecords.forEach(record => {
+    sortedDailyRecords.forEach((record) => {
       // Convert date format - directly parse the MM/DD/YYYY format that is likely coming from the backend
       let formattedDate = record.date;
-      
+
       try {
-        if (typeof record.date === 'string' && record.date.includes('/')) {
-          const parts = record.date.split('/');
+        if (typeof record.date === "string" && record.date.includes("/")) {
+          const parts = record.date.split("/");
           if (parts.length === 3) {
             // Assume MM/DD/YYYY format
             const month = parseInt(parts[0]) - 1;
             const day = parseInt(parts[1]);
             const year = parseInt(parts[2]);
             const date = new Date(year, month, day);
-            
+
             // Format as DD/MM/YYYY
-            formattedDate = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+            formattedDate = `${day.toString().padStart(2, "0")}/${(month + 1).toString().padStart(2, "0")}/${year}`;
           }
         }
       } catch (error) {
-        console.error('Error parsing date:', error, record.date);
+        console.error("Error parsing date:", error, record.date);
       }
-      
+
       // Get first shift of the day if present
-      const firstShift = record.shifts.length > 0 ? record.shifts[0] : undefined;
-      
+      const firstShift =
+        record.shifts.length > 0 ? record.shifts[0] : undefined;
+
       // Calculate if on-time (start time before or at 9 AM)
-      const onTime = firstShift 
-        ? extractTimeHours(firstShift.startTime) <= 9 
+      const onTime = firstShift
+        ? extractTimeHours(firstShift.startTime) <= 9
         : false;
-      
+
       // Determine shift status
-      let shiftStatus = 'No Shift';
+      let shiftStatus = "No Shift";
       if (record.shifts.length > 0) {
-        if (firstShift?.endTime && firstShift.endTime !== 'N/A') {
-          shiftStatus = 'Completed';
+        if (firstShift?.endTime && firstShift.endTime !== "N/A") {
+          shiftStatus = "Completed";
         } else {
-          shiftStatus = 'Incomplete';
+          shiftStatus = "Incomplete";
         }
       } else if (record.leave) {
-        shiftStatus = 'Absent';
+        shiftStatus = "Absent";
       } else {
-        shiftStatus = 'Absent';
+        shiftStatus = "Absent";
       }
 
       // Determine row class based on status
-      let rowClass = '';
+      let rowClass = "";
       if (record.shifts.length > 0) {
-        rowClass = 'present-row';
+        rowClass = "present-row";
       } else if (record.leave) {
-        rowClass = 'leave-row';
+        rowClass = "leave-row";
       } else {
-        rowClass = 'absent-row';
+        rowClass = "absent-row";
       }
-      
+
       tableContent += `
         <tr class="${rowClass}">
           <td>${formattedDate}</td>
@@ -572,28 +590,28 @@ function generateDetailedAttendanceTable(data: AttendanceData): string {
           <td>${employee.name}</td>
           <td>Employee</td>
           <td>${employee.department}</td>
-          <td>${record.shifts.length > 0 ? 'Yes' : 'No'}</td>
-          <td>${firstShift?.startTime || '–'}</td>
-          <td>${firstShift?.endTime && firstShift.endTime !== 'N/A' ? firstShift.endTime : '–'}</td>
-          <td>${firstShift?.startLocation && firstShift.startLocation !== 'N/A' ? firstShift.startLocation : '–'}</td>
-          <td>${firstShift?.endLocation && firstShift.endLocation !== 'N/A' ? firstShift.endLocation : '–'}</td>
+          <td>${record.shifts.length > 0 ? "Yes" : "No"}</td>
+          <td>${firstShift?.startTime || "–"}</td>
+          <td>${firstShift?.endTime && firstShift.endTime !== "N/A" ? firstShift.endTime : "–"}</td>
+          <td>${firstShift?.startLocation && firstShift.startLocation !== "N/A" ? firstShift.startLocation : "–"}</td>
+          <td>${firstShift?.endLocation && firstShift.endLocation !== "N/A" ? firstShift.endLocation : "–"}</td>
           <td>${formatDuration(record.summary.totalHours)}</td>
-          <td>${record.summary.totalDistance > 0 ? `${record.summary.totalDistance.toFixed(1)} km` : '–'}</td>
-          <td>${record.summary.totalExpenses > 0 ? `₹${record.summary.totalExpenses.toLocaleString()}` : '–'}</td>
-          <td>${record.shifts.length > 0 ? (onTime ? 'Yes' : 'No') : '–'}</td>
+          <td>${record.summary.totalDistance > 0 ? `${record.summary.totalDistance.toFixed(1)} km` : "–"}</td>
+          <td>${record.summary.totalExpenses > 0 ? `₹${record.summary.totalExpenses.toLocaleString()}` : "–"}</td>
+          <td>${record.shifts.length > 0 ? (onTime ? "Yes" : "No") : "–"}</td>
           <td>${shiftStatus}</td>
-          <td>${record.leave?.leaveType || '–'}</td>
+          <td>${record.leave?.leaveType || "–"}</td>
         </tr>
       `;
     });
-    
+
     tableContent += `
           </tbody>
         </table>
       </div>
     `;
   });
-  
+
   return `
     <div class="detailed-attendance">
       ${tableContent}
@@ -641,17 +659,17 @@ function generateEmployeeSummary(data: AttendanceData): string {
   // Combine employee stats with leave information
   const employees = data.employeeStats || [];
   const leaveMap: { [key: number]: number } = {};
-  
+
   // Create a map of employee ID to total leave days
   if (data.leaveInfo) {
-    data.leaveInfo.forEach(leave => {
+    data.leaveInfo.forEach((leave) => {
       if (!leaveMap[leave.employeeId]) {
         leaveMap[leave.employeeId] = 0;
       }
       leaveMap[leave.employeeId] += leave.daysCount;
     });
   }
-  
+
   return `
     <table class="data-table">
       <thead>
@@ -669,20 +687,24 @@ function generateEmployeeSummary(data: AttendanceData): string {
         </tr>
       </thead>
       <tbody>
-        ${employees.map(emp => `
+        ${employees
+          .map(
+            (emp) => `
           <tr>
             <td>${emp.employeeName} (${emp.employeeNumber})</td>
-            <td>${emp.role || 'Employee'}</td>
-            <td>${emp.department || '–'}</td>
+            <td>${emp.role || "Employee"}</td>
+            <td>${emp.department || "–"}</td>
             <td>${emp.daysPresent}</td>
             <td>${formatDuration(emp.avgHours * emp.daysPresent)}</td>
-            <td>${emp.daysPresent > 0 ? `${emp.onTimePercentage}%` : '–'}</td>
-            <td>${emp.totalDistance > 0 ? `${emp.totalDistance.toFixed(1)} km` : '–'}</td>
-            <td>${emp.totalExpenses > 0 ? `₹${emp.totalExpenses.toLocaleString()}` : '–'}</td>
+            <td>${emp.daysPresent > 0 ? `${emp.onTimePercentage}%` : "–"}</td>
+            <td>${emp.totalDistance > 0 ? `${emp.totalDistance.toFixed(1)} km` : "–"}</td>
+            <td>${emp.totalExpenses > 0 ? `₹${emp.totalExpenses.toLocaleString()}` : "–"}</td>
             <td>${emp.shiftStatus.completed}</td>
             <td>${leaveMap[emp.id] || 0}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </tbody>
     </table>
   `;
@@ -691,23 +713,23 @@ function generateEmployeeSummary(data: AttendanceData): string {
 // Helper to extract hours from time string (e.g., "09:30 AM" -> 9.5)
 function extractTimeHours(timeStr: string | undefined): number {
   if (!timeStr) return -1;
-  
+
   try {
     // Match hours, minutes, and AM/PM
     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
     if (!match) return -1;
-    
+
     let hours = parseInt(match[1]);
     const minutes = parseInt(match[2]);
-    const isPM = match[3]?.toUpperCase() === 'PM';
-    
+    const isPM = match[3]?.toUpperCase() === "PM";
+
     // Convert to 24-hour format if PM
     if (isPM && hours < 12) hours += 12;
     // Handle 12 AM (midnight)
     if (!isPM && hours === 12) hours = 0;
-    
+
     return hours + minutes / 60;
   } catch {
     return -1;
   }
-} 
+}

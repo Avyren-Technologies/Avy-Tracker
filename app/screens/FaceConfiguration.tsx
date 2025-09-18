@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,18 +10,18 @@ import {
   Modal,
   Pressable,
   Platform,
-} from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import { useAuth } from '../context/AuthContext';
-import OTPVerification from '../components/OTPVerification';
-import FaceVerificationModal from '../components/FaceVerificationModal';
-import { FaceVerificationResult } from '../types/faceDetection';
-import axios from 'axios';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+} from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import { useAuth } from "../context/AuthContext";
+import OTPVerification from "../components/OTPVerification";
+import FaceVerificationModal from "../components/FaceVerificationModal";
+import { FaceVerificationResult } from "../types/faceDetection";
+import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface FaceProfileStatus {
   isRegistered: boolean;
@@ -49,15 +49,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   onConfirm,
   onCancel,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  confirmColor = '#3b82f6',
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  confirmColor = "#3b82f6",
   isDestructive = false,
 }) => {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#0f172a', '#f1f5f9');
-  const borderColor = useThemeColor('#e2e8f0', '#334155');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#0f172a", "#f1f5f9");
+  const borderColor = useThemeColor("#e2e8f0", "#334155");
 
   return (
     <Modal
@@ -69,16 +69,20 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContainer, { backgroundColor, borderColor }]}>
           <View style={styles.modalHeader}>
-            <Ionicons 
-              name={isDestructive ? "warning" : "information-circle"} 
-              size={24} 
-              color={isDestructive ? "#ef4444" : "#3b82f6"} 
+            <Ionicons
+              name={isDestructive ? "warning" : "information-circle"}
+              size={24}
+              color={isDestructive ? "#ef4444" : "#3b82f6"}
             />
-            <Text style={[styles.modalTitle, { color: textColor }]}>{title}</Text>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              {title}
+            </Text>
           </View>
-          
-          <Text style={[styles.modalMessage, { color: textColor }]}>{message}</Text>
-          
+
+          <Text style={[styles.modalMessage, { color: textColor }]}>
+            {message}
+          </Text>
+
           <View style={styles.modalButtons}>
             <Pressable
               style={[styles.modalButton, styles.cancelButton, { borderColor }]}
@@ -88,12 +92,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 {cancelText}
               </Text>
             </Pressable>
-            
+
             <Pressable
               style={[
                 styles.modalButton,
                 styles.confirmButton,
-                { backgroundColor: isDestructive ? '#ef4444' : confirmColor }
+                { backgroundColor: isDestructive ? "#ef4444" : confirmColor },
               ]}
               onPress={onConfirm}
             >
@@ -110,24 +114,27 @@ export default function FaceConfiguration() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const { user, token } = useAuth();
-  
+
   // Theme colors
-  const backgroundColor = useThemeColor('#f8fafc', '#0f172a');
-  const cardColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#0f172a', '#f1f5f9');
-  const secondaryTextColor = useThemeColor('#64748b', '#94a3b8');
-  const borderColor = useThemeColor('#e2e8f0', '#334155');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const errorColor = useThemeColor('#ef4444', '#f87171');
-  const warningColor = useThemeColor('#f59e0b', '#fbbf24');
+  const backgroundColor = useThemeColor("#f8fafc", "#0f172a");
+  const cardColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#0f172a", "#f1f5f9");
+  const secondaryTextColor = useThemeColor("#64748b", "#94a3b8");
+  const borderColor = useThemeColor("#e2e8f0", "#334155");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const errorColor = useThemeColor("#ef4444", "#f87171");
+  const warningColor = useThemeColor("#f59e0b", "#fbbf24");
 
   // State management
   const [isOTPVerified, setIsOTPVerified] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
-  const [faceProfileStatus, setFaceProfileStatus] = useState<FaceProfileStatus | null>(null);
+  const [faceProfileStatus, setFaceProfileStatus] =
+    useState<FaceProfileStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showFaceModal, setShowFaceModal] = useState(false);
-  const [faceModalMode, setFaceModalMode] = useState<'register' | 'verify'>('register');
+  const [faceModalMode, setFaceModalMode] = useState<"register" | "verify">(
+    "register",
+  );
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalConfig, setConfirmModalConfig] = useState<{
     title: string;
@@ -135,8 +142,8 @@ export default function FaceConfiguration() {
     action: () => void;
     isDestructive?: boolean;
   }>({
-    title: '',
-    message: '',
+    title: "",
+    message: "",
     action: () => {},
   });
 
@@ -150,15 +157,15 @@ export default function FaceConfiguration() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Map backend response to frontend interface
         const mappedStatus: FaceProfileStatus = {
           isRegistered: data.face_registered || data.registered || false,
@@ -167,15 +174,15 @@ export default function FaceConfiguration() {
           lastVerification: data.lastVerification,
           verificationCount: data.verificationCount || 0,
         };
-        
-        console.log('✅ Face profile status mapped:', {
+
+        console.log("✅ Face profile status mapped:", {
           original: data,
-          mapped: mappedStatus
+          mapped: mappedStatus,
         });
-        
+
         setFaceProfileStatus(mappedStatus);
       } else {
-        console.error('Failed to load face profile status');
+        console.error("Failed to load face profile status");
         setFaceProfileStatus({
           isRegistered: false,
           verificationCount: 0,
@@ -183,7 +190,7 @@ export default function FaceConfiguration() {
         });
       }
     } catch (error) {
-      console.error('Error loading face profile status:', error);
+      console.error("Error loading face profile status:", error);
       setFaceProfileStatus({
         isRegistered: false,
         verificationCount: 0,
@@ -206,40 +213,48 @@ export default function FaceConfiguration() {
   }, []);
 
   // Handle face registration/update success
-  const handleFaceSuccess = useCallback(async (result: FaceVerificationResult) => {
-    setShowFaceModal(false);
-    
-    // CRITICAL FIX: Update user's face_registered status in the database
-    try {
-      await axios.patch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile`,
-        { face_registered: true },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('✅ User face_registered status updated successfully');
-    } catch (updateError) {
-      console.warn('⚠️ Failed to update user face_registered status:', updateError);
-      // Don't fail the operation if this update fails
-    }
-    
-    Alert.alert(
-      'Success',
-      'Face profile updated successfully!',
-      [{ text: 'OK', onPress: () => router.replace("/(dashboard)/employee/employeeSettings" as any) }]
-    );
+  const handleFaceSuccess = useCallback(
+    async (result: FaceVerificationResult) => {
+      setShowFaceModal(false);
 
-    // Reload profile status
-    await loadFaceProfileStatus();
-  }, [faceModalMode, loadFaceProfileStatus, token]);
+      // CRITICAL FIX: Update user's face_registered status in the database
+      try {
+        await axios.patch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/users/profile`,
+          { face_registered: true },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        console.log("✅ User face_registered status updated successfully");
+      } catch (updateError) {
+        console.warn(
+          "⚠️ Failed to update user face_registered status:",
+          updateError,
+        );
+        // Don't fail the operation if this update fails
+      }
+
+      Alert.alert("Success", "Face profile updated successfully!", [
+        {
+          text: "OK",
+          onPress: () =>
+            router.replace("/(dashboard)/employee/employeeSettings" as any),
+        },
+      ]);
+
+      // Reload profile status
+      await loadFaceProfileStatus();
+    },
+    [faceModalMode, loadFaceProfileStatus, token],
+  );
 
   // Handle face registration/update error
   const handleFaceError = useCallback((error: any) => {
     setShowFaceModal(false);
-    
+
     Alert.alert(
-      'Error',
-      error.message || 'Failed to process face profile. Please try again.',
-      [{ text: 'OK' }]
+      "Error",
+      error.message || "Failed to process face profile. Please try again.",
+      [{ text: "OK" }],
     );
   }, []);
 
@@ -252,10 +267,11 @@ export default function FaceConfiguration() {
   // Handle face re-registration
   const handleReRegister = useCallback(() => {
     showConfirmation({
-      title: 'Re-register Face Profile',
-      message: 'This will replace your current face profile with a new one. Are you sure you want to continue?',
+      title: "Re-register Face Profile",
+      message:
+        "This will replace your current face profile with a new one. Are you sure you want to continue?",
       action: () => {
-        setFaceModalMode('register'); // Use 'register' for updating profile
+        setFaceModalMode("register"); // Use 'register' for updating profile
         setShowFaceModal(true);
       },
     });
@@ -264,47 +280,51 @@ export default function FaceConfiguration() {
   // Handle face profile deletion
   const handleDeleteProfile = useCallback(() => {
     showConfirmation({
-      title: 'Delete Face Profile',
-      message: 'This will permanently delete your face profile and all associated biometric data. This action cannot be undone. Are you sure?',
+      title: "Delete Face Profile",
+      message:
+        "This will permanently delete your face profile and all associated biometric data. This action cannot be undone. Are you sure?",
       action: async () => {
         try {
           const response = await fetch(
             `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/profile`,
             {
-              method: 'DELETE',
+              method: "DELETE",
               headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           if (response.ok) {
             // Clear any cached face data on the frontend
             try {
-              const { deleteFaceProfile } = await import('../services/FaceVerificationService');
+              const { deleteFaceProfile } = await import(
+                "../services/FaceVerificationService"
+              );
               await deleteFaceProfile(Number(user?.id));
-              console.log('✅ Frontend face data cleared successfully');
+              console.log("✅ Frontend face data cleared successfully");
             } catch (clearError) {
-              console.warn('⚠️ Failed to clear frontend face data:', clearError);
+              console.warn(
+                "⚠️ Failed to clear frontend face data:",
+                clearError,
+              );
               // Don't fail the operation if frontend cleanup fails
             }
 
-            Alert.alert(
-              'Success',
-              'Face profile deleted successfully.',
-              [{ text: 'OK' }]
-            );
+            Alert.alert("Success", "Face profile deleted successfully.", [
+              { text: "OK" },
+            ]);
             await loadFaceProfileStatus();
           } else {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to delete face profile');
+            throw new Error(errorData.error || "Failed to delete face profile");
           }
         } catch (error: any) {
           Alert.alert(
-            'Error',
-            error.message || 'Failed to delete face profile. Please try again.',
-            [{ text: 'OK' }]
+            "Error",
+            error.message || "Failed to delete face profile. Please try again.",
+            [{ text: "OK" }],
           );
         }
       },
@@ -314,7 +334,7 @@ export default function FaceConfiguration() {
 
   // Handle initial face registration
   const handleInitialRegistration = useCallback(() => {
-    setFaceModalMode('register');
+    setFaceModalMode("register");
     setShowFaceModal(true);
   }, []);
 
@@ -322,23 +342,45 @@ export default function FaceConfiguration() {
   if (!isOTPVerified) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
 
         {/* Header */}
         <LinearGradient
-          colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+          colors={
+            colorScheme === "dark"
+              ? ["#1F2937", "#111827"]
+              : ["#FFFFFF", "#F3F4F6"]
+          }
           className="pb-4"
-          style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+          style={[
+            styles.header,
+            {
+              paddingTop:
+                Platform.OS === "ios"
+                  ? StatusBar.currentHeight || 44
+                  : StatusBar.currentHeight || 0,
+            },
+          ]}
         >
           <View className="flex-row items-center justify-between px-6">
             <TouchableOpacity
               onPress={() => router.back()}
               className="mr-4 p-2 rounded-full"
-              style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+              style={{
+                backgroundColor: colorScheme === "dark" ? "#374151" : "#F3F4F6",
+              }}
             >
-              <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+              />
             </TouchableOpacity>
-            <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <Text
+              className={`text-2xl font-bold ${colorScheme === "dark" ? "text-white" : "text-gray-900"}`}
+            >
               Face Configuration
             </Text>
             <View style={{ width: 40 }} />
@@ -346,16 +388,23 @@ export default function FaceConfiguration() {
         </LinearGradient>
 
         <View style={styles.otpGateContainer}>
-          <View style={[styles.otpGateCard, { backgroundColor: cardColor, borderColor }]}>
+          <View
+            style={[
+              styles.otpGateCard,
+              { backgroundColor: cardColor, borderColor },
+            ]}
+          >
             <Ionicons name="shield-checkmark" size={64} color="#3b82f6" />
             <Text style={[styles.otpGateTitle, { color: textColor }]}>
               Secure Access Required
             </Text>
-            <Text style={[styles.otpGateMessage, { color: secondaryTextColor }]}>
-              Face configuration settings contain sensitive biometric data. 
+            <Text
+              style={[styles.otpGateMessage, { color: secondaryTextColor }]}
+            >
+              Face configuration settings contain sensitive biometric data.
               Please verify your identity with OTP to continue.
             </Text>
-            
+
             <TouchableOpacity
               style={styles.otpGateButton}
               onPress={() => setShowOTPModal(true)}
@@ -372,7 +421,7 @@ export default function FaceConfiguration() {
           onSuccess={handleOTPSuccess}
           onCancel={() => setShowOTPModal(false)}
           onError={(error) => {
-            console.error('OTP verification error:', error);
+            console.error("OTP verification error:", error);
             // Don't close the modal automatically - let OTPVerification handle error display
             // The OTPErrorModal inside OTPVerification will show the user-friendly error message
           }}
@@ -385,23 +434,45 @@ export default function FaceConfiguration() {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
 
         {/* Header */}
         <LinearGradient
-          colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+          colors={
+            colorScheme === "dark"
+              ? ["#1F2937", "#111827"]
+              : ["#FFFFFF", "#F3F4F6"]
+          }
           className="pb-4"
-          style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+          style={[
+            styles.header,
+            {
+              paddingTop:
+                Platform.OS === "ios"
+                  ? StatusBar.currentHeight || 44
+                  : StatusBar.currentHeight || 0,
+            },
+          ]}
         >
           <View className="flex-row items-center justify-between px-6">
             <TouchableOpacity
               onPress={() => router.back()}
               className="mr-4 p-2 rounded-full"
-              style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+              style={{
+                backgroundColor: colorScheme === "dark" ? "#374151" : "#F3F4F6",
+              }}
             >
-              <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+              />
             </TouchableOpacity>
-            <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <Text
+              className={`text-2xl font-bold ${colorScheme === "dark" ? "text-white" : "text-gray-900"}`}
+            >
               Face Configuration
             </Text>
             <View style={{ width: 40 }} />
@@ -420,32 +491,59 @@ export default function FaceConfiguration() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <StatusBar
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+      />
 
       {/* Header */}
       <LinearGradient
-        colors={colorScheme === 'dark' ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
+        colors={
+          colorScheme === "dark"
+            ? ["#1F2937", "#111827"]
+            : ["#FFFFFF", "#F3F4F6"]
+        }
         className="pb-4"
-        style={[styles.header, { paddingTop: Platform.OS === 'ios' ? StatusBar.currentHeight || 44 : StatusBar.currentHeight || 0 }]}
+        style={[
+          styles.header,
+          {
+            paddingTop:
+              Platform.OS === "ios"
+                ? StatusBar.currentHeight || 44
+                : StatusBar.currentHeight || 0,
+          },
+        ]}
       >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
             onPress={() => router.back()}
             className="mr-4 p-2 rounded-full"
-            style={{ backgroundColor: colorScheme === 'dark' ? '#374151' : '#F3F4F6' }}
+            style={{
+              backgroundColor: colorScheme === "dark" ? "#374151" : "#F3F4F6",
+            }}
           >
-            <Ionicons name="arrow-back" size={24} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+            />
           </TouchableOpacity>
-          <Text className={`text-2xl font-bold ${colorScheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <Text
+            className={`text-2xl font-bold ${colorScheme === "dark" ? "text-white" : "text-gray-900"}`}
+          >
             Face Configuration
           </Text>
           <View style={{ width: 40 }} />
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Face Profile Status Card */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <View style={styles.cardHeader}>
             <Ionicons name="person-circle" size={24} color="#3b82f6" />
             <Text style={[styles.cardTitle, { color: textColor }]}>
@@ -479,7 +577,9 @@ export default function FaceConfiguration() {
                     },
                   ]}
                 >
-                  {faceProfileStatus?.isRegistered ? 'Registered' : 'Not Registered'}
+                  {faceProfileStatus?.isRegistered
+                    ? "Registered"
+                    : "Not Registered"}
                 </Text>
               </View>
             </View>
@@ -487,7 +587,9 @@ export default function FaceConfiguration() {
             {faceProfileStatus?.isRegistered && (
               <>
                 <View style={styles.statusRow}>
-                  <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[styles.statusLabel, { color: secondaryTextColor }]}
+                  >
                     Profile Status:
                   </Text>
                   <View style={styles.statusBadge}>
@@ -511,35 +613,51 @@ export default function FaceConfiguration() {
                         },
                       ]}
                     >
-                      {faceProfileStatus.isActive ? 'Active' : 'Inactive'}
+                      {faceProfileStatus.isActive ? "Active" : "Inactive"}
                     </Text>
                   </View>
                 </View>
 
                 {faceProfileStatus.registrationDate && (
                   <View style={styles.statusRow}>
-                    <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
+                    <Text
+                      style={[
+                        styles.statusLabel,
+                        { color: secondaryTextColor },
+                      ]}
+                    >
                       Registered:
                     </Text>
                     <Text style={[styles.statusValue, { color: textColor }]}>
-                      {new Date(faceProfileStatus.registrationDate).toLocaleDateString()}
+                      {new Date(
+                        faceProfileStatus.registrationDate,
+                      ).toLocaleDateString()}
                     </Text>
                   </View>
                 )}
 
                 {faceProfileStatus.lastVerification && (
                   <View style={styles.statusRow}>
-                    <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
+                    <Text
+                      style={[
+                        styles.statusLabel,
+                        { color: secondaryTextColor },
+                      ]}
+                    >
                       Last Verification:
                     </Text>
                     <Text style={[styles.statusValue, { color: textColor }]}>
-                      {new Date(faceProfileStatus.lastVerification).toLocaleDateString()}
+                      {new Date(
+                        faceProfileStatus.lastVerification,
+                      ).toLocaleDateString()}
                     </Text>
                   </View>
                 )}
 
                 <View style={styles.statusRow}>
-                  <Text style={[styles.statusLabel, { color: secondaryTextColor }]}>
+                  <Text
+                    style={[styles.statusLabel, { color: secondaryTextColor }]}
+                  >
                     Verification Count:
                   </Text>
                   <Text style={[styles.statusValue, { color: textColor }]}>
@@ -552,7 +670,9 @@ export default function FaceConfiguration() {
         </View>
 
         {/* Actions Card */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <View style={styles.cardHeader}>
             <Ionicons name="settings" size={24} color="#3b82f6" />
             <Text style={[styles.cardTitle, { color: textColor }]}>
@@ -567,16 +687,24 @@ export default function FaceConfiguration() {
                 onPress={handleInitialRegistration}
               >
                 <Ionicons name="add-circle" size={20} color="#ffffff" />
-                <Text style={styles.primaryButtonText}>Register Face Profile</Text>
+                <Text style={styles.primaryButtonText}>
+                  Register Face Profile
+                </Text>
               </TouchableOpacity>
             ) : (
               <>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.secondaryButton, { borderColor }]}
+                  style={[
+                    styles.actionButton,
+                    styles.secondaryButton,
+                    { borderColor },
+                  ]}
                   onPress={handleReRegister}
                 >
                   <Ionicons name="refresh" size={20} color="#3b82f6" />
-                  <Text style={[styles.secondaryButtonText, { color: textColor }]}>
+                  <Text
+                    style={[styles.secondaryButtonText, { color: textColor }]}
+                  >
                     Update Face Profile
                   </Text>
                 </TouchableOpacity>
@@ -586,7 +714,9 @@ export default function FaceConfiguration() {
                   onPress={handleDeleteProfile}
                 >
                   <Ionicons name="trash" size={20} color="#ffffff" />
-                  <Text style={styles.dangerButtonText}>Delete Face Profile</Text>
+                  <Text style={styles.dangerButtonText}>
+                    Delete Face Profile
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -594,7 +724,9 @@ export default function FaceConfiguration() {
         </View>
 
         {/* Privacy Information Card */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <View style={styles.cardHeader}>
             <Ionicons name="shield-checkmark" size={24} color="#10b981" />
             <Text style={[styles.cardTitle, { color: textColor }]}>
@@ -654,8 +786,8 @@ export default function FaceConfiguration() {
         }}
         onCancel={() => setShowConfirmModal(false)}
         isDestructive={confirmModalConfig.isDestructive}
-        confirmText={confirmModalConfig.isDestructive ? 'Delete' : 'Confirm'}
-        confirmColor={confirmModalConfig.isDestructive ? '#ef4444' : '#3b82f6'}
+        confirmText={confirmModalConfig.isDestructive ? "Delete" : "Confirm"}
+        confirmColor={confirmModalConfig.isDestructive ? "#ef4444" : "#3b82f6"}
       />
     </View>
   );
@@ -666,15 +798,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
@@ -688,44 +820,44 @@ const styles = StyleSheet.create({
   // OTP Gate Styles
   otpGateContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   otpGateCard: {
     padding: 32,
     borderRadius: 16,
     borderWidth: 1,
-    alignItems: 'center',
+    alignItems: "center",
     maxWidth: 400,
-    width: '100%',
+    width: "100%",
   },
   otpGateTitle: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   otpGateMessage: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
   },
   otpGateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3b82f6",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
   },
   otpGateButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // Card Styles
@@ -736,14 +868,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
     gap: 8,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // Status Styles
@@ -751,17 +883,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   statusLabel: {
     fontSize: 14,
     flex: 1,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   statusDot: {
@@ -771,11 +903,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 
   // Actions Styles
@@ -783,36 +915,36 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   secondaryButton: {
     borderWidth: 1,
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dangerButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
   },
   dangerButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // Privacy Styles
@@ -820,8 +952,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   privacyItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 8,
   },
   privacyText: {
@@ -833,9 +965,9 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
   },
   modalContainer: {
@@ -843,17 +975,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 24,
     maxWidth: 400,
-    width: '100%',
+    width: "100%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
     gap: 8,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalMessage: {
     fontSize: 16,
@@ -861,7 +993,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   modalButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   modalButton: {
@@ -869,21 +1001,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButton: {
     borderWidth: 1,
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   confirmButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
   },
   confirmButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

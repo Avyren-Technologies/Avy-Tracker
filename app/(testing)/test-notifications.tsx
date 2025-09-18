@@ -146,7 +146,7 @@ export default function TestNotifications() {
       }
       Alert.alert(
         "Error",
-        "Failed to fetch users. Please check your connection and try again."
+        "Failed to fetch users. Please check your connection and try again.",
       );
     }
   };
@@ -170,7 +170,7 @@ export default function TestNotifications() {
           user.id.toString(),
           response.token,
           token,
-          user.role
+          user.role,
         );
         Alert.alert("Success", "Device registered successfully!");
       } else {
@@ -180,7 +180,7 @@ export default function TestNotifications() {
       console.error("Device registration error:", error);
       Alert.alert(
         "Error",
-        "Failed to register device. Please check your connection and try again."
+        "Failed to register device. Please check your connection and try again.",
       );
     } finally {
       setIsRegistering(false);
@@ -295,7 +295,9 @@ export default function TestNotifications() {
       } else {
         Alert.alert(
           "Error",
-          error instanceof Error ? error.message : "Failed to send notification"
+          error instanceof Error
+            ? error.message
+            : "Failed to send notification",
         );
       }
     } finally {
@@ -457,7 +459,7 @@ export default function TestNotifications() {
                         ) : (
                           Object.entries(groupedUsers).map(([role, users]) => {
                             console.log(
-                              `Rendering ${role} group with ${users.length} users`
+                              `Rendering ${role} group with ${users.length} users`,
                             );
                             return (
                               <View key={role} className="mb-4">
@@ -475,7 +477,7 @@ export default function TestNotifications() {
                                     onPress={() => {
                                       setSelectedUsers((prev) => {
                                         const isSelected = prev.includes(
-                                          user.id
+                                          user.id,
                                         );
                                         console.log("User selection toggled:", {
                                           userId: user.id,
@@ -505,8 +507,8 @@ export default function TestNotifications() {
                                             ? "border-white bg-white"
                                             : "border-blue-500 bg-blue-500"
                                           : isDark
-                                          ? "border-gray-500"
-                                          : "border-gray-400"
+                                            ? "border-gray-500"
+                                            : "border-gray-400"
                                       }`}
                                     >
                                       {selectedUsers.includes(user.id) && (
@@ -525,8 +527,8 @@ export default function TestNotifications() {
                                               ? "text-white"
                                               : "text-blue-700"
                                             : isDark
-                                            ? "text-gray-300"
-                                            : "text-gray-700"
+                                              ? "text-gray-300"
+                                              : "text-gray-700"
                                         }`}
                                       >
                                         {user.name}
@@ -538,8 +540,8 @@ export default function TestNotifications() {
                                               ? "text-gray-300"
                                               : "text-blue-600"
                                             : isDark
-                                            ? "text-gray-500"
-                                            : "text-gray-500"
+                                              ? "text-gray-500"
+                                              : "text-gray-500"
                                         }`}
                                       >
                                         {user.email}

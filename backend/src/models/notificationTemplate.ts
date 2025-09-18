@@ -17,7 +17,7 @@ export interface NotificationTemplate {
 class NotificationTemplateModel {
   // Create a new template
   async create(
-    template: Omit<NotificationTemplate, "id" | "created_at" | "updated_at">
+    template: Omit<NotificationTemplate, "id" | "created_at" | "updated_at">,
   ) {
     const client = await pool.connect();
     try {
@@ -35,7 +35,7 @@ class NotificationTemplateModel {
           template.priority,
           template.data || {},
           template.variables || [],
-        ]
+        ],
       );
       return result.rows[0];
     } finally {
@@ -49,7 +49,7 @@ class NotificationTemplateModel {
     try {
       const result = await client.query(
         "SELECT * FROM notification_templates WHERE id = $1",
-        [id]
+        [id],
       );
       return result.rows[0];
     } finally {
@@ -63,7 +63,7 @@ class NotificationTemplateModel {
     try {
       const result = await client.query(
         "SELECT * FROM notification_templates WHERE role = $1 OR role = 'all'",
-        [role]
+        [role],
       );
       return result.rows;
     } finally {
@@ -85,7 +85,7 @@ class NotificationTemplateModel {
          SET ${fields}, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $1 
          RETURNING *`,
-        [id, ...values]
+        [id, ...values],
       );
       return result.rows[0];
     } finally {
@@ -111,7 +111,7 @@ class NotificationTemplateModel {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        "SELECT * FROM notification_templates ORDER BY created_at DESC"
+        "SELECT * FROM notification_templates ORDER BY created_at DESC",
       );
       return result.rows;
     } finally {
@@ -122,7 +122,7 @@ class NotificationTemplateModel {
   // Render template with variables
   renderTemplate(
     template: NotificationTemplate,
-    variables: Record<string, any>
+    variables: Record<string, any>,
   ) {
     let title = template.title;
     let message = template.message;

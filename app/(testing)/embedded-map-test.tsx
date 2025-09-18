@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -6,34 +6,36 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import EmbeddedMap from '../components/EmbeddedMap';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import { Location as LocationType, Geofence } from '../types/liveTracking';
+} from "react-native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import EmbeddedMap from "../components/EmbeddedMap";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import { Location as LocationType, Geofence } from "../types/liveTracking";
 
 export default function EmbeddedMapTest() {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#f8fafc', '#0f172a');
-  const textColor = useThemeColor('#334155', '#e2e8f0');
-  const cardColor = useThemeColor('#ffffff', '#1e293b');
-  const borderColor = useThemeColor('#e2e8f0', '#334155');
+  const backgroundColor = useThemeColor("#f8fafc", "#0f172a");
+  const textColor = useThemeColor("#334155", "#e2e8f0");
+  const cardColor = useThemeColor("#ffffff", "#1e293b");
+  const borderColor = useThemeColor("#e2e8f0", "#334155");
 
-  const [currentLocation, setCurrentLocation] = useState<LocationType | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<LocationType | null>(
+    null,
+  );
   const [isInGeofence, setIsInGeofence] = useState(false);
-  const [currentGeofenceName, setCurrentGeofenceName] = useState<string>('');
-  const [permissionStatus, setPermissionStatus] = useState<string>('unknown');
+  const [currentGeofenceName, setCurrentGeofenceName] = useState<string>("");
+  const [permissionStatus, setPermissionStatus] = useState<string>("unknown");
 
   // Mock geofences for testing
   const mockGeofences: Geofence[] = [
     {
       id: 1,
-      name: 'Office Area',
+      name: "Office Area",
       coordinates: {
-        type: 'Point',
+        type: "Point",
         coordinates: [77.5946, 12.9716], // Bangalore coordinates
       },
       radius: 200,
@@ -44,10 +46,10 @@ export default function EmbeddedMapTest() {
     },
     {
       id: 2,
-      name: 'Warehouse',
+      name: "Warehouse",
       coordinates: {
-        type: 'Point',
-        coordinates: [77.6000, 12.9800], // Slightly different coordinates
+        type: "Point",
+        coordinates: [77.6, 12.98], // Slightly different coordinates
       },
       radius: 150,
       createdAt: new Date().toISOString(),
@@ -63,7 +65,7 @@ export default function EmbeddedMapTest() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       setPermissionStatus(status);
 
-      if (status === 'granted') {
+      if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -81,28 +83,31 @@ export default function EmbeddedMapTest() {
         setCurrentLocation(locationData);
       } else {
         Alert.alert(
-          'Permission Required',
-          'Location permission is required to test the embedded map.',
-          [{ text: 'OK' }]
+          "Permission Required",
+          "Location permission is required to test the embedded map.",
+          [{ text: "OK" }],
         );
       }
     } catch (error) {
-      console.error('Error requesting location permission:', error);
-      Alert.alert('Error', 'Failed to get location permission');
+      console.error("Error requesting location permission:", error);
+      Alert.alert("Error", "Failed to get location permission");
     }
   };
 
   // Handle location updates from the map
   const handleLocationUpdate = (location: LocationType) => {
-    console.log('Location updated:', location);
+    console.log("Location updated:", location);
     setCurrentLocation(location);
   };
 
   // Handle geofence status changes
-  const handleGeofenceStatusChange = (isInside: boolean, geofenceName?: string) => {
-    console.log('Geofence status changed:', { isInside, geofenceName });
+  const handleGeofenceStatusChange = (
+    isInside: boolean,
+    geofenceName?: string,
+  ) => {
+    console.log("Geofence status changed:", { isInside, geofenceName });
     setIsInGeofence(isInside);
-    setCurrentGeofenceName(geofenceName || '');
+    setCurrentGeofenceName(geofenceName || "");
   };
 
   // Initialize location on component mount
@@ -114,16 +119,21 @@ export default function EmbeddedMapTest() {
     <View style={[styles.container, { backgroundColor }]}>
       <Stack.Screen
         options={{
-          title: 'Embedded Map Test',
+          title: "Embedded Map Test",
           headerStyle: { backgroundColor: cardColor },
           headerTintColor: textColor,
         }}
       />
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.header, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.headerTitle, { color: textColor }]}>
             EmbeddedMap Component Test
           </Text>
@@ -133,15 +143,21 @@ export default function EmbeddedMapTest() {
         </View>
 
         {/* Permission Status */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Permission Status
           </Text>
           <View style={styles.statusRow}>
             <Ionicons
-              name={permissionStatus === 'granted' ? 'checkmark-circle' : 'close-circle'}
+              name={
+                permissionStatus === "granted"
+                  ? "checkmark-circle"
+                  : "close-circle"
+              }
               size={20}
-              color={permissionStatus === 'granted' ? '#10b981' : '#ef4444'}
+              color={permissionStatus === "granted" ? "#10b981" : "#ef4444"}
             />
             <Text style={[styles.statusText, { color: textColor }]}>
               Location: {permissionStatus}
@@ -151,41 +167,52 @@ export default function EmbeddedMapTest() {
 
         {/* Current Location Info */}
         {currentLocation && (
-          <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+          <View
+            style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+          >
             <Text style={[styles.cardTitle, { color: textColor }]}>
               Current Location
             </Text>
             <Text style={[styles.locationText, { color: textColor }]}>
-              Lat: {currentLocation.latitude?.toFixed(6) || 'N/A'}
+              Lat: {currentLocation.latitude?.toFixed(6) || "N/A"}
             </Text>
             <Text style={[styles.locationText, { color: textColor }]}>
-              Lng: {currentLocation.longitude?.toFixed(6) || 'N/A'}
+              Lng: {currentLocation.longitude?.toFixed(6) || "N/A"}
             </Text>
             <Text style={[styles.locationText, { color: textColor }]}>
-              Accuracy: {currentLocation.accuracy ? `${Math.round(currentLocation.accuracy)}m` : 'N/A'}
+              Accuracy:{" "}
+              {currentLocation.accuracy
+                ? `${Math.round(currentLocation.accuracy)}m`
+                : "N/A"}
             </Text>
           </View>
         )}
 
         {/* Geofence Status */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Geofence Status
           </Text>
           <View style={styles.statusRow}>
             <Ionicons
-              name={isInGeofence ? 'location' : 'location-outline'}
+              name={isInGeofence ? "location" : "location-outline"}
               size={20}
-              color={isInGeofence ? '#10b981' : '#6b7280'}
+              color={isInGeofence ? "#10b981" : "#6b7280"}
             />
             <Text style={[styles.statusText, { color: textColor }]}>
-              {isInGeofence ? `Inside: ${currentGeofenceName}` : 'Outside all geofences'}
+              {isInGeofence
+                ? `Inside: ${currentGeofenceName}`
+                : "Outside all geofences"}
             </Text>
           </View>
         </View>
 
         {/* Embedded Map - Default Size (150x150) */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Default Size (150x150px)
           </Text>
@@ -205,7 +232,9 @@ export default function EmbeddedMapTest() {
         </View>
 
         {/* Embedded Map - Custom Size */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Custom Size (200x120px)
           </Text>
@@ -226,7 +255,9 @@ export default function EmbeddedMapTest() {
         </View>
 
         {/* Embedded Map - No Geofences */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Location Only (No Geofences)
           </Text>
@@ -245,7 +276,7 @@ export default function EmbeddedMapTest() {
 
         {/* Refresh Button */}
         <TouchableOpacity
-          style={[styles.refreshButton, { backgroundColor: '#3b82f6' }]}
+          style={[styles.refreshButton, { backgroundColor: "#3b82f6" }]}
           onPress={requestLocationPermission}
         >
           <Ionicons name="refresh" size={20} color="white" />
@@ -253,7 +284,9 @@ export default function EmbeddedMapTest() {
         </TouchableOpacity>
 
         {/* Mock Geofences Info */}
-        <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+        <View
+          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+        >
           <Text style={[styles.cardTitle, { color: textColor }]}>
             Mock Geofences
           </Text>
@@ -266,9 +299,11 @@ export default function EmbeddedMapTest() {
                 Radius: {geofence.radius}m
               </Text>
               <Text style={[styles.geofenceDetails, { color: textColor }]}>
-                Coords: {Array.isArray(geofence.coordinates.coordinates) && geofence.coordinates.coordinates.length >= 2 ? 
-                  `${(geofence.coordinates.coordinates[1] as number).toFixed(4)}, ${(geofence.coordinates.coordinates[0] as number).toFixed(4)}` : 
-                  'Invalid coordinates'}
+                Coords:{" "}
+                {Array.isArray(geofence.coordinates.coordinates) &&
+                geofence.coordinates.coordinates.length >= 2
+                  ? `${(geofence.coordinates.coordinates[1] as number).toFixed(4)}, ${(geofence.coordinates.coordinates[0] as number).toFixed(4)}`
+                  : "Invalid coordinates"}
               </Text>
             </View>
           ))}
@@ -296,7 +331,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   headerSubtitle: {
@@ -311,12 +346,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   statusText: {
     marginLeft: 8,
@@ -325,40 +360,40 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     marginBottom: 4,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   mapContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
   },
   mapDescription: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   refreshButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   geofenceItem: {
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: "rgba(0,0,0,0.1)",
   },
   geofenceName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 2,
   },
   geofenceDetails: {

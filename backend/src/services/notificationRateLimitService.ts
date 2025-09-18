@@ -20,7 +20,7 @@ class NotificationRateLimitService {
   async checkRateLimit(
     userId: number,
     notificationType: string,
-    customLimit?: { count: number; window: number }
+    customLimit?: { count: number; window: number },
   ): Promise<boolean> {
     const client = await pool.connect();
     try {
@@ -42,7 +42,7 @@ class NotificationRateLimitService {
          WHERE user_id = $1 
          AND notification_type = $2 
          AND window_end > NOW()`,
-        [userId, notificationType]
+        [userId, notificationType],
       );
 
       if (result.rows.length === 0) {
@@ -51,7 +51,7 @@ class NotificationRateLimitService {
           `INSERT INTO notification_rate_limits 
            (user_id, notification_type, count, window_start, window_end) 
            VALUES ($1, $2, 1, NOW(), NOW() + INTERVAL '1 second' * $3)`,
-          [userId, notificationType, windowSize]
+          [userId, notificationType, windowSize],
         );
         return true;
       }
@@ -66,7 +66,7 @@ class NotificationRateLimitService {
         `UPDATE notification_rate_limits 
          SET count = count + 1 
          WHERE id = $1`,
-        [rateLimit.id]
+        [rateLimit.id],
       );
 
       return true;
@@ -80,7 +80,7 @@ class NotificationRateLimitService {
     try {
       await client.query(
         `DELETE FROM notification_rate_limits 
-         WHERE window_end <= NOW()`
+         WHERE window_end <= NOW()`,
       );
     } finally {
       client.release();
@@ -89,7 +89,7 @@ class NotificationRateLimitService {
 
   async getRateLimitStatus(
     userId: number,
-    notificationType: string
+    notificationType: string,
   ): Promise<{
     remaining: number;
     reset: Date;
@@ -107,7 +107,7 @@ class NotificationRateLimitService {
          WHERE user_id = $1 
          AND notification_type = $2 
          AND window_end > NOW()`,
-        [userId, notificationType]
+        [userId, notificationType],
       );
 
       if (result.rows.length === 0) {
@@ -131,7 +131,7 @@ class NotificationRateLimitService {
 
   async updateRateLimits(
     notificationType: string,
-    newLimit: { count: number; window: number }
+    newLimit: { count: number; window: number },
   ) {
     if (notificationType in this.DEFAULT_LIMITS) {
       this.DEFAULT_LIMITS[
@@ -153,7 +153,7 @@ class NotificationRateLimitService {
          FROM notification_rate_limits 
          WHERE user_id = $1 
          AND window_end > NOW()`,
-        [userId]
+        [userId],
       );
 
       return result.rows.map((row) => ({
@@ -178,7 +178,7 @@ class NotificationRateLimitService {
       await client.query(
         `DELETE FROM notification_rate_limits 
          WHERE user_id = $1`,
-        [userId]
+        [userId],
       );
     } finally {
       client.release();

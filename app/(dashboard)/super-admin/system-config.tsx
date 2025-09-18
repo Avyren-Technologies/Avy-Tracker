@@ -1,9 +1,18 @@
-import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Platform, StatusBar } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import ThemeContext from '../../context/ThemeContext';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  StyleSheet,
+  Platform,
+  StatusBar,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemeContext from "../../context/ThemeContext";
+import { useState } from "react";
 import { superAdminNavItems } from "./utils/navigationItems";
 import BottomNav from "../../components/BottomNav";
 
@@ -90,7 +99,7 @@ export default function SystemConfig() {
           {
             paddingTop:
               Platform.OS === "ios"
-                ? StatusBar.currentHeight ?? 44
+                ? (StatusBar.currentHeight ?? 44)
                 : (StatusBar.currentHeight ?? 0) + 10,
           },
         ]}
@@ -171,8 +180,8 @@ export default function SystemConfig() {
                             configs[item.key as keyof typeof configs]
                               ? "#3B82F6"
                               : theme === "dark"
-                              ? "#9CA3AF"
-                              : "#6B7280"
+                                ? "#9CA3AF"
+                                : "#6B7280"
                           }
                         />
                       </View>
@@ -189,7 +198,7 @@ export default function SystemConfig() {
                       onValueChange={(value) =>
                         handleConfigChange(
                           item.key as keyof typeof configs,
-                          value
+                          value,
                         )
                       }
                       trackColor={{ false: "#767577", true: "#3B82F6" }}
@@ -231,36 +240,36 @@ export default function SystemConfig() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-        paddingBottom: 16,
-    },
-    backButton: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    sectionContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    saveButton: {
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    },
+  container: {
+    flex: 1,
+  },
+  header: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingBottom: 16,
+  },
+  backButton: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sectionContainer: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  saveButton: {
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
 });

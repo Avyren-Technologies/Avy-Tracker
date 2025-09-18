@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import axios from 'axios';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import axios from "axios";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Employee {
   id: number;
@@ -53,12 +53,12 @@ interface TrackingPermissionsState {
       | "can_override_geofence"
       | "tracking_precision"
       | "location_required_for_shift",
-    value: boolean | string
+    value: boolean | string,
   ) => Promise<void>;
   updateExpensePermission: (
     token: string,
     userId: number,
-    value: boolean
+    value: boolean,
   ) => Promise<void>;
   setSearchQuery: (query: string) => void;
   refreshData: (token: string) => Promise<void>;
@@ -87,16 +87,16 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           // Ensure each employee has a unique ID
           const uniqueEmployees = Array.from(
             new Map(
               response.data.map(
-                (emp: Employee) => [emp.id, emp] as [number, Employee]
-              )
-            ).values()
+                (emp: Employee) => [emp.id, emp] as [number, Employee],
+              ),
+            ).values(),
           ) as Employee[];
 
           set({ employees: uniqueEmployees });
@@ -107,7 +107,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
             const merged = mergeEmployeeData(
               uniqueEmployees,
               trackingPermissions,
-              []
+              [],
             );
             set({ mergedData: merged });
           }
@@ -130,7 +130,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           const uniquePermissions = Array.from(
@@ -138,8 +138,8 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
               response.data.map((perm: TrackingPermission) => [
                 perm.user_id,
                 perm,
-              ])
-            ).values()
+              ]),
+            ).values(),
           ) as TrackingPermission[];
 
           set({ trackingPermissions: uniquePermissions });
@@ -149,7 +149,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
             const merged = mergeEmployeeData(
               employees,
               uniquePermissions,
-              expensePermissions
+              expensePermissions,
             );
             set({ mergedData: merged });
           }
@@ -172,7 +172,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           set({ expensePermissions: response.data });
@@ -182,7 +182,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
             const merged = mergeEmployeeData(
               employees,
               trackingPermissions,
-              response.data
+              response.data,
             );
             set({ mergedData: merged });
           }
@@ -200,7 +200,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
 
           const { trackingPermissions } = get();
           const currentPermission = trackingPermissions.find(
-            (perm) => perm.user_id === userId
+            (perm) => perm.user_id === userId,
           );
 
           if (!currentPermission) {
@@ -232,12 +232,12 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           const { employees, expensePermissions } = get();
           const updatedPermissions = trackingPermissions.map((perm) =>
-            perm.user_id === userId ? { ...perm, [field]: value } : perm
+            perm.user_id === userId ? { ...perm, [field]: value } : perm,
           );
 
           set({ trackingPermissions: updatedPermissions });
@@ -246,7 +246,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
             const merged = mergeEmployeeData(
               employees,
               updatedPermissions,
-              expensePermissions
+              expensePermissions,
             );
             set({ mergedData: merged });
           }
@@ -272,14 +272,14 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
 
           const { expensePermissions } = get();
           const updatedPermissions = expensePermissions.map((perm) =>
             perm.user_id === userId
               ? { ...perm, can_submit_expenses_anytime: value }
-              : perm
+              : perm,
           );
 
           set({ expensePermissions: updatedPermissions });
@@ -289,7 +289,7 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
             const merged = mergeEmployeeData(
               employees,
               trackingPermissions,
-              updatedPermissions
+              updatedPermissions,
             );
             set({ mergedData: merged });
           }
@@ -331,15 +331,15 @@ export const useTrackingPermissionsStore = create<TrackingPermissionsState>()(
         expensePermissions: state.expensePermissions,
         mergedData: state.mergedData,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // Helper function to merge employee data with tracking permissions
 function mergeEmployeeData(
   employees: Employee[],
   trackingPermissions: TrackingPermission[],
-  expensePermissions: any[]
+  expensePermissions: any[],
 ): MergedEmployee[] {
   const employeeMap = new Map<number, Employee>();
   const expenseMap = new Map<number, any>();
@@ -353,7 +353,7 @@ function mergeEmployeeData(
   });
 
   const uniquePermissions = Array.from(
-    new Map(trackingPermissions.map((perm) => [perm.user_id, perm])).values()
+    new Map(trackingPermissions.map((perm) => [perm.user_id, perm])).values(),
   );
 
   return uniquePermissions.map((permission) => {
@@ -370,4 +370,4 @@ function mergeEmployeeData(
         expensePermission?.can_submit_expenses_anytime,
     };
   });
-} 
+}

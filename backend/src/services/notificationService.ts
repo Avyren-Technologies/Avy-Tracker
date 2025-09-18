@@ -118,7 +118,7 @@ export class NotificationService {
 
   private async sendFCMNotification(
     token: string,
-    notification: PushNotification
+    notification: PushNotification,
   ): Promise<string> {
     try {
       const message: admin.messaging.Message = {
@@ -165,14 +165,14 @@ export class NotificationService {
     userId: string,
     token: string,
     deviceType: string,
-    deviceName: string
+    deviceName: string,
   ): Promise<QueryResult> {
     const client = await pool.connect();
     try {
       // Check if token already exists
       const existingToken = await client.query(
         "SELECT id FROM device_tokens WHERE user_id = $1 AND token = $2",
-        [userId, token]
+        [userId, token],
       );
 
       if (existingToken.rows.length > 0) {
@@ -186,7 +186,7 @@ export class NotificationService {
                last_used_at = CURRENT_TIMESTAMP
            WHERE user_id = $1 AND token = $2
            RETURNING *`,
-          [userId, token, deviceType, deviceName]
+          [userId, token, deviceType, deviceName],
         );
       }
 
@@ -196,7 +196,7 @@ export class NotificationService {
          (user_id, token, device_type, device_name) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
-        [userId, token, deviceType, deviceName]
+        [userId, token, deviceType, deviceName],
       );
     } finally {
       client.release();
@@ -208,7 +208,7 @@ export class NotificationService {
     try {
       await client.query(
         "UPDATE device_tokens SET is_active = false WHERE user_id = $1 AND token = $2",
-        [userId, token]
+        [userId, token],
       );
     } finally {
       client.release();
@@ -217,7 +217,7 @@ export class NotificationService {
 
   async sendPushNotification(
     notification: PushNotification,
-    userIds?: string[]
+    userIds?: string[],
   ): Promise<any> {
     const client = await pool.connect();
     try {
@@ -235,8 +235,10 @@ export class NotificationService {
       // For new notifications, first validate user_id and create a record
       if (notification.id === 0) {
         // Make sure user_id is valid (not 0 or empty)
-        if (!notification.user_id || notification.user_id === '0') {
-          console.warn(`[PUSH] Skipping DB record creation due to invalid user_id: ${notification.user_id}`);
+        if (!notification.user_id || notification.user_id === "0") {
+          console.warn(
+            `[PUSH] Skipping DB record creation due to invalid user_id: ${notification.user_id}`,
+          );
           // Assign a temporary ID to continue without DB insertion
           notification.id = -1;
         } else {
@@ -244,9 +246,9 @@ export class NotificationService {
             // Check if user exists first
             const userExists = await client.query(
               `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`,
-              [notification.user_id]
+              [notification.user_id],
             );
-            
+
             if (userExists.rows[0].exists) {
               const result = await client.query(
                 `INSERT INTO push_notifications 
@@ -260,16 +262,21 @@ export class NotificationService {
                   notification.type || "test",
                   notification.priority || "default",
                   notification.data || {},
-                ]
+                ],
               );
               notification.id = result.rows[0].id;
             } else {
-              console.warn(`[PUSH] Skipping DB record creation due to non-existent user_id: ${notification.user_id}`);
+              console.warn(
+                `[PUSH] Skipping DB record creation due to non-existent user_id: ${notification.user_id}`,
+              );
               // Assign a temporary ID to continue without DB insertion
               notification.id = -1;
             }
           } catch (dbError) {
-            console.error(`[PUSH] Error creating notification record:`, dbError);
+            console.error(
+              `[PUSH] Error creating notification record:`,
+              dbError,
+            );
             // Assign a temporary ID to continue without DB insertion
             notification.id = -1;
           }
@@ -278,7 +285,7 @@ export class NotificationService {
 
       const tokenResult = await client.query(
         "SELECT dt.*, u.role FROM device_tokens dt JOIN users u ON dt.user_id::integer = u.id WHERE dt.user_id = ANY($1) AND dt.is_active = true",
-        [userIds]
+        [userIds],
       );
 
       const tokens = tokenResult.rows.map((row) => ({
@@ -287,7 +294,7 @@ export class NotificationService {
       }));
 
       console.log(
-        `[PUSH] Retrieved ${tokens.length} active tokens for ${userIds.length} recipients`
+        `[PUSH] Retrieved ${tokens.length} active tokens for ${userIds.length} recipients`,
       );
 
       if (!tokens.length) {
@@ -329,9 +336,8 @@ export class NotificationService {
 
         for (let chunk of chunks) {
           try {
-            const ticketChunk = await this.expo.sendPushNotificationsAsync(
-              chunk
-            );
+            const ticketChunk =
+              await this.expo.sendPushNotificationsAsync(chunk);
             tickets.push(...ticketChunk);
           } catch (error) {
             console.error("[EXPO] Error sending notification chunk:", error);
@@ -351,13 +357,13 @@ export class NotificationService {
             try {
               const messageId = await this.sendFCMNotification(
                 token,
-                notification
+                notification,
               );
               return { messageId };
             } catch (error) {
               return { error: error as Error };
             }
-          })
+          }),
         );
 
         results.fcm = {
@@ -372,7 +378,7 @@ export class NotificationService {
           `UPDATE push_notifications
            SET sent = true, sent_at = CURRENT_TIMESTAMP
            WHERE id = $1`,
-          [notification.id]
+          [notification.id],
         );
       }
 
@@ -391,7 +397,7 @@ export class NotificationService {
   async getUserNotifications(
     userId: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<PushNotification[]> {
     const client = await pool.connect();
     try {
@@ -400,7 +406,7 @@ export class NotificationService {
          WHERE user_id = $1 
          ORDER BY created_at DESC 
          LIMIT $2 OFFSET $3`,
-        [userId, limit, offset]
+        [userId, limit, offset],
       );
       return result.rows;
     } finally {
@@ -412,7 +418,7 @@ export class NotificationService {
     userId: number,
     title: string,
     message: string,
-    type: string
+    type: string,
   ): Promise<QueryResult> {
     const client = await pool.connect();
     try {
@@ -421,7 +427,7 @@ export class NotificationService {
          (user_id, title, message, type) 
          VALUES ($1, $2, $3, $4) 
          RETURNING *`,
-        [userId, title, message, type]
+        [userId, title, message, type],
       );
     } finally {
       client.release();
@@ -432,7 +438,7 @@ export class NotificationService {
     userId: number,
     role: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<{ push: PushNotification[]; inApp: InAppNotification[] }> {
     const client = await pool.connect();
     try {
@@ -442,7 +448,7 @@ export class NotificationService {
          WHERE user_id = $1 
          ORDER BY id, created_at DESC 
          LIMIT $2 OFFSET $3`,
-        [userId, limit, offset]
+        [userId, limit, offset],
       );
 
       // Get in-app notifications - only those belonging to the user
@@ -451,7 +457,7 @@ export class NotificationService {
          WHERE user_id = $1 
          ORDER BY id, created_at DESC 
          LIMIT $2 OFFSET $3`,
-        [userId, limit, offset]
+        [userId, limit, offset],
       );
 
       console.log("[GetNotifications] Results:", {
@@ -472,7 +478,7 @@ export class NotificationService {
 
   async markNotificationAsRead(
     notificationId: number,
-    userId: number
+    userId: number,
   ): Promise<QueryResult> {
     const client = await pool.connect();
     try {
@@ -481,7 +487,7 @@ export class NotificationService {
          SET read = true 
          WHERE id = $1 AND user_id = $2 
          RETURNING *`,
-        [notificationId, userId]
+        [notificationId, userId],
       );
     } finally {
       client.release();
@@ -491,14 +497,14 @@ export class NotificationService {
   async sendGroupNotification(
     groupAdminId: number,
     targetGroupAdminId: number,
-    notification: Omit<PushNotification, "id" | "user_id">
+    notification: Omit<PushNotification, "id" | "user_id">,
   ): Promise<void> {
     const client = await pool.connect();
     try {
       // Get all employees under this group admin
       const employees = await client.query(
         `SELECT id FROM users WHERE group_admin_id = $1 AND role = 'employee'`,
-        [targetGroupAdminId]
+        [targetGroupAdminId],
       );
 
       // Send notification to each employee
@@ -514,7 +520,7 @@ export class NotificationService {
           employee.id,
           notification.title,
           notification.message,
-          notification.type
+          notification.type,
         );
       }
     } finally {
@@ -526,32 +532,36 @@ export class NotificationService {
     senderId: number,
     role: string,
     notification: Omit<PushNotification, "id" | "user_id">,
-    excludeSender: boolean = false
+    excludeSender: boolean = false,
   ): Promise<void> {
     const client = await pool.connect();
     try {
       // First validate senderId - use a valid existing user or fallback to a system user
       let validSenderId = senderId;
-      
+
       // If senderId is invalid (0 or negative), try to find a system user or the first admin
       if (!senderId || senderId <= 0) {
         try {
           // Try to find a system user or the first admin as fallback
           const fallbackResult = await client.query(
-            `SELECT id FROM users WHERE role = 'management' ORDER BY id LIMIT 1`
+            `SELECT id FROM users WHERE role = 'management' ORDER BY id LIMIT 1`,
           );
-          
+
           if (fallbackResult.rows.length > 0) {
             validSenderId = fallbackResult.rows[0].id;
-            console.log(`[NOTIFICATION] Using fallback sender ID ${validSenderId} instead of invalid ID ${senderId}`);
+            console.log(
+              `[NOTIFICATION] Using fallback sender ID ${validSenderId} instead of invalid ID ${senderId}`,
+            );
           } else {
-            console.warn(`[NOTIFICATION] Cannot find a valid fallback user ID, role notifications may fail`);
+            console.warn(
+              `[NOTIFICATION] Cannot find a valid fallback user ID, role notifications may fail`,
+            );
           }
         } catch (error) {
           console.error(`[NOTIFICATION] Error finding fallback sender:`, error);
         }
       }
-      
+
       // Get all users with the specified role, excluding the sender if needed
       const query = excludeSender
         ? `SELECT DISTINCT u.id 
@@ -572,7 +582,7 @@ export class NotificationService {
       if (users.rows.length > 0) {
         // Get the first recipient to use as a valid user_id for the notification
         const firstRecipientId = users.rows[0].id;
-        
+
         // Send push notification to all users at once
         // Use the first recipient's ID for DB storage to avoid FK constraint issues
         await this.sendPushNotification(
@@ -581,7 +591,7 @@ export class NotificationService {
             id: 0,
             user_id: firstRecipientId.toString(), // Use first recipient instead of sender
           },
-          users.rows.map((user) => user.id.toString())
+          users.rows.map((user) => user.id.toString()),
         );
 
         // Create in-app notifications for each user
@@ -590,11 +600,13 @@ export class NotificationService {
             user.id,
             notification.title,
             notification.message,
-            notification.type
+            notification.type,
           );
         }
       } else {
-        console.log(`[NOTIFICATION] No ${role} users found to send notification to`);
+        console.log(
+          `[NOTIFICATION] No ${role} users found to send notification to`,
+        );
       }
     } catch (error) {
       console.error(`[NOTIFICATION] Error in sendRoleNotification:`, error);
@@ -609,7 +621,7 @@ export class NotificationService {
       const result = await client.query(
         `SELECT COUNT(*) FROM notifications 
          WHERE user_id = $1 AND read = false`,
-        [userId]
+        [userId],
       );
       return parseInt(result.rows[0].count);
     } finally {
@@ -624,7 +636,7 @@ export class NotificationService {
 
       // Get unprocessed receipts
       const { rows } = await client.query(
-        `SELECT id, receipt_id FROM push_receipts WHERE processed = false`
+        `SELECT id, receipt_id FROM push_receipts WHERE processed = false`,
       );
 
       if (rows.length === 0) {
@@ -636,21 +648,20 @@ export class NotificationService {
 
       // Process receipts in chunks
       const chunks = this.expo.chunkPushNotificationReceiptIds(
-        rows.map((r) => r.receipt_id)
+        rows.map((r) => r.receipt_id),
       );
 
       for (const chunk of chunks) {
         try {
-          const receipts = await this.expo.getPushNotificationReceiptsAsync(
-            chunk
-          );
+          const receipts =
+            await this.expo.getPushNotificationReceiptsAsync(chunk);
 
           // Convert receipts object to array for iteration
           const receiptArray = Object.entries(receipts).map(
             ([id, receipt]) => ({
               id,
               ...receipt,
-            })
+            }),
           );
 
           for (const receipt of receiptArray) {
@@ -660,7 +671,7 @@ export class NotificationService {
               console.error(
                 `[RECEIPT] Error [${receipt.id}]:`,
                 receipt.message,
-                receipt.details?.error
+                receipt.details?.error,
               );
 
               // Update receipt with error details
@@ -678,7 +689,7 @@ export class NotificationService {
                     details: receipt.details,
                   }),
                   receipt.id,
-                ]
+                ],
               );
 
               // Handle specific error codes
@@ -689,13 +700,13 @@ export class NotificationService {
                    FROM device_tokens dt
                    JOIN push_receipts pr ON pr.notification_id = dt.notification_id
                    WHERE pr.receipt_id = $1`,
-                  [receipt.id]
+                  [receipt.id],
                 );
 
                 if (tokenRows.length > 0) {
                   const { token, user_id } = tokenRows[0];
                   console.log(
-                    `[RECEIPT] Marking token ${token} as inactive due to DeviceNotRegistered error`
+                    `[RECEIPT] Marking token ${token} as inactive due to DeviceNotRegistered error`,
                   );
                   await this.removeDeviceToken(user_id, token);
                 }
@@ -707,7 +718,7 @@ export class NotificationService {
                  SET processed = true,
                      processed_at = CURRENT_TIMESTAMP
                  WHERE receipt_id = $1`,
-                [receipt.id]
+                [receipt.id],
               );
             }
           }

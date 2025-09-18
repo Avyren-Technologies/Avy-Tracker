@@ -1,6 +1,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export interface BiometricAuthResult {
   success: boolean;
@@ -49,19 +50,22 @@ class BiometricAuthService {
    */
   async getSupportedBiometricTypes(): Promise<string[]> {
     try {
-      const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      return types.map((type: LocalAuthentication.AuthenticationType) => {
-        switch (type) {
-          case LocalAuthentication.AuthenticationType.FINGERPRINT:
-            return 'fingerprint';
-          case LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION:
-            return 'face';
-          case LocalAuthentication.AuthenticationType.IRIS:
-            return 'iris';
-          default:
-            return 'none';
-        }
-      }).filter((type: string) => type !== 'none');
+      const types =
+        await LocalAuthentication.supportedAuthenticationTypesAsync();
+      return types
+        .map((type: LocalAuthentication.AuthenticationType) => {
+          switch (type) {
+            case LocalAuthentication.AuthenticationType.FINGERPRINT:
+              return 'fingerprint';
+            case LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION:
+              return 'face';
+            case LocalAuthentication.AuthenticationType.IRIS:
+              return 'iris';
+            default:
+              return 'none';
+          }
+        })
+        .filter((type: string) => type !== 'none');
     } catch (error) {
       console.error('Error getting supported biometric types:', error);
       return [];
@@ -98,10 +102,15 @@ class BiometricAuthService {
   /**
    * Save biometric settings for the current user
    */
-  async saveBiometricSettings(settings: Partial<BiometricSettings>): Promise<void> {
+  async saveBiometricSettings(
+    settings: Partial<BiometricSettings>
+  ): Promise<void> {
     try {
       this.biometricSettings = { ...this.biometricSettings, ...settings };
-      await AsyncStorage.setItem('biometricSettings', JSON.stringify(this.biometricSettings));
+      await AsyncStorage.setItem(
+        'biometricSettings',
+        JSON.stringify(this.biometricSettings)
+      );
     } catch (error) {
       console.error('Error saving biometric settings:', error);
     }
@@ -126,35 +135,52 @@ class BiometricAuthService {
    * @param promptMessage - Message to show during authentication
    * @param allowSetup - Allow authentication even if not enabled (for initial setup)
    */
-  async authenticateUser(promptMessage?: string, allowSetup: boolean = false): Promise<BiometricAuthResult> {
+  async authenticateUser(
+    promptMessage?: string,
+    allowSetup: boolean = false
+  ): Promise<BiometricAuthResult> {
     try {
-      console.log('Biometric authentication started:', { promptMessage, allowSetup });
-      
+      console.log('Biometric authentication started:', {
+        promptMessage,
+        allowSetup,
+      });
+
       const settings = await this.getBiometricSettings();
       console.log('Current biometric settings:', settings);
-      
+
       // Check if biometric is enabled (unless this is setup mode)
       if (!allowSetup && !settings.enabled) {
         console.log('Biometric authentication blocked: not enabled');
-        return { success: false, error: 'Biometric authentication is not enabled' };
+        return {
+          success: false,
+          error: 'Biometric authentication is not enabled',
+        };
       }
 
       const isAvailable = await this.isBiometricAvailable();
       console.log('Biometric availability check:', isAvailable);
-      
+
       if (!isAvailable) {
-        console.log('Biometric authentication blocked: not available on device');
-        return { success: false, error: 'Biometric authentication is not available on this device' };
+        console.log(
+          'Biometric authentication blocked: not available on device'
+        );
+        return {
+          success: false,
+          error: 'Biometric authentication is not available on this device',
+        };
       }
 
       const biometricType = await this.getPrimaryBiometricType();
       console.log('Primary biometric type:', biometricType);
-      
+
       if (biometricType === 'none') {
         console.log('Biometric authentication blocked: no supported types');
-        return { success: false, error: 'No supported biometric authentication types found' };
+        return {
+          success: false,
+          error: 'No supported biometric authentication types found',
+        };
       }
-      
+
       console.log('Starting LocalAuthentication.authenticateAsync...');
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: promptMessage || 'Authenticate to continue',
@@ -169,7 +195,7 @@ class BiometricAuthService {
         // Update last used timestamp
         await this.saveBiometricSettings({ lastUsed: new Date() });
         console.log('Biometric authentication successful');
-        
+
         return {
           success: true,
           biometricType: biometricType as 'fingerprint' | 'face' | 'iris',
@@ -218,7 +244,9 @@ class BiometricAuthService {
   /**
    * Get biometric icon name for UI
    */
-  getBiometricIconName(type: string): string {
+  getBiometricIconName(
+    type: string
+  ): keyof typeof MaterialCommunityIcons.glyphMap {
     switch (type) {
       case 'fingerprint':
         return 'fingerprint';

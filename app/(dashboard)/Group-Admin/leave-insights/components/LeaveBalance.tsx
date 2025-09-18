@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -52,21 +52,22 @@ export default function LeaveBalance() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin-leave/my-balances?year=${selectedYear}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
-      
+
       // Map the response to include all necessary properties
       const mappedBalances = response.data.map((balance: any) => ({
         ...balance,
-        available_days: balance.available_days ?? 
+        available_days:
+          balance.available_days ??
           calculateAvailableDays(
             balance.total_days || 0,
             balance.used_days || 0,
             balance.pending_days || 0,
-            balance.carry_forward_days || 0
-          )
+            balance.carry_forward_days || 0,
+          ),
       }));
-      
+
       setBalances(mappedBalances);
     } catch (error) {
       console.error("Error fetching leave balances:", error);
@@ -86,7 +87,7 @@ export default function LeaveBalance() {
         { year: selectedYear },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.data.status === "created") {
@@ -94,7 +95,7 @@ export default function LeaveBalance() {
         Alert.alert(
           "Success",
           "Your leave balances have been initialized successfully.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       } else if (response.data.status === "exists") {
         // Balances already exist, fetch them again
@@ -102,7 +103,7 @@ export default function LeaveBalance() {
         Alert.alert(
           "Information",
           "Your leave balances were already initialized for this year.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     } catch (error) {
@@ -119,7 +120,12 @@ export default function LeaveBalance() {
     setRefreshing(false);
   };
 
-  const calculateAvailableDays = (totalDays: number, usedDays: number, pendingDays: number, carryForwardDays = 0) => {
+  const calculateAvailableDays = (
+    totalDays: number,
+    usedDays: number,
+    pendingDays: number,
+    carryForwardDays = 0,
+  ) => {
     return Math.max(0, totalDays + carryForwardDays - usedDays - pendingDays);
   };
 
@@ -267,22 +273,30 @@ export default function LeaveBalance() {
           }
         >
           {balances.map((balance, index) => {
-            const availableDays = balance.available_days !== undefined
-              ? balance.available_days
-              : calculateAvailableDays(
-                  balance.total_days || 0,
-                  balance.used_days || 0,
-                  balance.pending_days || 0,
-                  balance.carry_forward_days || 0
-                );
-            
+            const availableDays =
+              balance.available_days !== undefined
+                ? balance.available_days
+                : calculateAvailableDays(
+                    balance.total_days || 0,
+                    balance.used_days || 0,
+                    balance.pending_days || 0,
+                    balance.carry_forward_days || 0,
+                  );
+
             const leaveTypeName = balance.leave_type_name || balance.name;
-            const hasCarryForward = balance.carry_forward_days && balance.carry_forward_days > 0;
+            const hasCarryForward =
+              balance.carry_forward_days && balance.carry_forward_days > 0;
             const totalEligibleDays = getTotalEligibleDays(balance);
-            const usedPercentage = totalEligibleDays > 0 
-              ? Math.min(100, ((balance.used_days + balance.pending_days) / totalEligibleDays) * 100)
-              : 0;
-            
+            const usedPercentage =
+              totalEligibleDays > 0
+                ? Math.min(
+                    100,
+                    ((balance.used_days + balance.pending_days) /
+                      totalEligibleDays) *
+                      100,
+                  )
+                : 0;
+
             return (
               <View
                 key={
@@ -331,12 +345,16 @@ export default function LeaveBalance() {
                       )}
                     </View>
                   </View>
-                  <View className={`px-2 py-1 rounded-full ${
-                    availableDays > 0 ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    <Text className={
-                      availableDays > 0 ? 'text-green-800' : 'text-red-800'
-                    }>
+                  <View
+                    className={`px-2 py-1 rounded-full ${
+                      availableDays > 0 ? "bg-green-100" : "bg-red-100"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        availableDays > 0 ? "text-green-800" : "text-red-800"
+                      }
+                    >
                       {availableDays} days left
                     </Text>
                   </View>
@@ -344,7 +362,9 @@ export default function LeaveBalance() {
 
                 {/* Progress Bar */}
                 <View className="mt-2 mb-4">
-                  <View className={`h-2 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                  <View
+                    className={`h-2 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-200"}`}
+                  >
                     <View
                       className="h-2 rounded-full bg-green-500"
                       style={{
@@ -353,13 +373,19 @@ export default function LeaveBalance() {
                     />
                   </View>
                   <View className="flex-row justify-between mt-1">
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       0%
                     </Text>
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       {usedPercentage.toFixed(0)}% used
                     </Text>
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       100%
                     </Text>
                   </View>
@@ -368,7 +394,11 @@ export default function LeaveBalance() {
                 {/* Days Details */}
                 <View className="flex-row justify-between">
                   <View>
-                    <Text className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Total</Text>
+                    <Text
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Total
+                    </Text>
                     <Text
                       className={`font-medium ${
                         isDark ? "text-white" : "text-gray-900"
@@ -383,7 +413,11 @@ export default function LeaveBalance() {
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Used</Text>
+                    <Text
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Used
+                    </Text>
                     <Text
                       className={`font-medium ${
                         isDark ? "text-white" : "text-gray-900"
@@ -393,7 +427,11 @@ export default function LeaveBalance() {
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Pending</Text>
+                    <Text
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Pending
+                    </Text>
                     <Text
                       className={`font-medium ${
                         isDark ? "text-white" : "text-gray-900"
@@ -403,12 +441,20 @@ export default function LeaveBalance() {
                     </Text>
                   </View>
                   <View>
-                    <Text className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Available</Text>
+                    <Text
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Available
+                    </Text>
                     <Text
                       className={`font-medium ${
                         availableDays > 0
-                          ? isDark ? 'text-green-400' : 'text-green-600'
-                          : isDark ? 'text-red-400' : 'text-red-600'
+                          ? isDark
+                            ? "text-green-400"
+                            : "text-green-600"
+                          : isDark
+                            ? "text-red-400"
+                            : "text-red-600"
                       }`}
                     >
                       {availableDays} days
@@ -422,4 +468,4 @@ export default function LeaveBalance() {
       )}
     </View>
   );
-} 
+}

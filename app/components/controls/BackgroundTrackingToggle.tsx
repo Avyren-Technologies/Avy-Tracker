@@ -42,7 +42,7 @@ interface BackgroundTrackingToggleProps {
 // Add debounce function at the top level
 const debounce = <T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): ((...args: Parameters<T>) => void) => {
   let timeout: NodeJS.Timeout | null = null;
 
@@ -79,9 +79,9 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
   } = useLocationStore();
 
   // Add the tracking context
-  const { 
+  const {
     toggleBackgroundTracking: contextToggleBackgroundTracking,
-    checkTrackingStatus
+    checkTrackingStatus,
   } = useTracking();
 
   // Local state for switch state and loading state
@@ -114,7 +114,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
       // Only update the store if there's a mismatch to avoid loops
       if (backgroundTrackingEnabled !== isActive) {
         console.log(
-          `Updating store state: ${backgroundTrackingEnabled} → ${isActive}`
+          `Updating store state: ${backgroundTrackingEnabled} → ${isActive}`,
         );
         setBackgroundTrackingEnabled(isActive);
 
@@ -122,12 +122,12 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
         try {
           await AsyncStorage.setItem(
             "backgroundTrackingEnabled",
-            JSON.stringify(isActive)
+            JSON.stringify(isActive),
           );
         } catch (storageError) {
           console.error(
             "Failed to update background tracking setting in storage:",
-            storageError
+            storageError,
           );
         }
       }
@@ -151,7 +151,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
         } catch (storageError) {
           console.error(
             "Failed to update background tracking setting in storage:",
-            storageError
+            storageError,
           );
         }
       }
@@ -165,18 +165,18 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
     // Capture app state at the moment of the toggle attempt
     const currentAppState = AppState.currentState;
     console.log(
-      `Toggling background tracking in app state: ${currentAppState}`
+      `Toggling background tracking in app state: ${currentAppState}`,
     );
 
     // Check if app is truly in foreground when trying to enable
     if (currentAppState !== "active" && !isEnabled) {
       console.error(
-        "Cannot toggle background tracking when app is not in foreground"
+        "Cannot toggle background tracking when app is not in foreground",
       );
       Alert.alert(
         "Not Available",
         "Background tracking can only be enabled when the app is active and in the foreground.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return;
     }
@@ -190,7 +190,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
     // Get the real current status before toggling to avoid toggle confusion
     const actualCurrentStatus = await checkBackgroundTrackingStatus();
     console.log(
-      `Current tracking status before toggle: ${actualCurrentStatus}`
+      `Current tracking status before toggle: ${actualCurrentStatus}`,
     );
 
     // Determine the target state (opposite of actual current state)
@@ -229,7 +229,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
                   setIsLoading(false);
                 },
               },
-            ]
+            ],
           );
           return;
         }
@@ -256,7 +256,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
                     setIsLoading(false);
                   },
                 },
-              ]
+              ],
             );
             return;
           } else {
@@ -296,7 +296,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
                                 setIsLoading(false);
                               },
                             },
-                          ]
+                          ],
                         );
                       } else {
                         // Permission granted, proceed with background tracking
@@ -305,17 +305,17 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
                     } catch (error) {
                       console.error(
                         "Error requesting background permission:",
-                        error
+                        error,
                       );
                       Alert.alert(
                         "Error",
-                        "Failed to request permission. Please try again."
+                        "Failed to request permission. Please try again.",
                       );
                       setIsLoading(false);
                     }
                   },
                 },
-              ]
+              ],
             );
             return;
           }
@@ -325,12 +325,12 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
       // Double-check app state again before proceeding (in case it changed during permission prompts)
       if (targetState && AppState.currentState !== "active") {
         console.error(
-          "App state changed to background during permission checks"
+          "App state changed to background during permission checks",
         );
         Alert.alert(
           "Not Available",
           "The app is no longer in the foreground. Please try again when the app is active.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         setIsLoading(false);
         return;
@@ -346,7 +346,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
         "Background Tracking Error",
         `Failed to ${
           targetState ? "enable" : "disable"
-        } background tracking. Please try again.`
+        } background tracking. Please try again.`,
       );
       setIsLoading(false);
     }
@@ -368,7 +368,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
       console.log(
         `Operation attempted: ${
           isEnabled ? "start" : "stop"
-        }. Success: ${operationSuccess}. Final actual status: ${finalActualStatus}`
+        }. Success: ${operationSuccess}. Final actual status: ${finalActualStatus}`,
       );
 
       // Update UI and Store ONLY based on the final *actual* status
@@ -376,25 +376,25 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
       setBackgroundTrackingEnabled(finalActualStatus);
       await AsyncStorage.setItem(
         "backgroundTrackingEnabled",
-        JSON.stringify(finalActualStatus)
+        JSON.stringify(finalActualStatus),
       );
 
       // If the operation succeeded but the final state doesn't match the intended state, log a warning
       if (operationSuccess && finalActualStatus !== isEnabled) {
         console.warn(
-          `Background tracking state mismatch after successful operation. Target: ${isEnabled}, Actual: ${finalActualStatus}`
+          `Background tracking state mismatch after successful operation. Target: ${isEnabled}, Actual: ${finalActualStatus}`,
         );
         Alert.alert(
           "Status Issue",
           `Background tracking status might be inconsistent. Current state: ${
             finalActualStatus ? "Enabled" : "Disabled"
-          }`
+          }`,
         );
       }
       // If the operation failed, inform the user
       else if (!operationSuccess) {
         console.error(
-          `Failed to ${isEnabled ? "enable" : "disable"} background tracking`
+          `Failed to ${isEnabled ? "enable" : "disable"} background tracking`,
         );
         Alert.alert(
           "Operation Failed",
@@ -402,7 +402,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
             isEnabled ? "enable" : "disable"
           } background tracking. Current status: ${
             finalActualStatus ? "Enabled" : "Disabled"
-          }`
+          }`,
         );
       }
       // If successful and state matches, notify parent
@@ -419,12 +419,12 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
         setBackgroundTrackingEnabled(actualStateOnError);
         await AsyncStorage.setItem(
           "backgroundTrackingEnabled",
-          JSON.stringify(actualStateOnError)
+          JSON.stringify(actualStateOnError),
         );
       } catch (statusError) {
         console.error(
           "Failed to check background tracking status after error:",
-          statusError
+          statusError,
         );
         // Fallback to disabled state if checking fails
         setIsEnabled(false);
@@ -435,7 +435,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
       // Re-throw or handle the error as appropriate
       Alert.alert(
         "Error",
-        "An unexpected error occurred while managing background tracking."
+        "An unexpected error occurred while managing background tracking.",
       );
     } finally {
       setIsLoading(false);
@@ -468,7 +468,7 @@ const BackgroundTrackingToggle: React.FC<BackgroundTrackingToggleProps> = ({
 
   // Debounce the toggle to prevent rapid clicks
   const debouncedToggle = useRef(
-    debounce(toggleBackgroundTracking, 300)
+    debounce(toggleBackgroundTracking, 300),
   ).current;
 
   // If iconOnly is true, just render the switch with an icon

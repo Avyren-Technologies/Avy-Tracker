@@ -1,4 +1,4 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
 
 interface ExpenseData {
   summary: {
@@ -7,19 +7,19 @@ interface ExpenseData {
     approvalRate: number;
     pendingCount: number;
   };
-  categoryBreakdown: Array<{
+  categoryBreakdown: {
     category: string;
     amount: number;
     percentage: string;
-  }>;
-  recentExpenses: Array<{
+  }[];
+  recentExpenses: {
     employeeName: string;
     date: string;
     amount: number;
     status: string;
     category: string;
     description?: string;
-  }>;
+  }[];
   companyInfo: {
     name: string;
     logo: string;
@@ -28,7 +28,10 @@ interface ExpenseData {
   };
 }
 
-export const generateExpenseReport = (data: ExpenseData, options: TemplateOptions): string => {
+export const generateExpenseReport = (
+  data: ExpenseData,
+  options: TemplateOptions,
+): string => {
   const content = `
     <div class="summary-section">
       <h2>Expense Summary</h2>
@@ -61,13 +64,17 @@ export const generateExpenseReport = (data: ExpenseData, options: TemplateOption
           </tr>
         </thead>
         <tbody>
-          ${data.categoryBreakdown.map(cat => `
+          ${data.categoryBreakdown
+            .map(
+              (cat) => `
             <tr>
               <td>${cat.category}</td>
               <td>₹${cat.amount.toLocaleString()}</td>
               <td>${cat.percentage}%</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
 
@@ -84,27 +91,31 @@ export const generateExpenseReport = (data: ExpenseData, options: TemplateOption
           </tr>
         </thead>
         <tbody>
-          ${data.recentExpenses.map(exp => `
+          ${data.recentExpenses
+            .map(
+              (exp) => `
             <tr>
               <td>${exp.employeeName}</td>
               <td>${exp.date}</td>
               <td>${exp.category}</td>
-              <td>${exp.description || '-'}</td>
+              <td>${exp.description || "-"}</td>
               <td>₹${exp.amount.toLocaleString()}</td>
               <td>${exp.status}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
   `;
 
   return generateBaseTemplate({
-    title: 'Expense Report',
+    title: "Expense Report",
     date: new Date().toLocaleDateString(),
     content,
     theme: options.theme,
     companyInfo: options.companyInfo,
-    adminName: options.adminName
+    adminName: options.adminName,
   });
-}; 
+};

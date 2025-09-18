@@ -75,9 +75,9 @@ export interface OTPState {
   lockoutUntil: Date | null;
 }
 
-export type OTPPurpose = 
-  | 'face-settings-access'
-  | 'profile-update'
-  | 'security-verification'
-  | 'password-reset'
-  | 'account-verification';
+export type OTPPurpose =
+  | "face-settings-access"
+  | "profile-update"
+  | "security-verification"
+  | "password-reset"
+  | "account-verification";

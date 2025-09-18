@@ -1,16 +1,16 @@
-import { Stack } from 'expo-router';
-import ThemeContext from '../context/ThemeContext';
+import { Stack } from "expo-router";
+import ThemeContext from "../context/ThemeContext";
 
 export default function AuthLayout() {
   const { theme } = ThemeContext.useTheme();
-  
+
   return (
-    <Stack 
-      screenOptions={{ 
+    <Stack
+      screenOptions={{
         headerShown: false,
         contentStyle: {
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
-        }
+          backgroundColor: theme === "dark" ? "#111827" : "#ffffff",
+        },
       }}
     />
   );

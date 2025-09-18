@@ -1,13 +1,13 @@
-import twilio from 'twilio';
-import AWS from 'aws-sdk';
-import ErrorHandlingService from './ErrorHandlingService';
-import environmentService from '../config/environment';
+import twilio from "twilio";
+import AWS from "aws-sdk";
+import ErrorHandlingService from "./ErrorHandlingService";
+import environmentService from "../config/environment";
 
 export interface SMSMessage {
   to: string;
   message: string;
-  type?: 'otp' | 'notification' | 'alert' | 'reminder';
-  priority?: 'high' | 'normal' | 'low';
+  type?: "otp" | "notification" | "alert" | "reminder";
+  priority?: "high" | "normal" | "low";
 }
 
 export interface SMSResult {
@@ -27,9 +27,9 @@ export interface SMSProvider {
 
 // Twilio SMS Provider
 class TwilioSMSProvider implements SMSProvider {
-  public name = 'Twilio';
+  public name = "Twilio";
   private client: twilio.Twilio | null = null;
-  private fromNumber: string = '';
+  private fromNumber: string = "";
   private isInitialized = false;
 
   constructor() {
@@ -41,14 +41,14 @@ class TwilioSMSProvider implements SMSProvider {
       const config = environmentService.getConfig();
 
       if (!config.sms.twilio) {
-        console.warn('Twilio SMS configuration not found');
+        console.warn("Twilio SMS configuration not found");
         return;
       }
 
       const { accountSid, authToken, phoneNumber } = config.sms.twilio;
 
       if (!accountSid || !authToken || !phoneNumber) {
-        console.warn('Incomplete Twilio configuration');
+        console.warn("Incomplete Twilio configuration");
         return;
       }
 
@@ -56,10 +56,10 @@ class TwilioSMSProvider implements SMSProvider {
       this.fromNumber = phoneNumber;
       this.isInitialized = true;
 
-      console.log('Twilio SMS provider initialized successfully');
+      console.log("Twilio SMS provider initialized successfully");
     } catch (error) {
-      ErrorHandlingService.logError('TWILIO_INIT_ERROR', error as Error, {
-        context: 'TwilioSMSProvider.initialize'
+      ErrorHandlingService.logError("TWILIO_INIT_ERROR", error as Error, {
+        context: "TwilioSMSProvider.initialize",
       });
     }
   }
@@ -70,25 +70,27 @@ class TwilioSMSProvider implements SMSProvider {
 
   public async getStatus(): Promise<{ available: boolean; details?: any }> {
     if (!this.isConfigured()) {
-      return { available: false, details: 'Not configured' };
+      return { available: false, details: "Not configured" };
     }
 
     try {
       // Test Twilio connection by fetching account info
-      const account = await this.client!.api.accounts(this.client!.accountSid).fetch();
+      const account = await this.client!.api.accounts(
+        this.client!.accountSid,
+      ).fetch();
 
       return {
         available: true,
         details: {
           accountSid: account.sid,
           status: account.status,
-          type: account.type
-        }
+          type: account.type,
+        },
       };
     } catch (error) {
       return {
         available: false,
-        details: { error: (error as Error).message }
+        details: { error: (error as Error).message },
       };
     }
   }
@@ -97,8 +99,8 @@ class TwilioSMSProvider implements SMSProvider {
     if (!this.isConfigured()) {
       return {
         success: false,
-        error: 'Twilio SMS provider not configured',
-        provider: this.name
+        error: "Twilio SMS provider not configured",
+        provider: this.name,
       };
     }
 
@@ -108,43 +110,44 @@ class TwilioSMSProvider implements SMSProvider {
         from: this.fromNumber,
         to: message.to,
         // Add message priority if supported
-        ...(message.priority === 'high' && {
-          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID
-        })
+        ...(message.priority === "high" && {
+          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
+        }),
       });
 
-      console.log(`SMS sent via Twilio. SID: ${result.sid}, Status: ${result.status}`);
+      console.log(
+        `SMS sent via Twilio. SID: ${result.sid}, Status: ${result.status}`,
+      );
 
       return {
         success: true,
         messageId: result.sid,
         provider: this.name,
-        cost: parseFloat(result.price || '0')
+        cost: parseFloat(result.price || "0"),
       };
-
     } catch (error) {
-      ErrorHandlingService.logError('TWILIO_SMS_ERROR', error as Error, {
-        context: 'TwilioSMSProvider.sendSMS',
+      ErrorHandlingService.logError("TWILIO_SMS_ERROR", error as Error, {
+        context: "TwilioSMSProvider.sendSMS",
         phoneNumber: this.maskPhoneNumber(message.to),
-        messageType: message.type
+        messageType: message.type,
       });
 
       return {
         success: false,
         error: (error as Error).message,
-        provider: this.name
+        provider: this.name,
       };
     }
   }
 
   private maskPhoneNumber(phoneNumber: string): string {
-    return phoneNumber.replace(/\d(?=\d{4})/g, '*');
+    return phoneNumber.replace(/\d(?=\d{4})/g, "*");
   }
 }
 
 // AWS SNS SMS Provider
 class AWSSNSProvider implements SMSProvider {
-  public name = 'AWS SNS';
+  public name = "AWS SNS";
   private sns: AWS.SNS | null = null;
   private isInitialized = false;
 
@@ -157,30 +160,30 @@ class AWSSNSProvider implements SMSProvider {
       const config = environmentService.getConfig();
 
       if (!config.sms.aws) {
-        console.warn('AWS SNS configuration not found');
+        console.warn("AWS SNS configuration not found");
         return;
       }
 
       const { accessKeyId, secretAccessKey, region } = config.sms.aws;
 
       if (!accessKeyId || !secretAccessKey || !region) {
-        console.warn('Incomplete AWS SNS configuration');
+        console.warn("Incomplete AWS SNS configuration");
         return;
       }
 
       AWS.config.update({
         accessKeyId,
         secretAccessKey,
-        region
+        region,
       });
 
       this.sns = new AWS.SNS();
       this.isInitialized = true;
 
-      console.log('AWS SNS provider initialized successfully');
+      console.log("AWS SNS provider initialized successfully");
     } catch (error) {
-      ErrorHandlingService.logError('AWS_SNS_INIT_ERROR', error as Error, {
-        context: 'AWSSNSProvider.initialize'
+      ErrorHandlingService.logError("AWS_SNS_INIT_ERROR", error as Error, {
+        context: "AWSSNSProvider.initialize",
       });
     }
   }
@@ -191,7 +194,7 @@ class AWSSNSProvider implements SMSProvider {
 
   public async getStatus(): Promise<{ available: boolean; details?: any }> {
     if (!this.isConfigured()) {
-      return { available: false, details: 'Not configured' };
+      return { available: false, details: "Not configured" };
     }
 
     try {
@@ -202,13 +205,13 @@ class AWSSNSProvider implements SMSProvider {
         available: true,
         details: {
           attributes: result.attributes,
-          region: AWS.config.region
-        }
+          region: AWS.config.region,
+        },
       };
     } catch (error) {
       return {
         available: false,
-        details: { error: (error as Error).message }
+        details: { error: (error as Error).message },
       };
     }
   }
@@ -217,8 +220,8 @@ class AWSSNSProvider implements SMSProvider {
     if (!this.isConfigured()) {
       return {
         success: false,
-        error: 'AWS SNS provider not configured',
-        provider: this.name
+        error: "AWS SNS provider not configured",
+        provider: this.name,
       };
     }
 
@@ -227,11 +230,12 @@ class AWSSNSProvider implements SMSProvider {
         Message: message.message,
         PhoneNumber: message.to,
         MessageAttributes: {
-          'AWS.SNS.SMS.SMSType': {
-            DataType: 'String',
-            StringValue: message.type === 'otp' ? 'Transactional' : 'Promotional'
-          }
-        }
+          "AWS.SNS.SMS.SMSType": {
+            DataType: "String",
+            StringValue:
+              message.type === "otp" ? "Transactional" : "Promotional",
+          },
+        },
       };
 
       const result = await this.sns!.publish(params).promise();
@@ -241,32 +245,31 @@ class AWSSNSProvider implements SMSProvider {
       return {
         success: true,
         messageId: result.MessageId,
-        provider: this.name
+        provider: this.name,
       };
-
     } catch (error) {
-      ErrorHandlingService.logError('AWS_SNS_SMS_ERROR', error as Error, {
-        context: 'AWSSNSProvider.sendSMS',
+      ErrorHandlingService.logError("AWS_SNS_SMS_ERROR", error as Error, {
+        context: "AWSSNSProvider.sendSMS",
         phoneNumber: this.maskPhoneNumber(message.to),
-        messageType: message.type
+        messageType: message.type,
       });
 
       return {
         success: false,
         error: (error as Error).message,
-        provider: this.name
+        provider: this.name,
       };
     }
   }
 
   private maskPhoneNumber(phoneNumber: string): string {
-    return phoneNumber.replace(/\d(?=\d{4})/g, '*');
+    return phoneNumber.replace(/\d(?=\d{4})/g, "*");
   }
 }
 
 // Console SMS Provider (for development/testing)
 class ConsoleSMSProvider implements SMSProvider {
-  public name = 'Console';
+  public name = "Console";
 
   public isConfigured(): boolean {
     return true; // Always available for development
@@ -275,27 +278,27 @@ class ConsoleSMSProvider implements SMSProvider {
   public async getStatus(): Promise<{ available: boolean; details?: any }> {
     return {
       available: true,
-      details: { mode: 'development', output: 'console' }
+      details: { mode: "development", output: "console" },
     };
   }
 
   public async sendSMS(message: SMSMessage): Promise<SMSResult> {
-    console.log('\n=== SMS CONSOLE OUTPUT ===');
+    console.log("\n=== SMS CONSOLE OUTPUT ===");
     console.log(`To: ${message.to}`);
-    console.log(`Type: ${message.type || 'notification'}`);
-    console.log(`Priority: ${message.priority || 'normal'}`);
+    console.log(`Type: ${message.type || "notification"}`);
+    console.log(`Priority: ${message.priority || "normal"}`);
     console.log(`Message: ${message.message}`);
     console.log(`Timestamp: ${new Date().toISOString()}`);
-    console.log('========================\n');
+    console.log("========================\n");
 
     // Simulate some delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     return {
       success: true,
       messageId: `console_${Date.now()}`,
       provider: this.name,
-      cost: 0
+      cost: 0,
     };
   }
 }
@@ -312,7 +315,10 @@ export class SMSService {
     totalSent: 0,
     totalFailed: 0,
     totalCost: 0,
-    providerStats: new Map<string, { sent: number; failed: number; cost: number }>()
+    providerStats: new Map<
+      string,
+      { sent: number; failed: number; cost: number }
+    >(),
   };
 
   private constructor() {
@@ -338,22 +344,26 @@ export class SMSService {
     const config = environmentService.getConfig();
 
     switch (config.sms.provider) {
-      case 'twilio':
+      case "twilio":
         if (twilioProvider.isConfigured()) {
           this.primaryProvider = twilioProvider;
           this.fallbackProvider = consoleProvider;
         } else {
-          console.warn('Twilio configured but not available, falling back to console');
+          console.warn(
+            "Twilio configured but not available, falling back to console",
+          );
           this.primaryProvider = consoleProvider;
         }
         break;
 
-      case 'aws':
+      case "aws":
         if (awsProvider.isConfigured()) {
           this.primaryProvider = awsProvider;
           this.fallbackProvider = consoleProvider;
         } else {
-          console.warn('AWS SNS configured but not available, falling back to console');
+          console.warn(
+            "AWS SNS configured but not available, falling back to console",
+          );
           this.primaryProvider = consoleProvider;
         }
         break;
@@ -363,17 +373,19 @@ export class SMSService {
         break;
     }
 
-    console.log(`SMS Service initialized with primary provider: ${this.primaryProvider?.name}`);
+    console.log(
+      `SMS Service initialized with primary provider: ${this.primaryProvider?.name}`,
+    );
     if (this.fallbackProvider) {
       console.log(`Fallback provider: ${this.fallbackProvider.name}`);
     }
 
     // Initialize statistics for all providers
-    this.providers.forEach(provider => {
+    this.providers.forEach((provider) => {
       this.statistics.providerStats.set(provider.name, {
         sent: 0,
         failed: 0,
-        cost: 0
+        cost: 0,
       });
     });
   }
@@ -384,7 +396,7 @@ export class SMSService {
       if (!this.validatePhoneNumber(message.to)) {
         return {
           success: false,
-          error: 'Invalid phone number format'
+          error: "Invalid phone number format",
         };
       }
 
@@ -392,47 +404,59 @@ export class SMSService {
       if (this.primaryProvider) {
         const result = await this.attemptSend(this.primaryProvider, message);
         if (result.success) {
-          this.updateStatistics(this.primaryProvider.name, true, result.cost || 0);
+          this.updateStatistics(
+            this.primaryProvider.name,
+            true,
+            result.cost || 0,
+          );
           return result;
         }
 
         // Log primary provider failure
-        ErrorHandlingService.logError('SMS_PRIMARY_PROVIDER_FAILED', null, {
-          context: 'SMSService.sendSMS',
+        ErrorHandlingService.logError("SMS_PRIMARY_PROVIDER_FAILED", null, {
+          context: "SMSService.sendSMS",
           provider: this.primaryProvider.name,
           error: result.error,
-          phoneNumber: this.maskPhoneNumber(message.to)
+          phoneNumber: this.maskPhoneNumber(message.to),
         });
       }
 
       // Try fallback provider
       if (this.fallbackProvider) {
-        console.log(`Attempting SMS via fallback provider: ${this.fallbackProvider.name}`);
+        console.log(
+          `Attempting SMS via fallback provider: ${this.fallbackProvider.name}`,
+        );
         const result = await this.attemptSend(this.fallbackProvider, message);
-        this.updateStatistics(this.fallbackProvider.name, result.success, result.cost || 0);
+        this.updateStatistics(
+          this.fallbackProvider.name,
+          result.success,
+          result.cost || 0,
+        );
         return result;
       }
 
       return {
         success: false,
-        error: 'No SMS providers available'
+        error: "No SMS providers available",
       };
-
     } catch (error) {
-      ErrorHandlingService.logError('SMS_SERVICE_ERROR', error as Error, {
-        context: 'SMSService.sendSMS',
+      ErrorHandlingService.logError("SMS_SERVICE_ERROR", error as Error, {
+        context: "SMSService.sendSMS",
         phoneNumber: this.maskPhoneNumber(message.to),
-        messageType: message.type
+        messageType: message.type,
       });
 
       return {
         success: false,
-        error: 'SMS service error: ' + (error as Error).message
+        error: "SMS service error: " + (error as Error).message,
       };
     }
   }
 
-  private async attemptSend(provider: SMSProvider, message: SMSMessage): Promise<SMSResult> {
+  private async attemptSend(
+    provider: SMSProvider,
+    message: SMSMessage,
+  ): Promise<SMSResult> {
     try {
       const result = await provider.sendSMS(message);
       return { ...result, provider: provider.name };
@@ -440,7 +464,7 @@ export class SMSService {
       return {
         success: false,
         error: (error as Error).message,
-        provider: provider.name
+        provider: provider.name,
       };
     }
   }
@@ -452,13 +476,13 @@ export class SMSService {
     const batchSize = 10;
     for (let i = 0; i < messages.length; i += batchSize) {
       const batch = messages.slice(i, i + batchSize);
-      const batchPromises = batch.map(message => this.sendSMS(message));
+      const batchPromises = batch.map((message) => this.sendSMS(message));
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
 
       // Add delay between batches
       if (i + batchSize < messages.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -483,14 +507,18 @@ export class SMSService {
         if (message) {
           await this.sendSMS(message);
           // Add small delay between messages
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     } catch (error) {
-      ErrorHandlingService.logError('SMS_QUEUE_PROCESSING_ERROR', error as Error, {
-        context: 'SMSService.processQueue',
-        queueLength: this.messageQueue.length
-      });
+      ErrorHandlingService.logError(
+        "SMS_QUEUE_PROCESSING_ERROR",
+        error as Error,
+        {
+          context: "SMSService.processQueue",
+          queueLength: this.messageQueue.length,
+        },
+      );
     } finally {
       this.isProcessingQueue = false;
     }
@@ -503,10 +531,14 @@ export class SMSService {
   }
 
   private maskPhoneNumber(phoneNumber: string): string {
-    return phoneNumber.replace(/\d(?=\d{4})/g, '*');
+    return phoneNumber.replace(/\d(?=\d{4})/g, "*");
   }
 
-  private updateStatistics(providerName: string, success: boolean, cost: number): void {
+  private updateStatistics(
+    providerName: string,
+    success: boolean,
+    cost: number,
+  ): void {
     const stats = this.statistics.providerStats.get(providerName);
     if (stats) {
       if (success) {
@@ -534,7 +566,7 @@ export class SMSService {
   public getStatistics(): typeof this.statistics {
     return {
       ...this.statistics,
-      providerStats: new Map(this.statistics.providerStats)
+      providerStats: new Map(this.statistics.providerStats),
     };
   }
 
@@ -544,44 +576,55 @@ export class SMSService {
     this.statistics.totalCost = 0;
     this.statistics.providerStats.clear();
 
-    this.providers.forEach(provider => {
+    this.providers.forEach((provider) => {
       this.statistics.providerStats.set(provider.name, {
         sent: 0,
         failed: 0,
-        cost: 0
+        cost: 0,
       });
     });
   }
 
   // Template methods for common SMS types
-  public async sendOTPSMS(phoneNumber: string, otp: string, purpose: string): Promise<SMSResult> {
+  public async sendOTPSMS(
+    phoneNumber: string,
+    otp: string,
+    purpose: string,
+  ): Promise<SMSResult> {
     const message: SMSMessage = {
       to: phoneNumber,
       message: `Your verification code for ${purpose} is: ${otp}. This code expires in 5 minutes. Do not share this code with anyone.`,
-      type: 'otp',
-      priority: 'high'
+      type: "otp",
+      priority: "high",
     };
 
     return this.sendSMS(message);
   }
 
-  public async sendNotificationSMS(phoneNumber: string, title: string, body: string): Promise<SMSResult> {
+  public async sendNotificationSMS(
+    phoneNumber: string,
+    title: string,
+    body: string,
+  ): Promise<SMSResult> {
     const message: SMSMessage = {
       to: phoneNumber,
       message: `${title}\n\n${body}`,
-      type: 'notification',
-      priority: 'normal'
+      type: "notification",
+      priority: "normal",
     };
 
     return this.sendSMS(message);
   }
 
-  public async sendAlertSMS(phoneNumber: string, alertMessage: string): Promise<SMSResult> {
+  public async sendAlertSMS(
+    phoneNumber: string,
+    alertMessage: string,
+  ): Promise<SMSResult> {
     const message: SMSMessage = {
       to: phoneNumber,
       message: `ALERT: ${alertMessage}`,
-      type: 'alert',
-      priority: 'high'
+      type: "alert",
+      priority: "high",
     };
 
     return this.sendSMS(message);

@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFaceDetection } from '../hooks/useFaceDetection';
-import { useCameraLiveness } from '../hooks/useCameraLiveness';
-import FaceVerificationModal from '../components/FaceVerificationModal';
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFaceDetection } from "../hooks/useFaceDetection";
+import { useCameraLiveness } from "../hooks/useCameraLiveness";
+import FaceVerificationModal from "../components/FaceVerificationModal";
 
 export default function SimpleFaceTest() {
   const [testResults, setTestResults] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [testMode, setTestMode] = useState<'detection' | 'liveness' | 'full'>('detection');
+  const [testMode, setTestMode] = useState<"detection" | "liveness" | "full">(
+    "detection",
+  );
 
   const {
     isDetecting,
@@ -19,9 +21,9 @@ export default function SimpleFaceTest() {
     stopDetection,
     error,
     isInitialized,
-    device
+    device,
   } = useFaceDetection({
-    performanceMode: 'accurate',
+    performanceMode: "accurate",
     enableLivenessDetection: true,
     qualityThreshold: 0.4,
   });
@@ -33,25 +35,29 @@ export default function SimpleFaceTest() {
     blinkCount,
     isLive,
     startLivenessDetection,
-    stopLivenessDetection
+    stopLivenessDetection,
   } = useCameraLiveness(faceData);
 
   const addResult = (result: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setTestResults(prev => [...prev.slice(-9), `${timestamp}: ${result}`]);
+    setTestResults((prev) => [...prev.slice(-9), `${timestamp}: ${result}`]);
   };
 
   // Monitor face detection changes
   useEffect(() => {
     if (faceDetected && faceData) {
-      addResult(`👤 Face detected! Quality: ${faceQuality?.overall?.toFixed(2) || 'N/A'}`);
+      addResult(
+        `👤 Face detected! Quality: ${faceQuality?.overall?.toFixed(2) || "N/A"}`,
+      );
     }
   }, [faceDetected, faceData, faceQuality]);
 
   // Monitor liveness detection changes
   useEffect(() => {
     if (blinkDetected) {
-      addResult(`👁️ Blink detected! Count: ${blinkCount}, Score: ${livenessScore.toFixed(2)}`);
+      addResult(
+        `👁️ Blink detected! Count: ${blinkCount}, Score: ${livenessScore.toFixed(2)}`,
+      );
     }
   }, [blinkDetected, blinkCount, livenessScore]);
 
@@ -64,12 +70,12 @@ export default function SimpleFaceTest() {
 
   const handleStartDetection = async () => {
     try {
-      addResult('🚀 Starting face detection...');
+      addResult("🚀 Starting face detection...");
       const started = await startDetection();
       if (started) {
-        addResult('✅ Face detection started successfully');
+        addResult("✅ Face detection started successfully");
       } else {
-        addResult('❌ Failed to start face detection');
+        addResult("❌ Failed to start face detection");
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -82,9 +88,9 @@ export default function SimpleFaceTest() {
 
   const handleStopDetection = () => {
     try {
-      addResult('🛑 Stopping face detection...');
+      addResult("🛑 Stopping face detection...");
       stopDetection();
-      addResult('✅ Face detection stopped');
+      addResult("✅ Face detection stopped");
     } catch (error) {
       if (error instanceof Error) {
         addResult(`❌ Error: ${error.message}`);
@@ -96,9 +102,9 @@ export default function SimpleFaceTest() {
 
   const handleStartLiveness = () => {
     try {
-      addResult('👁️ Starting liveness detection...');
+      addResult("👁️ Starting liveness detection...");
       startLivenessDetection();
-      addResult('✅ Liveness detection started');
+      addResult("✅ Liveness detection started");
     } catch (error) {
       if (error instanceof Error) {
         addResult(`❌ Liveness Error: ${error.message}`);
@@ -110,9 +116,9 @@ export default function SimpleFaceTest() {
 
   const handleStopLiveness = () => {
     try {
-      addResult('🛑 Stopping liveness detection...');
+      addResult("🛑 Stopping liveness detection...");
       stopLivenessDetection();
-      addResult('✅ Liveness detection stopped');
+      addResult("✅ Liveness detection stopped");
     } catch (error) {
       if (error instanceof Error) {
         addResult(`❌ Error: ${error.message}`);
@@ -123,9 +129,9 @@ export default function SimpleFaceTest() {
   };
 
   const handleFullTest = () => {
-    setTestMode('full');
+    setTestMode("full");
     setShowModal(true);
-    addResult('🎯 Starting full face verification test...');
+    addResult("🎯 Starting full face verification test...");
   };
 
   const clearResults = () => {
@@ -133,60 +139,108 @@ export default function SimpleFaceTest() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: '#f8f9fa' }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#2c3e50' }}>
+    <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#f8f9fa" }}>
+      <Text
+        style={{
+          fontSize: 24,
+          fontWeight: "bold",
+          marginBottom: 10,
+          textAlign: "center",
+          color: "#2c3e50",
+        }}
+      >
         🧪 Comprehensive Face Detection Test
       </Text>
-      
-      <Text style={{ fontSize: 14, marginBottom: 20, textAlign: 'center', color: '#7f8c8d' }}>
+
+      <Text
+        style={{
+          fontSize: 14,
+          marginBottom: 20,
+          textAlign: "center",
+          color: "#7f8c8d",
+        }}
+      >
         Testing face detection, liveness detection, and full verification flow
       </Text>
 
       {/* Status Display */}
-      <View style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 15,
-        marginBottom: 15,
-      }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#2c3e50' }}>
+      <View
+        style={{
+          backgroundColor: "white",
+          borderRadius: 12,
+          padding: 15,
+          marginBottom: 15,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "bold",
+            marginBottom: 10,
+            color: "#2c3e50",
+          }}
+        >
           📊 System Status:
         </Text>
-        
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          <Text style={{ color: isInitialized ? '#27ae60' : '#e74c3c', fontSize: 12 }}>
-            📱 Init: {isInitialized ? '✅' : '❌'}
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          <Text
+            style={{
+              color: isInitialized ? "#27ae60" : "#e74c3c",
+              fontSize: 12,
+            }}
+          >
+            📱 Init: {isInitialized ? "✅" : "❌"}
           </Text>
-          <Text style={{ color: device ? '#27ae60' : '#e74c3c', fontSize: 12 }}>
-            📷 Camera: {device ? '✅' : '❌'}
+          <Text style={{ color: device ? "#27ae60" : "#e74c3c", fontSize: 12 }}>
+            📷 Camera: {device ? "✅" : "❌"}
           </Text>
-          <Text style={{ color: isDetecting ? '#f39c12' : '#95a5a6', fontSize: 12 }}>
-            🔍 Detecting: {isDetecting ? '🔄' : '⏸️'}
+          <Text
+            style={{ color: isDetecting ? "#f39c12" : "#95a5a6", fontSize: 12 }}
+          >
+            🔍 Detecting: {isDetecting ? "🔄" : "⏸️"}
           </Text>
-          <Text style={{ color: faceDetected ? '#27ae60' : '#95a5a6', fontSize: 12 }}>
-            👤 Face: {faceDetected ? '✅' : '❌'}
+          <Text
+            style={{
+              color: faceDetected ? "#27ae60" : "#95a5a6",
+              fontSize: 12,
+            }}
+          >
+            👤 Face: {faceDetected ? "✅" : "❌"}
           </Text>
-          <Text style={{ color: isLivenessActive ? '#f39c12' : '#95a5a6', fontSize: 12 }}>
-            👁️ Liveness: {isLivenessActive ? '🔄' : '⏸️'}
+          <Text
+            style={{
+              color: isLivenessActive ? "#f39c12" : "#95a5a6",
+              fontSize: 12,
+            }}
+          >
+            👁️ Liveness: {isLivenessActive ? "🔄" : "⏸️"}
           </Text>
-          <Text style={{ color: isLive ? '#27ae60' : '#95a5a6', fontSize: 12 }}>
-            ✨ Live: {isLive ? '✅' : '❌'}
+          <Text style={{ color: isLive ? "#27ae60" : "#95a5a6", fontSize: 12 }}>
+            ✨ Live: {isLive ? "✅" : "❌"}
           </Text>
         </View>
-        
+
         {faceData && (
-          <View style={{ marginTop: 10, padding: 8, backgroundColor: '#f8f9fa', borderRadius: 6 }}>
-            <Text style={{ fontSize: 12, color: '#2c3e50' }}>
-              👁️ Eyes: L:{(faceData.leftEyeOpenProbability * 100).toFixed(0)}% R:{(faceData.rightEyeOpenProbability * 100).toFixed(0)}% | 
-              🎯 Quality: {faceQuality?.overall?.toFixed(2) || 'N/A'} | 
-              👁️ Blinks: {blinkCount} | 
-              📊 Score: {livenessScore.toFixed(2)}
+          <View
+            style={{
+              marginTop: 10,
+              padding: 8,
+              backgroundColor: "#f8f9fa",
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: "#2c3e50" }}>
+              👁️ Eyes: L:{(faceData.leftEyeOpenProbability * 100).toFixed(0)}%
+              R:{(faceData.rightEyeOpenProbability * 100).toFixed(0)}% | 🎯
+              Quality: {faceQuality?.overall?.toFixed(2) || "N/A"} | 👁️ Blinks:{" "}
+              {blinkCount} | 📊 Score: {livenessScore.toFixed(2)}
             </Text>
           </View>
         )}
-        
+
         {error && (
-          <Text style={{ color: '#e74c3c', fontSize: 12, marginTop: 5 }}>
+          <Text style={{ color: "#e74c3c", fontSize: 12, marginTop: 5 }}>
             ❌ Error: {error}
           </Text>
         )}
@@ -194,22 +248,36 @@ export default function SimpleFaceTest() {
 
       {/* Control Buttons */}
       <View style={{ marginBottom: 15 }}>
-        <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#2c3e50' }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "bold",
+            marginBottom: 8,
+            color: "#2c3e50",
+          }}
+        >
           🎮 Face Detection Controls:
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
           <TouchableOpacity
             onPress={handleStartDetection}
             disabled={isDetecting}
             style={{
               flex: 1,
-              backgroundColor: isDetecting ? '#95a5a6' : '#27ae60',
+              backgroundColor: isDetecting ? "#95a5a6" : "#27ae60",
               padding: 12,
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
-              {isDetecting ? '🔄 Detecting...' : '🚀 Start'}
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
+              {isDetecting ? "🔄 Detecting..." : "🚀 Start"}
             </Text>
           </TouchableOpacity>
 
@@ -218,33 +286,55 @@ export default function SimpleFaceTest() {
             disabled={!isDetecting}
             style={{
               flex: 1,
-              backgroundColor: !isDetecting ? '#95a5a6' : '#e74c3c',
+              backgroundColor: !isDetecting ? "#95a5a6" : "#e74c3c",
               padding: 12,
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
               🛑 Stop
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#2c3e50' }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "bold",
+            marginBottom: 8,
+            color: "#2c3e50",
+          }}
+        >
           👁️ Liveness Detection Controls:
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
           <TouchableOpacity
             onPress={handleStartLiveness}
             disabled={isLivenessActive || !faceDetected}
             style={{
               flex: 1,
-              backgroundColor: (isLivenessActive || !faceDetected) ? '#95a5a6' : '#3498db',
+              backgroundColor:
+                isLivenessActive || !faceDetected ? "#95a5a6" : "#3498db",
               padding: 12,
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
-              {isLivenessActive ? '👁️ Active...' : '👁️ Start Liveness'}
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
+              {isLivenessActive ? "👁️ Active..." : "👁️ Start Liveness"}
             </Text>
           </TouchableOpacity>
 
@@ -253,30 +343,51 @@ export default function SimpleFaceTest() {
             disabled={!isLivenessActive}
             style={{
               flex: 1,
-              backgroundColor: !isLivenessActive ? '#95a5a6' : '#e74c3c',
+              backgroundColor: !isLivenessActive ? "#95a5a6" : "#e74c3c",
               padding: 12,
               borderRadius: 6,
             }}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 12,
+              }}
+            >
               🛑 Stop Liveness
             </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#2c3e50' }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "bold",
+            marginBottom: 8,
+            color: "#2c3e50",
+          }}
+        >
           🎯 Full Verification Test:
         </Text>
         <TouchableOpacity
           onPress={handleFullTest}
           style={{
-            backgroundColor: '#9b59b6',
+            backgroundColor: "#9b59b6",
             padding: 12,
             borderRadius: 6,
             marginBottom: 10,
           }}
         >
-          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+          <Text
+            style={{
+              color: "white",
+              textAlign: "center",
+              fontWeight: "bold",
+              fontSize: 12,
+            }}
+          >
             🎯 Test Full Verification Flow
           </Text>
         </TouchableOpacity>
@@ -285,50 +396,92 @@ export default function SimpleFaceTest() {
       <TouchableOpacity
         onPress={clearResults}
         style={{
-          backgroundColor: '#95a5a6',
+          backgroundColor: "#95a5a6",
           padding: 10,
           borderRadius: 6,
           marginBottom: 15,
         }}
       >
-        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+        <Text
+          style={{
+            color: "white",
+            textAlign: "center",
+            fontWeight: "bold",
+            fontSize: 12,
+          }}
+        >
           🗑️ Clear Results
         </Text>
       </TouchableOpacity>
 
       {/* Results Display */}
-      <View style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 15,
-        flex: 1,
-      }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#2c3e50' }}>
+      <View
+        style={{
+          backgroundColor: "white",
+          borderRadius: 12,
+          padding: 15,
+          flex: 1,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "bold",
+            marginBottom: 10,
+            color: "#2c3e50",
+          }}
+        >
           📋 Test Results ({testResults.length}):
         </Text>
-        
+
         {testResults.length === 0 ? (
-          <Text style={{ color: '#95a5a6', fontStyle: 'italic', textAlign: 'center', marginTop: 50 }}>
+          <Text
+            style={{
+              color: "#95a5a6",
+              fontStyle: "italic",
+              textAlign: "center",
+              marginTop: 50,
+            }}
+          >
             No test results yet. Start detection to see results here.
           </Text>
         ) : (
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
             {testResults.map((result, index) => (
-              <View key={index} style={{
-                backgroundColor: result.includes('✅') ? '#d5f4e6' : 
-                               result.includes('❌') ? '#ffeaa7' : 
-                               result.includes('👁️') ? '#e8f4f8' :
-                               result.includes('👤') ? '#f0e6ff' : '#f8f9fa',
-                padding: 8,
-                borderRadius: 6,
-                marginBottom: 6,
-                borderLeftWidth: 3,
-                borderLeftColor: result.includes('✅') ? '#00b894' : 
-                                result.includes('❌') ? '#fdcb6e' : 
-                                result.includes('👁️') ? '#74b9ff' :
-                                result.includes('👤') ? '#a29bfe' : '#ddd',
-              }}>
-                <Text style={{ fontSize: 11, fontFamily: 'monospace', color: '#2d3436' }}>
+              <View
+                key={index}
+                style={{
+                  backgroundColor: result.includes("✅")
+                    ? "#d5f4e6"
+                    : result.includes("❌")
+                      ? "#ffeaa7"
+                      : result.includes("👁️")
+                        ? "#e8f4f8"
+                        : result.includes("👤")
+                          ? "#f0e6ff"
+                          : "#f8f9fa",
+                  padding: 8,
+                  borderRadius: 6,
+                  marginBottom: 6,
+                  borderLeftWidth: 3,
+                  borderLeftColor: result.includes("✅")
+                    ? "#00b894"
+                    : result.includes("❌")
+                      ? "#fdcb6e"
+                      : result.includes("👁️")
+                        ? "#74b9ff"
+                        : result.includes("👤")
+                          ? "#a29bfe"
+                          : "#ddd",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontFamily: "monospace",
+                    color: "#2d3436",
+                  }}
+                >
                   {result}
                 </Text>
               </View>
@@ -342,10 +495,12 @@ export default function SimpleFaceTest() {
         visible={showModal}
         onCancel={() => {
           setShowModal(false);
-          addResult('🎯 Full verification test completed');
+          addResult("🎯 Full verification test completed");
         }}
         onSuccess={(result: any) => {
-          addResult(`🎉 Verification SUCCESS! Confidence: ${result.confidence}`);
+          addResult(
+            `🎉 Verification SUCCESS! Confidence: ${result.confidence}`,
+          );
           setShowModal(false);
         }}
         onError={(error: any) => {

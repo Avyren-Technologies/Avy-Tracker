@@ -40,7 +40,7 @@ export interface LeaveRequest {
   start_date: Date;
   end_date: Date;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   rejection_reason?: string;
   contact_number: string;
   requires_documentation: boolean;
@@ -68,14 +68,14 @@ export interface LeaveAnalytics {
     pending_requests: number;
     rejected_requests: number;
   };
-  typeDistribution: Array<{
+  typeDistribution: {
     leave_type: string;
     request_count: number;
-  }>;
-  trend: Array<{
+  }[];
+  trend: {
     date: string;
     request_count: number;
-  }>;
+  }[];
 }
 
 export interface LeaveEscalation {
@@ -84,8 +84,8 @@ export interface LeaveEscalation {
   escalated_by: number;
   escalated_to: number;
   reason: string;
-  status: 'pending' | 'resolved';
+  status: "pending" | "resolved";
   resolution_notes?: string;
   created_at: Date;
   resolved_at?: Date;
-} 
+}

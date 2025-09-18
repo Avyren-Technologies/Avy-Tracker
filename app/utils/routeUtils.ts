@@ -1,5 +1,5 @@
-import { LocationObject } from 'expo-location';
-import { EnhancedLocation } from '../store/locationStore';
+import { LocationObject } from "expo-location";
+import { EnhancedLocation } from "../store/locationStore";
 
 /**
  * Route calculator utility functions for location tracking
@@ -25,7 +25,7 @@ export function haversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   // Return 0 if coordinates are identical
   if (lat1 === lat2 && lon1 === lon2) {
@@ -34,7 +34,7 @@ export function haversineDistance(
 
   // Earth's radius in meters
   const R = 6371e3;
-  
+
   // Convert latitude and longitude from degrees to radians
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
@@ -46,7 +46,7 @@ export function haversineDistance(
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  
+
   // Distance in meters
   return R * c;
 }
@@ -59,7 +59,7 @@ export function calculateDistance(point1: Point, point2: Point): number {
     point1.latitude,
     point1.longitude,
     point2.latitude,
-    point2.longitude
+    point2.longitude,
   );
 }
 
@@ -98,9 +98,9 @@ export function formatDistance(distance: number): string {
  */
 export function formatSpeed(speedMps: number | null | undefined): string {
   if (speedMps === null || speedMps === undefined || isNaN(speedMps)) {
-    return '0 km/h';
+    return "0 km/h";
   }
-  
+
   // Convert m/s to km/h
   const speedKmh = speedMps * 3.6;
   return `${speedKmh.toFixed(1)} km/h`;
@@ -114,7 +114,7 @@ export function formatSpeed(speedMps: number | null | undefined): string {
  */
 export function isMoving(
   speed: number | null | undefined,
-  threshold: number = 0.5
+  threshold: number = 0.5,
 ): boolean {
   if (speed === null || speed === undefined || isNaN(speed)) {
     return false;
@@ -125,7 +125,7 @@ export function isMoving(
 /**
  * Simplify a route by reducing the number of points while preserving shape
  * Uses the Ramer-Douglas-Peucker algorithm
- * 
+ *
  * @param points Array of points representing a route
  * @param epsilon Maximum distance threshold (in meters)
  * @returns Simplified array of points
@@ -138,10 +138,10 @@ export function simplifyRoute(points: Point[], epsilon: number = 10): Point[] {
   // Find the point with the maximum distance
   let maxDistance = 0;
   let maxDistanceIndex = 0;
-  
+
   const firstPoint = points[0];
   const lastPoint = points[points.length - 1];
-  
+
   for (let i = 1; i < points.length - 1; i++) {
     const distance = perpendicularDistance(points[i], firstPoint, lastPoint);
     if (distance > maxDistance) {
@@ -153,9 +153,12 @@ export function simplifyRoute(points: Point[], epsilon: number = 10): Point[] {
   // If max distance is greater than epsilon, recursively simplify
   if (maxDistance > epsilon) {
     // Recursive call
-    const firstHalf = simplifyRoute(points.slice(0, maxDistanceIndex + 1), epsilon);
+    const firstHalf = simplifyRoute(
+      points.slice(0, maxDistanceIndex + 1),
+      epsilon,
+    );
     const secondHalf = simplifyRoute(points.slice(maxDistanceIndex), epsilon);
-    
+
     // Concatenate the results
     return [...firstHalf.slice(0, -1), ...secondHalf];
   } else {
@@ -166,7 +169,7 @@ export function simplifyRoute(points: Point[], epsilon: number = 10): Point[] {
 
 /**
  * Calculate perpendicular distance from a point to a line
- * 
+ *
  * @param point The point to calculate distance from
  * @param lineStart Start point of the line
  * @param lineEnd End point of the line
@@ -175,7 +178,7 @@ export function simplifyRoute(points: Point[], epsilon: number = 10): Point[] {
 function perpendicularDistance(
   point: Point,
   lineStart: Point,
-  lineEnd: Point
+  lineEnd: Point,
 ): number {
   // Handle case where line start and end are the same point
   if (
@@ -188,8 +191,9 @@ function perpendicularDistance(
   // Calculate area of triangle
   const area = Math.abs(
     (lineStart.latitude * (lineEnd.longitude - point.longitude) +
-     lineEnd.latitude * (point.longitude - lineStart.longitude) +
-     point.latitude * (lineStart.longitude - lineEnd.longitude)) / 2
+      lineEnd.latitude * (point.longitude - lineStart.longitude) +
+      point.latitude * (lineStart.longitude - lineEnd.longitude)) /
+      2,
   );
 
   // Calculate length of the base
@@ -197,7 +201,7 @@ function perpendicularDistance(
     lineStart.latitude,
     lineStart.longitude,
     lineEnd.latitude,
-    lineEnd.longitude
+    lineEnd.longitude,
   );
 
   // Return height (perpendicular distance)
@@ -208,24 +212,26 @@ function perpendicularDistance(
  * Convert a location object to a simple point
  */
 export function locationToPoint(
-  location: LocationObject | EnhancedLocation | any
+  location: LocationObject | EnhancedLocation | any,
 ): Point {
   // Extract coordinates from either nested structure or flat structure
-  const latitude = location.latitude || (location.coords && location.coords.latitude) || 0;
-  const longitude = location.longitude || (location.coords && location.coords.longitude) || 0;
-  
+  const latitude =
+    location.latitude || (location.coords && location.coords.latitude) || 0;
+  const longitude =
+    location.longitude || (location.coords && location.coords.longitude) || 0;
+
   return { latitude, longitude };
 }
 
 /**
  * Clean a route by removing invalid points and duplicates
- * 
+ *
  * @param route Array of points
  * @returns Cleaned route
  */
 export function cleanRoute(route: Point[]): Point[] {
   if (!route || route.length === 0) return [];
-  
+
   return route.filter((point, index) => {
     // Skip invalid points
     if (
@@ -238,14 +244,16 @@ export function cleanRoute(route: Point[]): Point[] {
     ) {
       return false;
     }
-    
+
     // Skip duplicate consecutive points
     if (index > 0) {
       const prevPoint = route[index - 1];
-      return !(prevPoint.latitude === point.latitude && 
-               prevPoint.longitude === point.longitude);
+      return !(
+        prevPoint.latitude === point.latitude &&
+        prevPoint.longitude === point.longitude
+      );
     }
-    
+
     return true;
   });
 }
@@ -254,20 +262,18 @@ export function cleanRoute(route: Point[]): Point[] {
  * Convert an array of LocationObjects to an array of simple Points
  */
 export function locationsToPoints(
-  locations: Array<LocationObject | EnhancedLocation | any>
+  locations: (LocationObject | EnhancedLocation | any)[],
 ): Point[] {
   return locations.map(locationToPoint);
 }
 
 /**
  * Get route statistics
- * 
+ *
  * @param route Array of points with timestamps
  * @returns Object with total distance, average speed, and duration
  */
-export function getRouteStats(
-  route: Array<Point & { timestamp?: number }>
-): { 
+export function getRouteStats(route: (Point & { timestamp?: number })[]): {
   distance: number;
   formattedDistance: string;
   averageSpeed: number;
@@ -278,28 +284,29 @@ export function getRouteStats(
   if (!route || route.length < 2) {
     return {
       distance: 0,
-      formattedDistance: '0 m',
+      formattedDistance: "0 m",
       averageSpeed: 0,
-      formattedSpeed: '0 km/h',
+      formattedSpeed: "0 km/h",
       duration: 0,
-      formattedDuration: '0 min'
+      formattedDuration: "0 min",
     };
   }
 
   // Calculate total distance
   const distance = calculateRouteDistance(route);
-  
+
   // Calculate duration if timestamps are available
   let duration = 0;
   if (route[0].timestamp && route[route.length - 1].timestamp) {
-    duration = (route[route.length - 1].timestamp! - route[0].timestamp!) / 1000; // in seconds
+    duration =
+      (route[route.length - 1].timestamp! - route[0].timestamp!) / 1000; // in seconds
   }
-  
+
   // Calculate average speed (m/s)
   const averageSpeed = duration > 0 ? distance / duration : 0;
-  
+
   // Format duration
-  let formattedDuration = '0 min';
+  let formattedDuration = "0 min";
   if (duration >= 3600) {
     const hours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
@@ -317,6 +324,6 @@ export function getRouteStats(
     averageSpeed,
     formattedSpeed: formatSpeed(averageSpeed),
     duration, // in seconds
-    formattedDuration
+    formattedDuration,
   };
-} 
+}

@@ -1,13 +1,23 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, StatusBar as RNStatusBar, ViewStyle, TextStyle } from 'react-native';
-import ThemeContext from '../../context/ThemeContext';
-import BottomNav from '../../components/BottomNav';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { NavItem } from '../../types/nav';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  StatusBar as RNStatusBar,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
+import ThemeContext from "../../context/ThemeContext";
+import BottomNav from "../../components/BottomNav";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import type { NavItem } from "../../types/nav";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../context/AuthContext";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { superAdminNavItems } from "./utils/navigationItems";
 
 export default function SuperAdminDashboard() {
@@ -18,7 +28,7 @@ export default function SuperAdminDashboard() {
     if (Platform.OS === "android") {
       RNStatusBar.setBackgroundColor(theme === "dark" ? "#1F2937" : "#FFFFFF");
       RNStatusBar.setBarStyle(
-        theme === "dark" ? "light-content" : "dark-content"
+        theme === "dark" ? "light-content" : "dark-content",
       );
     }
   }, [theme]);
@@ -341,4 +351,4 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   } as ViewStyle,
-}); 
+});

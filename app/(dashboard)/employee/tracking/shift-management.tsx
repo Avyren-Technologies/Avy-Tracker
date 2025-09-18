@@ -1,19 +1,28 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import axios from "axios";
 
-import { useAuth } from '../../../context/AuthContext';
-import { useColorScheme, useThemeColor } from '../../../hooks/useColorScheme';
-import { useGeofencing } from '../../../hooks/useGeofencing';
-import { useSocket } from '../../../hooks/useSocket';
-import { useShiftManagement } from '../../../hooks/useShiftManagement';
-import { useLocationTracking } from '../../../hooks/useLocationTracking';
-import useLocationStore from '../../../store/locationStore';
-import Constants from 'expo-constants';
+import { useAuth } from "../../../context/AuthContext";
+import { useColorScheme, useThemeColor } from "../../../hooks/useColorScheme";
+import { useGeofencing } from "../../../hooks/useGeofencing";
+import { useSocket } from "../../../hooks/useSocket";
+import { useShiftManagement } from "../../../hooks/useShiftManagement";
+import { useLocationTracking } from "../../../hooks/useLocationTracking";
+import useLocationStore from "../../../store/locationStore";
+import Constants from "expo-constants";
 
 interface ShiftHistory {
   id: number;
@@ -29,44 +38,45 @@ export default function ShiftManagementScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const { user } = useAuth();
-  const backgroundColor = useThemeColor('#f8fafc', '#0f172a');
-  const textColor = useThemeColor('#334155', '#e2e8f0');
-  const cardColor = useThemeColor('#ffffff', '#1e293b');
-  const accentColor = useThemeColor('#3b82f6', '#60a5fa');
+  const backgroundColor = useThemeColor("#f8fafc", "#0f172a");
+  const textColor = useThemeColor("#334155", "#e2e8f0");
+  const cardColor = useThemeColor("#ffffff", "#1e293b");
+  const accentColor = useThemeColor("#3b82f6", "#60a5fa");
 
   // State
   const [refreshing, setRefreshing] = useState(false);
   const [shiftHistory, setShiftHistory] = useState<ShiftHistory[]>([]);
-  const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | null>(null);
+  const [permissionStatus, setPermissionStatus] =
+    useState<Location.PermissionStatus | null>(null);
   const [isLocationEnabled, setIsLocationEnabled] = useState(false);
   const [canSubmitAnywhere, setCanSubmitAnywhere] = useState(false);
-  
+
   // Location tracking
   const { getCurrentLocation } = useLocationTracking();
   const { isLocationInAnyGeofence } = useGeofencing();
   const { currentLocation, isInGeofence } = useLocationStore();
-  
+
   // Shift management
-  const { 
+  const {
     currentShift,
     isShiftActive,
     isLoading,
     error,
     startShift,
     endShift,
-    getShiftHistory
+    getShiftHistory,
   } = useShiftManagement({
     onShiftStart: (shiftData) => {
-      console.log('Shift started:', shiftData);
+      console.log("Shift started:", shiftData);
       fetchShiftHistory();
     },
     onShiftEnd: (shiftData) => {
-      console.log('Shift ended:', shiftData);
+      console.log("Shift ended:", shiftData);
       fetchShiftHistory();
     },
     onError: (errorMsg) => {
-      Alert.alert('Shift Error', errorMsg);
-    }
+      Alert.alert("Shift Error", errorMsg);
+    },
   });
 
   // Socket for real-time updates
@@ -76,21 +86,27 @@ export default function ShiftManagementScreen() {
   useEffect(() => {
     async function checkUserPermissions() {
       if (!user) return;
-      
+
       try {
-        const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+        const API_URL =
+          Constants.expoConfig?.extra?.apiUrl ||
+          process.env.EXPO_PUBLIC_API_URL ||
+          "http://localhost:3000";
         const response = await axios.get(`${API_URL}/api/user-settings`);
-        
-        if (response.data && response.data.can_submit_expenses_anytime !== undefined) {
+
+        if (
+          response.data &&
+          response.data.can_submit_expenses_anytime !== undefined
+        ) {
           setCanSubmitAnywhere(response.data.can_submit_expenses_anytime);
         }
       } catch (error) {
-        console.error('Error fetching user settings:', error);
+        console.error("Error fetching user settings:", error);
         // Default to requiring geofence
         setCanSubmitAnywhere(false);
       }
     }
-    
+
     checkUserPermissions();
   }, [user]);
 
@@ -108,12 +124,12 @@ export default function ShiftManagementScreen() {
 
     if (!locationServicesEnabled) {
       Alert.alert(
-        'Location Services Disabled',
-        'Please enable location services in your device settings to use shift tracking.',
+        "Location Services Disabled",
+        "Please enable location services in your device settings to use shift tracking.",
         [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Open Settings', 
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Open Settings",
             onPress: () => {
               // For Expo, we can use Linking to open settings
               try {
@@ -121,22 +137,25 @@ export default function ShiftManagementScreen() {
                   // This typically prompts the system to ask about enabling location services
                 });
               } catch (e) {
-                console.error('Could not open settings:', e);
+                console.error("Could not open settings:", e);
               }
-            } 
-          }
-        ]
+            },
+          },
+        ],
       );
       return false;
     }
 
     // Check foreground permissions
     let foregroundPermission = await Location.getForegroundPermissionsAsync();
-    
+
     if (!foregroundPermission.granted) {
       foregroundPermission = await Location.requestForegroundPermissionsAsync();
       if (!foregroundPermission.granted) {
-        Alert.alert('Permission Denied', 'Location permission is required for shift tracking');
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required for shift tracking",
+        );
         return false;
       }
     }
@@ -144,35 +163,36 @@ export default function ShiftManagementScreen() {
     // Check background permissions if foreground is granted
     if (foregroundPermission.granted) {
       let backgroundPermission = await Location.getBackgroundPermissionsAsync();
-      
+
       if (!backgroundPermission.granted) {
-        backgroundPermission = await Location.requestBackgroundPermissionsAsync();
+        backgroundPermission =
+          await Location.requestBackgroundPermissionsAsync();
       }
-      
+
       setPermissionStatus(backgroundPermission.status);
-      
+
       // If we need background but don't have it, warn the user
-      if (backgroundPermission.status !== 'granted') {
+      if (backgroundPermission.status !== "granted") {
         Alert.alert(
-          'Background Location',
-          'For accurate shift tracking, please allow background location access',
+          "Background Location",
+          "For accurate shift tracking, please allow background location access",
           [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Settings', 
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Settings",
               onPress: () => {
                 try {
                   Location.requestBackgroundPermissionsAsync();
                 } catch (e) {
-                  console.error('Could not request background permissions:', e);
+                  console.error("Could not request background permissions:", e);
                 }
-              } 
-            }
-          ]
+              },
+            },
+          ],
         );
       }
     }
-    
+
     return foregroundPermission.granted;
   };
 
@@ -182,29 +202,36 @@ export default function ShiftManagementScreen() {
       const today = new Date();
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      
-      const formattedStartDate = oneMonthAgo.toISOString().split('T')[0];
-      const formattedEndDate = today.toISOString().split('T')[0];
-      
-      const shifts = await getShiftHistory(formattedStartDate, formattedEndDate);
-      
+
+      const formattedStartDate = oneMonthAgo.toISOString().split("T")[0];
+      const formattedEndDate = today.toISOString().split("T")[0];
+
+      const shifts = await getShiftHistory(
+        formattedStartDate,
+        formattedEndDate,
+      );
+
       // Transform data for display
-      const formattedShifts = shifts.map(shift => ({
+      const formattedShifts = shifts.map((shift) => ({
         id: shift.shiftId,
         date: new Date(shift.startTimestamp).toLocaleDateString(),
         startTime: new Date(shift.startTimestamp).toLocaleTimeString(),
-        endTime: shift.endTimestamp ? new Date(shift.endTimestamp).toLocaleTimeString() : null,
-        duration: shift.endTimestamp ? formatDuration(
-          new Date(shift.startTimestamp),
-          new Date(shift.endTimestamp)
-        ) : null,
+        endTime: shift.endTimestamp
+          ? new Date(shift.endTimestamp).toLocaleTimeString()
+          : null,
+        duration: shift.endTimestamp
+          ? formatDuration(
+              new Date(shift.startTimestamp),
+              new Date(shift.endTimestamp),
+            )
+          : null,
         totalDistance: shift.totalDistance || null,
-        inGeofence: shift.isInGeofence
+        inGeofence: shift.isInGeofence,
       }));
-      
+
       setShiftHistory(formattedShifts);
     } catch (error) {
-      console.error('Error fetching shift history:', error);
+      console.error("Error fetching shift history:", error);
     }
   };
 
@@ -215,26 +242,26 @@ export default function ShiftManagementScreen() {
     if (!hasPermissions || !isLocationEnabled) {
       return;
     }
-    
+
     // Get current location and check if in geofence
     const location = await getCurrentLocation();
     if (!location) {
-      Alert.alert('Error', 'Unable to get current location');
+      Alert.alert("Error", "Unable to get current location");
       return;
     }
-    
+
     const inGeofence = isLocationInAnyGeofence(location);
-    
+
     // If not in geofence and required, alert user
     if (!inGeofence && !canSubmitAnywhere) {
       Alert.alert(
-        'Outside Geofence Area',
-        'You must be within a registered work area to start your shift.',
-        [{ text: 'OK' }]
+        "Outside Geofence Area",
+        "You must be within a registered work area to start your shift.",
+        [{ text: "OK" }],
       );
       return;
     }
-    
+
     // Start shift
     await startShift();
   };
@@ -246,26 +273,26 @@ export default function ShiftManagementScreen() {
     if (!hasPermissions || !isLocationEnabled) {
       return;
     }
-    
+
     // Get current location and check if in geofence
     const location = await getCurrentLocation();
     if (!location) {
-      Alert.alert('Error', 'Unable to get current location');
+      Alert.alert("Error", "Unable to get current location");
       return;
     }
-    
+
     const inGeofence = isLocationInAnyGeofence(location);
-    
+
     // If not in geofence and required, alert user
     if (!inGeofence && !canSubmitAnywhere) {
       Alert.alert(
-        'Outside Geofence Area',
-        'You must be within a registered work area to end your shift.',
-        [{ text: 'OK' }]
+        "Outside Geofence Area",
+        "You must be within a registered work area to end your shift.",
+        [{ text: "OK" }],
       );
       return;
     }
-    
+
     // End shift
     await endShift();
   };
@@ -275,7 +302,7 @@ export default function ShiftManagementScreen() {
     const diff = endDate.getTime() - startDate.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${hours}h ${minutes}m`;
   };
 
@@ -289,17 +316,17 @@ export default function ShiftManagementScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
-          title: 'Shift Management',
+          title: "Shift Management",
           headerStyle: {
             backgroundColor: cardColor,
           },
           headerTintColor: textColor,
         }}
       />
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -308,25 +335,28 @@ export default function ShiftManagementScreen() {
       >
         {/* Current shift status card */}
         <View style={[styles.card, { backgroundColor: cardColor }]}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>Current Shift Status</Text>
-          
+          <Text style={[styles.cardTitle, { color: textColor }]}>
+            Current Shift Status
+          </Text>
+
           <View style={styles.shiftStatusContainer}>
             <View style={styles.statusIconContainer}>
-              <View 
+              <View
                 style={[
-                  styles.statusIndicator, 
-                  { backgroundColor: isShiftActive ? '#10b981' : '#6b7280' }
-                ]} 
+                  styles.statusIndicator,
+                  { backgroundColor: isShiftActive ? "#10b981" : "#6b7280" },
+                ]}
               />
               <Text style={[styles.statusText, { color: textColor }]}>
-                {isShiftActive ? 'Shift Active' : 'No Active Shift'}
+                {isShiftActive ? "Shift Active" : "No Active Shift"}
               </Text>
             </View>
-            
+
             {isShiftActive && currentShift && (
               <View style={styles.shiftDetails}>
                 <Text style={[styles.shiftTime, { color: textColor }]}>
-                  Started: {new Date(currentShift.startTimestamp).toLocaleTimeString()}
+                  Started:{" "}
+                  {new Date(currentShift.startTimestamp).toLocaleTimeString()}
                 </Text>
                 <Text style={[styles.shiftDate, { color: textColor }]}>
                   {new Date(currentShift.startTimestamp).toLocaleDateString()}
@@ -334,24 +364,23 @@ export default function ShiftManagementScreen() {
               </View>
             )}
           </View>
-          
+
           {/* Geofence status */}
           <View style={styles.geofenceStatus}>
-            <Ionicons 
-              name="map" 
-              size={18} 
-              color={isInGeofence ? '#10b981' : '#ef4444'} 
+            <Ionicons
+              name="map"
+              size={18}
+              color={isInGeofence ? "#10b981" : "#ef4444"}
             />
             <Text style={[styles.geofenceText, { color: textColor }]}>
-              {isInGeofence 
-                ? 'Within work area'
-                : canSubmitAnywhere 
-                  ? 'Outside work area (permitted)'
-                  : 'Outside work area (shift actions restricted)'
-              }
+              {isInGeofence
+                ? "Within work area"
+                : canSubmitAnywhere
+                  ? "Outside work area (permitted)"
+                  : "Outside work area (shift actions restricted)"}
             </Text>
           </View>
-          
+
           {/* Action buttons */}
           <View style={styles.shiftActions}>
             {!isShiftActive ? (
@@ -371,7 +400,7 @@ export default function ShiftManagementScreen() {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+                style={[styles.actionButton, { backgroundColor: "#ef4444" }]}
                 onPress={handleEndShift}
                 disabled={isLoading}
               >
@@ -386,7 +415,7 @@ export default function ShiftManagementScreen() {
               </TouchableOpacity>
             )}
           </View>
-          
+
           {/* Show error if exists */}
           {error && (
             <View style={styles.errorContainer}>
@@ -395,11 +424,13 @@ export default function ShiftManagementScreen() {
             </View>
           )}
         </View>
-        
+
         {/* Shift history */}
         <View style={[styles.card, { backgroundColor: cardColor }]}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>Recent Shifts</Text>
-          
+          <Text style={[styles.cardTitle, { color: textColor }]}>
+            Recent Shifts
+          </Text>
+
           {shiftHistory.length === 0 ? (
             <Text style={[styles.emptyText, { color: textColor }]}>
               No shifts in the last 30 days
@@ -412,42 +443,58 @@ export default function ShiftManagementScreen() {
                     <Text style={[styles.historyDate, { color: textColor }]}>
                       {shift.date}
                     </Text>
-                    <View 
+                    <View
                       style={[
-                        styles.geofenceIndicator, 
-                        { backgroundColor: shift.inGeofence ? '#10b981' : '#f59e0b' }
+                        styles.geofenceIndicator,
+                        {
+                          backgroundColor: shift.inGeofence
+                            ? "#10b981"
+                            : "#f59e0b",
+                        },
                       ]}
                     >
                       <Text style={styles.geofenceIndicatorText}>
-                        {shift.inGeofence ? 'In Zone' : 'Out of Zone'}
+                        {shift.inGeofence ? "In Zone" : "Out of Zone"}
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.historyTimes}>
                     <View style={styles.timeBlock}>
-                      <Text style={[styles.timeLabel, { color: textColor }]}>Start</Text>
-                      <Text style={[styles.timeValue, { color: textColor }]}>{shift.startTime}</Text>
-                    </View>
-                    
-                    <View style={styles.timeBlock}>
-                      <Text style={[styles.timeLabel, { color: textColor }]}>End</Text>
+                      <Text style={[styles.timeLabel, { color: textColor }]}>
+                        Start
+                      </Text>
                       <Text style={[styles.timeValue, { color: textColor }]}>
-                        {shift.endTime || 'Active'}
+                        {shift.startTime}
                       </Text>
                     </View>
-                    
+
                     <View style={styles.timeBlock}>
-                      <Text style={[styles.timeLabel, { color: textColor }]}>Duration</Text>
+                      <Text style={[styles.timeLabel, { color: textColor }]}>
+                        End
+                      </Text>
                       <Text style={[styles.timeValue, { color: textColor }]}>
-                        {shift.duration || '-'}
+                        {shift.endTime || "Active"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.timeBlock}>
+                      <Text style={[styles.timeLabel, { color: textColor }]}>
+                        Duration
+                      </Text>
+                      <Text style={[styles.timeValue, { color: textColor }]}>
+                        {shift.duration || "-"}
                       </Text>
                     </View>
                   </View>
-                  
+
                   {shift.totalDistance && (
                     <View style={styles.distanceContainer}>
-                      <Ionicons name="trending-up" size={14} color={textColor} />
+                      <Ionicons
+                        name="trending-up"
+                        size={14}
+                        color={textColor}
+                      />
                       <Text style={[styles.distanceText, { color: textColor }]}>
                         {`${Math.round(shift.totalDistance)} meters traveled`}
                       </Text>
@@ -458,32 +505,35 @@ export default function ShiftManagementScreen() {
             </View>
           )}
         </View>
-        
+
         {/* Information card */}
         <View style={[styles.card, { backgroundColor: cardColor }]}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>Shift Guidelines</Text>
-          
+          <Text style={[styles.cardTitle, { color: textColor }]}>
+            Shift Guidelines
+          </Text>
+
           <View style={styles.infoItem}>
             <Ionicons name="information-circle" size={18} color={accentColor} />
             <Text style={[styles.infoText, { color: textColor }]}>
               {canSubmitAnywhere
-                ? 'You are permitted to start and end shifts from any location.'
-                : 'Shifts must be started and ended within designated work areas.'
-              }
+                ? "You are permitted to start and end shifts from any location."
+                : "Shifts must be started and ended within designated work areas."}
             </Text>
           </View>
-          
+
           <View style={styles.infoItem}>
             <Ionicons name="location" size={18} color={accentColor} />
             <Text style={[styles.infoText, { color: textColor }]}>
-              Location tracking will continue throughout your shift for accurate reporting.
+              Location tracking will continue throughout your shift for accurate
+              reporting.
             </Text>
           </View>
-          
+
           <View style={styles.infoItem}>
             <Ionicons name="battery-charging" size={18} color={accentColor} />
             <Text style={[styles.infoText, { color: textColor }]}>
-              Ensure your phone is charged or charging during long shifts for uninterrupted tracking.
+              Ensure your phone is charged or charging during long shifts for
+              uninterrupted tracking.
             </Text>
           </View>
         </View>
@@ -505,22 +555,22 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 16,
   },
   shiftStatusContainer: {
     marginBottom: 12,
   },
   statusIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   statusIndicator: {
@@ -531,14 +581,14 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   shiftDetails: {
     marginLeft: 20,
   },
   shiftTime: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   shiftDate: {
     fontSize: 12,
@@ -546,12 +596,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   geofenceStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
     borderRadius: 8,
   },
   geofenceText: {
@@ -562,32 +612,32 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 8,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1,
   },
   actionButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: "#ffffff",
+    fontWeight: "600",
     marginLeft: 8,
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fee2e2",
     padding: 10,
     borderRadius: 6,
     marginTop: 8,
   },
   errorText: {
-    color: '#b91c1c',
+    color: "#b91c1c",
     marginLeft: 8,
     fontSize: 14,
   },
@@ -596,17 +646,17 @@ const styles = StyleSheet.create({
   },
   historyItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    borderBottomColor: "rgba(0, 0, 0, 0.1)",
     paddingVertical: 12,
   },
   historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   historyDate: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   geofenceIndicator: {
     paddingHorizontal: 8,
@@ -615,12 +665,12 @@ const styles = StyleSheet.create({
   },
   geofenceIndicatorText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
   },
   historyTimes: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   timeBlock: {
@@ -632,12 +682,12 @@ const styles = StyleSheet.create({
   },
   timeValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 2,
   },
   distanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   distanceText: {
     fontSize: 12,
@@ -645,16 +695,16 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     padding: 20,
     opacity: 0.7,
   },
   infoItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   infoText: {
     marginLeft: 8,
     flex: 1,
   },
-}); 
+});

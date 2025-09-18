@@ -10,4 +10,4 @@ export interface User {
 }
 
 // Export OTP types
-export * from './otp'; 
+export * from "./otp";

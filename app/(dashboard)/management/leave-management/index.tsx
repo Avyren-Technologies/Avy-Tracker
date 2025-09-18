@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform, StatusBar, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../context/ThemeContext';
-import LeaveApprovals from './components/LeaveApprovals';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  StatusBar,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../context/ThemeContext";
+import LeaveApprovals from "./components/LeaveApprovals";
 // import LeaveBalanceTracker from '../leave-insights/components/LeaveBalanceTracker';
 // import LeaveAnalytics from './components/LeaveAnalytics';
-import LeavePolicies from './components/LeavePolicies';
-import LeaveTypes from './components/LeaveTypes';
-import LeaveBalances from './components/LeaveBalances';
-import LeaveBalanceManager from './components/LeaveBalanceManager';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import LeavePolicies from "./components/LeavePolicies";
+import LeaveTypes from "./components/LeaveTypes";
+import LeaveBalances from "./components/LeaveBalances";
+import LeaveBalanceManager from "./components/LeaveBalanceManager";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { managementNavItems } from "../utils/navigationItems";
 import BottomNav from "../../../components/BottomNav";
 
@@ -156,8 +165,8 @@ export default function LeaveManagement() {
                     ? "bg-gray-800"
                     : "bg-white"
                   : isDark
-                  ? "bg-gray-800/50"
-                  : "bg-gray-100"
+                    ? "bg-gray-800/50"
+                    : "bg-gray-100"
               }`}
               style={[
                 styles.tabButton,
@@ -177,8 +186,8 @@ export default function LeaveManagement() {
                   activeTab === tab.id
                     ? tab.color
                     : isDark
-                    ? "#9CA3AF"
-                    : "#6B7280"
+                      ? "#9CA3AF"
+                      : "#6B7280"
                 }
                 style={{ marginRight: 8 }}
               />
@@ -189,8 +198,8 @@ export default function LeaveManagement() {
                       ? "text-white"
                       : "text-gray-900"
                     : isDark
-                    ? "text-gray-400"
-                    : "text-gray-600"
+                      ? "text-gray-400"
+                      : "text-gray-600"
                 }`}
                 style={activeTab === tab.id ? { color: tab.color } : {}}
               >
@@ -216,21 +225,21 @@ export default function LeaveManagement() {
 
 const styles = StyleSheet.create({
   header: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   backButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
   tabButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.18,
     shadowRadius: 1.0,
@@ -241,4 +250,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
-}); 
+});

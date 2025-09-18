@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,13 @@ import {
   TextInput,
   Switch,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../../context/ThemeContext';
-import AuthContext from '../../../../context/AuthContext';
-import axios from 'axios';
-import Modal from 'react-native-modal';
-import { Picker } from '@react-native-picker/picker';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../../context/ThemeContext";
+import AuthContext from "../../../../context/AuthContext";
+import axios from "axios";
+import Modal from "react-native-modal";
+import { Picker } from "@react-native-picker/picker";
 
 interface LeaveType {
   id: number;
@@ -50,7 +50,7 @@ interface FormData {
 export default function LeavePolicies() {
   const { theme } = ThemeContext.useTheme();
   const { token } = AuthContext.useAuth();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   const [policies, setPolicies] = useState<LeavePolicy[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -61,14 +61,14 @@ export default function LeavePolicies() {
 
   // Form state with proper typing
   const [formData, setFormData] = useState<FormData>({
-    leave_type_id: '',
-    default_days: '',
-    carry_forward_days: '',
-    min_service_days: '',
+    leave_type_id: "",
+    default_days: "",
+    carry_forward_days: "",
+    min_service_days: "",
     requires_approval: true,
-    notice_period_days: '',
-    max_consecutive_days: '',
-    gender_specific: '',
+    notice_period_days: "",
+    max_consecutive_days: "",
+    gender_specific: "",
     is_active: true,
   });
 
@@ -82,19 +82,19 @@ export default function LeavePolicies() {
       const [policiesRes, typesRes] = await Promise.all([
         axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-policies`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         ),
         axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+          { headers: { Authorization: `Bearer ${token}` } },
+        ),
       ]);
 
       setPolicies(policiesRes.data);
       setLeaveTypes(typesRes.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Failed to fetch data');
+      console.error("Error fetching data:", error);
+      setError("Failed to fetch data");
     } finally {
       setLoading(false);
     }
@@ -103,36 +103,36 @@ export default function LeavePolicies() {
   const handleSubmit = async () => {
     try {
       if (!formData.leave_type_id) {
-        Alert.alert('Error', 'Please select a leave type');
+        Alert.alert("Error", "Please select a leave type");
         return;
       }
 
       // Validate numeric fields
       const numericFields = [
-        'default_days',
-        'carry_forward_days',
-        'min_service_days',
-        'notice_period_days',
-        'max_consecutive_days'
+        "default_days",
+        "carry_forward_days",
+        "min_service_days",
+        "notice_period_days",
+        "max_consecutive_days",
       ] as const;
 
-      const invalidFields = numericFields.filter(field => {
+      const invalidFields = numericFields.filter((field) => {
         const value = parseInt(formData[field]);
         return isNaN(value) || value < 0;
       });
 
       if (invalidFields.length > 0) {
-        Alert.alert('Error', 'Please enter valid numbers for all day fields');
+        Alert.alert("Error", "Please enter valid numbers for all day fields");
         return;
       }
 
       setLoading(true);
       const endpoint = editingPolicy
         ? `/api/leave-management/leave-policies/${editingPolicy.id}`
-        : '/api/leave-management/leave-policies';
-      
-      const method = editingPolicy ? 'put' : 'post';
-      
+        : "/api/leave-management/leave-policies";
+
+      const method = editingPolicy ? "put" : "post";
+
       const payload = {
         ...formData,
         default_days: parseInt(formData.default_days),
@@ -144,47 +144,51 @@ export default function LeavePolicies() {
         leave_type_id: parseInt(formData.leave_type_id),
       };
 
-      console.log('Submitting policy with payload:', payload);
+      console.log("Submitting policy with payload:", payload);
 
       const response = await axios[method](
         `${process.env.EXPO_PUBLIC_API_URL}${endpoint}`,
         payload,
         {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data) {
-        console.log('Policy updated successfully:', response.data);
+        console.log("Policy updated successfully:", response.data);
         // Immediately update the local state to reflect changes
         if (editingPolicy) {
-          setPolicies(prevPolicies => 
-            prevPolicies.map(policy => 
-              policy.id === editingPolicy.id 
+          setPolicies((prevPolicies) =>
+            prevPolicies.map((policy) =>
+              policy.id === editingPolicy.id
                 ? { ...policy, ...payload, id: policy.id }
-                : policy
-            )
+                : policy,
+            ),
           );
         } else {
-          setPolicies(prevPolicies => [...prevPolicies, response.data]);
+          setPolicies((prevPolicies) => [...prevPolicies, response.data]);
         }
-        
+
         // Fetch fresh data to ensure consistency
         await fetchData();
         setShowAddModal(false);
         resetForm();
-        Alert.alert('Success', `Policy ${editingPolicy ? 'updated' : 'created'} successfully`);
+        Alert.alert(
+          "Success",
+          `Policy ${editingPolicy ? "updated" : "created"} successfully`,
+        );
       }
     } catch (error) {
-      console.error('Error saving policy:', error);
+      console.error("Error saving policy:", error);
       if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.error || 'Failed to save policy';
-        Alert.alert('Error', errorMessage);
+        const errorMessage =
+          error.response?.data?.error || "Failed to save policy";
+        Alert.alert("Error", errorMessage);
       } else {
-        Alert.alert('Error', 'Failed to save policy');
+        Alert.alert("Error", "Failed to save policy");
       }
     } finally {
       setLoading(false);
@@ -193,14 +197,14 @@ export default function LeavePolicies() {
 
   const resetForm = () => {
     setFormData({
-      leave_type_id: '',
-      default_days: '',
-      carry_forward_days: '',
-      min_service_days: '',
+      leave_type_id: "",
+      default_days: "",
+      carry_forward_days: "",
+      min_service_days: "",
       requires_approval: true,
-      notice_period_days: '',
-      max_consecutive_days: '',
-      gender_specific: '',
+      notice_period_days: "",
+      max_consecutive_days: "",
+      gender_specific: "",
       is_active: true,
     });
     setEditingPolicy(null);
@@ -216,7 +220,7 @@ export default function LeavePolicies() {
       requires_approval: policy.requires_approval,
       notice_period_days: policy.notice_period_days.toString(),
       max_consecutive_days: policy.max_consecutive_days.toString(),
-      gender_specific: policy.gender_specific || '',
+      gender_specific: policy.gender_specific || "",
       is_active: policy.is_active,
     });
     setShowAddModal(true);
@@ -229,28 +233,31 @@ export default function LeavePolicies() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-policies/${policy.id}`,
         {
           ...policy,
-          is_active: !policy.is_active
+          is_active: !policy.is_active,
         },
         {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data) {
         // Update local state immediately
-        setPolicies(prevPolicies =>
-          prevPolicies.map(p =>
-            p.id === policy.id ? { ...p, is_active: !p.is_active } : p
-          )
+        setPolicies((prevPolicies) =>
+          prevPolicies.map((p) =>
+            p.id === policy.id ? { ...p, is_active: !p.is_active } : p,
+          ),
         );
-        Alert.alert('Success', `Policy ${!policy.is_active ? 'activated' : 'deactivated'} successfully`);
+        Alert.alert(
+          "Success",
+          `Policy ${!policy.is_active ? "activated" : "deactivated"} successfully`,
+        );
       }
     } catch (error) {
-      console.error('Error toggling policy status:', error);
-      Alert.alert('Error', 'Failed to update policy status');
+      console.error("Error toggling policy status:", error);
+      Alert.alert("Error", "Failed to update policy status");
     } finally {
       setLoading(false);
     }
@@ -268,7 +275,9 @@ export default function LeavePolicies() {
     <View className="flex-1">
       {/* Header with Add Button */}
       <View className="flex-row justify-between items-center mb-6">
-        <Text className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        <Text
+          className={`text-xl font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+        >
           Leave Policies
         </Text>
         <TouchableOpacity
@@ -290,76 +299,88 @@ export default function LeavePolicies() {
             key={policy.id}
             onPress={() => handleEdit(policy)}
             className={`mb-4 p-4 rounded-lg ${
-              isDark ? 'bg-gray-800' : 'bg-white'
+              isDark ? "bg-gray-800" : "bg-white"
             }`}
           >
             <View className="flex-row justify-between items-center">
-              <Text className={`text-lg font-semibold ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
+              <Text
+                className={`text-lg font-semibold ${
+                  isDark ? "text-white" : "text-gray-900"
+                }`}
+              >
                 {policy.leave_type_name}
               </Text>
               <TouchableOpacity
                 onPress={() => handleToggleActive(policy)}
                 className={`px-3 py-1.5 rounded-full ${
                   policy.is_active
-                    ? isDark ? 'bg-green-900' : 'bg-green-100'
-                    : isDark ? 'bg-red-900' : 'bg-red-100'
+                    ? isDark
+                      ? "bg-green-900"
+                      : "bg-green-100"
+                    : isDark
+                      ? "bg-red-900"
+                      : "bg-red-100"
                 }`}
               >
-                <Text className={`text-sm font-medium ${
-                  policy.is_active
-                    ? isDark ? 'text-green-200' : 'text-green-800'
-                    : isDark ? 'text-red-200' : 'text-red-800'
-                }`}>
-                  {policy.is_active ? 'Active' : 'Inactive'}
+                <Text
+                  className={`text-sm font-medium ${
+                    policy.is_active
+                      ? isDark
+                        ? "text-green-200"
+                        : "text-green-800"
+                      : isDark
+                        ? "text-red-200"
+                        : "text-red-800"
+                  }`}
+                >
+                  {policy.is_active ? "Active" : "Inactive"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View className="mt-4 space-y-2">
               <View className="flex-row justify-between">
-                <Text className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                <Text className={isDark ? "text-gray-400" : "text-gray-600"}>
                   Default Days:
                 </Text>
-                <Text className={isDark ? 'text-white' : 'text-gray-900'}>
+                <Text className={isDark ? "text-white" : "text-gray-900"}>
                   {policy.default_days}
                 </Text>
               </View>
 
               <View className="flex-row justify-between">
-                <Text className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                <Text className={isDark ? "text-gray-400" : "text-gray-600"}>
                   Carry Forward:
                 </Text>
-                <Text className={isDark ? 'text-white' : 'text-gray-900'}>
+                <Text className={isDark ? "text-white" : "text-gray-900"}>
                   {policy.carry_forward_days} days
                 </Text>
               </View>
 
               <View className="flex-row justify-between">
-                <Text className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                <Text className={isDark ? "text-gray-400" : "text-gray-600"}>
                   Min Service:
                 </Text>
-                <Text className={isDark ? 'text-white' : 'text-gray-900'}>
+                <Text className={isDark ? "text-white" : "text-gray-900"}>
                   {policy.min_service_days} days
                 </Text>
               </View>
 
               <View className="flex-row justify-between">
-                <Text className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                <Text className={isDark ? "text-gray-400" : "text-gray-600"}>
                   Notice Period:
                 </Text>
-                <Text className={isDark ? 'text-white' : 'text-gray-900'}>
+                <Text className={isDark ? "text-white" : "text-gray-900"}>
                   {policy.notice_period_days} days
                 </Text>
               </View>
 
               {policy.gender_specific && (
                 <View className="flex-row justify-between">
-                  <Text className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                  <Text className={isDark ? "text-gray-400" : "text-gray-600"}>
                     Gender Specific:
                   </Text>
-                  <Text className={isDark ? 'text-white' : 'text-gray-900'}>
+                  <Text className={isDark ? "text-white" : "text-gray-900"}>
                     {policy.gender_specific}
                   </Text>
                 </View>
@@ -378,33 +399,41 @@ export default function LeavePolicies() {
         }}
         style={{ margin: 0 }}
       >
-        <View className={`m-4 p-6 rounded-2xl ${
-          isDark ? 'bg-gray-800' : 'bg-white'
-        }`}>
-          <Text className={`text-xl font-semibold mb-6 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
-            {editingPolicy ? 'Edit Policy' : 'Add Policy'}
+        <View
+          className={`m-4 p-6 rounded-2xl ${
+            isDark ? "bg-gray-800" : "bg-white"
+          }`}
+        >
+          <Text
+            className={`text-xl font-semibold mb-6 ${
+              isDark ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {editingPolicy ? "Edit Policy" : "Add Policy"}
           </Text>
 
           {/* Form Fields */}
           <ScrollView className="space-y-4">
             {/* Leave Type Picker */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${
-                isDark ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <Text
+                className={`text-sm font-medium mb-2 ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Leave Type
               </Text>
-              <View className={`border rounded-lg overflow-hidden ${
-                isDark ? 'border-gray-700' : 'border-gray-200'
-              }`}>
+              <View
+                className={`border rounded-lg overflow-hidden ${
+                  isDark ? "border-gray-700" : "border-gray-200"
+                }`}
+              >
                 <Picker
                   selectedValue={formData.leave_type_id}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, leave_type_id: value }))
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, leave_type_id: value }))
                   }
-                  style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                  style={{ color: isDark ? "#FFFFFF" : "#111827" }}
                 >
                   <Picker.Item label="Select Leave Type" value="" />
                   {leaveTypes.map((type) => (
@@ -420,50 +449,61 @@ export default function LeavePolicies() {
 
             {/* Numeric Inputs */}
             {[
-              { key: 'default_days', label: 'Default Days' },
-              { key: 'carry_forward_days', label: 'Carry Forward Days' },
-              { key: 'min_service_days', label: 'Minimum Service Days' },
-              { key: 'notice_period_days', label: 'Notice Period Days' },
-              { key: 'max_consecutive_days', label: 'Maximum Consecutive Days' },
+              { key: "default_days", label: "Default Days" },
+              { key: "carry_forward_days", label: "Carry Forward Days" },
+              { key: "min_service_days", label: "Minimum Service Days" },
+              { key: "notice_period_days", label: "Notice Period Days" },
+              {
+                key: "max_consecutive_days",
+                label: "Maximum Consecutive Days",
+              },
             ].map((field) => (
               <View key={field.key}>
-                <Text className={`text-sm font-medium mb-2 ${
-                  isDark ? 'text-gray-300' : 'text-gray-700'
-                }`}>
+                <Text
+                  className={`text-sm font-medium mb-2 ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
                   {field.label}
                 </Text>
                 <TextInput
-                  value={formData[field.key as keyof typeof formData].toString()}
-                  onChangeText={(text) => 
-                    setFormData(prev => ({ ...prev, [field.key]: text }))
+                  value={formData[
+                    field.key as keyof typeof formData
+                  ].toString()}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, [field.key]: text }))
                   }
                   keyboardType="numeric"
                   className={`p-3 rounded-lg border ${
                     isDark
-                      ? 'border-gray-700 bg-gray-700 text-white'
-                      : 'border-gray-200 bg-gray-50 text-gray-900'
+                      ? "border-gray-700 bg-gray-700 text-white"
+                      : "border-gray-200 bg-gray-50 text-gray-900"
                   }`}
-                  placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                  placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                 />
               </View>
             ))}
 
             {/* Gender Specific Picker */}
             <View>
-              <Text className={`text-sm font-medium mb-2 ${
-                isDark ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <Text
+                className={`text-sm font-medium mb-2 ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Gender Specific
               </Text>
-              <View className={`border rounded-lg overflow-hidden ${
-                isDark ? 'border-gray-700' : 'border-gray-200'
-              }`}>
+              <View
+                className={`border rounded-lg overflow-hidden ${
+                  isDark ? "border-gray-700" : "border-gray-200"
+                }`}
+              >
                 <Picker
                   selectedValue={formData.gender_specific}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, gender_specific: value }))
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, gender_specific: value }))
                   }
-                  style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                  style={{ color: isDark ? "#FFFFFF" : "#111827" }}
                 >
                   <Picker.Item label="All Genders" value="" />
                   <Picker.Item label="Male Only" value="male" />
@@ -474,29 +514,33 @@ export default function LeavePolicies() {
 
             {/* Switches */}
             <View className="flex-row justify-between items-center">
-              <Text className={`text-sm font-medium ${
-                isDark ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <Text
+                className={`text-sm font-medium ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Requires Approval
               </Text>
               <Switch
                 value={formData.requires_approval}
                 onValueChange={(value) =>
-                  setFormData(prev => ({ ...prev, requires_approval: value }))
+                  setFormData((prev) => ({ ...prev, requires_approval: value }))
                 }
               />
             </View>
 
             <View className="flex-row justify-between items-center">
-              <Text className={`text-sm font-medium ${
-                isDark ? 'text-gray-300' : 'text-gray-700'
-              }`}>
+              <Text
+                className={`text-sm font-medium ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Active
               </Text>
               <Switch
                 value={formData.is_active}
                 onValueChange={(value) =>
-                  setFormData(prev => ({ ...prev, is_active: value }))
+                  setFormData((prev) => ({ ...prev, is_active: value }))
                 }
               />
             </View>
@@ -510,16 +554,18 @@ export default function LeavePolicies() {
                 resetForm();
               }}
               className={`flex-1 py-3 rounded-lg ${
-                isDark ? 'bg-gray-700' : 'bg-gray-100'
+                isDark ? "bg-gray-700" : "bg-gray-100"
               }`}
             >
-              <Text className={`text-center font-medium ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
+              <Text
+                className={`text-center font-medium ${
+                  isDark ? "text-white" : "text-gray-900"
+                }`}
+              >
                 Cancel
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={loading}
@@ -529,7 +575,7 @@ export default function LeavePolicies() {
                 <ActivityIndicator color="white" size="small" />
               ) : (
                 <Text className="text-white text-center font-medium">
-                  {editingPolicy ? 'Update' : 'Create'}
+                  {editingPolicy ? "Update" : "Create"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -538,4 +584,4 @@ export default function LeavePolicies() {
       </Modal>
     </View>
   );
-} 
+}

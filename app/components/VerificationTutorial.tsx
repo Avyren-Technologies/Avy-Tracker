@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
   Dimensions,
   AccessibilityInfo,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 interface TutorialStep {
   id: string;
@@ -28,7 +28,7 @@ interface TutorialStep {
 
 interface VerificationTutorialProps {
   visible: boolean;
-  mode: 'register' | 'verify';
+  mode: "register" | "verify";
   onComplete: () => void;
   onSkip: () => void;
   enableVoiceGuidance?: boolean;
@@ -37,10 +37,10 @@ interface VerificationTutorialProps {
 
 /**
  * Verification Tutorial Component
- * 
+ *
  * Provides step-by-step tutorial for face verification process.
  * Includes accessibility features and voice guidance for visually impaired users.
- * 
+ *
  * Requirements addressed:
  * - 1.7: Step-by-step verification tutorials
  * - 6.3: User guidance and help features
@@ -55,11 +55,11 @@ export default function VerificationTutorial({
   autoAdvance = false,
 }: VerificationTutorialProps) {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#1f2937', '#f8fafc');
-  const primaryColor = useThemeColor('#3b82f6', '#60a5fa');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const warningColor = useThemeColor('#f59e0b', '#fbbf24');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#1f2937", "#f8fafc");
+  const primaryColor = useThemeColor("#3b82f6", "#60a5fa");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const warningColor = useThemeColor("#f59e0b", "#fbbf24");
 
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -72,85 +72,97 @@ export default function VerificationTutorial({
    */
   const registrationSteps: TutorialStep[] = [
     {
-      id: 'welcome',
-      title: 'Welcome to Face Registration',
-      description: 'We\'ll help you set up face verification for secure shift operations. This process takes about 2-3 minutes.',
-      icon: 'person-add',
+      id: "welcome",
+      title: "Welcome to Face Registration",
+      description:
+        "We'll help you set up face verification for secure shift operations. This process takes about 2-3 minutes.",
+      icon: "person-add",
       tips: [
-        'Find a well-lit area',
-        'Remove glasses if possible',
-        'Ensure your face is clearly visible',
+        "Find a well-lit area",
+        "Remove glasses if possible",
+        "Ensure your face is clearly visible",
       ],
-      voiceInstructions: 'Welcome to face registration. We will guide you through setting up face verification for secure shift operations.',
+      voiceInstructions:
+        "Welcome to face registration. We will guide you through setting up face verification for secure shift operations.",
       duration: 30,
     },
     {
-      id: 'positioning',
-      title: 'Position Your Face',
-      description: 'Center your face in the frame. Keep your head straight and look directly at the camera.',
-      icon: 'scan',
+      id: "positioning",
+      title: "Position Your Face",
+      description:
+        "Center your face in the frame. Keep your head straight and look directly at the camera.",
+      icon: "scan",
       tips: [
-        'Hold the device at eye level',
-        'Keep your face centered in the oval',
-        'Maintain a neutral expression',
-        'Stay within arm\'s length of the camera',
+        "Hold the device at eye level",
+        "Keep your face centered in the oval",
+        "Maintain a neutral expression",
+        "Stay within arm's length of the camera",
       ],
-      voiceInstructions: 'Position your face in the center of the frame. Hold the device at eye level and look directly at the camera.',
+      voiceInstructions:
+        "Position your face in the center of the frame. Hold the device at eye level and look directly at the camera.",
       duration: 45,
     },
     {
-      id: 'lighting',
-      title: 'Check Lighting Conditions',
-      description: 'Good lighting is essential for accurate face detection. Avoid shadows and backlighting.',
-      icon: 'sunny',
+      id: "lighting",
+      title: "Check Lighting Conditions",
+      description:
+        "Good lighting is essential for accurate face detection. Avoid shadows and backlighting.",
+      icon: "sunny",
       tips: [
-        'Face a window or light source',
-        'Avoid shadows on your face',
-        'Turn on room lights if needed',
-        'Avoid bright lights behind you',
+        "Face a window or light source",
+        "Avoid shadows on your face",
+        "Turn on room lights if needed",
+        "Avoid bright lights behind you",
       ],
-      voiceInstructions: 'Ensure good lighting conditions. Face a light source and avoid shadows on your face.',
+      voiceInstructions:
+        "Ensure good lighting conditions. Face a light source and avoid shadows on your face.",
       duration: 30,
     },
     {
-      id: 'liveness',
-      title: 'Liveness Detection',
-      description: 'We\'ll ask you to blink naturally to verify you\'re a real person, not a photo.',
-      icon: 'eye',
+      id: "liveness",
+      title: "Liveness Detection",
+      description:
+        "We'll ask you to blink naturally to verify you're a real person, not a photo.",
+      icon: "eye",
       tips: [
-        'Blink naturally when prompted',
-        'Don\'t force or exaggerate blinks',
-        'Keep looking at the camera',
-        'Stay still during detection',
+        "Blink naturally when prompted",
+        "Don't force or exaggerate blinks",
+        "Keep looking at the camera",
+        "Stay still during detection",
       ],
-      voiceInstructions: 'When prompted, blink naturally to verify liveness. Keep looking at the camera and stay still.',
+      voiceInstructions:
+        "When prompted, blink naturally to verify liveness. Keep looking at the camera and stay still.",
       duration: 60,
     },
     {
-      id: 'capture',
-      title: 'Photo Capture',
-      description: 'Once everything looks good, we\'ll automatically capture your photo for registration.',
-      icon: 'camera',
+      id: "capture",
+      title: "Photo Capture",
+      description:
+        "Once everything looks good, we'll automatically capture your photo for registration.",
+      icon: "camera",
       tips: [
-        'Hold still when capturing',
-        'Maintain your position',
-        'Don\'t move until capture is complete',
-        'The photo will be taken automatically',
+        "Hold still when capturing",
+        "Maintain your position",
+        "Don't move until capture is complete",
+        "The photo will be taken automatically",
       ],
-      voiceInstructions: 'Hold still while we capture your photo. The photo will be taken automatically when conditions are optimal.',
+      voiceInstructions:
+        "Hold still while we capture your photo. The photo will be taken automatically when conditions are optimal.",
       duration: 15,
     },
     {
-      id: 'completion',
-      title: 'Registration Complete',
-      description: 'Your face profile has been registered successfully. You can now use face verification for shift operations.',
-      icon: 'checkmark-circle',
+      id: "completion",
+      title: "Registration Complete",
+      description:
+        "Your face profile has been registered successfully. You can now use face verification for shift operations.",
+      icon: "checkmark-circle",
       tips: [
-        'Your face data is encrypted and secure',
-        'You can update your profile anytime',
-        'Face verification will be required for shifts',
+        "Your face data is encrypted and secure",
+        "You can update your profile anytime",
+        "Face verification will be required for shifts",
       ],
-      voiceInstructions: 'Registration complete. Your face profile has been registered successfully and securely.',
+      voiceInstructions:
+        "Registration complete. Your face profile has been registered successfully and securely.",
       duration: 20,
     },
   ];
@@ -160,93 +172,105 @@ export default function VerificationTutorial({
    */
   const verificationSteps: TutorialStep[] = [
     {
-      id: 'welcome',
-      title: 'Face Verification',
-      description: 'We\'ll verify your identity using your registered face profile. This process is quick and secure.',
-      icon: 'shield-checkmark',
+      id: "welcome",
+      title: "Face Verification",
+      description:
+        "We'll verify your identity using your registered face profile. This process is quick and secure.",
+      icon: "shield-checkmark",
       tips: [
-        'Use the same lighting conditions as registration',
-        'Position your face as you did during registration',
-        'The process takes about 30 seconds',
+        "Use the same lighting conditions as registration",
+        "Position your face as you did during registration",
+        "The process takes about 30 seconds",
       ],
-      voiceInstructions: 'Starting face verification. We will verify your identity using your registered face profile.',
+      voiceInstructions:
+        "Starting face verification. We will verify your identity using your registered face profile.",
       duration: 20,
     },
     {
-      id: 'positioning',
-      title: 'Position Your Face',
-      description: 'Center your face in the frame, just like during registration.',
-      icon: 'scan',
+      id: "positioning",
+      title: "Position Your Face",
+      description:
+        "Center your face in the frame, just like during registration.",
+      icon: "scan",
       tips: [
-        'Use the same position as registration',
-        'Keep your face centered',
-        'Look directly at the camera',
-        'Hold the device steady',
+        "Use the same position as registration",
+        "Keep your face centered",
+        "Look directly at the camera",
+        "Hold the device steady",
       ],
-      voiceInstructions: 'Position your face in the center of the frame, similar to your registration.',
+      voiceInstructions:
+        "Position your face in the center of the frame, similar to your registration.",
       duration: 30,
     },
     {
-      id: 'liveness',
-      title: 'Liveness Check',
-      description: 'Blink naturally when prompted to verify you\'re present.',
-      icon: 'eye',
+      id: "liveness",
+      title: "Liveness Check",
+      description: "Blink naturally when prompted to verify you're present.",
+      icon: "eye",
       tips: [
-        'Blink naturally when asked',
-        'Keep your eyes open most of the time',
-        'Don\'t cover your face',
-        'Stay still during detection',
+        "Blink naturally when asked",
+        "Keep your eyes open most of the time",
+        "Don't cover your face",
+        "Stay still during detection",
       ],
-      voiceInstructions: 'Blink naturally when prompted for liveness verification.',
+      voiceInstructions:
+        "Blink naturally when prompted for liveness verification.",
       duration: 45,
     },
     {
-      id: 'verification',
-      title: 'Verifying Identity',
-      description: 'We\'re comparing your face with the registered profile. Please hold still.',
-      icon: 'sync',
+      id: "verification",
+      title: "Verifying Identity",
+      description:
+        "We're comparing your face with the registered profile. Please hold still.",
+      icon: "sync",
       tips: [
-        'Hold your position steady',
-        'Don\'t move until verification completes',
-        'Keep looking at the camera',
-        'Verification usually takes 5-10 seconds',
+        "Hold your position steady",
+        "Don't move until verification completes",
+        "Keep looking at the camera",
+        "Verification usually takes 5-10 seconds",
       ],
-      voiceInstructions: 'Verifying your identity. Please hold still while we compare your face with the registered profile.',
+      voiceInstructions:
+        "Verifying your identity. Please hold still while we compare your face with the registered profile.",
       duration: 15,
     },
     {
-      id: 'completion',
-      title: 'Verification Complete',
-      description: 'Identity verified successfully. You can now proceed with your shift operation.',
-      icon: 'checkmark-circle',
+      id: "completion",
+      title: "Verification Complete",
+      description:
+        "Identity verified successfully. You can now proceed with your shift operation.",
+      icon: "checkmark-circle",
       tips: [
-        'Verification was successful',
-        'You can now start or end your shift',
-        'Your identity has been confirmed',
+        "Verification was successful",
+        "You can now start or end your shift",
+        "Your identity has been confirmed",
       ],
-      voiceInstructions: 'Verification complete. Your identity has been confirmed successfully.',
+      voiceInstructions:
+        "Verification complete. Your identity has been confirmed successfully.",
       duration: 15,
     },
   ];
 
-  const steps = mode === 'register' ? registrationSteps : verificationSteps;
+  const steps = mode === "register" ? registrationSteps : verificationSteps;
 
   /**
    * Announce step to screen readers
    */
-  const announceStep = useCallback((step: TutorialStep) => {
-    if (Platform.OS === 'ios' && enableVoiceGuidance) {
-      const announcement = `Step ${currentStep + 1} of ${steps.length}. ${step.title}. ${step.voiceInstructions}`;
-      AccessibilityInfo.announceForAccessibility(announcement);
-    }
-  }, [enableVoiceGuidance, currentStep, steps.length]);
+  const announceStep = useCallback(
+    (step: TutorialStep) => {
+      if (Platform.OS === "ios" && enableVoiceGuidance) {
+        const announcement = `Step ${currentStep + 1} of ${steps.length}. ${step.title}. ${step.voiceInstructions}`;
+        AccessibilityInfo.announceForAccessibility(announcement);
+      }
+    },
+    [enableVoiceGuidance, currentStep, steps.length],
+  );
 
   /**
    * Go to next step
    */
   const nextStep = useCallback(() => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
       onComplete();
     }
@@ -257,7 +281,7 @@ export default function VerificationTutorial({
    */
   const previousStep = useCallback(() => {
     if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
     }
   }, [currentStep]);
 
@@ -273,11 +297,11 @@ export default function VerificationTutorial({
    */
   const startPlayback = useCallback(() => {
     setIsPlaying(true);
-    
+
     if (autoAdvance) {
       const step = steps[currentStep];
       const duration = step.duration || 30;
-      
+
       setTimeout(() => {
         if (currentStep < steps.length - 1) {
           nextStep();
@@ -382,15 +406,15 @@ export default function VerificationTutorial({
             accessibilityLabel="Skip tutorial"
             accessibilityHint="Skip the tutorial and proceed directly"
           >
-            <Text style={[styles.skipText, { color: primaryColor }]}>
-              Skip
-            </Text>
+            <Text style={[styles.skipText, { color: primaryColor }]}>Skip</Text>
           </TouchableOpacity>
-          
+
           <Text style={[styles.headerTitle, { color: textColor }]}>
-            {mode === 'register' ? 'Face Registration Tutorial' : 'Face Verification Tutorial'}
+            {mode === "register"
+              ? "Face Registration Tutorial"
+              : "Face Verification Tutorial"}
           </Text>
-          
+
           <View style={styles.headerSpacer} />
         </View>
 
@@ -427,12 +451,10 @@ export default function VerificationTutorial({
             showsVerticalScrollIndicator={false}
           >
             {/* Step Icon */}
-            <View style={[styles.iconContainer, { backgroundColor: primaryColor }]}>
-              <Ionicons
-                name={currentStepData.icon}
-                size={48}
-                color="#ffffff"
-              />
+            <View
+              style={[styles.iconContainer, { backgroundColor: primaryColor }]}
+            >
+              <Ionicons name={currentStepData.icon} size={48} color="#ffffff" />
             </View>
 
             {/* Step Title */}
@@ -501,7 +523,7 @@ export default function VerificationTutorial({
               styles.prevButton,
               {
                 opacity: currentStep === 0 ? 0.3 : 1,
-                backgroundColor: 'rgba(0,0,0,0.1)',
+                backgroundColor: "rgba(0,0,0,0.1)",
               },
             ]}
             accessibilityLabel="Previous step"
@@ -518,8 +540,14 @@ export default function VerificationTutorial({
             <TouchableOpacity
               onPress={isPlaying ? pausePlayback : startPlayback}
               style={[styles.playButton, { backgroundColor: primaryColor }]}
-              accessibilityLabel={isPlaying ? "Pause tutorial" : "Play tutorial"}
-              accessibilityHint={isPlaying ? "Pause automatic progression" : "Start automatic progression"}
+              accessibilityLabel={
+                isPlaying ? "Pause tutorial" : "Play tutorial"
+              }
+              accessibilityHint={
+                isPlaying
+                  ? "Pause automatic progression"
+                  : "Start automatic progression"
+              }
             >
               <Ionicons
                 name={isPlaying ? "pause" : "play"}
@@ -536,14 +564,26 @@ export default function VerificationTutorial({
               styles.nextButton,
               { backgroundColor: primaryColor },
             ]}
-            accessibilityLabel={currentStep === steps.length - 1 ? "Complete tutorial" : "Next step"}
-            accessibilityHint={currentStep === steps.length - 1 ? "Complete the tutorial" : "Go to the next tutorial step"}
+            accessibilityLabel={
+              currentStep === steps.length - 1
+                ? "Complete tutorial"
+                : "Next step"
+            }
+            accessibilityHint={
+              currentStep === steps.length - 1
+                ? "Complete the tutorial"
+                : "Go to the next tutorial step"
+            }
           >
-            <Text style={[styles.navButtonText, { color: '#ffffff' }]}>
-              {currentStep === steps.length - 1 ? 'Complete' : 'Next'}
+            <Text style={[styles.navButtonText, { color: "#ffffff" }]}>
+              {currentStep === steps.length - 1 ? "Complete" : "Next"}
             </Text>
             <Ionicons
-              name={currentStep === steps.length - 1 ? "checkmark" : "chevron-forward"}
+              name={
+                currentStep === steps.length - 1
+                  ? "checkmark"
+                  : "chevron-forward"
+              }
               size={20}
               color="#ffffff"
             />
@@ -560,8 +600,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -570,39 +610,39 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   headerSpacer: {
     width: 60,
   },
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 30,
   },
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
     borderRadius: 3,
     marginRight: 12,
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 3,
   },
   progressText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     minWidth: 60,
-    textAlign: 'right',
+    textAlign: "right",
   },
   contentContainer: {
     flex: 1,
@@ -618,27 +658,27 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
     marginBottom: 24,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 16,
     lineHeight: 32,
   },
   stepDescription: {
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     opacity: 0.8,
   },
@@ -647,12 +687,12 @@ const styles = StyleSheet.create({
   },
   tipsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
   tipIcon: {
@@ -665,11 +705,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   durationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: "rgba(0,0,0,0.05)",
     borderRadius: 8,
   },
   durationIcon: {
@@ -677,25 +717,25 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   navigationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: "rgba(0,0,0,0.1)",
   },
   navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
     minWidth: 100,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   prevButton: {
     flex: 1,
@@ -709,13 +749,13 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginHorizontal: 10,
   },
   navButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginHorizontal: 8,
   },
 });

@@ -34,7 +34,6 @@ import { Location as AppLocation } from "../../types/liveTracking";
 import { AppState } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
 // Import new components
 import FaceVerificationModal from "../../components/FaceVerificationModal";
 import OTPVerification from "../../components/OTPVerification";
@@ -85,7 +84,7 @@ interface VerificationState {
     face: FaceVerificationResult | null;
     location: LocationResult | null;
   };
-  currentStep: 'location' | 'face' | 'complete';
+  currentStep: "location" | "face" | "complete";
   retryCount: number;
   maxRetries: number;
   canOverride: boolean;
@@ -106,7 +105,7 @@ interface LocationResult {
 interface OfflineVerificationData {
   id: string;
   timestamp: number;
-  shiftAction: 'start' | 'end';
+  shiftAction: "start" | "end";
   faceVerification?: FaceVerificationResult;
   locationVerification?: LocationResult;
   userId: number;
@@ -346,7 +345,7 @@ const getRoleSpecificTitle = (role: string) => {
 const formatElapsedTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   } else {
@@ -365,19 +364,24 @@ let lastRequestTime = 0;
 const REQUEST_INTERVAL = 1000; // 1 second between requests
 
 // Enhanced function to get address from coordinates using OpenStreetMap Nominatim API
-const getLocationAddress = async (latitude: number, longitude: number): Promise<string> => {
+const getLocationAddress = async (
+  latitude: number,
+  longitude: number,
+): Promise<string> => {
   try {
     // Check if we have valid coordinates
     if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
-      console.log('Invalid coordinates provided for geocoding');
-      return 'Unknown Location';
+      console.log("Invalid coordinates provided for geocoding");
+      return "Unknown Location";
     }
 
     // Rate limiting: ensure we don't make requests too frequently
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < REQUEST_INTERVAL) {
-      await new Promise(resolve => setTimeout(resolve, REQUEST_INTERVAL - timeSinceLastRequest));
+      await new Promise((resolve) =>
+        setTimeout(resolve, REQUEST_INTERVAL - timeSinceLastRequest),
+      );
     }
     lastRequestTime = Date.now();
 
@@ -386,9 +390,10 @@ const getLocationAddress = async (latitude: number, longitude: number): Promise<
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=en`,
       {
         headers: {
-          'User-Agent': 'AvyTracker/1.0 (com.avyren.avytracker; contact@avyren.com)',
+          "User-Agent":
+            "AvyTracker/1.0 (com.avyren.avytracker; contact@avyren.com)",
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -400,10 +405,10 @@ const getLocationAddress = async (latitude: number, longitude: number): Promise<
     if (data && data.display_name) {
       // Extract address components from Nominatim response
       const address = data.address || {};
-      
+
       // Build concise address from available components
       const addressParts = [];
-      
+
       // Try to get street-level information first
       if (address.house_number && address.road) {
         addressParts.push(`${address.house_number} ${address.road}`);
@@ -414,7 +419,7 @@ const getLocationAddress = async (latitude: number, longitude: number): Promise<
       } else if (address.footway) {
         addressParts.push(address.footway);
       }
-      
+
       // Add locality information
       if (address.city) {
         addressParts.push(address.city);
@@ -427,7 +432,7 @@ const getLocationAddress = async (latitude: number, longitude: number): Promise<
       } else if (address.suburb) {
         addressParts.push(address.suburb);
       }
-      
+
       // Add administrative area
       if (address.state) {
         addressParts.push(address.state);
@@ -439,33 +444,35 @@ const getLocationAddress = async (latitude: number, longitude: number): Promise<
 
       // Return concise address if we have components
       if (addressParts.length > 0) {
-        return addressParts.join(', ');
+        return addressParts.join(", ");
       }
-      
+
       // Fallback to display_name if no components found
       const displayName = data.display_name;
       if (displayName) {
         // Split by comma and take first 2 parts for brevity
-        const parts = displayName.split(',').map((part: string) => part.trim());
-        return parts.slice(0, 2).join(', ');
+        const parts = displayName.split(",").map((part: string) => part.trim());
+        return parts.slice(0, 2).join(", ");
       }
     }
 
     // Fallback to coordinates if geocoding fails
-    console.log('No geocoding results found, using coordinates');
+    console.log("No geocoding results found, using coordinates");
     return formatCoordinates(latitude, longitude);
   } catch (error) {
-    console.error('Error getting address:', error);
-    
+    console.error("Error getting address:", error);
+
     // Provide more specific error handling
     if (error instanceof Error) {
-      if (error.message.includes('HTTP error')) {
-        console.log('Nominatim API error, using coordinates fallback');
-      } else if (error.message.includes('fetch')) {
-        console.log('Network error during geocoding, using coordinates fallback');
+      if (error.message.includes("HTTP error")) {
+        console.log("Nominatim API error, using coordinates fallback");
+      } else if (error.message.includes("fetch")) {
+        console.log(
+          "Network error during geocoding, using coordinates fallback",
+        );
       }
     }
-    
+
     // Always fallback to coordinates
     return formatCoordinates(latitude, longitude);
   }
@@ -613,12 +620,12 @@ const getBatteryLevel = (location: any): number | undefined => {
 // Add this after the formatCoordinates function (around line 90)
 const convertToLocation = (enhancedLocation: any): AppLocation | null => {
   if (!enhancedLocation) return null;
-  
+
   // If it already has the format of our Location type
-  if (typeof enhancedLocation.latitude === 'number') {
+  if (typeof enhancedLocation.latitude === "number") {
     return enhancedLocation as AppLocation;
   }
-  
+
   // If it has coords structure (EnhancedLocation), extract needed properties
   if (enhancedLocation.coords) {
     return {
@@ -631,10 +638,10 @@ const convertToLocation = (enhancedLocation: any): AppLocation | null => {
       speed: enhancedLocation.coords.speed || null,
       timestamp: enhancedLocation.timestamp || Date.now(),
       batteryLevel: enhancedLocation.batteryLevel,
-      isMoving: enhancedLocation.isMoving
+      isMoving: enhancedLocation.isMoving,
     };
   }
-  
+
   return null;
 };
 
@@ -657,7 +664,9 @@ export default function EmployeeShiftTracker() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [shiftHistory, setShiftHistory] = useState<ShiftData[]>([]);
   // Add state for currentAddress
-  const [currentAddress, setCurrentAddress] = useState<string>("Acquiring location...");
+  const [currentAddress, setCurrentAddress] = useState<string>(
+    "Acquiring location...",
+  );
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState<{
     title: string;
@@ -707,29 +716,39 @@ export default function EmployeeShiftTracker() {
   // Add button debouncing state and cooldown
   const [isProcessingShift, setIsProcessingShift] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
-  const [shiftCooldownUntil, setShiftCooldownUntil] = useState<Date | null>(null);
+  const [shiftCooldownUntil, setShiftCooldownUntil] = useState<Date | null>(
+    null,
+  );
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
 
   // Face verification state
-  const [showFaceVerificationModal, setShowFaceVerificationModal] = useState(false);
-  const [faceVerificationMode, setFaceVerificationMode] = useState<'register' | 'verify'>('verify');
-  const [verificationState, setVerificationState] = useState<VerificationState>({
-    faceVerificationRequired: false,
-    locationVerificationRequired: false,
-    verificationInProgress: false,
-    verificationResults: {
-      face: null,
-      location: null,
+  const [showFaceVerificationModal, setShowFaceVerificationModal] =
+    useState(false);
+  const [faceVerificationMode, setFaceVerificationMode] = useState<
+    "register" | "verify"
+  >("verify");
+  const [verificationState, setVerificationState] = useState<VerificationState>(
+    {
+      faceVerificationRequired: false,
+      locationVerificationRequired: false,
+      verificationInProgress: false,
+      verificationResults: {
+        face: null,
+        location: null,
+      },
+      currentStep: "location",
+      retryCount: 0,
+      maxRetries: 3,
+      canOverride: false,
     },
-    currentStep: 'location',
-    retryCount: 0,
-    maxRetries: 3,
-    canOverride: false,
-  });
+  );
 
   // Enhanced verification orchestrator state
-  const [showVerificationOrchestrator, setShowVerificationOrchestrator] = useState(false);
-  const [pendingShiftAction, setPendingShiftAction] = useState<'start' | 'end' | null>(null);
+  const [showVerificationOrchestrator, setShowVerificationOrchestrator] =
+    useState(false);
+  const [pendingShiftAction, setPendingShiftAction] = useState<
+    "start" | "end" | null
+  >(null);
   const [verificationConfig, setVerificationConfig] = useState({
     requireLocation: true,
     requireFace: true,
@@ -741,9 +760,11 @@ export default function EmployeeShiftTracker() {
   });
   const [showManagerOverride, setShowManagerOverride] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
-  const [offlineVerificationQueue, setOfflineVerificationQueue] = useState<OfflineVerificationData[]>([]);
-  const [faceRegistrationRequired, setFaceRegistrationRequired] = useState(false);
-
+  const [offlineVerificationQueue, setOfflineVerificationQueue] = useState<
+    OfflineVerificationData[]
+  >([]);
+  const [faceRegistrationRequired, setFaceRegistrationRequired] =
+    useState(false);
 
   // Get the API endpoint based on user role
   const apiEndpoint = getApiEndpoint(user?.role || "employee");
@@ -757,33 +778,40 @@ export default function EmployeeShiftTracker() {
     setBatteryLevel,
   } = useLocationStore();
 
-  const { getCurrentLocation, startTracking, stopTracking } = useLocationTracking({
-    onError: (error) => {
-      console.error("Location tracking error:", error);
-      setLocationErrorMessage("Location tracking encountered an error. Please check your device settings and try again.");
-      setShowLocationError(true);
-    },
-  });
+  const { getCurrentLocation, startTracking, stopTracking } =
+    useLocationTracking({
+      onError: (error) => {
+        console.error("Location tracking error:", error);
+        setLocationErrorMessage(
+          "Location tracking encountered an error. Please check your device settings and try again.",
+        );
+        setShowLocationError(true);
+      },
+    });
 
-  const { isLocationInAnyGeofence, getCurrentGeofence, geofences } = useGeofencing();
+  const { isLocationInAnyGeofence, getCurrentGeofence, geofences } =
+    useGeofencing();
 
   // Check if the user can override geofence restrictions
   const [canOverrideGeofence, setCanOverrideGeofence] = useState(false);
 
   // Function declarations (moved up to avoid hoisting issues)
-  const updateShiftState = useCallback((active: boolean, startTime: Date | null) => {
-    setIsShiftActive(active);
-    setShiftStart(startTime);
-    
-    if (active && startTime) {
-      setElapsedTime(0);
-      // startAnimations will be called from useEffect
-    } else {
-      setElapsedTime(0);
-      pulseAnim.setValue(1);
-      rotateAnim.setValue(0);
-    }
-  }, [pulseAnim, rotateAnim]);
+  const updateShiftState = useCallback(
+    (active: boolean, startTime: Date | null) => {
+      setIsShiftActive(active);
+      setShiftStart(startTime);
+
+      if (active && startTime) {
+        setElapsedTime(0);
+        // startAnimations will be called from useEffect
+      } else {
+        setElapsedTime(0);
+        pulseAnim.setValue(1);
+        rotateAnim.setValue(0);
+      }
+    },
+    [pulseAnim, rotateAnim],
+  );
 
   const showWarningMessages = useCallback(() => {
     if (warningMessages.length > 0) {
@@ -791,10 +819,6 @@ export default function EmployeeShiftTracker() {
       setShowWarningModal(true);
     }
   }, []);
-
-
-
-
 
   // CRITICAL FIX: Add ref to prevent multiple cooldown timers
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -810,10 +834,10 @@ export default function EmployeeShiftTracker() {
     const cooldownEnd = new Date(Date.now() + cooldownDuration);
     setShiftCooldownUntil(cooldownEnd);
     setCooldownTimeLeft(cooldownDuration / 1000);
-    
+
     // Start countdown timer
     cooldownIntervalRef.current = setInterval(() => {
-      setCooldownTimeLeft(prev => {
+      setCooldownTimeLeft((prev) => {
         if (prev <= 1) {
           if (cooldownIntervalRef.current) {
             clearInterval(cooldownIntervalRef.current);
@@ -828,152 +852,188 @@ export default function EmployeeShiftTracker() {
     }, 1000);
   }, []);
 
-
-
   // Face verification utility functions
   const checkFaceRegistrationStatus = useCallback(async () => {
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
-      
+
       const isRegistered = response.data?.isRegistered || false;
       setFaceRegistrationRequired(!isRegistered);
       return isRegistered;
     } catch (error) {
-      console.error('Error checking face registration status:', error);
+      console.error("Error checking face registration status:", error);
       return false;
     }
   }, [token]);
 
-  const performLocationVerification = useCallback(async (): Promise<LocationResult> => {
-    try {
-      // Use cached location first for faster response
-      let appLocation = convertToLocation(currentLocation);
-      
-      // If no cached location or it's stale, get fresh location
-      const isLocationStale = !appLocation?.timestamp || 
-        new Date().getTime() - new Date(appLocation.timestamp).getTime() > 120000; // 2 minutes
-      
-      if (!appLocation || isLocationStale) {
-        try {
-          const locationPromise = getCurrentLocation();
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Location timeout')), 5000);
-          });
-          
-          const locationResult = await Promise.race([locationPromise, timeoutPromise]);
-          if (locationResult) {
-            appLocation = convertToLocation(locationResult);
-            if (locationResult && typeof locationResult === 'object' && 'coords' in locationResult) {
-              useLocationStore.getState().setCurrentLocation(locationResult as any);
+  const performLocationVerification =
+    useCallback(async (): Promise<LocationResult> => {
+      try {
+        // Use cached location first for faster response
+        let appLocation = convertToLocation(currentLocation);
+
+        // If no cached location or it's stale, get fresh location
+        const isLocationStale =
+          !appLocation?.timestamp ||
+          new Date().getTime() - new Date(appLocation.timestamp).getTime() >
+            120000; // 2 minutes
+
+        if (!appLocation || isLocationStale) {
+          try {
+            const locationPromise = getCurrentLocation();
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error("Location timeout")), 5000);
+            });
+
+            const locationResult = await Promise.race([
+              locationPromise,
+              timeoutPromise,
+            ]);
+            if (locationResult) {
+              appLocation = convertToLocation(locationResult);
+              if (
+                locationResult &&
+                typeof locationResult === "object" &&
+                "coords" in locationResult
+              ) {
+                useLocationStore
+                  .getState()
+                  .setCurrentLocation(locationResult as any);
+              }
             }
+          } catch (locationError) {
+            console.log("Location fetch failed, using cached location");
           }
-        } catch (locationError) {
-          console.log('Location fetch failed, using cached location');
         }
-      }
 
-      if (!appLocation) {
-        console.error('Location verification failed: Unable to get current location');
+        if (!appLocation) {
+          console.error(
+            "Location verification failed: Unable to get current location",
+          );
+          return {
+            success: false,
+            error:
+              "Unable to determine your current location. Please check that location services are enabled and try again.",
+            confidence: 0,
+          };
+        }
+
+        // Check geofence status
+        const isInside = isLocationInAnyGeofence(appLocation);
+        const currentGeofence = getCurrentGeofence();
+
+        // Log detailed information for debugging
+        console.log("Location verification details:", {
+          location: {
+            latitude: appLocation.latitude,
+            longitude: appLocation.longitude,
+            accuracy: appLocation.accuracy,
+          },
+          isInsideGeofence: isInside,
+          currentGeofence: currentGeofence?.name || "None",
+          canOverride: canOverrideGeofence,
+        });
+
+        // If not inside geofence and no override permission, fail verification
+        if (!isInside && !canOverrideGeofence) {
+          console.error(
+            "Location verification failed: Not inside any geofence and no override permission",
+          );
+          return {
+            success: false,
+            latitude: appLocation.latitude || 0,
+            longitude: appLocation.longitude || 0,
+            accuracy: appLocation.accuracy || 0,
+            isInGeofence: false,
+            error: `You are currently outside the designated work area "${currentGeofence?.name || "Unknown"}". Please move to a work area or contact your administrator for permission to work from this location.`,
+            confidence: 0,
+          };
+        }
+
+        // If inside geofence or has override permission, succeed
+        console.log(
+          "Location verification successful:",
+          isInside ? "Inside geofence" : "Override allowed",
+        );
         return {
-          success: false,
-          error: 'Unable to determine your current location. Please check that location services are enabled and try again.',
-          confidence: 0
-        };
-      }
-
-      // Check geofence status
-      const isInside = isLocationInAnyGeofence(appLocation);
-      const currentGeofence = getCurrentGeofence();
-      
-      // Log detailed information for debugging
-      console.log('Location verification details:', {
-        location: {
-          latitude: appLocation.latitude,
-          longitude: appLocation.longitude,
-          accuracy: appLocation.accuracy
-        },
-        isInsideGeofence: isInside,
-        currentGeofence: currentGeofence?.name || 'None',
-        canOverride: canOverrideGeofence
-      });
-
-      // If not inside geofence and no override permission, fail verification
-      if (!isInside && !canOverrideGeofence) {
-        console.error('Location verification failed: Not inside any geofence and no override permission');
-        return {
-          success: false,
+          success: true,
           latitude: appLocation.latitude || 0,
           longitude: appLocation.longitude || 0,
           accuracy: appLocation.accuracy || 0,
-          isInGeofence: false,
-          error: `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to work from this location.`,
-          confidence: 0
+          isInGeofence: isInside,
+          geofenceName: currentGeofence?.name,
+          confidence: isInside ? 1.0 : 0.8, // Higher confidence when inside geofence
+        };
+      } catch (error) {
+        console.error("Location verification failed:", error);
+        return {
+          success: false,
+          error:
+            "Location verification encountered an unexpected error. Please try again or contact support if the issue persists.",
+          confidence: 0,
         };
       }
-
-      // If inside geofence or has override permission, succeed
-      console.log('Location verification successful:', isInside ? 'Inside geofence' : 'Override allowed');
-      return {
-        success: true,
-        latitude: appLocation.latitude || 0,
-        longitude: appLocation.longitude || 0,
-        accuracy: appLocation.accuracy || 0,
-        isInGeofence: isInside,
-        geofenceName: currentGeofence?.name,
-        confidence: isInside ? 1.0 : 0.8 // Higher confidence when inside geofence
-      };
-    } catch (error) {
-      console.error('Location verification failed:', error);
-      return {
-        success: false,
-        error: 'Location verification encountered an unexpected error. Please try again or contact support if the issue persists.',
-        confidence: 0
-      };
-    }
-  }, [currentLocation, getCurrentLocation, isLocationInAnyGeofence, getCurrentGeofence, canOverrideGeofence]);
+    }, [
+      currentLocation,
+      getCurrentLocation,
+      isLocationInAnyGeofence,
+      getCurrentGeofence,
+      canOverrideGeofence,
+    ]);
 
   // Wrapper function for VerificationOrchestrator that returns boolean but handles detailed errors
-  const performLocationVerificationBoolean = useCallback(async (): Promise<boolean> => {
-    const result = await performLocationVerification();
-    if (!result.success && result.error) {
-      setLocationErrorMessage(result.error);
-      setShowLocationError(true);
-    }
-    return result.success;
-  }, [performLocationVerification]);
+  const performLocationVerificationBoolean =
+    useCallback(async (): Promise<boolean> => {
+      const result = await performLocationVerification();
+      if (!result.success && result.error) {
+        setLocationErrorMessage(result.error);
+        setShowLocationError(true);
+      }
+      return result.success;
+    }, [performLocationVerification]);
 
-  const queueOfflineVerification = useCallback(async (data: Omit<OfflineVerificationData, 'id' | 'timestamp' | 'synced'>) => {
-    const offlineData: OfflineVerificationData = {
-      ...data,
-      id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: Date.now(),
-      synced: false,
-    };
+  const queueOfflineVerification = useCallback(
+    async (
+      data: Omit<OfflineVerificationData, "id" | "timestamp" | "synced">,
+    ) => {
+      const offlineData: OfflineVerificationData = {
+        ...data,
+        id: `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: Date.now(),
+        synced: false,
+      };
 
-    try {
-      const existingQueue = await AsyncStorage.getItem('offlineVerificationQueue');
-      const queue = existingQueue ? JSON.parse(existingQueue) : [];
-      queue.push(offlineData);
-      
-      await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(queue));
-      setOfflineVerificationQueue(queue);
-      
-      console.log('Queued offline verification:', offlineData.id);
-    } catch (error) {
-      console.error('Error queueing offline verification:', error);
-    }
-  }, []);
+      try {
+        const existingQueue = await AsyncStorage.getItem(
+          "offlineVerificationQueue",
+        );
+        const queue = existingQueue ? JSON.parse(existingQueue) : [];
+        queue.push(offlineData);
+
+        await AsyncStorage.setItem(
+          "offlineVerificationQueue",
+          JSON.stringify(queue),
+        );
+        setOfflineVerificationQueue(queue);
+
+        console.log("Queued offline verification:", offlineData.id);
+      } catch (error) {
+        console.error("Error queueing offline verification:", error);
+      }
+    },
+    [],
+  );
 
   const syncOfflineVerifications = useCallback(async () => {
     try {
-      const queueData = await AsyncStorage.getItem('offlineVerificationQueue');
+      const queueData = await AsyncStorage.getItem("offlineVerificationQueue");
       if (!queueData) return;
 
       const queue: OfflineVerificationData[] = JSON.parse(queueData);
-      const unsyncedItems = queue.filter(item => !item.synced);
+      const unsyncedItems = queue.filter((item) => !item.synced);
 
       if (unsyncedItems.length === 0) return;
 
@@ -984,30 +1044,41 @@ export default function EmployeeShiftTracker() {
           await axios.post(
             `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/sync-offline`,
             item,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
 
           // Mark as synced
           item.synced = true;
         } catch (error) {
-          console.error(`Failed to sync offline verification ${item.id}:`, error);
+          console.error(
+            `Failed to sync offline verification ${item.id}:`,
+            error,
+          );
         }
       }
 
       // Update storage with synced items
-      await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(queue));
+      await AsyncStorage.setItem(
+        "offlineVerificationQueue",
+        JSON.stringify(queue),
+      );
       setOfflineVerificationQueue(queue);
 
       // Clean up old synced items (older than 7 days)
-      const cleanupThreshold = Date.now() - (7 * 24 * 60 * 60 * 1000);
-      const cleanedQueue = queue.filter(item => !item.synced || item.timestamp > cleanupThreshold);
-      
+      const cleanupThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const cleanedQueue = queue.filter(
+        (item) => !item.synced || item.timestamp > cleanupThreshold,
+      );
+
       if (cleanedQueue.length !== queue.length) {
-        await AsyncStorage.setItem('offlineVerificationQueue', JSON.stringify(cleanedQueue));
+        await AsyncStorage.setItem(
+          "offlineVerificationQueue",
+          JSON.stringify(cleanedQueue),
+        );
         setOfflineVerificationQueue(cleanedQueue);
       }
     } catch (error) {
-      console.error('Error syncing offline verifications:', error);
+      console.error("Error syncing offline verifications:", error);
     }
   }, [token]);
 
@@ -1020,7 +1091,7 @@ export default function EmployeeShiftTracker() {
         face: null,
         location: null,
       },
-      currentStep: 'location',
+      currentStep: "location",
       retryCount: 0,
       maxRetries: 3,
       canOverride: false,
@@ -1032,79 +1103,88 @@ export default function EmployeeShiftTracker() {
   }, []);
 
   // Face verification handlers
-  const handleFaceVerificationError = useCallback((error: any) => {
-    console.error('Face verification failed:', error);
-    
-    setVerificationState(prev => ({
-      ...prev,
-      retryCount: prev.retryCount + 1,
-    }));
+  const handleFaceVerificationError = useCallback(
+    (error: any) => {
+      console.error("Face verification failed:", error);
 
-    setShowFaceVerificationModal(false);
-
-    // Check if max retries reached
-    if (verificationState.retryCount >= verificationState.maxRetries - 1) {
-      // Show manager override option
-      setVerificationState(prev => ({
+      setVerificationState((prev) => ({
         ...prev,
-        canOverride: true,
+        retryCount: prev.retryCount + 1,
       }));
-      setShowManagerOverride(true);
-    } else {
-      // Show retry option with face setup option
-      const buttons = [
-        {
-          text: 'Cancel',
-          style: 'cancel' as const,
-          onPress: () => resetVerificationState(),
-        },
-        {
-          text: 'Retry',
-          onPress: () => {
-            setShowFaceVerificationModal(true);
-          },
-        },
-      ];
 
-      // Add face setup option if face is not registered or verification keeps failing
-      if (error.message?.includes('not registered') || error.message?.includes('profile not found') || verificationState.retryCount >= 2) {
-        buttons.splice(1, 0, {
-          text: 'Setup Face',
-          onPress: async () => {
-            resetVerificationState();
-            await promptFaceConfiguration('shift-tracker-error');
+      setShowFaceVerificationModal(false);
+
+      // Check if max retries reached
+      if (verificationState.retryCount >= verificationState.maxRetries - 1) {
+        // Show manager override option
+        setVerificationState((prev) => ({
+          ...prev,
+          canOverride: true,
+        }));
+        setShowManagerOverride(true);
+      } else {
+        // Show retry option with face setup option
+        const buttons = [
+          {
+            text: "Cancel",
+            style: "cancel" as const,
+            onPress: () => resetVerificationState(),
           },
-        });
+          {
+            text: "Retry",
+            onPress: () => {
+              setShowFaceVerificationModal(true);
+            },
+          },
+        ];
+
+        // Add face setup option if face is not registered or verification keeps failing
+        if (
+          error.message?.includes("not registered") ||
+          error.message?.includes("profile not found") ||
+          verificationState.retryCount >= 2
+        ) {
+          buttons.splice(1, 0, {
+            text: "Setup Face",
+            onPress: async () => {
+              resetVerificationState();
+              await promptFaceConfiguration("shift-tracker-error");
+            },
+          });
+        }
+
+        Alert.alert(
+          "Face Verification Failed",
+          `${error.message}\n\nWould you like to try again? (${verificationState.retryCount + 1}/${verificationState.maxRetries})`,
+          buttons,
+        );
       }
-
-      Alert.alert(
-        'Face Verification Failed',
-        `${error.message}\n\nWould you like to try again? (${verificationState.retryCount + 1}/${verificationState.maxRetries})`,
-        buttons
-      );
-    }
-  }, [verificationState.retryCount, verificationState.maxRetries]);
+    },
+    [verificationState.retryCount, verificationState.maxRetries],
+  );
 
   const handleManagerOverride = useCallback(async (reason: string) => {
     try {
       // Request manager override via OTP
       setShowOTPVerification(true);
-      setVerificationState(prev => ({
+      setVerificationState((prev) => ({
         ...prev,
         overrideReason: reason,
       }));
     } catch (error) {
-      console.error('Error requesting manager override:', error);
-      showInAppNotification('Failed to request manager override', 'error');
+      console.error("Error requesting manager override:", error);
+      showInAppNotification("Failed to request manager override", "error");
     }
   }, []);
 
   const handleOTPSuccess = useCallback(async () => {
-    console.log('OTP verification successful - proceeding with manager override');
+    console.log(
+      "OTP verification successful - proceeding with manager override",
+    );
     setShowOTPVerification(false);
-    
+
     // Mark verification as overridden and proceed
-    setVerificationState(prev => ({
+    setVerificationState((prev) => ({
       ...prev,
       verificationResults: {
         ...prev.verificationResults,
@@ -1112,7 +1192,7 @@ export default function EmployeeShiftTracker() {
           success: true,
           confidence: 0,
           livenessDetected: false,
-          faceEncoding: '',
+          faceEncoding: "",
           timestamp: new Date(),
           overridden: true,
           overrideReason: prev.overrideReason,
@@ -1123,114 +1203,129 @@ export default function EmployeeShiftTracker() {
     await proceedWithShiftAction();
   }, []);
 
-  const executeShiftStart = useCallback(async (verificationData: any) => {
-    const now = new Date();
-    
-    // Prepare location data from verification results
-    const locationData = verificationData.locationVerification?.success ? {
-      latitude: verificationData.locationVerification.latitude,
-      longitude: verificationData.locationVerification.longitude,
-      accuracy: verificationData.locationVerification.accuracy || 0,
-    } : undefined;
+  const executeShiftStart = useCallback(
+    async (verificationData: any) => {
+      const now = new Date();
 
-    // Make API call with verification data
-    const response = await axios.post(
-      `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/start`,
-      {
-        startTime: formatDateForBackend(now),
-        location: locationData,
-        faceVerification: verificationData.faceVerification,
-        verificationTimestamp: verificationData.timestamp,
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      }
-    );
+      // Prepare location data from verification results
+      const locationData = verificationData.locationVerification?.success
+        ? {
+            latitude: verificationData.locationVerification.latitude,
+            longitude: verificationData.locationVerification.longitude,
+            accuracy: verificationData.locationVerification.accuracy || 0,
+          }
+        : undefined;
 
-    // Update UI state
-    updateShiftState(true, now);
+      // Make API call with verification data
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/start`,
+        {
+          startTime: formatDateForBackend(now),
+          location: locationData,
+          faceVerification: verificationData.faceVerification,
+          verificationTimestamp: verificationData.timestamp,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        },
+      );
 
-    // Store shift status
-    await AsyncStorage.setItem(
-      `${user?.role}-shiftStatus`,
-      JSON.stringify({
-        isActive: true,
-        startTime: now.toISOString(),
-        verificationData,
-      })
-    );
+      // Update UI state
+      updateShiftState(true, now);
 
-    // Show success message
-    setModalData({
-      title: "Shift Started Successfully",
-      message: `Your shift has started at ${format(now, "hh:mm a")} with verified identity and location.`,
-      type: "success",
-      showCancel: false,
-    });
-    setShowModal(true);
+      // Store shift status
+      await AsyncStorage.setItem(
+        `${user?.role}-shiftStatus`,
+        JSON.stringify({
+          isActive: true,
+          startTime: now.toISOString(),
+          verificationData,
+        }),
+      );
 
-    // Set cooldown and background operations
-    await setShiftCooldown();
-    InteractionManager.runAfterInteractions(async () => {
-      await scheduleFastNotifications();
-      showWarningMessages();
-    });
-  }, [apiEndpoint, token, user?.role, updateShiftState, setShiftCooldown]);
+      // Show success message
+      setModalData({
+        title: "Shift Started Successfully",
+        message: `Your shift has started at ${format(now, "hh:mm a")} with verified identity and location.`,
+        type: "success",
+        showCancel: false,
+      });
+      setShowModal(true);
 
-  const executeShiftEnd = useCallback(async (verificationData: any) => {
-    const now = new Date();
-    if (!shiftStart) return;
+      // Set cooldown and background operations
+      await setShiftCooldown();
+      InteractionManager.runAfterInteractions(async () => {
+        await scheduleFastNotifications();
+        showWarningMessages();
+      });
+    },
+    [apiEndpoint, token, user?.role, updateShiftState, setShiftCooldown],
+  );
 
-    // Prepare location data from verification results
-    const locationData = verificationData.locationVerification?.success ? {
-      latitude: verificationData.locationVerification.latitude,
-      longitude: verificationData.locationVerification.longitude,
-      accuracy: verificationData.locationVerification.accuracy || 0,
-    } : undefined;
+  const executeShiftEnd = useCallback(
+    async (verificationData: any) => {
+      const now = new Date();
+      if (!shiftStart) return;
 
-    // Make API call with verification data
-    const response = await axios.post(
-      `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
-      {
-        endTime: formatDateForBackend(now),
-        location: locationData,
-        faceVerification: verificationData.faceVerification,
-        verificationTimestamp: verificationData.timestamp,
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      }
-    );
+      // Prepare location data from verification results
+      const locationData = verificationData.locationVerification?.success
+        ? {
+            latitude: verificationData.locationVerification.latitude,
+            longitude: verificationData.locationVerification.longitude,
+            accuracy: verificationData.locationVerification.accuracy || 0,
+          }
+        : undefined;
 
-    // Update UI state
-    updateShiftState(false, null);
+      // Make API call with verification data
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
+        {
+          endTime: formatDateForBackend(now),
+          location: locationData,
+          faceVerification: verificationData.faceVerification,
+          verificationTimestamp: verificationData.timestamp,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        },
+      );
 
-    // Clear shift status
-    await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
+      // Update UI state
+      updateShiftState(false, null);
 
-    // Calculate duration
-    const duration = formatElapsedTime(differenceInSeconds(now, shiftStart));
+      // Clear shift status
+      await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
 
-    // Show success message
-    setModalData({
-      title: "Shift Completed Successfully",
-      message: `Your shift has ended at ${format(now, "hh:mm a")} with verified identity and location.\n\nDuration: ${duration}`,
-      type: "success",
-      showCancel: false,
-    });
-    setShowModal(true);
+      // Calculate duration
+      const duration = formatElapsedTime(differenceInSeconds(now, shiftStart));
 
-    // Set cooldown and background operations
-    await setShiftCooldown();
-    InteractionManager.runAfterInteractions(async () => {
-      await cancelShiftNotifications();
-      await loadShiftHistoryFromBackend();
-    });
-  }, [apiEndpoint, token, shiftStart, updateShiftState, user?.role, setShiftCooldown]);
+      // Show success message
+      setModalData({
+        title: "Shift Completed Successfully",
+        message: `Your shift has ended at ${format(now, "hh:mm a")} with verified identity and location.\n\nDuration: ${duration}`,
+        type: "success",
+        showCancel: false,
+      });
+      setShowModal(true);
 
-
+      // Set cooldown and background operations
+      await setShiftCooldown();
+      InteractionManager.runAfterInteractions(async () => {
+        await cancelShiftNotifications();
+        await loadShiftHistoryFromBackend();
+      });
+    },
+    [
+      apiEndpoint,
+      token,
+      shiftStart,
+      updateShiftState,
+      user?.role,
+      setShiftCooldown,
+    ],
+  );
 
   // Add this function before the useEffect
   const fetchAndUpdateGeofencePermissions = async () => {
@@ -1247,19 +1342,19 @@ export default function EmployeeShiftTracker() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/employee/permissions`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.data && Array.isArray(response.data.permissions)) {
         // Update state with fresh permissions
         setCanOverrideGeofence(
-          response.data.permissions.includes("can_override_geofence")
+          response.data.permissions.includes("can_override_geofence"),
         );
 
         // Cache fresh permissions in AsyncStorage
         await AsyncStorage.setItem(
           `user-${user.id}-permissions`,
-          JSON.stringify(response.data.permissions)
+          JSON.stringify(response.data.permissions),
         );
 
         console.log("Updated geofence permissions cache");
@@ -1270,7 +1365,7 @@ export default function EmployeeShiftTracker() {
       // If API call fails, try to use cached permissions as fallback
       try {
         const cachedPermissions = await AsyncStorage.getItem(
-          `user-${user.id}-permissions`
+          `user-${user.id}-permissions`,
         );
         if (cachedPermissions) {
           const permissions = JSON.parse(cachedPermissions);
@@ -1288,7 +1383,7 @@ export default function EmployeeShiftTracker() {
     useCallback(() => {
       console.log("ShiftTracker screen focused - fetching fresh permissions");
       fetchAndUpdateGeofencePermissions();
-    }, [user, token])
+    }, [user, token]),
   );
 
   // Add a new useEffect to fetch permissions on mount
@@ -1326,7 +1421,9 @@ export default function EmployeeShiftTracker() {
   // Load cooldown state from AsyncStorage
   const loadShiftCooldown = async () => {
     try {
-      const cooldownData = await AsyncStorage.getItem(`${user?.role}-shiftCooldown`);
+      const cooldownData = await AsyncStorage.getItem(
+        `${user?.role}-shiftCooldown`,
+      );
       if (cooldownData) {
         const cooldownUntil = new Date(JSON.parse(cooldownData));
         if (cooldownUntil > new Date()) {
@@ -1341,8 +1438,6 @@ export default function EmployeeShiftTracker() {
     }
   };
 
-
-
   // Clear cooldown state
   const clearShiftCooldown = useCallback(async () => {
     try {
@@ -1351,7 +1446,7 @@ export default function EmployeeShiftTracker() {
         clearInterval(cooldownIntervalRef.current);
         cooldownIntervalRef.current = null;
       }
-      
+
       setShiftCooldownUntil(null);
       setCooldownTimeLeft(0);
       await AsyncStorage.removeItem(`${user?.role}-shiftCooldown`);
@@ -1378,7 +1473,7 @@ export default function EmployeeShiftTracker() {
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
       Animated.loop(
         Animated.timing(rotateAnim, {
@@ -1386,7 +1481,7 @@ export default function EmployeeShiftTracker() {
           duration: 3000,
           easing: Easing.linear,
           useNativeDriver: true,
-        })
+        }),
       ).start();
     } else {
       pulseAnim.setValue(1);
@@ -1403,7 +1498,7 @@ export default function EmployeeShiftTracker() {
           duration: 1000,
           easing: Easing.linear,
           useNativeDriver: true,
-        })
+        }),
       ).start();
     } else {
       addressRefreshAnim.setValue(0);
@@ -1413,7 +1508,7 @@ export default function EmployeeShiftTracker() {
   // Add this with other interpolations
   const addressRefreshRotate = addressRefreshAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
 
   // CRITICAL FIX: Add ref to prevent timer recreation on every render
@@ -1427,7 +1522,7 @@ export default function EmployeeShiftTracker() {
     // CRITICAL FIX: Debounce dashboard updates to prevent excessive calls
     const now = Date.now();
     const timeSinceLastUpdate = now - lastDashboardUpdateRef.current;
-    
+
     // Only update if at least 5 seconds have passed since last update
     if (timeSinceLastUpdate < 5000) {
       return;
@@ -1448,7 +1543,7 @@ export default function EmployeeShiftTracker() {
         };
         await AsyncStorage.setItem(
           `${user?.role}-dashboardStatus`,
-          JSON.stringify(dashboardData)
+          JSON.stringify(dashboardData),
         );
         lastDashboardUpdateRef.current = Date.now();
       } catch (error) {
@@ -1480,7 +1575,7 @@ export default function EmployeeShiftTracker() {
       timerIntervalRef.current = setInterval(() => {
         const now = new Date();
         setCurrentTime(now);
-        
+
         if (isShiftActive && shiftStart) {
           setElapsedTime(differenceInSeconds(now, shiftStart));
           // CRITICAL FIX: Debounce dashboard updates to prevent excessive calls
@@ -1489,9 +1584,12 @@ export default function EmployeeShiftTracker() {
 
         // Update cooldown countdown
         if (shiftCooldownUntil) {
-          const timeLeft = Math.max(0, Math.ceil((shiftCooldownUntil.getTime() - now.getTime()) / 1000));
+          const timeLeft = Math.max(
+            0,
+            Math.ceil((shiftCooldownUntil.getTime() - now.getTime()) / 1000),
+          );
           setCooldownTimeLeft(timeLeft);
-          
+
           if (timeLeft === 0) {
             clearShiftCooldown();
           }
@@ -1505,40 +1603,51 @@ export default function EmployeeShiftTracker() {
         timerIntervalRef.current = null;
       }
     };
-  }, [isShiftActive, shiftStart, shiftCooldownUntil, updateEmployeeDashboard, clearShiftCooldown]);
+  }, [
+    isShiftActive,
+    shiftStart,
+    shiftCooldownUntil,
+    updateEmployeeDashboard,
+    clearShiftCooldown,
+  ]);
 
   const loadShiftStatus = async () => {
     try {
       const status = await AsyncStorage.getItem(`${user?.role}-shiftStatus`);
-      
+
       if (status) {
         const { isActive, startTime } = JSON.parse(status);
-        
+
         if (isActive) {
           // Before restoring from AsyncStorage, verify with backend that shift is still active
           try {
             const response = await axios.get(
               `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/current`,
-              { headers: { Authorization: `Bearer ${token}` } }
+              { headers: { Authorization: `Bearer ${token}` } },
             );
-            
+
             if (response.data) {
               // Shift is still active on backend, restore from AsyncStorage
               setIsShiftActive(isActive);
               if (isActive && startTime) {
                 setShiftStart(new Date(startTime));
               }
-              
+
               // Now that we've confirmed the shift is active, check for timer
               checkExistingTimer();
             } else {
               // Shift was ended on backend but not in local storage
-              console.log('Shift not active on backend but active in AsyncStorage - fixing inconsistency');
+              console.log(
+                "Shift not active on backend but active in AsyncStorage - fixing inconsistency",
+              );
               await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-              showInAppNotification('Your shift was automatically ended while you were offline', 'info');
+              showInAppNotification(
+                "Your shift was automatically ended while you were offline",
+                "info",
+              );
             }
           } catch (error) {
-            console.error('Error verifying shift status with backend:', error);
+            console.error("Error verifying shift status with backend:", error);
             // Fall back to local storage if we can't verify with backend
             setIsShiftActive(isActive);
             if (isActive && startTime) {
@@ -1559,7 +1668,7 @@ export default function EmployeeShiftTracker() {
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/attendance/${currentMonth}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const convertedHistory: ShiftData[] = response.data
@@ -1575,9 +1684,7 @@ export default function EmployeeShiftTracker() {
               startTime: format(startTime, "HH:mm:ss"),
               endTime: endTime ? format(endTime, "HH:mm:ss") : null,
               duration: shift.total_hours
-                ? formatTime(
-                    parseFloat(shift.total_hours.toString()) * 3600
-                  )
+                ? formatTime(parseFloat(shift.total_hours.toString()) * 3600)
                 : null,
             };
           } catch (err) {
@@ -1593,9 +1700,6 @@ export default function EmployeeShiftTracker() {
       console.error("Error loading shift history:", error);
     }
   };
-
-
-
 
   // Add this helper function at the top
   const formatDateForBackend = (date: Date) => {
@@ -1616,7 +1720,7 @@ export default function EmployeeShiftTracker() {
       if (status !== "granted") {
         Alert.alert(
           "Permission Required",
-          "Notifications are required to track your shift status."
+          "Notifications are required to track your shift status.",
         );
         return;
       }
@@ -1635,7 +1739,7 @@ export default function EmployeeShiftTracker() {
             enableVibrate: true,
             vibrationPattern: [0, 250, 250, 250],
             showBadge: true,
-          }
+          },
         );
 
         // Shift warning channel
@@ -1650,7 +1754,7 @@ export default function EmployeeShiftTracker() {
             enableVibrate: true,
             vibrationPattern: [0, 500, 250, 500],
             showBadge: true,
-          }
+          },
         );
 
         // Shift limit channel
@@ -1665,7 +1769,7 @@ export default function EmployeeShiftTracker() {
             enableVibrate: true,
             vibrationPattern: [0, 1000, 500, 1000],
             showBadge: true,
-          }
+          },
         );
       }
 
@@ -1706,26 +1810,30 @@ export default function EmployeeShiftTracker() {
       // Store the notification ID for later cancellation
       await AsyncStorage.setItem(
         `${user?.role}-activeShiftNotificationId`,
-        activeShiftId
+        activeShiftId,
       );
 
       // Calculate seconds from now until the warning should trigger
       // Based on shift start time + warning offset
       const now = new Date();
       const shiftStartTime = shiftStart || now;
-      
+
       // Calculate warning time: shift start + warning time (7h 55m)
-      const warningTime = new Date(shiftStartTime.getTime() + SHIFT_WARNING_TIME_MS);
-      const secondsUntilWarning = Math.max(
-        0, 
-        Math.floor((warningTime.getTime() - now.getTime()) / 1000)
+      const warningTime = new Date(
+        shiftStartTime.getTime() + SHIFT_WARNING_TIME_MS,
       );
-      
+      const secondsUntilWarning = Math.max(
+        0,
+        Math.floor((warningTime.getTime() - now.getTime()) / 1000),
+      );
+
       // Calculate limit time: shift start + limit time (9h)
-      const limitTime = new Date(shiftStartTime.getTime() + SHIFT_LIMIT_TIME_MS);
+      const limitTime = new Date(
+        shiftStartTime.getTime() + SHIFT_LIMIT_TIME_MS,
+      );
       const secondsUntilLimit = Math.max(
-        0, 
-        Math.floor((limitTime.getTime() - now.getTime()) / 1000)
+        0,
+        Math.floor((limitTime.getTime() - now.getTime()) / 1000),
       );
 
       // Initialize notification IDs
@@ -1756,7 +1864,7 @@ export default function EmployeeShiftTracker() {
           },
         });
       }
-      
+
       // Only schedule limit notification if shift just started or still has time before limit
       if (secondsUntilLimit > 0) {
         // Schedule limit notification (9 hours from shift start)
@@ -1789,7 +1897,7 @@ export default function EmployeeShiftTracker() {
           activeShiftId,
           warningId: warningId || null,
           limitId: limitId || null,
-        })
+        }),
       );
     } catch (error) {
       console.error("Error scheduling notifications:", error);
@@ -1808,7 +1916,7 @@ export default function EmployeeShiftTracker() {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== "granted") {
         // Request permissions in background, don't block
-        Notifications.requestPermissionsAsync().catch(error => {
+        Notifications.requestPermissionsAsync().catch((error) => {
           console.log("Permission request failed:", error);
         });
         return; // Skip notifications if no permission
@@ -1825,7 +1933,7 @@ export default function EmployeeShiftTracker() {
             sound: "default",
             enableVibrate: true,
             showBadge: true,
-          }
+          },
         );
       }
 
@@ -1856,7 +1964,7 @@ export default function EmployeeShiftTracker() {
       // Store the main notification ID immediately
       await AsyncStorage.setItem(
         `${user?.role}-activeShiftNotificationId`,
-        activeShiftId
+        activeShiftId,
       );
 
       // Schedule warning and limit notifications in background
@@ -1873,7 +1981,7 @@ export default function EmployeeShiftTracker() {
                   sound: "default",
                   enableVibrate: true,
                   showBadge: true,
-                }
+                },
               ),
               Notifications.setNotificationChannelAsync(
                 NOTIFICATION_CHANNELS.SHIFT_LIMIT,
@@ -1883,25 +1991,29 @@ export default function EmployeeShiftTracker() {
                   sound: "default",
                   enableVibrate: true,
                   showBadge: true,
-                }
-              )
+                },
+              ),
             ]);
           }
 
           // Calculate timing for warning and limit notifications
           const now = new Date();
           const shiftStartTime = shiftStart || now;
-          
-          const warningTime = new Date(shiftStartTime.getTime() + SHIFT_WARNING_TIME_MS);
-          const secondsUntilWarning = Math.max(
-            0, 
-            Math.floor((warningTime.getTime() - now.getTime()) / 1000)
+
+          const warningTime = new Date(
+            shiftStartTime.getTime() + SHIFT_WARNING_TIME_MS,
           );
-          
-          const limitTime = new Date(shiftStartTime.getTime() + SHIFT_LIMIT_TIME_MS);
+          const secondsUntilWarning = Math.max(
+            0,
+            Math.floor((warningTime.getTime() - now.getTime()) / 1000),
+          );
+
+          const limitTime = new Date(
+            shiftStartTime.getTime() + SHIFT_LIMIT_TIME_MS,
+          );
           const secondsUntilLimit = Math.max(
-            0, 
-            Math.floor((limitTime.getTime() - now.getTime()) / 1000)
+            0,
+            Math.floor((limitTime.getTime() - now.getTime()) / 1000),
           );
 
           let warningId: string | undefined;
@@ -1929,7 +2041,7 @@ export default function EmployeeShiftTracker() {
               },
             });
           }
-          
+
           // Schedule limit notification if needed
           if (secondsUntilLimit > 0) {
             limitId = await Notifications.scheduleNotificationAsync({
@@ -1960,13 +2072,12 @@ export default function EmployeeShiftTracker() {
               activeShiftId,
               warningId: warningId || null,
               limitId: limitId || null,
-            })
+            }),
           );
         } catch (error) {
           console.error("Error scheduling delayed notifications:", error);
         }
       }, 100); // Small delay to not block the main thread
-
     } catch (error) {
       console.error("Error scheduling fast notifications:", error);
     }
@@ -1976,31 +2087,31 @@ export default function EmployeeShiftTracker() {
   const cancelShiftNotifications = async () => {
     try {
       const notificationIdsString = await AsyncStorage.getItem(
-        `${user?.role}-shiftNotifications`
+        `${user?.role}-shiftNotifications`,
       );
       if (notificationIdsString) {
         const { activeShiftId, warningId, limitId } = JSON.parse(
-          notificationIdsString
+          notificationIdsString,
         );
 
         // Cancel all notifications, but only if they exist
         const cancelPromises = [];
-        
+
         if (activeShiftId) {
           cancelPromises.push(
-            Notifications.cancelScheduledNotificationAsync(activeShiftId)
+            Notifications.cancelScheduledNotificationAsync(activeShiftId),
           );
         }
-        
+
         if (warningId) {
           cancelPromises.push(
-            Notifications.cancelScheduledNotificationAsync(warningId)
+            Notifications.cancelScheduledNotificationAsync(warningId),
           );
         }
-        
+
         if (limitId) {
           cancelPromises.push(
-            Notifications.cancelScheduledNotificationAsync(limitId)
+            Notifications.cancelScheduledNotificationAsync(limitId),
           );
         }
 
@@ -2020,7 +2131,7 @@ export default function EmployeeShiftTracker() {
   // Add a function to show in-app notifications
   const showInAppNotification = (
     message: string,
-    type: "info" | "warning" | "error" | "success" = "info"
+    type: "info" | "warning" | "error" | "success" = "info",
   ) => {
     // First dismiss any existing notification
     setInAppNotification({
@@ -2044,17 +2155,17 @@ export default function EmployeeShiftTracker() {
     const initializeLocationPromptly = async () => {
       try {
         // Only initialize location for employee and group-admin roles
-        if (user?.role === 'management') {
+        if (user?.role === "management") {
           return;
         }
-        
+
         // First check if location services are enabled
         const locationEnabled = await Location.hasServicesEnabledAsync();
-        
+
         if (!locationEnabled) {
           // Immediately show location prompt
           setLocationErrorMessage(
-            "Location services are required for shift tracking. Please enable location services in your device settings to continue."
+            "Location services are required for shift tracking. Please enable location services in your device settings to continue.",
           );
           setShowLocationError(true);
           setIsLocationServiceEnabled(false);
@@ -2066,37 +2177,45 @@ export default function EmployeeShiftTracker() {
         // Get current location with timeout
         const locationPromise = getCurrentLocation();
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Location timeout')), 10000);
+          setTimeout(() => reject(new Error("Location timeout")), 10000);
         });
 
         try {
-          const location = await Promise.race([locationPromise, timeoutPromise]);
-          
+          const location = await Promise.race([
+            locationPromise,
+            timeoutPromise,
+          ]);
+
           if (location) {
             // Update the store with the fresh location only if it's a valid location object
-            if (location && typeof location === 'object' && 'coords' in location) {
+            if (
+              location &&
+              typeof location === "object" &&
+              "coords" in location
+            ) {
               useLocationStore.getState().setCurrentLocation(location as any);
             }
-            
+
             // Update address in background
             const appLocation = convertToLocation(location);
             if (appLocation?.latitude && appLocation?.longitude) {
               getLocationAddress(appLocation.latitude, appLocation.longitude)
-                .then(address => setCurrentAddress(address))
-                .catch(error => console.log("Error getting address:", error));
+                .then((address) => setCurrentAddress(address))
+                .catch((error) => console.log("Error getting address:", error));
             }
           }
         } catch (locationError) {
           console.error("Location initialization failed:", locationError);
           setLocationErrorMessage(
-            "Unable to determine your current location. Please ensure location permissions are granted and try again."
+            "Unable to determine your current location. Please ensure location permissions are granted and try again.",
           );
           setShowLocationError(true);
         }
       } catch (error: any) {
         console.error("Error initializing location:", error);
         setLocationErrorMessage(
-          error.message || "Failed to initialize location services. Please check your device settings and try again."
+          error.message ||
+            "Failed to initialize location services. Please check your device settings and try again.",
         );
         setShowLocationError(true);
       }
@@ -2108,26 +2227,24 @@ export default function EmployeeShiftTracker() {
   // Enhanced button validation with cooldown check
   const isShiftActionAllowed = useCallback(() => {
     const now = Date.now();
-    
+
     // Check debounce (2 second rapid click protection)
     if (now - lastClickTime < 2000) {
       return { allowed: false, reason: "Please wait before clicking again" };
     }
-    
+
     // Check cooldown (5 minute protection after shift actions)
     if (shiftCooldownUntil && shiftCooldownUntil > new Date()) {
       const minutesLeft = Math.ceil(cooldownTimeLeft / 60);
-      return { 
-        allowed: false, 
-        reason: `Action cooldown active. Wait ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''} before ${isShiftActive ? 'ending' : 'starting'} a shift.`
+      return {
+        allowed: false,
+        reason: `Action cooldown active. Wait ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} before ${isShiftActive ? "ending" : "starting"} a shift.`,
       };
     }
-    
+
     setLastClickTime(now);
     return { allowed: true, reason: null };
   }, [lastClickTime, shiftCooldownUntil, cooldownTimeLeft, isShiftActive]);
-
-
 
   // Fix the useEffect that updates battery level
   useEffect(() => {
@@ -2153,10 +2270,10 @@ export default function EmployeeShiftTracker() {
   // Monitor location services status during active shift
   useEffect(() => {
     // Only monitor location services for employee role
-    if (!isShiftActive || user?.role !== 'employee') {
+    if (!isShiftActive || user?.role !== "employee") {
       return;
     }
-    
+
     // Setup interval to check location services status
     const intervalId = setInterval(async () => {
       try {
@@ -2171,7 +2288,7 @@ export default function EmployeeShiftTracker() {
             // Location services disabled - show notification and start countdown
             showInAppNotification(
               "Location services are turned off. Please enable location services immediately to continue your shift, or it will end automatically in 5 minutes.",
-              "warning"
+              "warning",
             );
 
             // Cancel any existing timer before creating a new one
@@ -2181,170 +2298,176 @@ export default function EmployeeShiftTracker() {
             }
 
             // Start new countdown timer to end shift
-            const timer = setTimeout(() => {
-              if (isShiftActive) {
-                // Show a confirmation dialog instead of auto-ending
-                setModalData({
-                  title: "Location Services Disabled",
-                  message:
-                    "Your shift needs to be ended because location services have been disabled for over 5 minutes. Would you like to enable location services now or end your shift?",
-                  type: "info",
-                  showCancel: true,
-                });
-
-                // Store the original modal action
-                const originalConfirmEndShift = confirmEndShift;
-
-                // Temporarily override confirmEndShift to handle this special case
-                (confirmEndShift as any) = async () => {
-                  // Restore original function
-                  (confirmEndShift as any) = originalConfirmEndShift;
-
-                  // End shift without location validation
-                  const now = new Date();
-                  if (!shiftStart) return;
-
-                  // Immediately update UI state
-                  setShowModal(false);
-                  setIsShiftActive(false);
-                  setShiftStart(null);
-                  pulseAnim.setValue(1);
-                  rotateAnim.setValue(0);
-
-                  // Clear monitoring resources
-                  if (locationOffTimer) {
-                    clearTimeout(locationOffTimer);
-                    setLocationOffTimer(null);
-                  }
-
-                  if (locationCheckInterval) {
-                    clearInterval(locationCheckInterval);
-                    setLocationCheckInterval(null);
-                  }
-
-                  if (locationWatchId) {
-                    clearInterval(locationWatchId as any);
-                    setLocationWatchId(null);
-                  }
-
-                  // Calculate duration
-                  const duration = formatElapsedTime(
-                    differenceInSeconds(now, shiftStart)
-                  );
-
-                  // Show completion modal
+            const timer = setTimeout(
+              () => {
+                if (isShiftActive) {
+                  // Show a confirmation dialog instead of auto-ending
                   setModalData({
-                    title: "Shift Completed",
-                    message: `Total Duration: ${duration}\nStart: ${format(
-                      shiftStart,
-                      "hh:mm a"
-                    )}\nEnd: ${format(now, "hh:mm a")}`,
-                    type: "success",
-                    showCancel: false,
+                    title: "Location Services Disabled",
+                    message:
+                      "Your shift needs to be ended because location services have been disabled for over 5 minutes. Would you like to enable location services now or end your shift?",
+                    type: "info",
+                    showCancel: true,
                   });
-                  setShowModal(true);
 
-                  // Process in background
-                  InteractionManager.runAfterInteractions(async () => {
-                    try {
-                      await cancelShiftNotifications();
+                  // Store the original modal action
+                  const originalConfirmEndShift = confirmEndShift;
 
-                      // Create shift data for API
-                      const newShiftData: ShiftData = {
-                        date: format(shiftStart, "yyyy-MM-dd"),
-                        startTime: format(shiftStart, "HH:mm:ss"),
-                        endTime: format(now, "HH:mm:ss"),
-                        duration,
-                      };
-
-                      // End shift API calls
-                      await Promise.all([
-                        axios.post(
-                          `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
-                          {
-                            endTime: formatDateForBackend(now),
-                            locationServicesDisabled: true, // Add flag to indicate why shift ended
-                          },
-                          {
-                            headers: { Authorization: `Bearer ${token}` },
-                          }
-                        ),
-                        AsyncStorage.removeItem(`${user?.role}-shiftStatus`),
-                        AsyncStorage.setItem(
-                          `${user?.role}-shiftHistory`,
-                          JSON.stringify([newShiftData, ...shiftHistory])
-                        ),
-                      ]);
-
-                      // Refresh data
-                      await Promise.all([
-                        loadShiftHistoryFromBackend(),
-                        fetchRecentShifts(),
-                      ]);
-                      setLocationValidated(false);
-                    } catch (error: any) {
-                      console.error("Error ending shift:", error);
-                      showInAppNotification(
-                        error.response?.data?.error ||
-                          "Failed to end shift. Please try again.",
-                        "error"
-                      );
-                    }
-                  });
-                };
-
-                // Override the cancel action
-                const setShowModalOriginal = setShowModal;
-                (setShowModal as any) = (value: boolean) => {
-                  // If canceling, try to enable location
-                  if (!value) {
-                    // Restore functions
+                  // Temporarily override confirmEndShift to handle this special case
+                  (confirmEndShift as any) = async () => {
+                    // Restore original function
                     (confirmEndShift as any) = originalConfirmEndShift;
-                    (setShowModal as any) = setShowModalOriginal;
 
-                    // Reset the timer
+                    // End shift without location validation
+                    const now = new Date();
+                    if (!shiftStart) return;
+
+                    // Immediately update UI state
+                    setShowModal(false);
+                    setIsShiftActive(false);
+                    setShiftStart(null);
+                    pulseAnim.setValue(1);
+                    rotateAnim.setValue(0);
+
+                    // Clear monitoring resources
                     if (locationOffTimer) {
                       clearTimeout(locationOffTimer);
+                      setLocationOffTimer(null);
                     }
 
-                    // Try to enable location
-                    Location.requestForegroundPermissionsAsync().then(
-                      ({ status }) => {
-                        if (status === "granted") {
-                          Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.Balanced,
-                            mayShowUserSettingsDialog: true,
-                          }).catch(() => {
-                            // Start a new timer if enabling location failed
-                            const newTimer = setTimeout(() => {
-                              if (isShiftActive) {
-                                showInAppNotification(
-                                  "Your shift will end soon if location services remain disabled.",
-                                  "warning"
-                                );
-                              }
-                            }, 4 * 60 * 1000); // Give another 4 minutes
-                            setLocationOffTimer(newTimer);
-                          });
-                        }
-                      }
+                    if (locationCheckInterval) {
+                      clearInterval(locationCheckInterval);
+                      setLocationCheckInterval(null);
+                    }
+
+                    if (locationWatchId) {
+                      clearInterval(locationWatchId as any);
+                      setLocationWatchId(null);
+                    }
+
+                    // Calculate duration
+                    const duration = formatElapsedTime(
+                      differenceInSeconds(now, shiftStart),
                     );
-                  }
 
-                  // Call original function
-                  setShowModalOriginal(value);
-                };
+                    // Show completion modal
+                    setModalData({
+                      title: "Shift Completed",
+                      message: `Total Duration: ${duration}\nStart: ${format(
+                        shiftStart,
+                        "hh:mm a",
+                      )}\nEnd: ${format(now, "hh:mm a")}`,
+                      type: "success",
+                      showCancel: false,
+                    });
+                    setShowModal(true);
 
-                setShowModal(true);
-              }
-            }, 5 * 60 * 1000); // 5 minutes
+                    // Process in background
+                    InteractionManager.runAfterInteractions(async () => {
+                      try {
+                        await cancelShiftNotifications();
+
+                        // Create shift data for API
+                        const newShiftData: ShiftData = {
+                          date: format(shiftStart, "yyyy-MM-dd"),
+                          startTime: format(shiftStart, "HH:mm:ss"),
+                          endTime: format(now, "HH:mm:ss"),
+                          duration,
+                        };
+
+                        // End shift API calls
+                        await Promise.all([
+                          axios.post(
+                            `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
+                            {
+                              endTime: formatDateForBackend(now),
+                              locationServicesDisabled: true, // Add flag to indicate why shift ended
+                            },
+                            {
+                              headers: { Authorization: `Bearer ${token}` },
+                            },
+                          ),
+                          AsyncStorage.removeItem(`${user?.role}-shiftStatus`),
+                          AsyncStorage.setItem(
+                            `${user?.role}-shiftHistory`,
+                            JSON.stringify([newShiftData, ...shiftHistory]),
+                          ),
+                        ]);
+
+                        // Refresh data
+                        await Promise.all([
+                          loadShiftHistoryFromBackend(),
+                          fetchRecentShifts(),
+                        ]);
+                        setLocationValidated(false);
+                      } catch (error: any) {
+                        console.error("Error ending shift:", error);
+                        showInAppNotification(
+                          error.response?.data?.error ||
+                            "Failed to end shift. Please try again.",
+                          "error",
+                        );
+                      }
+                    });
+                  };
+
+                  // Override the cancel action
+                  const setShowModalOriginal = setShowModal;
+                  (setShowModal as any) = (value: boolean) => {
+                    // If canceling, try to enable location
+                    if (!value) {
+                      // Restore functions
+                      (confirmEndShift as any) = originalConfirmEndShift;
+                      (setShowModal as any) = setShowModalOriginal;
+
+                      // Reset the timer
+                      if (locationOffTimer) {
+                        clearTimeout(locationOffTimer);
+                      }
+
+                      // Try to enable location
+                      Location.requestForegroundPermissionsAsync().then(
+                        ({ status }) => {
+                          if (status === "granted") {
+                            Location.getCurrentPositionAsync({
+                              accuracy: Location.Accuracy.Balanced,
+                              mayShowUserSettingsDialog: true,
+                            }).catch(() => {
+                              // Start a new timer if enabling location failed
+                              const newTimer = setTimeout(
+                                () => {
+                                  if (isShiftActive) {
+                                    showInAppNotification(
+                                      "Your shift will end soon if location services remain disabled.",
+                                      "warning",
+                                    );
+                                  }
+                                },
+                                4 * 60 * 1000,
+                              ); // Give another 4 minutes
+                              setLocationOffTimer(newTimer);
+                            });
+                          }
+                        },
+                      );
+                    }
+
+                    // Call original function
+                    setShowModalOriginal(value);
+                  };
+
+                  setShowModal(true);
+                }
+              },
+              5 * 60 * 1000,
+            ); // 5 minutes
 
             setLocationOffTimer(timer);
           } else {
             // Location services turned back on - show notification and cancel timer
             showInAppNotification(
               "Location services have been re-enabled. Your shift will continue normally.",
-              "success"
+              "success",
             );
 
             // Cancel countdown timer if it exists
@@ -2375,14 +2498,12 @@ export default function EmployeeShiftTracker() {
     };
   }, [isShiftActive, isLocationServiceEnabled, user?.role]);
 
-
-
   // Add this helper function to safely get location
   const safeGetCurrentLocation = async (): Promise<AppLocation | null> => {
     try {
       // Get the location from the hook
       const locationResult = await getCurrentLocation();
-      
+
       // Convert it to our app location format
       return locationResult ? convertToLocation(locationResult) : null;
     } catch (error) {
@@ -2394,17 +2515,17 @@ export default function EmployeeShiftTracker() {
   // Optimized validateLocationForShift function for faster response
   const validateLocationForShift = async (): Promise<boolean> => {
     // Management and group-admin roles don't need location validation
-    if (user?.role === 'management' || user?.role === 'group-admin') {
+    if (user?.role === "management" || user?.role === "group-admin") {
       setLocationValidated(true);
       return true;
     }
-    
+
     try {
       // Quick location services check
       const locationEnabled = await Location.hasServicesEnabledAsync();
       if (!locationEnabled) {
         setLocationErrorMessage(
-          "Location services are currently disabled on your device. Please enable location services in your device settings to continue with shift tracking."
+          "Location services are currently disabled on your device. Please enable location services in your device settings to continue with shift tracking.",
         );
         setShowLocationError(true);
         return false;
@@ -2412,23 +2533,34 @@ export default function EmployeeShiftTracker() {
 
       // Use cached location aggressively (allow up to 2 minutes old for faster response)
       let appLocation = convertToLocation(currentLocation);
-      const isLocationStale = !appLocation?.timestamp || 
-        new Date().getTime() - new Date(appLocation.timestamp).getTime() > 30000;
-      
+      const isLocationStale =
+        !appLocation?.timestamp ||
+        new Date().getTime() - new Date(appLocation.timestamp).getTime() >
+          30000;
+
       if (!appLocation || isLocationStale) {
         // Try to get fresh location with short timeout
         try {
           const locationPromise = getCurrentLocation();
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Location timeout')), 3000); // 3 second timeout
+            setTimeout(() => reject(new Error("Location timeout")), 3000); // 3 second timeout
           });
-          
-          const freshLocation = await Promise.race([locationPromise, timeoutPromise]);
+
+          const freshLocation = await Promise.race([
+            locationPromise,
+            timeoutPromise,
+          ]);
           if (freshLocation) {
             appLocation = convertToLocation(freshLocation);
             // Update the store with the fresh location only if it's a valid location object
-            if (freshLocation && typeof freshLocation === 'object' && 'coords' in freshLocation) {
-              useLocationStore.getState().setCurrentLocation(freshLocation as any);
+            if (
+              freshLocation &&
+              typeof freshLocation === "object" &&
+              "coords" in freshLocation
+            ) {
+              useLocationStore
+                .getState()
+                .setCurrentLocation(freshLocation as any);
             }
           }
         } catch (locationError) {
@@ -2436,13 +2568,17 @@ export default function EmployeeShiftTracker() {
           if (appLocation) {
             console.log("Using cached location due to fresh location timeout");
           } else {
-            throw new Error("Unable to determine your current location. Please check your internet connection and location permissions.");
+            throw new Error(
+              "Unable to determine your current location. Please check your internet connection and location permissions.",
+            );
           }
         }
       }
 
       if (!appLocation) {
-        throw new Error("Unable to determine your current location. Please check your internet connection and location permissions.");
+        throw new Error(
+          "Unable to determine your current location. Please check your internet connection and location permissions.",
+        );
       }
 
       // Quick geofence check
@@ -2462,7 +2598,7 @@ export default function EmployeeShiftTracker() {
         setTimeout(() => {
           showInAppNotification(
             "You are outside designated work areas but using your override permission to continue.",
-            "warning"
+            "warning",
           );
         }, 100);
         return true;
@@ -2471,12 +2607,15 @@ export default function EmployeeShiftTracker() {
       // 3. If user is outside geofence and doesn't have override permission: Block
       const currentGeofence = getCurrentGeofence();
       setLocationErrorMessage(
-        `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to work from this location.`
+        `You are currently outside the designated work area "${currentGeofence?.name || "Unknown"}". Please move to a work area or contact your administrator for permission to work from this location.`,
       );
       setShowLocationError(true);
       return false;
     } catch (error: any) {
-      setLocationErrorMessage(error.message || "Location validation encountered an error. Please try again or contact support if the issue persists.");
+      setLocationErrorMessage(
+        error.message ||
+          "Location validation encountered an error. Please try again or contact support if the issue persists.",
+      );
       setShowLocationError(true);
       return false;
     }
@@ -2498,47 +2637,51 @@ export default function EmployeeShiftTracker() {
     try {
       // Check if face registration is required
       const isFaceRegistered = await checkFaceRegistrationStatus();
-      
+
       if (!isFaceRegistered) {
         setIsProcessingShift(false);
-        
+
         // Show user-friendly prompt to set up face verification
         // Show user-friendly modal to set up face verification
         setModalData({
           title: "Face Verification Setup Required",
-          message: "To start your shift securely, you need to set up face verification first. This helps ensure only you can start and end your shifts.",
+          message:
+            "To start your shift securely, you need to set up face verification first. This helps ensure only you can start and end your shifts.",
           type: "info",
           showCancel: true,
           confirmText: "Set Up Now",
           cancelText: "Cancel",
           onConfirm: async () => {
             // Navigate directly to face registration page
-            router.push('/(dashboard)/employee/face-registration');
+            router.push("/(dashboard)/employee/face-registration");
           },
           onCancel: () => {
-            console.log('User cancelled face verification setup');
-          }
+            console.log("User cancelled face verification setup");
+          },
         });
         setShowModal(true);
         return;
       }
 
       // Initialize verification state
-      setPendingShiftAction('start');
-      setVerificationState(prev => ({
+      setPendingShiftAction("start");
+      setVerificationState((prev) => ({
         ...prev,
         faceVerificationRequired: true,
         locationVerificationRequired: true,
         verificationInProgress: true,
-        currentStep: 'location',
+        currentStep: "location",
       }));
 
       // Step 1: Perform location verification
       const locationResult = await performLocationVerification();
-      
+
       // Check location requirements for employees
-      if (user?.role === 'employee' && !locationResult.success) {
-        setLocationErrorMessage(locationResult.error || 'Location verification failed. Please try again.');
+      if (user?.role === "employee" && !locationResult.success) {
+        setLocationErrorMessage(
+          locationResult.error ||
+            "Location verification failed. Please try again.",
+        );
         setShowLocationError(true);
         setIsProcessingShift(false);
         resetVerificationState();
@@ -2546,25 +2689,24 @@ export default function EmployeeShiftTracker() {
       }
 
       // Store location verification result
-      setVerificationState(prev => ({
+      setVerificationState((prev) => ({
         ...prev,
         verificationResults: {
           ...prev.verificationResults,
           location: locationResult,
         },
-        currentStep: 'face',
+        currentStep: "face",
       }));
 
       // Step 2: Perform face verification
-      setFaceVerificationMode('verify');
+      setFaceVerificationMode("verify");
       setShowFaceVerificationModal(true);
       setIsProcessingShift(false);
-
     } catch (error: any) {
       console.error("Error in shift start verification:", error);
       setIsProcessingShift(false);
       resetVerificationState();
-      
+
       setModalData({
         title: "Verification Error",
         message: "Failed to start verification process. Please try again.",
@@ -2597,108 +2739,123 @@ export default function EmployeeShiftTracker() {
         },
         {
           text: "End Shift",
-          onPress: () => startEndShiftVerification('end'),
+          onPress: () => startEndShiftVerification("end"),
         },
-      ]
+      ],
     );
   };
 
-  const startEndShiftVerification = useCallback(async (action: 'start' | 'end') => {
-    try {
-      setIsProcessingShift(true);
-      setPendingShiftAction(action);
-      
-      // Check if face registration is required for both start and end actions
-      const isFaceRegistered = await checkFaceRegistrationStatus();
-      
-      if (!isFaceRegistered) {
+  const startEndShiftVerification = useCallback(
+    async (action: "start" | "end") => {
+      try {
+        setIsProcessingShift(true);
+        setPendingShiftAction(action);
+
+        // Check if face registration is required for both start and end actions
+        const isFaceRegistered = await checkFaceRegistrationStatus();
+
+        if (!isFaceRegistered) {
+          setIsProcessingShift(false);
+
+          // Show user-friendly modal to set up face verification
+          setModalData({
+            title: "Face Verification Setup Required",
+            message: `To ${action} your shift securely, you need to set up face verification first. This helps ensure only you can ${action} your shifts.`,
+            type: "info",
+            showCancel: true,
+            confirmText: "Set Up Now",
+            cancelText: "Cancel",
+            onConfirm: async () => {
+              // Navigate directly to face registration page
+              router.push("/(dashboard)/employee/face-registration");
+            },
+            onCancel: () => {
+              console.log(
+                `User cancelled face verification setup for ${action}`,
+              );
+            },
+          });
+          setShowModal(true);
+          return;
+        }
+
+        // Configure verification requirements based on shift action and user settings
+        const config = {
+          requireLocation: true,
+          requireFace: true,
+          allowLocationFallback: action === "end", // Allow location fallback for shift end
+          allowFaceFallback: false, // Face verification is always required
+          maxRetries: 3,
+          timeoutMs: 30000,
+          confidenceThreshold: 0.7,
+        };
+
+        setVerificationConfig(config);
+
+        // Show verification orchestrator
+        setShowVerificationOrchestrator(true);
+      } catch (error) {
+        console.error("Error starting verification:", error);
         setIsProcessingShift(false);
-        
-        // Show user-friendly modal to set up face verification
-        setModalData({
-          title: "Face Verification Setup Required",
-          message: `To ${action} your shift securely, you need to set up face verification first. This helps ensure only you can ${action} your shifts.`,
-          type: "info",
-          showCancel: true,
-          confirmText: "Set Up Now",
-          cancelText: "Cancel",
-          onConfirm: async () => {
-            // Navigate directly to face registration page
-            router.push('/(dashboard)/employee/face-registration');
-          },
-          onCancel: () => {
-            console.log(`User cancelled face verification setup for ${action}`);
-          }
-        });
-        setShowModal(true);
-        return;
+        showInAppNotification(
+          "Failed to start verification. Please try again.",
+          "error",
+        );
       }
-      
-      // Configure verification requirements based on shift action and user settings
-      const config = {
-        requireLocation: true,
-        requireFace: true,
-        allowLocationFallback: action === 'end', // Allow location fallback for shift end
-        allowFaceFallback: false, // Face verification is always required
-        maxRetries: 3,
-        timeoutMs: 30000,
-        confidenceThreshold: 0.7,
-      };
-      
-      setVerificationConfig(config);
-      
-      // Show verification orchestrator
-      setShowVerificationOrchestrator(true);
-      
-    } catch (error) {
-      console.error('Error starting verification:', error);
-      setIsProcessingShift(false);
-      showInAppNotification('Failed to start verification. Please try again.', 'error');
-    }
-  }, []);
+    },
+    [],
+  );
 
+  const handleLocationVerificationSuccess = useCallback(
+    (locationResult: LocationResult) => {
+      setVerificationState((prev) => ({
+        ...prev,
+        verificationResults: {
+          ...prev.verificationResults,
+          location: locationResult,
+        },
+        currentStep: "face",
+      }));
 
+      // Show face verification
+      setShowFaceVerificationModal(true);
+    },
+    [],
+  );
 
-  const handleLocationVerificationSuccess = useCallback((locationResult: LocationResult) => {
-    setVerificationState(prev => ({
-      ...prev,
-      verificationResults: {
-        ...prev.verificationResults,
-        location: locationResult,
-      },
-      currentStep: 'face',
-    }));
-    
-    // Show face verification
-    setShowFaceVerificationModal(true);
-  }, []);
+  const handleFaceVerificationSuccess = useCallback(
+    async (faceResult: FaceVerificationResult) => {
+      setVerificationState((prev) => ({
+        ...prev,
+        verificationResults: {
+          ...prev.verificationResults,
+          face: faceResult,
+        },
+        currentStep: "complete",
+        verificationInProgress: false,
+      }));
 
-  const handleFaceVerificationSuccess = useCallback(async (faceResult: FaceVerificationResult) => {
-    setVerificationState(prev => ({
-      ...prev,
-      verificationResults: {
-        ...prev.verificationResults,
-        face: faceResult,
-      },
-      currentStep: 'complete',
-      verificationInProgress: false,
-    }));
-    
-    setShowFaceVerificationModal(false);
+      setShowFaceVerificationModal(false);
 
-    // If this was the last required verification step, proceed with shift action
-    if (verificationState.currentStep === 'face') {
-      await proceedWithShiftAction();
-    }
-  }, [verificationState.currentStep]);
+      // If this was the last required verification step, proceed with shift action
+      if (verificationState.currentStep === "face") {
+        await proceedWithShiftAction();
+      }
+    },
+    [verificationState.currentStep],
+  );
 
   const proceedWithShiftAction = useCallback(async () => {
     if (!pendingShiftAction) return;
 
     try {
-      setVerificationState(prev => ({ ...prev, verificationInProgress: true }));
+      setVerificationState((prev) => ({
+        ...prev,
+        verificationInProgress: true,
+      }));
 
-      const { face: faceResult, location: locationResult } = verificationState.verificationResults;
+      const { face: faceResult, location: locationResult } =
+        verificationState.verificationResults;
 
       // Prepare verification data for API
       const verificationData = {
@@ -2707,7 +2864,7 @@ export default function EmployeeShiftTracker() {
         timestamp: new Date().toISOString(),
       };
 
-      if (pendingShiftAction === 'start') {
+      if (pendingShiftAction === "start") {
         await executeShiftStart(verificationData);
       } else {
         await executeShiftEnd(verificationData);
@@ -2716,129 +2873,152 @@ export default function EmployeeShiftTracker() {
       // Reset verification state
       resetVerificationState();
     } catch (error) {
-      console.error('Error during verification flow:', error);
-      showInAppNotification('Verification failed. Please try again.', 'error');
+      console.error("Error during verification flow:", error);
+      showInAppNotification("Verification failed. Please try again.", "error");
       resetVerificationState();
     }
-  }, [pendingShiftAction, verificationState.verificationResults, resetVerificationState]);
+  }, [
+    pendingShiftAction,
+    verificationState.verificationResults,
+    resetVerificationState,
+  ]);
 
   // Enhanced verification orchestrator handlers
-  const handleVerificationSuccess = useCallback(async (summary: any) => {
-    try {
-      setShowVerificationOrchestrator(false);
-      setIsProcessingShift(true);
+  const handleVerificationSuccess = useCallback(
+    async (summary: any) => {
+      try {
+        setShowVerificationOrchestrator(false);
+        setIsProcessingShift(true);
 
-      console.log('Verification completed successfully:', summary);
+        console.log("Verification completed successfully:", summary);
 
-      // Extract verification results from summary
-      const locationStep = summary.completedSteps.includes('location');
-      const faceStep = summary.completedSteps.includes('face');
+        // Extract verification results from summary
+        const locationStep = summary.completedSteps.includes("location");
+        const faceStep = summary.completedSteps.includes("face");
 
-      // Prepare verification data for API
-      const verificationData = {
-        sessionId: summary.sessionId,
-        confidenceScore: summary.confidenceScore,
-        fallbackMode: summary.fallbackMode,
-        completedSteps: summary.completedSteps,
-        totalLatency: summary.totalLatency,
-        locationVerified: locationStep,
-        faceVerified: faceStep,
-      };
+        // Prepare verification data for API
+        const verificationData = {
+          sessionId: summary.sessionId,
+          confidenceScore: summary.confidenceScore,
+          fallbackMode: summary.fallbackMode,
+          completedSteps: summary.completedSteps,
+          totalLatency: summary.totalLatency,
+          locationVerified: locationStep,
+          faceVerified: faceStep,
+        };
 
-      // Proceed with shift action
-      if (pendingShiftAction === 'start') {
-        await executeShiftStart(verificationData);
-      } else if (pendingShiftAction === 'end') {
-        await executeShiftEnd(verificationData);
+        // Proceed with shift action
+        if (pendingShiftAction === "start") {
+          await executeShiftStart(verificationData);
+        } else if (pendingShiftAction === "end") {
+          await executeShiftEnd(verificationData);
+        }
+
+        // Reset state
+        setPendingShiftAction(null);
+        setIsProcessingShift(false);
+
+        // Show success notification
+        showInAppNotification(
+          `Shift ${pendingShiftAction} completed successfully with ${summary.confidenceScore}% confidence`,
+          "success",
+        );
+      } catch (error) {
+        console.error("Error processing verification success:", error);
+        setIsProcessingShift(false);
+        showInAppNotification(
+          "Failed to process verification. Please try again.",
+          "error",
+        );
       }
-
-      // Reset state
-      setPendingShiftAction(null);
-      setIsProcessingShift(false);
-
-      // Show success notification
-      showInAppNotification(
-        `Shift ${pendingShiftAction} completed successfully with ${summary.confidenceScore}% confidence`,
-        'success'
-      );
-
-    } catch (error) {
-      console.error('Error processing verification success:', error);
-      setIsProcessingShift(false);
-      showInAppNotification('Failed to process verification. Please try again.', 'error');
-    }
-  }, [pendingShiftAction]);
+    },
+    [pendingShiftAction],
+  );
 
   const handleVerificationError = useCallback((error: string) => {
-    console.error('Verification failed:', error);
+    console.error("Verification failed:", error);
     setShowVerificationOrchestrator(false);
     setIsProcessingShift(false);
     setPendingShiftAction(null);
-    
-    showInAppNotification(error || 'Verification failed. Please try again.', 'error');
+
+    showInAppNotification(
+      error || "Verification failed. Please try again.",
+      "error",
+    );
   }, []);
 
   const handleVerificationCancel = useCallback(() => {
-    console.log('Verification cancelled by user');
+    console.log("Verification cancelled by user");
     setShowVerificationOrchestrator(false);
     setIsProcessingShift(false);
     setPendingShiftAction(null);
-    
-    showInAppNotification('Verification cancelled', 'info');
+
+    showInAppNotification("Verification cancelled", "info");
   }, []);
-
-
 
   // Optimized confirmEndShift - fast UI updates, background processing
   const confirmEndShift = async () => {
     setIsProcessingShift(true);
-    
+
     try {
       const now = new Date();
       if (!shiftStart) {
         setIsProcessingShift(false);
         return;
       }
-      
+
       // Quick location check for employees (non-blocking)
       let locationData: any = undefined;
-      if (user?.role === 'employee' && !timerEndTime) {
+      if (user?.role === "employee" && !timerEndTime) {
         try {
           // Use cached location first for faster response
           let appLocation = convertToLocation(currentLocation);
-          
+
           // If no cached location or it's stale, get fresh location with short timeout
-          const isLocationStale = !appLocation?.timestamp || 
-            new Date().getTime() - new Date(appLocation.timestamp).getTime() > 120000; // 2 minutes
-          
+          const isLocationStale =
+            !appLocation?.timestamp ||
+            new Date().getTime() - new Date(appLocation.timestamp).getTime() >
+              120000; // 2 minutes
+
           if (!appLocation || isLocationStale) {
             try {
               const locationPromise = getCurrentLocation();
               const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Location timeout')), 3000); // 3 second timeout
+                setTimeout(() => reject(new Error("Location timeout")), 3000); // 3 second timeout
               });
-              
-              const locationResult = await Promise.race([locationPromise, timeoutPromise]);
+
+              const locationResult = await Promise.race([
+                locationPromise,
+                timeoutPromise,
+              ]);
               if (locationResult) {
                 appLocation = convertToLocation(locationResult);
-                if (locationResult && typeof locationResult === 'object' && 'coords' in locationResult) {
-                  useLocationStore.getState().setCurrentLocation(locationResult as any);
+                if (
+                  locationResult &&
+                  typeof locationResult === "object" &&
+                  "coords" in locationResult
+                ) {
+                  useLocationStore
+                    .getState()
+                    .setCurrentLocation(locationResult as any);
                 }
               }
             } catch (locationError) {
-              console.log("Quick location fetch failed for shift end, using cached location");
+              console.log(
+                "Quick location fetch failed for shift end, using cached location",
+              );
             }
           }
-          
+
           // Quick geofence validation
           if (appLocation) {
             const isInside = isLocationInAnyGeofence(appLocation);
-            
+
             // Only block if outside geofence AND no override permission
             if (!isInside && !canOverrideGeofence) {
               const currentGeofence = getCurrentGeofence();
               setLocationErrorMessage(
-                `You are currently outside the designated work area "${currentGeofence?.name || 'Unknown'}". Please move to a work area or contact your administrator for permission to end your shift from this location.`
+                `You are currently outside the designated work area "${currentGeofence?.name || "Unknown"}". Please move to a work area or contact your administrator for permission to end your shift from this location.`,
               );
               setShowLocationError(true);
               setIsProcessingShift(false);
@@ -2851,30 +3031,34 @@ export default function EmployeeShiftTracker() {
             };
           }
         } catch (error) {
-          console.log("Location validation failed for shift end, proceeding without location data");
+          console.log(
+            "Location validation failed for shift end, proceeding without location data",
+          );
         }
       }
-      
+
       // Cancel any active timer immediately (non-blocking)
       if (timerEndTime) {
         setTimerDuration(null);
         setTimerEndTime(null);
-        
+
         // Cancel timer in background - don't wait for response
-        axios.delete(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/shift-timer/shift/timer`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ).catch(error => {
-          console.log("Non-critical error cancelling timer:", error);
-        });
+        axios
+          .delete(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/shift-timer/shift/timer`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          )
+          .catch((error) => {
+            console.log("Non-critical error cancelling timer:", error);
+          });
       }
-      
+
       // Close modal immediately for better UX
       setShowModal(false);
-      
+
       // Calculate duration for immediate feedback
       const duration = formatElapsedTime(differenceInSeconds(now, shiftStart));
-      
+
       // Make API call with shorter timeout
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/end`,
@@ -2885,12 +3069,12 @@ export default function EmployeeShiftTracker() {
         {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 8000, // Reduced from 15s to 8s
-        }
+        },
       );
-      
+
       // Immediately update UI state after successful API response
       updateShiftState(false, null);
-      
+
       // Clear monitoring resources immediately
       if (locationOffTimer) {
         clearTimeout(locationOffTimer);
@@ -2904,29 +3088,37 @@ export default function EmployeeShiftTracker() {
         clearInterval(locationWatchId as any);
         setLocationWatchId(null);
       }
-      
+
       // Store basic shift status change immediately
       await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-      
+
       // Handle Sparrow warnings and show modal immediately
       let modalTitle = "Shift Completed";
       let modalMessage = `Your shift has ended successfully.\n\nTotal Duration: ${duration}\nStart: ${format(shiftStart, "hh:mm a")}\nEnd: ${format(now, "hh:mm a")}`;
-      
+
       if (response.data.sparrowWarning) {
-        const warningMessage = response.data.sparrowMessage || "There was an issue with the attendance system.";
-        
-        if (response.data.sparrowErrorType === 'SPARROW_COOLDOWN_ERROR') {
+        const warningMessage =
+          response.data.sparrowMessage ||
+          "There was an issue with the attendance system.";
+
+        if (response.data.sparrowErrorType === "SPARROW_COOLDOWN_ERROR") {
           modalTitle = "Attendance Error";
-          modalMessage = response.data.sparrowErrors?.[0] || "You need to wait before ending your shift.";
+          modalMessage =
+            response.data.sparrowErrors?.[0] ||
+            "You need to wait before ending your shift.";
         } else {
-          modalTitle = response.data.sparrowErrorType === 'SPARROW_ROSTER_ERROR' ? "Roster Warning" : 
-                     response.data.sparrowErrorType === 'SPARROW_SCHEDULE_ERROR' ? "Schedule Warning" : "Attendance Warning";
+          modalTitle =
+            response.data.sparrowErrorType === "SPARROW_ROSTER_ERROR"
+              ? "Roster Warning"
+              : response.data.sparrowErrorType === "SPARROW_SCHEDULE_ERROR"
+                ? "Schedule Warning"
+                : "Attendance Warning";
           modalMessage = warningMessage;
         }
       } else {
         modalMessage += "\n\nProcessing attendance in the background...";
       }
-      
+
       // Show completion modal immediately
       setModalData({
         title: modalTitle,
@@ -2935,10 +3127,10 @@ export default function EmployeeShiftTracker() {
         showCancel: false,
       });
       setShowModal(true);
-      
+
       // Set cooldown after successful shift end
       await setShiftCooldown();
-      
+
       // Move heavy operations to background
       InteractionManager.runAfterInteractions(async () => {
         try {
@@ -2949,67 +3141,78 @@ export default function EmployeeShiftTracker() {
             endTime: format(now, "HH:mm:ss"),
             duration,
           };
-          
+
           // Cancel notifications and update storage in background
           const backgroundPromises = [
             cancelShiftNotifications(),
             AsyncStorage.setItem(
               `${user?.role}-shiftHistory`,
-              JSON.stringify([newShiftData, ...shiftHistory])
+              JSON.stringify([newShiftData, ...shiftHistory]),
             ),
             loadShiftHistoryFromBackend(),
             fetchRecentShifts(),
           ];
-          
+
           // Send admin notification if not management
           if (user?.role !== "management") {
             backgroundPromises.push(
-              axios.post(
-                `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
-                {
-                  title: `🔴 Shift Ended, by ${user?.name}`,
-                  message: `👤 ${user?.name} has completed their shift\n⏱️ Duration: ${duration}\n🕒 Start: ${format(shiftStart, "hh:mm a")}\n🕕 End: ${format(now, "hh:mm a")}`,
-                  type: "shift-end",
-                },
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              ).then(() => {}).catch(error => console.log("Admin notification failed:", error))
+              axios
+                .post(
+                  `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
+                  {
+                    title: `🔴 Shift Ended, by ${user?.name}`,
+                    message: `👤 ${user?.name} has completed their shift\n⏱️ Duration: ${duration}\n🕒 Start: ${format(shiftStart, "hh:mm a")}\n🕕 End: ${format(now, "hh:mm a")}`,
+                    type: "shift-end",
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  },
+                )
+                .then(() => {})
+                .catch((error) =>
+                  console.log("Admin notification failed:", error),
+                ),
             );
           }
-          
+
           // Execute all background operations
           await Promise.allSettled(backgroundPromises);
-          
+
           // Update modal message to show completion
           if (!response.data.sparrowWarning) {
-            setModalData(prev => ({
+            setModalData((prev) => ({
               ...prev,
-              message: prev.message.replace("Processing attendance in the background...", "Attendance has been successfully registered.")
+              message: prev.message.replace(
+                "Processing attendance in the background...",
+                "Attendance has been successfully registered.",
+              ),
             }));
           }
         } catch (error) {
           console.error("Background operations failed for shift end:", error);
-          showInAppNotification("Shift ended but some background operations failed", "warning");
+          showInAppNotification(
+            "Shift ended but some background operations failed",
+            "warning",
+          );
         }
       });
-      
+
       // Reset location validation state
       setLocationValidated(false);
-      
     } catch (error: any) {
       console.error("Error ending shift:", error);
-      
+
       // Revert UI state on error
       updateShiftState(true, shiftStart);
-      
+
       let errorMessage = "Failed to end shift. Please try again.";
-      if (error.code === 'ECONNABORTED') {
-        errorMessage = "Request timed out. Please check your connection and try again.";
+      if (error.code === "ECONNABORTED") {
+        errorMessage =
+          "Request timed out. Please check your connection and try again.";
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
+
       setModalData({
         title: "Error Ending Shift",
         message: errorMessage,
@@ -3034,7 +3237,7 @@ export default function EmployeeShiftTracker() {
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shifts/recent`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // Process and set the recent shifts
@@ -3077,7 +3280,7 @@ export default function EmployeeShiftTracker() {
           duration: 1000,
           easing: Easing.linear,
           useNativeDriver: true,
-        })
+        }),
       ).start();
     } else {
       spinValue.setValue(0);
@@ -3101,29 +3304,29 @@ export default function EmployeeShiftTracker() {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/shift-timer/shift/timer`,
         { durationHours: hours },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
         // The endTime from server is in IST format
         const endTimeString = response.data.timer.endTime;
         console.log("Received end time from server (IST):", endTimeString);
-        
+
         // Parse the time string and ensure it's treated as IST
         let endTime: Date;
-        
-        if (endTimeString.includes('+') || endTimeString.includes('Z')) {
+
+        if (endTimeString.includes("+") || endTimeString.includes("Z")) {
           // Time string has timezone info, use it directly
           endTime = new Date(endTimeString);
         } else {
           // Time string doesn't have timezone info, treat as IST
           // Add +05:30 offset to make it clear it's IST
-          endTime = new Date(endTimeString + '+05:30');
+          endTime = new Date(endTimeString + "+05:30");
         }
-        
+
         console.log("Parsed end time as IST:", endTime.toString());
         console.log("Local time representation:", endTime.toLocaleString());
-        
+
         setTimerDuration(hours);
         setTimerEndTime(endTime);
 
@@ -3132,13 +3335,13 @@ export default function EmployeeShiftTracker() {
           title: "Timer Set",
           message: `Your shift will automatically end at ${format(
             endTime,
-            "hh:mm a"
+            "hh:mm a",
           )}. This will happen even if the app is closed.`,
           type: "success",
           showCancel: false,
         });
         setShowModal(true);
-        
+
         showInAppNotification("Auto-end timer set successfully", "success");
       } else {
         showInAppNotification("Failed to set timer", "error");
@@ -3147,7 +3350,7 @@ export default function EmployeeShiftTracker() {
       console.error("Error setting timer:", error);
       showInAppNotification(
         error.response?.data?.error || "Failed to set timer",
-        "error"
+        "error",
       );
     }
   };
@@ -3156,11 +3359,11 @@ export default function EmployeeShiftTracker() {
   const handleCancelTimer = async () => {
     try {
       showInAppNotification("Cancelling auto-end timer...", "info");
-      
+
       // Call the backend API to cancel the timer
       const response = await axios.delete(
         `${process.env.EXPO_PUBLIC_API_URL}/api/shift-timer/shift/timer`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       if (response.data.success) {
@@ -3173,7 +3376,7 @@ export default function EmployeeShiftTracker() {
       }
     } catch (error: any) {
       console.error("Error cancelling timer:", error);
-      
+
       // Handle 404 response (no active timer) as a non-error condition
       if (error.response?.status === 404) {
         // No active timer found, which is fine - reset the UI
@@ -3184,7 +3387,7 @@ export default function EmployeeShiftTracker() {
         // For other errors, show the error message
         showInAppNotification(
           error.response?.data?.error || "Failed to cancel timer",
-          "error"
+          "error",
         );
       }
     }
@@ -3197,42 +3400,42 @@ export default function EmployeeShiftTracker() {
       if (!timerEndTime && isShiftActive) {
         const response = await axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/shift-timer/shift/timer`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         if (response.data.success && response.data.timer) {
           // Log the response to help debug timezone issues
           console.log("Retrieved timer from server:", response.data.timer);
-          
+
           // The endTime from server is in IST format
           const endTimeString = response.data.timer.endTime;
           console.log("Server returned end time (IST):", endTimeString);
-          
+
           // Parse the time string and ensure it's treated as IST
           // If the time string already has timezone info, use it directly
           // If not, we need to manually handle it as IST
           let endTime: Date;
-          
-          if (endTimeString.includes('+') || endTimeString.includes('Z')) {
+
+          if (endTimeString.includes("+") || endTimeString.includes("Z")) {
             // Time string has timezone info, use it directly
             endTime = new Date(endTimeString);
           } else {
             // Time string doesn't have timezone info, treat as IST
             // Add +05:30 offset to make it clear it's IST
-            endTime = new Date(endTimeString + '+05:30');
+            endTime = new Date(endTimeString + "+05:30");
           }
-          
+
           console.log("Parsed end time as IST:", endTime.toString());
           console.log("Local time representation:", endTime.toLocaleString());
-          
+
           setTimerDuration(response.data.timer.durationHours);
           setTimerEndTime(endTime);
-          
+
           // Only show notification if the timer is still in the future
           if (endTime > new Date()) {
             showInAppNotification(
               `Auto-end timer active: Shift will end at ${format(endTime, "hh:mm a")}`,
-              "info"
+              "info",
             );
           }
         }
@@ -3240,7 +3443,9 @@ export default function EmployeeShiftTracker() {
     } catch (error: any) {
       // Handle 404 (not found) as an expected condition
       if (error.response?.status === 404) {
-        console.log(`[TIMER] No active timer found for ${user?.role} - this is normal`);
+        console.log(
+          `[TIMER] No active timer found for ${user?.role} - this is normal`,
+        );
         // Ensure local state is reset
         setTimerDuration(null);
         setTimerEndTime(null);
@@ -3259,60 +3464,62 @@ export default function EmployeeShiftTracker() {
   }, [isShiftActive]);
 
   // Modify the timer UI section
-  {isShiftActive && !timerEndTime && (
-    <View className="mt-6">
-      <TouchableOpacity
-        onPress={() => setShowTimerPicker(true)}
-        className={`px-6 py-3 rounded-lg flex-row items-center justify-center ${
-          isDark ? "bg-blue-600" : "bg-blue-500"
-        }`}
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
-          elevation: 2,
-        }}
-      >
-        <Ionicons name="timer-outline" size={24} color="white" />
-        <Text className="text-white font-semibold ml-2">
-          Set Auto-End Timer
-        </Text>
-      </TouchableOpacity>
-    </View>
-  )}
-
-  {timerEndTime && (
-    <View className="mt-4 items-center">
-      <Text
-        className={`text-sm ${
-          isDark ? "text-gray-400" : "text-gray-600"
-        }`}
-      >
-        Shift will end in
-      </Text>
-      <View className="flex-row items-center">
-        <Ionicons
-          name="timer-outline"
-          size={20}
-          color={isDark ? "#60A5FA" : "#3B82F6"}
-        />
-        <Text
-          className={`ml-2 font-semibold ${
-            isDark ? "text-blue-400" : "text-blue-600"
+  {
+    isShiftActive && !timerEndTime && (
+      <View className="mt-6">
+        <TouchableOpacity
+          onPress={() => setShowTimerPicker(true)}
+          className={`px-6 py-3 rounded-lg flex-row items-center justify-center ${
+            isDark ? "bg-blue-600" : "bg-blue-500"
           }`}
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 2,
+          }}
         >
-          {format(timerEndTime, "hh:mm a")}
-        </Text>
+          <Ionicons name="timer-outline" size={24} color="white" />
+          <Text className="text-white font-semibold ml-2">
+            Set Auto-End Timer
+          </Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        onPress={handleCancelTimer}
-        className="mt-2 px-4 py-2 rounded-lg bg-red-500"
-      >
-        <Text className="text-white font-semibold">Cancel Timer</Text>
-      </TouchableOpacity>
-    </View>
-  )}
+    );
+  }
+
+  {
+    timerEndTime && (
+      <View className="mt-4 items-center">
+        <Text
+          className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+        >
+          Shift will end in
+        </Text>
+        <View className="flex-row items-center">
+          <Ionicons
+            name="timer-outline"
+            size={20}
+            color={isDark ? "#60A5FA" : "#3B82F6"}
+          />
+          <Text
+            className={`ml-2 font-semibold ${
+              isDark ? "text-blue-400" : "text-blue-600"
+            }`}
+          >
+            {format(timerEndTime, "hh:mm a")}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleCancelTimer}
+          className="mt-2 px-4 py-2 rounded-lg bg-red-500"
+        >
+          <Text className="text-white font-semibold">Cancel Timer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Add this near other useEffect hooks
   useEffect(() => {
@@ -3324,7 +3531,7 @@ export default function EmployeeShiftTracker() {
           // Reschedule the notification if it was dismissed and shift is still active
           schedulePersistentNotification();
         }
-      }
+      },
     );
 
     return () => {
@@ -3345,10 +3552,10 @@ export default function EmployeeShiftTracker() {
         ) {
           // Cancel the notification when dismiss is pressed
           Notifications.dismissNotificationAsync(
-            response.notification.request.identifier
+            response.notification.request.identifier,
           );
         }
-      }
+      },
     );
 
     return () => {
@@ -3385,12 +3592,12 @@ export default function EmployeeShiftTracker() {
       if (currentLocation?.latitude && currentLocation?.longitude) {
         const address = await getLocationAddress(
           currentLocation.latitude,
-          currentLocation.longitude
+          currentLocation.longitude,
         );
         setCurrentAddress(address);
       }
     };
-    
+
     updateAddress();
   }, [currentLocation]);
 
@@ -3428,43 +3635,43 @@ export default function EmployeeShiftTracker() {
       // Check with backend if the shift is still active
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}${apiEndpoint}/shift/current`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const currentShiftOnServer = response.data;
-      
+
       // If we think shift is active but backend shows no active shift,
       // the shift was likely auto-ended
       if (!currentShiftOnServer) {
-        console.log('Detected auto-ended shift - updating UI');
-        
+        console.log("Detected auto-ended shift - updating UI");
+
         // Update local state
         setIsShiftActive(false);
         setShiftStart(null);
         pulseAnim.setValue(1);
         rotateAnim.setValue(0);
-        
+
         // Clear shift status in AsyncStorage
         await AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-        
+
         // Cancel any notifications
         await cancelShiftNotifications();
-        
+
         // Reset timer state
         setTimerDuration(null);
         setTimerEndTime(null);
-        
+
         // Show notification to user
         showInAppNotification(
-          "Your shift was automatically ended by the timer", 
-          "info"
+          "Your shift was automatically ended by the timer",
+          "info",
         );
-        
+
         // Refresh shift history data
         await Promise.all([loadShiftHistoryFromBackend(), fetchRecentShifts()]);
       }
     } catch (error) {
-      console.error('Error checking if shift was auto-ended:', error);
+      console.error("Error checking if shift was auto-ended:", error);
     }
   };
 
@@ -3474,7 +3681,7 @@ export default function EmployeeShiftTracker() {
       console.log("ShiftTracker screen focused - checking shift status");
       checkIfShiftAutoEnded();
       fetchAndUpdateGeofencePermissions();
-    }, [user, token])
+    }, [user, token]),
   );
 
   // Add a periodic check during active shifts to detect auto-ended shifts
@@ -3483,12 +3690,12 @@ export default function EmployeeShiftTracker() {
     if (!isShiftActive) {
       return;
     }
-    
+
     // Check every minute if the shift was auto-ended
     const autoEndCheckInterval = setInterval(() => {
       checkIfShiftAutoEnded();
     }, 60000); // Check every minute
-    
+
     return () => {
       clearInterval(autoEndCheckInterval);
     };
@@ -3497,33 +3704,34 @@ export default function EmployeeShiftTracker() {
   // Add this near other useEffect hooks
   useEffect(() => {
     // Set up notification listeners for auto-ended shifts
-    const notificationReceivedListener = Notifications.addNotificationReceivedListener((notification) => {
-      // Check if this is a shift-end-auto notification
-      const data = notification.request.content.data;
-      if (data?.type === "shift-end-auto" && isShiftActive) {
-        console.log("Received auto-end notification - updating UI");
-        
-        // Update the UI immediately
-        setIsShiftActive(false);
-        setShiftStart(null);
-        pulseAnim.setValue(1);
-        rotateAnim.setValue(0);
-        
-        // Clear AsyncStorage
-        AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-        
-        // Cancel any scheduled warning/limit notifications
-        cancelShiftNotifications();
-        
-        // Reset timer state
-        setTimerDuration(null);
-        setTimerEndTime(null);
-        
-        // Refresh data
-        loadShiftHistoryFromBackend();
-        fetchRecentShifts();
-      }
-    });
+    const notificationReceivedListener =
+      Notifications.addNotificationReceivedListener((notification) => {
+        // Check if this is a shift-end-auto notification
+        const data = notification.request.content.data;
+        if (data?.type === "shift-end-auto" && isShiftActive) {
+          console.log("Received auto-end notification - updating UI");
+
+          // Update the UI immediately
+          setIsShiftActive(false);
+          setShiftStart(null);
+          pulseAnim.setValue(1);
+          rotateAnim.setValue(0);
+
+          // Clear AsyncStorage
+          AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
+
+          // Cancel any scheduled warning/limit notifications
+          cancelShiftNotifications();
+
+          // Reset timer state
+          setTimerDuration(null);
+          setTimerEndTime(null);
+
+          // Refresh data
+          loadShiftHistoryFromBackend();
+          fetchRecentShifts();
+        }
+      });
 
     // Clean up listener on unmount
     return () => {
@@ -3533,10 +3741,10 @@ export default function EmployeeShiftTracker() {
 
   // Add this effect to handle app state changes
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextAppState => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
       // When app comes to foreground from background
-      if (nextAppState === 'active' && isShiftActive) {
-        console.log('App came to foreground, checking if shift was auto-ended');
+      if (nextAppState === "active" && isShiftActive) {
+        console.log("App came to foreground, checking if shift was auto-ended");
         checkIfShiftAutoEnded();
       }
     });
@@ -3551,23 +3759,26 @@ export default function EmployeeShiftTracker() {
     try {
       setIsAddressRefreshing(true);
       const location = await getCurrentLocation();
-      
+
       if (location) {
         const appLocation = convertToLocation(location);
         if (appLocation?.latitude && appLocation?.longitude) {
-          const address = await getLocationAddress(appLocation.latitude, appLocation.longitude);
+          const address = await getLocationAddress(
+            appLocation.latitude,
+            appLocation.longitude,
+          );
           setCurrentAddress(address);
         }
       }
     } catch (error) {
-      console.error('Error refreshing address:', error);
-      showInAppNotification('Failed to update location', 'error');
+      console.error("Error refreshing address:", error);
+      showInAppNotification("Failed to update location", "error");
     } finally {
       setIsAddressRefreshing(false);
     }
   };
 
-  // // Add a new useEffect to periodically update location in the background 
+  // // Add a new useEffect to periodically update location in the background
   // // when the app is active and in the foreground
   // useEffect(() => {
   //   // Create a periodic refresh for location data when app is in foreground
@@ -3577,11 +3788,11 @@ export default function EmployeeShiftTracker() {
   //       if (AppState.currentState === 'active') {
   //         console.log("Background location refresh");
   //         const location = await getCurrentLocation();
-          
+
   //         if (location) {
   //           // Update the store with fresh location
   //           useLocationStore.getState().setCurrentLocation(location);
-            
+
   //           // Update address in background
   //           const appLocation = convertToLocation(location);
   //           if (appLocation?.latitude && appLocation?.longitude) {
@@ -3595,7 +3806,7 @@ export default function EmployeeShiftTracker() {
   //       console.error("Background location refresh failed:", error);
   //     }
   //   }, 60000); // Refresh every 60 seconds when app is in foreground
-    
+
   //   return () => {
   //     clearInterval(locationRefreshInterval);
   //   };
@@ -3603,8 +3814,8 @@ export default function EmployeeShiftTracker() {
 
   // Handler functions for embedded map integration
   const handleMapLocationUpdate = useCallback((location: AppLocation) => {
-    console.log('Map location updated:', location);
-    
+    console.log("Map location updated:", location);
+
     // Update the current location in the store
     if (location.latitude && location.longitude) {
       const enhancedLocation = {
@@ -3617,77 +3828,98 @@ export default function EmployeeShiftTracker() {
           heading: location.heading || null,
           speed: location.speed || null,
         },
-        timestamp: typeof location.timestamp === 'string' 
-          ? new Date(location.timestamp).getTime() 
-          : location.timestamp || Date.now(),
+        timestamp:
+          typeof location.timestamp === "string"
+            ? new Date(location.timestamp).getTime()
+            : location.timestamp || Date.now(),
         batteryLevel: location.batteryLevel,
         isMoving: location.isMoving,
       };
-      
+
       useLocationStore.getState().setCurrentLocation(enhancedLocation);
-      
+
       // Update address
       getLocationAddress(location.latitude, location.longitude)
-        .then(address => setCurrentAddress(address))
-        .catch(error => console.log("Error getting address from map:", error));
+        .then((address) => setCurrentAddress(address))
+        .catch((error) =>
+          console.log("Error getting address from map:", error),
+        );
     }
   }, []);
 
-  const handleGeofenceStatusChange = useCallback((isInside: boolean, geofenceName?: string) => {
-    console.log('Geofence status changed:', { isInside, geofenceName });
-    
-    // Update geofence status in store
-    const currentGeofence = getCurrentGeofence();
-    setIsInGeofence(isInside, currentGeofence?.id);
-    
-    // Show notification for geofence changes during active shift
-    if (isShiftActive) {
-      const message = isInside 
-        ? `Entered work area: ${geofenceName || 'Unknown'}`
-        : `Exited work area: ${geofenceName || 'Unknown'}`;
-      
-      showInAppNotification(message, isInside ? 'success' : 'warning');
-    }
-  }, [isShiftActive, getCurrentGeofence, setIsInGeofence]);
+  const handleGeofenceStatusChange = useCallback(
+    (isInside: boolean, geofenceName?: string) => {
+      console.log("Geofence status changed:", { isInside, geofenceName });
+
+      // Update geofence status in store
+      const currentGeofence = getCurrentGeofence();
+      setIsInGeofence(isInside, currentGeofence?.id);
+
+      // Show notification for geofence changes during active shift
+      if (isShiftActive) {
+        const message = isInside
+          ? `Entered work area: ${geofenceName || "Unknown"}`
+          : `Exited work area: ${geofenceName || "Unknown"}`;
+
+        showInAppNotification(message, isInside ? "success" : "warning");
+      }
+    },
+    [isShiftActive, getCurrentGeofence, setIsInGeofence],
+  );
 
   const handleLocationRetry = useCallback(async () => {
     try {
       setShowLocationError(false);
-      setLocationErrorMessage('');
-      
+      setLocationErrorMessage("");
+
       // Show loading state
-      showInAppNotification('Retrying location...', 'info');
-      
+      showInAppNotification("Retrying location...", "info");
+
       // Try to get current location
       const location = await getCurrentLocation();
-      
+
       if (location) {
         const appLocation = convertToLocation(location);
         if (appLocation?.latitude && appLocation?.longitude) {
           // Update address
-          const address = await getLocationAddress(appLocation.latitude, appLocation.longitude);
+          const address = await getLocationAddress(
+            appLocation.latitude,
+            appLocation.longitude,
+          );
           setCurrentAddress(address);
-          
+
           // Check geofence status
           const isInside = isLocationInAnyGeofence(appLocation);
           const currentGeofence = getCurrentGeofence();
           setIsInGeofence(isInside, currentGeofence?.id);
-          
-          showInAppNotification('Location updated successfully', 'success');
+
+          showInAppNotification("Location updated successfully", "success");
         }
       } else {
-        throw new Error('Unable to get current location');
+        throw new Error("Unable to get current location");
       }
     } catch (error) {
-      console.error('Location retry failed:', error);
-      setLocationErrorMessage('Location retry failed. Please check your device settings and try again.');
+      console.error("Location retry failed:", error);
+      setLocationErrorMessage(
+        "Location retry failed. Please check your device settings and try again.",
+      );
       setShowLocationError(true);
-      showInAppNotification('Location retry failed. Please check your device settings.', 'error');
+      showInAppNotification(
+        "Location retry failed. Please check your device settings.",
+        "error",
+      );
     }
-  }, [getCurrentLocation, isLocationInAnyGeofence, getCurrentGeofence, setIsInGeofence]);
+  }, [
+    getCurrentLocation,
+    isLocationInAnyGeofence,
+    getCurrentGeofence,
+    setIsInGeofence,
+  ]);
 
   return (
-    <SafeAreaView className={`flex-1 pb-4 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+    <SafeAreaView
+      className={`flex-1 pb-4 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
+    >
       <StatusBar
         backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
         barStyle={isDark ? "light-content" : "dark-content"}
@@ -3777,24 +4009,35 @@ export default function EmployeeShiftTracker() {
                   defaultFullscreen={true}
                 />
               </View>
-              
+
               {/* Location Info Panel */}
-              <View className={`mt-3 p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}>
+              <View
+                className={`mt-3 p-3 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}
+              >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1">
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       Current Position
                     </Text>
                     <View className="flex-row items-center mt-1">
-                      <Text className={`text-sm ${isDark ? "text-white" : "text-gray-800"}`} numberOfLines={2}>
+                      <Text
+                        className={`text-sm ${isDark ? "text-white" : "text-gray-800"}`}
+                        numberOfLines={2}
+                      >
                         {currentAddress}
                       </Text>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={handleAddressRefresh}
                         disabled={isAddressRefreshing}
                         className="ml-2"
                       >
-                        <Animated.View style={{ transform: [{ rotate: addressRefreshRotate }] }}>
+                        <Animated.View
+                          style={{
+                            transform: [{ rotate: addressRefreshRotate }],
+                          }}
+                        >
                           <Ionicons
                             name="refresh-outline"
                             size={16}
@@ -3804,9 +4047,11 @@ export default function EmployeeShiftTracker() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  
+
                   <View className="ml-4">
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       Battery
                     </Text>
                     <View className="flex-row items-center mt-1">
@@ -3815,10 +4060,10 @@ export default function EmployeeShiftTracker() {
                           batteryLevel > 75
                             ? "battery-full"
                             : batteryLevel > 45
-                            ? "battery-half"
-                            : batteryLevel > 15
-                            ? "battery-half"
-                            : "battery-dead"
+                              ? "battery-half"
+                              : batteryLevel > 15
+                                ? "battery-half"
+                                : "battery-dead"
                         }
                         size={16}
                         color={
@@ -3844,18 +4089,20 @@ export default function EmployeeShiftTracker() {
                     </View>
                   </View>
                 </View>
-                
+
                 {/* Location accuracy indicator */}
                 {currentLocation?.coords?.accuracy && (
                   <View className="mt-2">
-                    <Text className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                    <Text
+                      className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
                       Accuracy: {Math.round(currentLocation.coords.accuracy)}m
                     </Text>
                   </View>
                 )}
               </View>
             </View>
-              {/* <View className="flex-row justify-between items-center mb-2">
+            {/* <View className="flex-row justify-between items-center mb-2">
                 <View>
                   <Text
                     className={`text-xs ${
@@ -4009,10 +4256,15 @@ export default function EmployeeShiftTracker() {
 
         <View className="items-center mb-6">
           {/* Cooldown indicator */}
-          {(shiftCooldownUntil !== null) && cooldownTimeLeft > 0 && (
-            <View className={`mb-4 px-4 py-2 rounded-lg ${isDark ? "bg-orange-900" : "bg-orange-100"}`}>
-              <Text className={`text-center text-sm ${isDark ? "text-orange-300" : "text-orange-800"}`}>
-                Action cooldown: {Math.floor(cooldownTimeLeft / 60)}m {cooldownTimeLeft % 60}s remaining
+          {shiftCooldownUntil !== null && cooldownTimeLeft > 0 && (
+            <View
+              className={`mb-4 px-4 py-2 rounded-lg ${isDark ? "bg-orange-900" : "bg-orange-100"}`}
+            >
+              <Text
+                className={`text-center text-sm ${isDark ? "text-orange-300" : "text-orange-800"}`}
+              >
+                Action cooldown: {Math.floor(cooldownTimeLeft / 60)}m{" "}
+                {cooldownTimeLeft % 60}s remaining
               </Text>
             </View>
           )}
@@ -4023,17 +4275,29 @@ export default function EmployeeShiftTracker() {
             }}
           >
             <TouchableOpacity
-              onPress={isShiftActive ? () => startEndShiftVerification('end') : () => startEndShiftVerification('start')}
-              disabled={isProcessingShift || ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0)}
+              onPress={
+                isShiftActive
+                  ? () => startEndShiftVerification("end")
+                  : () => startEndShiftVerification("start")
+              }
+              disabled={
+                isProcessingShift ||
+                (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
+              }
               className={`w-40 h-40 rounded-full items-center justify-center ${
-                isProcessingShift || ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0)
-                  ? "bg-gray-400" 
-                  : isShiftActive 
-                    ? "bg-red-500" 
+                isProcessingShift ||
+                (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
+                  ? "bg-gray-400"
+                  : isShiftActive
+                    ? "bg-red-500"
                     : "bg-green-500"
               }`}
               style={{
-                opacity: (isProcessingShift || ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0)) ? 0.7 : 1.0,
+                opacity:
+                  isProcessingShift ||
+                  (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
+                    ? 0.7
+                    : 1.0,
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
@@ -4054,18 +4318,15 @@ export default function EmployeeShiftTracker() {
                     Processing...
                   </Text>
                 </View>
-              ) : ((shiftCooldownUntil !== null) && cooldownTimeLeft > 0) ? (
+              ) : shiftCooldownUntil !== null && cooldownTimeLeft > 0 ? (
                 <View className="items-center justify-center">
-                  <Ionicons
-                    name="timer-outline"
-                    size={60}
-                    color="white"
-                  />
+                  <Ionicons name="timer-outline" size={60} color="white" />
                   <Text className="text-white text-lg font-bold mt-2">
                     Cooldown
                   </Text>
                   <Text className="text-white text-xs">
-                    {Math.floor(cooldownTimeLeft / 60)}:{(cooldownTimeLeft % 60).toString().padStart(2, '0')}
+                    {Math.floor(cooldownTimeLeft / 60)}:
+                    {(cooldownTimeLeft % 60).toString().padStart(2, "0")}
                   </Text>
                 </View>
               ) : (
@@ -4350,7 +4611,8 @@ export default function EmployeeShiftTracker() {
                 }`}
               >
                 <Text className="text-white text-center font-semibold">
-                  {modalData.confirmText || (modalData.showCancel ? "Confirm" : "OK")}
+                  {modalData.confirmText ||
+                    (modalData.showCancel ? "Confirm" : "OK")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -4470,46 +4732,53 @@ export default function EmployeeShiftTracker() {
                           // If we get here, location services should be enabled
                           showInAppNotification(
                             "Location services enabled successfully.",
-                            "success"
+                            "success",
                           );
 
                           // Reinitialize location
                           const location = await getCurrentLocation();
                           if (location) {
                             // Update geofence status
-                            const locationForGeofenceCheck = convertToLocation(location) as AppLocation | null;
-                            const isInside = locationForGeofenceCheck !== null ? isLocationInAnyGeofence(locationForGeofenceCheck) : false;
+                            const locationForGeofenceCheck = convertToLocation(
+                              location,
+                            ) as AppLocation | null;
+                            const isInside =
+                              locationForGeofenceCheck !== null
+                                ? isLocationInAnyGeofence(
+                                    locationForGeofenceCheck,
+                                  )
+                                : false;
                             console.log(
                               "Location enabled, updated geofence status:",
-                              { isInside, location }
+                              { isInside, location },
                             );
                           }
                         } catch (locationError) {
                           console.error(
                             "Error requesting location:",
-                            locationError
+                            locationError,
                           );
                           // The user likely denied the location services prompt
                           showInAppNotification(
                             "Please enable location services to use all app features.",
-                            "warning"
+                            "warning",
                           );
                         }
                       } else {
                         // Permission denied
                         showInAppNotification(
                           "Location permission is required for shift tracking.",
-                          "warning"
+                          "warning",
                         );
                       }
                     } catch (error) {
                       console.error(
                         "Error requesting location permission:",
-                        error
+                        error,
                       );
                       showInAppNotification(
                         "Unable to request location access. Please enable location from your device settings.",
-                        "error"
+                        "error",
                       );
                     }
                   }}
@@ -4537,10 +4806,15 @@ export default function EmployeeShiftTracker() {
         }}
         retryCount={verificationState.retryCount}
         maxRetries={verificationState.maxRetries}
-        title={faceVerificationMode === 'register' ? 'Register Your Face' : 'Verify Your Identity'}
-        subtitle={faceVerificationMode === 'register' 
-          ? 'Please register your face to enable secure shift operations'
-          : 'Please look at the camera and blink to verify your identity'
+        title={
+          faceVerificationMode === "register"
+            ? "Register Your Face"
+            : "Verify Your Identity"
+        }
+        subtitle={
+          faceVerificationMode === "register"
+            ? "Please register your face to enable secure shift operations"
+            : "Please look at the camera and blink to verify your identity"
         }
       />
 
@@ -4552,20 +4826,29 @@ export default function EmployeeShiftTracker() {
         onRequestClose={() => setShowManagerOverride(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className={`m-5 p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} w-5/6`}>
+          <View
+            className={`m-5 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} w-5/6`}
+          >
             <View className="flex-row items-center mb-4">
               <Ionicons name="shield-checkmark" size={24} color="#f59e0b" />
-              <Text className={`text-xl font-bold ml-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Text
+                className={`text-xl font-bold ml-2 ${isDark ? "text-white" : "text-gray-900"}`}
+              >
                 Manager Override Required
               </Text>
             </View>
-            
-            <Text className={`text-base mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              Face verification failed after {verificationState.maxRetries} attempts. 
-              A manager override is required to proceed with the shift operation.
+
+            <Text
+              className={`text-base mb-4 ${isDark ? "text-gray-300" : "text-gray-600"}`}
+            >
+              Face verification failed after {verificationState.maxRetries}{" "}
+              attempts. A manager override is required to proceed with the shift
+              operation.
             </Text>
 
-            <Text className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <Text
+              className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+            >
               This will require OTP verification from a manager.
             </Text>
 
@@ -4575,21 +4858,27 @@ export default function EmployeeShiftTracker() {
                   setShowManagerOverride(false);
                   resetVerificationState();
                 }}
-                className={`px-4 py-2 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}
+                className={`px-4 py-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-200"}`}
               >
-                <Text className={`font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <Text
+                  className={`font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={() => {
                   setShowManagerOverride(false);
-                  handleManagerOverride('Face verification failed - manager override requested');
+                  handleManagerOverride(
+                    "Face verification failed - manager override requested",
+                  );
                 }}
                 className="px-4 py-2 rounded-lg bg-orange-500"
               >
-                <Text className="text-white font-semibold">Request Override</Text>
+                <Text className="text-white font-semibold">
+                  Request Override
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -4600,12 +4889,15 @@ export default function EmployeeShiftTracker() {
       <OTPVerification
         visible={showOTPVerification}
         purpose="manager_override"
-        phoneNumber={user?.phone || ''}
+        phoneNumber={user?.phone || ""}
         onSuccess={handleOTPSuccess}
         onError={(error) => {
-          console.error('OTP verification failed:', error);
+          console.error("OTP verification failed:", error);
           setShowOTPVerification(false);
-          showInAppNotification('Manager override failed. Please try again.', 'error');
+          showInAppNotification(
+            "Manager override failed. Please try again.",
+            "error",
+          );
         }}
         onCancel={() => {
           setShowOTPVerification(false);
@@ -4633,27 +4925,28 @@ export default function EmployeeShiftTracker() {
         maxRetries={verificationState.maxRetries}
       />
 
-
-
-
-
       {/* Verification Progress Overlay */}
       {verificationState.verificationInProgress && (
         <Modal transparent visible={true}>
           <View className="flex-1 justify-center items-center bg-black/50">
-            <View className={`p-6 rounded-xl ${isDark ? 'bg-gray-800' : 'bg-white'} w-4/5`}>
+            <View
+              className={`p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"} w-4/5`}
+            >
               <View className="items-center">
                 <ActivityIndicator size="large" color="#3b82f6" />
-                <Text className={`text-lg font-semibold mt-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                <Text
+                  className={`text-lg font-semibold mt-4 ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   Processing Verification
                 </Text>
-                <Text className={`text-sm mt-2 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {verificationState.currentStep === 'location' 
-                    ? 'Verifying your location...'
-                    : verificationState.currentStep === 'face'
-                    ? 'Processing face verification...'
-                    : 'Completing shift operation...'
-                  }
+                <Text
+                  className={`text-sm mt-2 text-center ${isDark ? "text-gray-300" : "text-gray-600"}`}
+                >
+                  {verificationState.currentStep === "location"
+                    ? "Verifying your location..."
+                    : verificationState.currentStep === "face"
+                      ? "Processing face verification..."
+                      : "Completing shift operation..."}
                 </Text>
               </View>
             </View>
@@ -4665,13 +4958,15 @@ export default function EmployeeShiftTracker() {
       <VerificationOrchestrator
         visible={showVerificationOrchestrator}
         userId={Number(user?.id) || 0}
-        token={token || ''}
-        shiftAction={pendingShiftAction || 'start'}
+        token={token || ""}
+        shiftAction={pendingShiftAction || "start"}
         config={verificationConfig}
         onSuccess={handleVerificationSuccess}
         onCancel={handleVerificationCancel}
         onError={handleVerificationError}
-        locationVerificationFn={performLocationVerificationBoolean as () => Promise<boolean>}
+        locationVerificationFn={
+          performLocationVerificationBoolean as () => Promise<boolean>
+        }
         canOverrideGeofence={canOverrideGeofence}
       />
 
@@ -4680,7 +4975,9 @@ export default function EmployeeShiftTracker() {
         visible={inAppNotification.visible}
         message={inAppNotification.message}
         type={inAppNotification.type}
-        onDismiss={() => setInAppNotification(prev => ({ ...prev, visible: false }))}
+        onDismiss={() =>
+          setInAppNotification((prev) => ({ ...prev, visible: false }))
+        }
       />
     </SafeAreaView>
   );

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -34,18 +40,28 @@ import {
 } from "../../../types/liveTracking";
 import useMapStore from "../../../store/useMapStore";
 import useAdminLocationStore from "../../../store/adminLocationStore";
-import { Point, cleanRoute, getRouteStats, formatDistance } from "../../../utils/routeUtils";
+import {
+  Point,
+  cleanRoute,
+  getRouteStats,
+  formatDistance,
+} from "../../../utils/routeUtils";
 
 import LiveTrackingMap from "../../shared/components/map/LiveTrackingMap";
 import { showTokenDebugAlert } from "../../../utils/tokenDebugger";
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import Constants from 'expo-constants';
+import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import Constants from "expo-constants";
 
 // Add the MAX_ROUTE_POINTS constant to limit memory usage
 const MAX_ROUTE_POINTS = 500;
 
 // Add a helper function to calculate distance between two coordinates
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
   const R = 6371e3; // Earth radius in meters
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
@@ -60,16 +76,19 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 };
 
 // Add validation function for coordinates
-const isValidCoordinate = (latitude: number | null | undefined, longitude: number | null | undefined): boolean => {
+const isValidCoordinate = (
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): boolean => {
   return (
-    typeof latitude === 'number' && 
-    typeof longitude === 'number' && 
-    !isNaN(latitude) && 
-    !isNaN(longitude) && 
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    !isNaN(latitude) &&
+    !isNaN(longitude) &&
     isFinite(latitude) &&
     isFinite(longitude) &&
-    Math.abs(latitude) <= 90 &&  // Valid latitude range
-    Math.abs(longitude) <= 180   // Valid longitude range
+    Math.abs(latitude) <= 90 && // Valid latitude range
+    Math.abs(longitude) <= 180 // Valid longitude range
   );
 };
 
@@ -103,27 +122,33 @@ export default function GroupAdminTrackingDashboard() {
   const primaryColor = "#3b82f6"; // Primary blue color for buttons/accents
 
   // Use the TrackingContext to ensure tracking persists
-  const { isInitialized, checkTrackingStatus, restartBackgroundTracking } = useTracking();
+  const { isInitialized, checkTrackingStatus, restartBackgroundTracking } =
+    useTracking();
 
   // State
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [filterActive, setFilterActive] = useState(false);
   const [showGeofences, setShowGeofences] = useState(true);
   const [showUserPaths, setShowUserPaths] = useState(true);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Add state for tracking user routes
   const [userRoutes, setUserRoutes] = useState<Record<string, Point[]>>({});
-  const [routeStats, setRouteStats] = useState<Record<string, {
-    distance: number;
-    formattedDistance: string;
-    duration: number;
-  }>>({});
+  const [routeStats, setRouteStats] = useState<
+    Record<
+      string,
+      {
+        distance: number;
+        formattedDistance: string;
+        duration: number;
+      }
+    >
+  >({});
 
   // Add state to track initial region setup
   const [initialRegionSet, setInitialRegionSet] = useState<boolean>(false);
@@ -156,7 +181,7 @@ export default function GroupAdminTrackingDashboard() {
 
   // Add this near other state declarations
   const [locationCache, setLocationCache] = useState<{ [key: string]: string }>(
-    {}
+    {},
   );
 
   // Get the map store hooks
@@ -169,237 +194,281 @@ export default function GroupAdminTrackingDashboard() {
 
   // Add bottom sheet ref and snap points
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '85%'], []);
+  const snapPoints = useMemo(() => ["25%", "50%", "85%"], []);
 
   // Add state to track bottom sheet index
   const [bottomSheetIndex, setBottomSheetIndex] = useState(1); // Default to middle position (index 1)
 
   // Add callback for sheet changes
   const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
+    console.log("handleSheetChanges", index);
     setBottomSheetIndex(index);
   }, []);
 
   // Handle navigating to a specific employee
-  const handleGoToEmployee = useCallback((employee: TrackingUser) => {
-    if (!employee || !employee.location) {
-      console.log('Cannot navigate to employee: No location data');
-      return;
-    }
-    
-    // Validate location coordinates
-    if (!isValidCoordinate(employee.location.latitude, employee.location.longitude)) {
-      console.log('Cannot navigate to employee: Invalid coordinates', employee.location);
-      return;
-    }
-    
-    // Set selected user
-    setSelectedUserId(employee.id);
-    
-    // Update map region to focus on this employee
-    const newRegion = {
-      latitude: employee.location.latitude,
-      longitude: employee.location.longitude,
-      latitudeDelta: 0.005,  // Zoomed in for employee view
-      longitudeDelta: 0.005,
-    };
-    
-    // Update map region
-    setMapRegion(newRegion);
-  }, [setMapRegion]);
+  const handleGoToEmployee = useCallback(
+    (employee: TrackingUser) => {
+      if (!employee || !employee.location) {
+        console.log("Cannot navigate to employee: No location data");
+        return;
+      }
+
+      // Validate location coordinates
+      if (
+        !isValidCoordinate(
+          employee.location.latitude,
+          employee.location.longitude,
+        )
+      ) {
+        console.log(
+          "Cannot navigate to employee: Invalid coordinates",
+          employee.location,
+        );
+        return;
+      }
+
+      // Set selected user
+      setSelectedUserId(employee.id);
+
+      // Update map region to focus on this employee
+      const newRegion = {
+        latitude: employee.location.latitude,
+        longitude: employee.location.longitude,
+        latitudeDelta: 0.005, // Zoomed in for employee view
+        longitudeDelta: 0.005,
+      };
+
+      // Update map region
+      setMapRegion(newRegion);
+    },
+    [setMapRegion],
+  );
 
   // Add renderItem function for FlatList
-  const renderItem = useCallback(({ item: user }: { item: TrackingUser }) => {
-    const isSelected = selectedUserId === user.id;
-    const routeDistance = routeStats[user.id]?.formattedDistance || '0 m';
-    const routeDuration = routeStats[user.id]?.duration || 0;
-    
-    let formattedDuration = '0 min';
-    if (routeDuration >= 3600) {
-      const hours = Math.floor(routeDuration / 3600);
-      const minutes = Math.floor((routeDuration % 3600) / 60);
-      formattedDuration = `${hours}h ${minutes}m`;
-    } else if (routeDuration >= 60) {
-      formattedDuration = `${Math.floor(routeDuration / 60)}m`;
-    } else {
-      formattedDuration = `${Math.round(routeDuration)}s`;
-    }
+  const renderItem = useCallback(
+    ({ item: user }: { item: TrackingUser }) => {
+      const isSelected = selectedUserId === user.id;
+      const routeDistance = routeStats[user.id]?.formattedDistance || "0 m";
+      const routeDuration = routeStats[user.id]?.duration || 0;
 
-    // Check if location data is valid
-    const hasValidLocation = user.location && 
-      isValidCoordinate(user.location.latitude, user.location.longitude);
+      let formattedDuration = "0 min";
+      if (routeDuration >= 3600) {
+        const hours = Math.floor(routeDuration / 3600);
+        const minutes = Math.floor((routeDuration % 3600) / 60);
+        formattedDuration = `${hours}h ${minutes}m`;
+      } else if (routeDuration >= 60) {
+        formattedDuration = `${Math.floor(routeDuration / 60)}m`;
+      } else {
+        formattedDuration = `${Math.round(routeDuration)}s`;
+      }
 
-    return (
-      <TouchableOpacity
-        key={user.id}
-        style={[
-          styles.employeeItem,
-          isSelected && styles.selectedEmployeeItem,
-          { backgroundColor: cardColor }
-        ]}
-        onPress={() => hasValidLocation ? handleGoToEmployee(user) : null}
-      >
-        {/* Status Badge */}
-        <View 
+      // Check if location data is valid
+      const hasValidLocation =
+        user.location &&
+        isValidCoordinate(user.location.latitude, user.location.longitude);
+
+      return (
+        <TouchableOpacity
+          key={user.id}
           style={[
-            styles.statusBadge, 
-            { 
-              position: 'absolute',
-              top: 10, 
-              right: 10,
-              backgroundColor: user.isActive 
-                ? 'rgba(16, 185, 129, 0.15)' 
-                : 'rgba(239, 68, 68, 0.15)',
-              paddingVertical: 4,
-              paddingHorizontal: 10,
-              borderRadius: 6
-            }
+            styles.employeeItem,
+            isSelected && styles.selectedEmployeeItem,
+            { backgroundColor: cardColor },
           ]}
+          onPress={() => (hasValidLocation ? handleGoToEmployee(user) : null)}
         >
-          <Text style={{
-            fontSize: 12,
-            fontWeight: '600',
-            color: user.isActive ? '#065f46' : '#b91c1c',
-          }}>
-            {user.isActive ? 'Active' : 'Inactive'}
-          </Text>
-        </View>
-
-        {/* Left Side Content */}
-        <View style={styles.employeeInfo}>
-          {/* Employee Name and ID row */}
-          <View style={styles.employeeHeader}>
-            <View style={[styles.statusDot, { backgroundColor: user.isActive ? "#10b981" : "#ef4444" }]} />
-            <Text 
-              style={[styles.employeeName, { color: textColor }]} 
-              numberOfLines={1}
+          {/* Status Badge */}
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                position: "absolute",
+                top: 10,
+                right: 10,
+                backgroundColor: user.isActive
+                  ? "rgba(16, 185, 129, 0.15)"
+                  : "rgba(239, 68, 68, 0.15)",
+                paddingVertical: 4,
+                paddingHorizontal: 10,
+                borderRadius: 6,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: user.isActive ? "#065f46" : "#b91c1c",
+              }}
             >
-              {user.name || 'Employee'}
+              {user.isActive ? "Active" : "Inactive"}
             </Text>
-            {user.employeeNumber && (
-              <Text style={[styles.employeeNumber, { color: textColor }]}>
-                #{user.employeeNumber}
-              </Text>
-            )}
           </View>
-          
-          {/* Device Info */}
-          <View className='mb-1' style={styles.detailRow}>
-            <View style={styles.iconTextRow}>
-              <Ionicons 
-                name="phone-portrait-outline" 
-                size={16} 
-                color={primaryColor} 
-                style={styles.detailIcon} 
+
+          {/* Left Side Content */}
+          <View style={styles.employeeInfo}>
+            {/* Employee Name and ID row */}
+            <View style={styles.employeeHeader}>
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: user.isActive ? "#10b981" : "#ef4444" },
+                ]}
               />
-              <Text 
-                style={[styles.detailText, { color: textColor }]} 
+              <Text
+                style={[styles.employeeName, { color: textColor }]}
                 numberOfLines={1}
               >
-                {user.deviceInfo || 'Unknown Device'}
+                {user.name || "Employee"}
               </Text>
-            </View>
-          </View>
-
-          {/* Location */}
-          <View className='mb-1' style={styles.detailRow}>
-            <View style={styles.iconTextRow}>
-              <Ionicons 
-                name="location-outline" 
-                size={16} 
-                color={primaryColor} 
-                style={styles.detailIcon} 
-              />
-              {hasValidLocation ? (
-                <LocationName 
-                  latitude={user.location.latitude}
-                  longitude={user.location.longitude}
-                  style={[styles.detailText, { color: textColor }]}
-                />
-              ) : (
-                <Text style={[styles.detailText, { color: textColor, fontStyle: 'italic' }]}>
-                  Location unavailable
+              {user.employeeNumber && (
+                <Text style={[styles.employeeNumber, { color: textColor }]}>
+                  #{user.employeeNumber}
                 </Text>
               )}
             </View>
-          </View>
-            
-          {/* Last Updated */}
-          <View className='mb-1' style={styles.detailRow}>
-            <View style={styles.iconTextRow}>
-              <Ionicons 
-                name="time-outline" 
-                size={16} 
-                color={primaryColor} 
-                style={styles.detailIcon} 
-              />
-              <Text 
-                style={[styles.detailText, { color: textColor }]} 
-                numberOfLines={1}
-              >
-                {formatLastUpdated(user.lastUpdated)}
-              </Text>
-            </View>
-          </View>
-            
-          {/* Battery Level */}
-          <View className='mb-1' style={styles.detailRow}>
-            <View style={styles.iconTextRow}>
-              <Ionicons 
-                name={getBatteryIconName(user.batteryLevel) as any} 
-                size={16} 
-                color={getBatteryColor(user.batteryLevel)} 
-                style={styles.detailIcon} 
-              />
-              <Text 
-                style={[styles.detailText, { color: getBatteryTextColor(user.batteryLevel, textColor) }]}
-                numberOfLines={1}
-              >
-                {user.batteryLevel !== undefined ? `${Math.round(user.batteryLevel)}%` : 'Unknown'}
-              </Text>
-            </View>
-          </View>
-            
-          {/* User Path (optional) */}
-          {showUserPaths && (
-            <View className='mb-1' style={styles.detailRow}>
+
+            {/* Device Info */}
+            <View className="mb-1" style={styles.detailRow}>
               <View style={styles.iconTextRow}>
-                <Ionicons 
-                  name="footsteps-outline" 
-                  size={16} 
-                  color={primaryColor} 
-                  style={styles.detailIcon} 
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={16}
+                  color={primaryColor}
+                  style={styles.detailIcon}
                 />
-                <Text 
-                  style={[styles.detailText, { color: textColor }]} 
+                <Text
+                  style={[styles.detailText, { color: textColor }]}
                   numberOfLines={1}
                 >
-                  {routeDistance} ({formattedDuration})
+                  {user.deviceInfo || "Unknown Device"}
                 </Text>
               </View>
             </View>
-          )}
-        </View>
-        
-        {/* Right side - Locate button */}
-        <View style={styles.employeeActions}>
-          <TouchableOpacity
-            style={[
-              styles.locateButton, 
-              { 
-                backgroundColor: hasValidLocation ? primaryColor : '#cbd5e1',
-                opacity: hasValidLocation ? 1 : 0.6 
+
+            {/* Location */}
+            <View className="mb-1" style={styles.detailRow}>
+              <View style={styles.iconTextRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color={primaryColor}
+                  style={styles.detailIcon}
+                />
+                {hasValidLocation ? (
+                  <LocationName
+                    latitude={user.location.latitude}
+                    longitude={user.location.longitude}
+                    style={[styles.detailText, { color: textColor }]}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.detailText,
+                      { color: textColor, fontStyle: "italic" },
+                    ]}
+                  >
+                    Location unavailable
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {/* Last Updated */}
+            <View className="mb-1" style={styles.detailRow}>
+              <View style={styles.iconTextRow}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={primaryColor}
+                  style={styles.detailIcon}
+                />
+                <Text
+                  style={[styles.detailText, { color: textColor }]}
+                  numberOfLines={1}
+                >
+                  {formatLastUpdated(user.lastUpdated)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Battery Level */}
+            <View className="mb-1" style={styles.detailRow}>
+              <View style={styles.iconTextRow}>
+                <Ionicons
+                  name={getBatteryIconName(user.batteryLevel) as any}
+                  size={16}
+                  color={getBatteryColor(user.batteryLevel)}
+                  style={styles.detailIcon}
+                />
+                <Text
+                  style={[
+                    styles.detailText,
+                    {
+                      color: getBatteryTextColor(user.batteryLevel, textColor),
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {user.batteryLevel !== undefined
+                    ? `${Math.round(user.batteryLevel)}%`
+                    : "Unknown"}
+                </Text>
+              </View>
+            </View>
+
+            {/* User Path (optional) */}
+            {showUserPaths && (
+              <View className="mb-1" style={styles.detailRow}>
+                <View style={styles.iconTextRow}>
+                  <Ionicons
+                    name="footsteps-outline"
+                    size={16}
+                    color={primaryColor}
+                    style={styles.detailIcon}
+                  />
+                  <Text
+                    style={[styles.detailText, { color: textColor }]}
+                    numberOfLines={1}
+                  >
+                    {routeDistance} ({formattedDuration})
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Right side - Locate button */}
+          <View style={styles.employeeActions}>
+            <TouchableOpacity
+              style={[
+                styles.locateButton,
+                {
+                  backgroundColor: hasValidLocation ? primaryColor : "#cbd5e1",
+                  opacity: hasValidLocation ? 1 : 0.6,
+                },
+              ]}
+              onPress={() =>
+                hasValidLocation ? handleGoToEmployee(user) : null
               }
-            ]}
-            onPress={() => hasValidLocation ? handleGoToEmployee(user) : null}
-            disabled={!hasValidLocation}
-          >
-            <Ionicons name="locate-outline" size={20} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [selectedUserId, cardColor, textColor, primaryColor, showUserPaths, routeStats, handleGoToEmployee]);
+              disabled={!hasValidLocation}
+            >
+              <Ionicons name="locate-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [
+      selectedUserId,
+      cardColor,
+      textColor,
+      primaryColor,
+      showUserPaths,
+      routeStats,
+      handleGoToEmployee,
+    ],
+  );
 
   // Add a useEffect to check tracking status when the component mounts
   useEffect(() => {
@@ -410,7 +479,7 @@ export default function GroupAdminTrackingDashboard() {
           console.log("Verifying group admin tracking state...");
           const isActive = await checkTrackingStatus();
           console.log(`Background tracking active status: ${isActive}`);
-          
+
           // If tracking is active, ensure we have the latest employee locations
           if (isActive) {
             fetchEmployeeLocations();
@@ -419,33 +488,36 @@ export default function GroupAdminTrackingDashboard() {
           console.error("Error verifying tracking state:", error);
         }
       };
-      
+
       verifyTrackingState();
     }
   }, [isInitialized]);
-  
+
   // Update the socket event handling to maintain socket connections even when navigating away
   useEffect(() => {
     if (socket && socketConnected) {
       console.log("Setting up employee location subscriptions via socket");
-      
+
       // Listen for employee location updates
       socket.on("employee:location_update", (data: any) => {
         if (validateEmployeeLocation(data)) {
           // Log only basic info to prevent console flooding
-          console.log(`Received location update for employee: ${data.employeeId || data.userId}`);
-          
+          console.log(
+            `Received location update for employee: ${data.employeeId || data.userId}`,
+          );
+
           // Update the employee's route
           updateEmployeeRoute(data.employeeId || data.userId, {
             latitude: data.location.latitude,
             longitude: data.location.longitude,
-            timestamp: typeof data.location.timestamp === 'string' 
-              ? parseInt(data.location.timestamp) 
-              : (data.location.timestamp || Date.now())
+            timestamp:
+              typeof data.location.timestamp === "string"
+                ? parseInt(data.location.timestamp)
+                : data.location.timestamp || Date.now(),
           });
         }
       });
-      
+
       // Return cleanup function that DOESN'T disconnect the socket
       return () => {
         // Just remove event listeners, but don't disconnect socket
@@ -455,7 +527,7 @@ export default function GroupAdminTrackingDashboard() {
       };
     }
   }, [socket, socketConnected]);
-  
+
   // Optimize the admin location fetching to be less frequent
   useEffect(() => {
     // Only fetch admin location once when component mounts
@@ -463,15 +535,15 @@ export default function GroupAdminTrackingDashboard() {
     if (!adminLocation) {
       getCurrentLocation();
     }
-    
+
     // Fetch employee locations right away
     fetchEmployeeLocations();
-    
+
     // Then fetch every 30 seconds
     const interval = setInterval(() => {
       fetchEmployeeLocations();
     }, 30000);
-    
+
     return () => {
       clearInterval(interval);
     };
@@ -512,101 +584,114 @@ export default function GroupAdminTrackingDashboard() {
   };
 
   // Add function to update route for an employee
-  const updateEmployeeRoute = useCallback((employeeId: string, location: { latitude: number, longitude: number, timestamp?: number }) => {
-    // Validate coordinates before adding to prevent invalid points
-    if (!isValidCoordinate(location.latitude, location.longitude)) {
-      console.warn('Invalid coordinates for employee route update:', location);
-      return;
-    }
-    
-    setUserRoutes(prevRoutes => {
-      try {
-        // Get existing route or create new one
-        const existingRoute = prevRoutes[employeeId] || [];
-        
-        // Create new point with timestamp
-        const newPoint: Point & { timestamp?: number } = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timestamp: location.timestamp || Date.now()
-        };
-        
-        // Skip duplicate points (same location within 5 meters)
-        const lastPoint = existingRoute[existingRoute.length - 1];
-        if (lastPoint) {
-          const distance = calculateDistance(
-            lastPoint.latitude, 
-            lastPoint.longitude, 
-            newPoint.latitude, 
-            newPoint.longitude
-          );
-          
-          if (distance < 5) {
-            // Skip this update, it's too close to the last point
-            return prevRoutes;
-          }
-        }
-        
-        // Add to route, ensuring we don't exceed max points
-        const newRoute = [...existingRoute, newPoint];
-        if (newRoute.length > MAX_ROUTE_POINTS) {
-          // Keep most recent points if we exceed max
-          newRoute.splice(0, newRoute.length - MAX_ROUTE_POINTS);
-        }
-        
-        // Clean route to remove invalid points
-        const cleanedRoute = cleanRoute(newRoute as Point[]);
-        
-        // Get route stats
-        if (cleanedRoute.length > 1) {
-          const stats = getRouteStats(cleanedRoute as Array<Point & { timestamp?: number }>);
-          
-          // Batch update the route stats to prevent excessive re-renders
-          setRouteStats(prev => ({
-            ...prev,
-            [employeeId]: {
-              distance: stats.distance,
-              formattedDistance: stats.formattedDistance,
-              duration: stats.duration
-            }
-          }));
-        }
-        
-        return {
-          ...prevRoutes,
-          [employeeId]: cleanedRoute
-        };
-      } catch (error) {
-        console.error('Error updating employee route:', error);
-        // Return previous state on error
-        return prevRoutes;
+  const updateEmployeeRoute = useCallback(
+    (
+      employeeId: string,
+      location: { latitude: number; longitude: number; timestamp?: number },
+    ) => {
+      // Validate coordinates before adding to prevent invalid points
+      if (!isValidCoordinate(location.latitude, location.longitude)) {
+        console.warn(
+          "Invalid coordinates for employee route update:",
+          location,
+        );
+        return;
       }
-    });
-  }, []);
+
+      setUserRoutes((prevRoutes) => {
+        try {
+          // Get existing route or create new one
+          const existingRoute = prevRoutes[employeeId] || [];
+
+          // Create new point with timestamp
+          const newPoint: Point & { timestamp?: number } = {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timestamp: location.timestamp || Date.now(),
+          };
+
+          // Skip duplicate points (same location within 5 meters)
+          const lastPoint = existingRoute[existingRoute.length - 1];
+          if (lastPoint) {
+            const distance = calculateDistance(
+              lastPoint.latitude,
+              lastPoint.longitude,
+              newPoint.latitude,
+              newPoint.longitude,
+            );
+
+            if (distance < 5) {
+              // Skip this update, it's too close to the last point
+              return prevRoutes;
+            }
+          }
+
+          // Add to route, ensuring we don't exceed max points
+          const newRoute = [...existingRoute, newPoint];
+          if (newRoute.length > MAX_ROUTE_POINTS) {
+            // Keep most recent points if we exceed max
+            newRoute.splice(0, newRoute.length - MAX_ROUTE_POINTS);
+          }
+
+          // Clean route to remove invalid points
+          const cleanedRoute = cleanRoute(newRoute as Point[]);
+
+          // Get route stats
+          if (cleanedRoute.length > 1) {
+            const stats = getRouteStats(
+              cleanedRoute as (Point & { timestamp?: number })[],
+            );
+
+            // Batch update the route stats to prevent excessive re-renders
+            setRouteStats((prev) => ({
+              ...prev,
+              [employeeId]: {
+                distance: stats.distance,
+                formattedDistance: stats.formattedDistance,
+                duration: stats.duration,
+              },
+            }));
+          }
+
+          return {
+            ...prevRoutes,
+            [employeeId]: cleanedRoute,
+          };
+        } catch (error) {
+          console.error("Error updating employee route:", error);
+          // Return previous state on error
+          return prevRoutes;
+        }
+      });
+    },
+    [],
+  );
 
   // Add a new function to clean up old routes for memory optimization
   const cleanupOldRoutes = useCallback(() => {
     // Remove routes for employees that haven't been tracked for a while
-    setUserRoutes(prevRoutes => {
+    setUserRoutes((prevRoutes) => {
       const currentTime = Date.now();
       const TWO_HOURS = 2 * 60 * 60 * 1000;
       const updatedRoutes = { ...prevRoutes };
-      
+
       // For each employee route
-      Object.keys(updatedRoutes).forEach(employeeId => {
+      Object.keys(updatedRoutes).forEach((employeeId) => {
         const route = updatedRoutes[employeeId];
         if (route && route.length > 0) {
           // Get the timestamp of the most recent point
-          const lastPoint = route[route.length - 1] as Point & { timestamp?: number };
+          const lastPoint = route[route.length - 1] as Point & {
+            timestamp?: number;
+          };
           const lastTimestamp = lastPoint.timestamp || 0;
-          
+
           // If the last update was more than 2 hours ago, remove this route
           if (currentTime - lastTimestamp > TWO_HOURS) {
             delete updatedRoutes[employeeId];
           }
         }
       });
-      
+
       return updatedRoutes;
     });
   }, []);
@@ -615,7 +700,7 @@ export default function GroupAdminTrackingDashboard() {
   useEffect(() => {
     // Set up interval to clean up old routes
     const cleanupInterval = setInterval(cleanupOldRoutes, 30 * 60 * 1000); // 30 minutes
-    
+
     return () => {
       clearInterval(cleanupInterval);
     };
@@ -632,19 +717,19 @@ export default function GroupAdminTrackingDashboard() {
         .then(() => {
           console.log(
             "[GroupAdmin] Admin location fetched on component mount:",
-            useAdminLocationStore.getState().adminLocation
+            useAdminLocationStore.getState().adminLocation,
           );
         })
         .catch((error) => {
           console.error(
             "[GroupAdmin] Error fetching admin location on mount:",
-            error
+            error,
           );
         });
     } else {
       console.log(
         "[GroupAdmin] Admin location already available:",
-        adminLocation
+        adminLocation,
       );
     }
 
@@ -666,14 +751,14 @@ export default function GroupAdminTrackingDashboard() {
         useAdminLocationStore.getState().adminLocation;
       console.log(
         "[GroupAdmin] Admin location after fetch:",
-        updatedAdminLocation
+        updatedAdminLocation,
       );
 
       // Also update the map store (for fallback in map component)
       if (updatedAdminLocation) {
         console.log(
           "[GroupAdmin] Setting user location in MapStore:",
-          updatedAdminLocation
+          updatedAdminLocation,
         );
         setUserLocation({
           latitude: updatedAdminLocation.latitude,
@@ -694,7 +779,7 @@ export default function GroupAdminTrackingDashboard() {
         setInitialRegionSet(true);
         console.log(
           "[GroupAdmin] Location set successfully:",
-          updatedAdminLocation
+          updatedAdminLocation,
         );
       } else {
         console.warn("[GroupAdmin] Admin location not available after fetch");
@@ -706,7 +791,7 @@ export default function GroupAdminTrackingDashboard() {
       console.error("[GroupAdmin] Error getting location:", error);
       setError(
         "Failed to get location: " +
-          (error instanceof Error ? error.message : String(error))
+          (error instanceof Error ? error.message : String(error)),
       );
       return null;
     } finally {
@@ -733,7 +818,7 @@ export default function GroupAdminTrackingDashboard() {
 
       if (isSanFrancisco) {
         console.warn(
-          "[GroupAdmin] Detected San Francisco coordinates - this is likely an unwanted update"
+          "[GroupAdmin] Detected San Francisco coordinates - this is likely an unwanted update",
         );
       }
 
@@ -755,13 +840,16 @@ export default function GroupAdminTrackingDashboard() {
   const fetchEmployeeLocations = async () => {
     setIsLoading(true);
     try {
-      const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+      const API_URL =
+        Constants.expoConfig?.extra?.apiUrl ||
+        process.env.EXPO_PUBLIC_API_URL ||
+        "http://localhost:3000";
 
       const response = await axios.get(
         `${API_URL}/api/group-admin-tracking/active-locations`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       console.log("Employee locations API response:", response.data);
@@ -774,8 +862,8 @@ export default function GroupAdminTrackingDashboard() {
             typeof emp.batteryLevel === "number"
               ? emp.batteryLevel
               : typeof emp.battery_level === "number"
-              ? emp.battery_level
-              : 0;
+                ? emp.battery_level
+                : 0;
 
           // Check for the new format with employee object
           if (emp.employee) {
@@ -801,8 +889,8 @@ export default function GroupAdminTrackingDashboard() {
               lastUpdated: emp.timestamp
                 ? new Date(emp.timestamp).getTime()
                 : emp.lastUpdated
-                ? new Date(emp.lastUpdated).getTime()
-                : Date.now(),
+                  ? new Date(emp.lastUpdated).getTime()
+                  : Date.now(),
               isActive: emp.is_tracking_active || false, // Consider user active if they have a recent location
               batteryLevel: batteryLevel,
               department: employee.department,
@@ -835,8 +923,8 @@ export default function GroupAdminTrackingDashboard() {
               lastUpdated: emp.timestamp
                 ? new Date(emp.timestamp).getTime()
                 : emp.lastUpdated
-                ? new Date(emp.lastUpdated).getTime()
-                : Date.now(),
+                  ? new Date(emp.lastUpdated).getTime()
+                  : Date.now(),
               isActive: emp.is_tracking_active || false,
               batteryLevel: batteryLevel,
               department: emp.department || "",
@@ -873,23 +961,24 @@ export default function GroupAdminTrackingDashboard() {
   // Add a utility function to validate user location data
   const validateUserLocation = (user: TrackingUser): boolean => {
     if (!user || !user.location) return false;
-    
+
     const { latitude, longitude } = user.location;
     return (
-      typeof latitude === 'number' && 
-      typeof longitude === 'number' && 
-      !isNaN(latitude) && 
-      !isNaN(longitude) && 
+      typeof latitude === "number" &&
+      typeof longitude === "number" &&
+      !isNaN(latitude) &&
+      !isNaN(longitude) &&
       !(latitude === 0 && longitude === 0)
     );
   };
 
   // Add state to force refresh markers when needed
-  const [markerRefreshToggle, setMarkerRefreshToggle] = useState<boolean>(false);
-  
+  const [markerRefreshToggle, setMarkerRefreshToggle] =
+    useState<boolean>(false);
+
   // Function to force refresh markers
   const refreshMarkers = () => {
-    setMarkerRefreshToggle(prev => !prev);
+    setMarkerRefreshToggle((prev) => !prev);
   };
 
   // Extend the onRefresh function to refresh markers
@@ -914,23 +1003,27 @@ export default function GroupAdminTrackingDashboard() {
   const debugMarkerVisibility = useCallback(() => {
     console.log("Debugging marker visibility...");
     console.log(`Number of tracked users: ${trackedUsers.length}`);
-    
+
     // Log validation status for each user
-    trackedUsers.forEach(user => {
+    trackedUsers.forEach((user) => {
       const isValid = validateUserLocation(user);
-      console.log(`User ${user.id} (${user.name}): Location valid: ${isValid ? 'YES' : 'NO'}`);
+      console.log(
+        `User ${user.id} (${user.name}): Location valid: ${isValid ? "YES" : "NO"}`,
+      );
       if (!isValid && user.location) {
-        console.log(`Invalid coords: ${user.location.latitude}, ${user.location.longitude}`);
+        console.log(
+          `Invalid coords: ${user.location.latitude}, ${user.location.longitude}`,
+        );
       }
     });
-    
+
     // Refresh the markers
     refreshMarkers();
-    
+
     // The debug message provides instructions to the user
     Alert.alert(
       "Marker Debug",
-      `Refreshed ${trackedUsers.length} markers. If markers are still not visible, try pulling down to refresh the list.`
+      `Refreshed ${trackedUsers.length} markers. If markers are still not visible, try pulling down to refresh the list.`,
     );
   }, [trackedUsers, refreshMarkers]);
 
@@ -939,7 +1032,7 @@ export default function GroupAdminTrackingDashboard() {
     (user: TrackingUser) => {
       setSelectedUserId(selectedUserId === user.id ? undefined : user.id);
     },
-    [selectedUserId]
+    [selectedUserId],
   );
 
   // Navigate to geofence management
@@ -1024,7 +1117,7 @@ export default function GroupAdminTrackingDashboard() {
       };
       console.log(
         "[GroupAdmin] Using admin location for map initialRegion:",
-        region
+        region,
       );
       return region;
     }
@@ -1032,7 +1125,7 @@ export default function GroupAdminTrackingDashboard() {
     // Second priority: use the initial region from our admin location store
     console.log(
       "[GroupAdmin] Falling back to mapInitialRegion:",
-      mapInitialRegion
+      mapInitialRegion,
     );
     return mapInitialRegion;
   }, [adminLocation, mapInitialRegion, initialRegionSet]);
@@ -1048,8 +1141,8 @@ export default function GroupAdminTrackingDashboard() {
 
     // Validate coordinates before proceeding
     if (
-      typeof latitude !== 'number' ||
-      typeof longitude !== 'number' ||
+      typeof latitude !== "number" ||
+      typeof longitude !== "number" ||
       isNaN(latitude) ||
       isNaN(longitude) ||
       !isFinite(latitude) ||
@@ -1121,30 +1214,32 @@ export default function GroupAdminTrackingDashboard() {
       }, [latitude, longitude]);
 
       return <Text style={style}>{placeName}</Text>;
-    }
+    },
   );
 
   // Add a new function to refresh employee data
   const handleRefreshEmployees = useCallback(() => {
     setIsLoading(true);
-    Promise.all([
-      fetchEmployeeLocations(),
-      getCurrentLocation()
-    ]).then(() => {
-      refreshMarkers();
-    }).catch(error => {
-      console.error("Error refreshing employee data:", error);
-      Alert.alert("Error", "Failed to refresh employee locations");
-    }).finally(() => {
-      setIsLoading(false);
-    });
+    Promise.all([fetchEmployeeLocations(), getCurrentLocation()])
+      .then(() => {
+        refreshMarkers();
+      })
+      .catch((error) => {
+        console.error("Error refreshing employee data:", error);
+        Alert.alert("Error", "Failed to refresh employee locations");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [fetchEmployeeLocations, getCurrentLocation, refreshMarkers]);
 
   // Get the bottom position based on the sheet index
   const getControlsBottomPosition = useCallback(() => {
-    if (bottomSheetIndex === 2) { // Fully expanded
+    if (bottomSheetIndex === 2) {
+      // Fully expanded
       return 250; // Higher position when sheet is expanded
-    } else if (bottomSheetIndex === 1) { // Middle position
+    } else if (bottomSheetIndex === 1) {
+      // Middle position
       if (__DEV__) {
         return 420; // Middle position
       } else {
@@ -1183,7 +1278,7 @@ export default function GroupAdminTrackingDashboard() {
           try {
             console.log(
               "[GroupAdmin] Rendering map with region:",
-              computedMapRegion
+              computedMapRegion,
             );
 
             return (
@@ -1222,11 +1317,8 @@ export default function GroupAdminTrackingDashboard() {
         })()}
 
         {/* Map Overlay Controls - With dynamic bottom position */}
-        <View 
-          style={[
-            styles.mapControls, 
-            { bottom: getControlsBottomPosition() }
-          ]}
+        <View
+          style={[styles.mapControls, { bottom: getControlsBottomPosition() }]}
         >
           <View style={styles.controlWithLabel}>
             <TouchableOpacity
@@ -1317,7 +1409,9 @@ export default function GroupAdminTrackingDashboard() {
       >
         <View style={styles.employeeListHeader}>
           <View style={styles.headerRow}>
-            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+            >
               <Text
                 style={[styles.sectionTitle, { color: textColor }]}
                 numberOfLines={1}
@@ -1330,7 +1424,7 @@ export default function GroupAdminTrackingDashboard() {
                 style={[
                   styles.headerButton,
                   filterActive && styles.headerButtonActive,
-                  { backgroundColor: useThemeColor("#f8fafc", "#1e293b") }
+                  { backgroundColor: useThemeColor("#f8fafc", "#1e293b") },
                 ]}
                 onPress={() => setFilterActive(!filterActive)}
               >
@@ -1343,7 +1437,7 @@ export default function GroupAdminTrackingDashboard() {
                 <Text
                   style={[
                     styles.headerButtonText,
-                    { color: filterActive ? "#3b82f6" : textColor }
+                    { color: filterActive ? "#3b82f6" : textColor },
                   ]}
                 >
                   Active
@@ -1367,7 +1461,7 @@ export default function GroupAdminTrackingDashboard() {
           <View
             style={[
               styles.searchContainer,
-              { backgroundColor: useThemeColor("#f1f5f9", "#1e293b") }
+              { backgroundColor: useThemeColor("#f1f5f9", "#1e293b") },
             ]}
           >
             <Ionicons name="search" size={20} color={textColor} />
@@ -1470,7 +1564,7 @@ export default function GroupAdminTrackingDashboard() {
                     {
                       color: getBatteryTextColor(
                         selectedUser.batteryLevel,
-                        textColor
+                        textColor,
                       ),
                     },
                   ]}
@@ -1505,7 +1599,7 @@ export default function GroupAdminTrackingDashboard() {
               onPress={() => {
                 Alert.alert(
                   "Message",
-                  `Send message to ${selectedUser.name}, This feature is coming soon`
+                  `Send message to ${selectedUser.name}, This feature is coming soon`,
                 );
               }}
             >
@@ -1571,7 +1665,7 @@ const getBatteryColor = (level: number | undefined): string => {
 
 const getBatteryTextColor = (
   level: number | undefined,
-  defaultColor: string
+  defaultColor: string,
 ): string => {
   const batteryLevel = level ?? 0;
   if (batteryLevel <= 15) {
@@ -1917,11 +2011,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     minHeight: 150,
-    width: '95%',
+    width: "95%",
   },
   employeeInfo: {
     flex: 1,
@@ -1949,16 +2043,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   employeeActions: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingRight: 8,
   },
   locateButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -1980,10 +2074,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   bottomSheetIndicator: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: "#CBD5E1",
     width: 32,
   },
   employeeListContent: {
     paddingBottom: 32,
   },
-}); 
+});

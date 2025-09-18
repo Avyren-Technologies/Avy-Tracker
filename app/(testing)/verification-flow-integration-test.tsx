@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   ScrollView,
   Alert,
   StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import VerificationOrchestrator from '../components/VerificationOrchestrator';
-import { LocationResult, VerificationFlowSummary } from '../types/verification';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import VerificationOrchestrator from "../components/VerificationOrchestrator";
+import { LocationResult, VerificationFlowSummary } from "../types/verification";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
 
 /**
  * Test component for the enhanced verification flow logic
@@ -19,41 +19,45 @@ import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
  */
 export default function VerificationFlowIntegrationTest() {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1f2937');
-  const textColor = useThemeColor('#111827', '#f9fafb');
-  const cardColor = useThemeColor('#f8fafc', '#374151');
+  const backgroundColor = useThemeColor("#ffffff", "#1f2937");
+  const textColor = useThemeColor("#111827", "#f9fafb");
+  const cardColor = useThemeColor("#f8fafc", "#374151");
 
-  const [showVerificationOrchestrator, setShowVerificationOrchestrator] = useState(false);
+  const [showVerificationOrchestrator, setShowVerificationOrchestrator] =
+    useState(false);
   const [testResults, setTestResults] = useState<string[]>([]);
-  const [currentTest, setCurrentTest] = useState<string>('');
+  const [currentTest, setCurrentTest] = useState<string>("");
 
   // Mock user data for testing
   const mockUserId = 1;
-  const mockToken = 'test-token-123';
+  const mockToken = "test-token-123";
 
   const addTestResult = (result: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${result}`,
+    ]);
   };
 
   // Mock location verification function
   const mockLocationVerification = async (): Promise<LocationResult> => {
-    addTestResult('🌍 Starting location verification...');
-    
+    addTestResult("🌍 Starting location verification...");
+
     // Simulate location verification delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Simulate different scenarios based on current test
-    if (currentTest === 'location-fail') {
-      addTestResult('❌ Location verification failed (simulated)');
+    if (currentTest === "location-fail") {
+      addTestResult("❌ Location verification failed (simulated)");
       return {
         success: false,
-        error: 'Not in designated work area',
+        error: "Not in designated work area",
         confidence: 0,
       };
     }
-    
-    if (currentTest === 'location-low-accuracy') {
-      addTestResult('⚠️ Location verification with low accuracy');
+
+    if (currentTest === "location-low-accuracy") {
+      addTestResult("⚠️ Location verification with low accuracy");
       return {
         success: true,
         latitude: 12.9716,
@@ -63,42 +67,42 @@ export default function VerificationFlowIntegrationTest() {
         confidence: 0.6,
       };
     }
-    
+
     // Default successful location verification
-    addTestResult('✅ Location verification successful');
+    addTestResult("✅ Location verification successful");
     return {
       success: true,
       latitude: 12.9716,
       longitude: 77.5946,
       accuracy: 5, // High accuracy
       isInGeofence: true,
-      geofenceName: 'Test Office',
+      geofenceName: "Test Office",
       confidence: 0.9,
     };
   };
 
   const handleVerificationSuccess = (summary: VerificationFlowSummary) => {
-    addTestResult('🎉 Verification flow completed successfully!');
+    addTestResult("🎉 Verification flow completed successfully!");
     addTestResult(`📊 Summary: ${JSON.stringify(summary, null, 2)}`);
     addTestResult(`✅ Confidence Score: ${summary.confidenceScore}%`);
     addTestResult(`⏱️ Total Latency: ${summary.totalLatency}ms`);
-    addTestResult(`🔄 Fallback Mode: ${summary.fallbackMode ? 'Yes' : 'No'}`);
-    addTestResult(`📝 Completed Steps: ${summary.completedSteps.join(', ')}`);
-    
+    addTestResult(`🔄 Fallback Mode: ${summary.fallbackMode ? "Yes" : "No"}`);
+    addTestResult(`📝 Completed Steps: ${summary.completedSteps.join(", ")}`);
+
     setShowVerificationOrchestrator(false);
-    setCurrentTest('');
+    setCurrentTest("");
   };
 
   const handleVerificationError = (error: string) => {
     addTestResult(`❌ Verification failed: ${error}`);
     setShowVerificationOrchestrator(false);
-    setCurrentTest('');
+    setCurrentTest("");
   };
 
   const handleVerificationCancel = () => {
-    addTestResult('🚫 Verification cancelled by user');
+    addTestResult("🚫 Verification cancelled by user");
     setShowVerificationOrchestrator(false);
-    setCurrentTest('');
+    setCurrentTest("");
   };
 
   const runTest = (testType: string, config: any) => {
@@ -114,8 +118,8 @@ export default function VerificationFlowIntegrationTest() {
 
   const testScenarios = [
     {
-      name: 'Normal Flow (Location + Face)',
-      type: 'normal',
+      name: "Normal Flow (Location + Face)",
+      type: "normal",
       config: {
         requireLocation: true,
         requireFace: true,
@@ -126,8 +130,8 @@ export default function VerificationFlowIntegrationTest() {
       },
     },
     {
-      name: 'Location Failure with Fallback',
-      type: 'location-fail',
+      name: "Location Failure with Fallback",
+      type: "location-fail",
       config: {
         requireLocation: true,
         requireFace: true,
@@ -138,8 +142,8 @@ export default function VerificationFlowIntegrationTest() {
       },
     },
     {
-      name: 'Low Accuracy Location',
-      type: 'location-low-accuracy',
+      name: "Low Accuracy Location",
+      type: "location-low-accuracy",
       config: {
         requireLocation: true,
         requireFace: true,
@@ -150,8 +154,8 @@ export default function VerificationFlowIntegrationTest() {
       },
     },
     {
-      name: 'Face Only (No Location)',
-      type: 'face-only',
+      name: "Face Only (No Location)",
+      type: "face-only",
       config: {
         requireLocation: false,
         requireFace: true,
@@ -162,8 +166,8 @@ export default function VerificationFlowIntegrationTest() {
       },
     },
     {
-      name: 'High Confidence Threshold',
-      type: 'high-confidence',
+      name: "High Confidence Threshold",
+      type: "high-confidence",
       config: {
         requireLocation: true,
         requireFace: true,
@@ -192,20 +196,25 @@ export default function VerificationFlowIntegrationTest() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Test Scenarios
           </Text>
-          
+
           {testScenarios.map((scenario, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.testButton, { borderColor: textColor + '20' }]}
+              style={[styles.testButton, { borderColor: textColor + "20" }]}
               onPress={() => runTest(scenario.type, scenario.config)}
             >
               <View style={styles.testButtonContent}>
                 <Text style={[styles.testButtonTitle, { color: textColor }]}>
                   {scenario.name}
                 </Text>
-                <Text style={[styles.testButtonDescription, { color: textColor + '80' }]}>
-                  Retries: {scenario.config.maxRetries}, 
-                  Confidence: {scenario.config.confidenceThreshold * 100}%
+                <Text
+                  style={[
+                    styles.testButtonDescription,
+                    { color: textColor + "80" },
+                  ]}
+                >
+                  Retries: {scenario.config.maxRetries}, Confidence:{" "}
+                  {scenario.config.confidenceThreshold * 100}%
                 </Text>
               </View>
               <Ionicons name="play-circle" size={24} color="#3b82f6" />
@@ -223,10 +232,10 @@ export default function VerificationFlowIntegrationTest() {
               <Ionicons name="trash-outline" size={20} color="#ef4444" />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.resultsContainer} nestedScrollEnabled>
             {testResults.length === 0 ? (
-              <Text style={[styles.noResults, { color: textColor + '60' }]}>
+              <Text style={[styles.noResults, { color: textColor + "60" }]}>
                 No test results yet. Run a test scenario above.
               </Text>
             ) : (
@@ -246,7 +255,7 @@ export default function VerificationFlowIntegrationTest() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             What This Tests
           </Text>
-          
+
           <View style={styles.featureList}>
             <Text style={[styles.featureItem, { color: textColor }]}>
               • Sequential verification steps (location → face)
@@ -279,7 +288,7 @@ export default function VerificationFlowIntegrationTest() {
         userId={mockUserId}
         token={mockToken}
         shiftAction="start"
-        config={testScenarios.find(s => s.type === currentTest)?.config}
+        config={testScenarios.find((s) => s.type === currentTest)?.config}
         onSuccess={handleVerificationSuccess}
         onCancel={handleVerificationCancel}
         onError={handleVerificationError}
@@ -300,7 +309,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   subtitle: {
@@ -317,19 +326,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderWidth: 1,
     borderRadius: 8,
@@ -340,7 +349,7 @@ const styles = StyleSheet.create({
   },
   testButtonTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   testButtonDescription: {
@@ -353,8 +362,8 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   noResults: {
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
     padding: 20,
   },
   resultItem: {
@@ -362,11 +371,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginBottom: 4,
     borderRadius: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
   resultText: {
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   featureList: {
     paddingLeft: 8,

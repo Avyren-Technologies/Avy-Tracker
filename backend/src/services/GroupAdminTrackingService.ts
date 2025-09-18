@@ -1,6 +1,6 @@
-import { Redis } from 'ioredis';
-import { pool } from '../config/database';
-import { Location } from '../types/liveTracking';
+import { Redis } from "ioredis";
+import { pool } from "../config/database";
+import { Location } from "../types/liveTracking";
 
 export class GroupAdminTrackingService {
   private redis: Redis;
@@ -14,7 +14,7 @@ export class GroupAdminTrackingService {
   async getActiveEmployeeLocations(groupAdminId: number): Promise<any[]> {
     try {
       console.log(
-        `[GroupAdminTracking] Fetching employees for group admin ${groupAdminId}`
+        `[GroupAdminTracking] Fetching employees for group admin ${groupAdminId}`,
       );
 
       // Get all employees under this group admin with comprehensive details
@@ -24,11 +24,11 @@ export class GroupAdminTrackingService {
          WHERE (u.group_admin_id = $1 OR u.management_id = $1)
            AND u.status = 'active'
            AND u.role = 'employee'`,
-        [groupAdminId]
+        [groupAdminId],
       );
 
       console.log(
-        `Found ${employees.rows.length} employees for group admin ${groupAdminId}`
+        `Found ${employees.rows.length} employees for group admin ${groupAdminId}`,
       );
 
       if (employees.rows.length === 0) {
@@ -55,7 +55,7 @@ export class GroupAdminTrackingService {
          WHERE dt.user_id = ANY($1::int[])
          AND dt.is_active = true
          ORDER BY dt.user_id, dt.last_used_at DESC`,
-        [employeeIds]
+        [employeeIds],
       );
 
       // Create a map of user_id to device info
@@ -123,7 +123,7 @@ export class GroupAdminTrackingService {
              WHERE user_id = $1 
              ORDER BY timestamp DESC 
              LIMIT 1`,
-            [emp.id]
+            [emp.id],
           );
 
           if (recentLocation.rows.length > 0) {
@@ -147,7 +147,7 @@ export class GroupAdminTrackingService {
               locationKey,
               JSON.stringify(locationData),
               "EX",
-              this.LOCATION_TTL
+              this.LOCATION_TTL,
             );
 
             return locationData;
@@ -155,7 +155,7 @@ export class GroupAdminTrackingService {
 
           // If no location data is found, return null
           return null;
-        })
+        }),
       );
 
       // Filter out null values
@@ -167,7 +167,7 @@ export class GroupAdminTrackingService {
           groupCacheKey,
           JSON.stringify(validLocations),
           "EX",
-          60 // Cache for 1 minute to ensure fresh data but reduce DB load
+          60, // Cache for 1 minute to ensure fresh data but reduce DB load
         );
       }
 
@@ -180,7 +180,7 @@ export class GroupAdminTrackingService {
 
   async getSingleEmployeeLocation(
     employeeId: number,
-    groupAdminId: number
+    groupAdminId: number,
   ): Promise<any> {
     try {
       // Verify employee belongs to group admin
@@ -189,7 +189,7 @@ export class GroupAdminTrackingService {
                 FROM users 
                 WHERE id = $1 
                 AND group_admin_id = $2`,
-        [employeeId, groupAdminId]
+        [employeeId, groupAdminId],
       );
 
       if (!employee.rows.length) {
@@ -215,13 +215,13 @@ export class GroupAdminTrackingService {
     employeeId: number,
     groupAdminId: number,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<any[]> {
     try {
       // Verify employee belongs to group admin
       const employee = await pool.query(
         "SELECT id FROM users WHERE id = $1 AND group_admin_id = $2",
-        [employeeId, groupAdminId]
+        [employeeId, groupAdminId],
       );
 
       if (!employee.rows.length) {
@@ -244,7 +244,7 @@ export class GroupAdminTrackingService {
                 WHERE el.user_id = $1 
                 AND el.timestamp BETWEEN $2 AND $3
                 ORDER BY el.timestamp DESC`,
-        [employeeId, startDate, endDate]
+        [employeeId, startDate, endDate],
       );
 
       return history.rows;
@@ -256,7 +256,7 @@ export class GroupAdminTrackingService {
 
   async subscribeToEmployeeUpdates(
     socket: any,
-    employeeIds: number[]
+    employeeIds: number[],
   ): Promise<void> {
     try {
       // Join rooms for each employee
@@ -271,7 +271,7 @@ export class GroupAdminTrackingService {
 
   async unsubscribeFromEmployeeUpdates(
     socket: any,
-    employeeIds: number[]
+    employeeIds: number[],
   ): Promise<void> {
     try {
       // Leave rooms for each employee
@@ -286,7 +286,7 @@ export class GroupAdminTrackingService {
 
   async validateEmployeesForAdmin(
     adminId: number,
-    employeeIds: number[]
+    employeeIds: number[],
   ): Promise<number[]> {
     try {
       // Return empty array if no IDs provided
@@ -305,7 +305,7 @@ export class GroupAdminTrackingService {
                          SELECT company_id FROM users WHERE id = $2
                      ) = company_id
                  )`,
-        [employeeIds, adminId]
+        [employeeIds, adminId],
       );
 
       // Extract just the IDs into an array
@@ -315,4 +315,4 @@ export class GroupAdminTrackingService {
       throw error;
     }
   }
-} 
+}

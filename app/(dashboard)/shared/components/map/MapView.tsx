@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import MapView, { 
-  Marker, 
-  Region, 
+import React, { useCallback, useEffect, useRef, useState, memo } from "react";
+import { View, StyleSheet, Dimensions, Platform } from "react-native";
+import MapView, {
+  Marker,
+  Region,
   MapViewProps as RNMapViewProps,
   PROVIDER_GOOGLE,
-  LatLng
-} from 'react-native-maps';
-import { MapRegion } from '../../../../types/liveTracking';
-import { useColorScheme } from '../../../../hooks/useColorScheme';
+  LatLng,
+} from "react-native-maps";
+import { MapRegion } from "../../../../types/liveTracking";
+import { useColorScheme } from "../../../../hooks/useColorScheme";
 
 const DEFAULT_DELTA = {
   latitudeDelta: 0.0922,
@@ -20,14 +20,14 @@ const DEFAULT_LOCATION = {
   longitude: -122.4324,
 };
 
-interface LocationMapProps extends Omit<RNMapViewProps, 'initialRegion'> {
+interface LocationMapProps extends Omit<RNMapViewProps, "initialRegion"> {
   initialRegion?: MapRegion | null;
   showsUserLocation?: boolean;
   followsUserLocation?: boolean;
   zoomLevel?: number;
   onRegionChange?: (region: Region) => void;
   onMapPress?: (coordinate: LatLng) => void;
-  mapStyle?: 'standard' | 'satellite' | 'hybrid' | 'terrain';
+  mapStyle?: "standard" | "satellite" | "hybrid" | "terrain";
   isInteractive?: boolean;
   testID?: string;
 }
@@ -39,207 +39,207 @@ const LocationMapView: React.FC<LocationMapProps> = ({
   zoomLevel = 15,
   onRegionChange,
   onMapPress,
-  mapStyle = 'standard',
+  mapStyle = "standard",
   isInteractive = true,
-  testID = 'location-map',
+  testID = "location-map",
   ...props
 }) => {
   const mapRef = useRef<MapView | null>(null);
   const [currentRegion, setCurrentRegion] = useState<Region>({
     ...DEFAULT_LOCATION,
     ...DEFAULT_DELTA,
-    ...(initialRegion || {})
+    ...(initialRegion || {}),
   });
-  
+
   const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === 'dark';
+  const isDarkMode = colorScheme === "dark";
 
   // Custom map style for dark mode
   const darkMapStyle = [
     {
-      "elementType": "geometry",
-      "stylers": [
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#212121"
-        }
-      ]
+          color: "#212121",
+        },
+      ],
     },
     {
-      "elementType": "labels.icon",
-      "stylers": [
+      elementType: "labels.icon",
+      stylers: [
         {
-          "visibility": "off"
-        }
-      ]
+          visibility: "off",
+        },
+      ],
     },
     {
-      "elementType": "labels.text.fill",
-      "stylers": [
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#757575"
-        }
-      ]
+          color: "#757575",
+        },
+      ],
     },
     {
-      "elementType": "labels.text.stroke",
-      "stylers": [
+      elementType: "labels.text.stroke",
+      stylers: [
         {
-          "color": "#212121"
-        }
-      ]
+          color: "#212121",
+        },
+      ],
     },
     {
-      "featureType": "administrative",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "administrative",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#757575"
-        }
-      ]
+          color: "#757575",
+        },
+      ],
     },
     {
-      "featureType": "administrative.country",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "administrative.country",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#9e9e9e"
-        }
-      ]
+          color: "#9e9e9e",
+        },
+      ],
     },
     {
-      "featureType": "administrative.land_parcel",
-      "stylers": [
+      featureType: "administrative.land_parcel",
+      stylers: [
         {
-          "visibility": "off"
-        }
-      ]
+          visibility: "off",
+        },
+      ],
     },
     {
-      "featureType": "administrative.locality",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "administrative.locality",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#bdbdbd"
-        }
-      ]
+          color: "#bdbdbd",
+        },
+      ],
     },
     {
-      "featureType": "poi",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "poi",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#757575"
-        }
-      ]
+          color: "#757575",
+        },
+      ],
     },
     {
-      "featureType": "poi.park",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "poi.park",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#181818"
-        }
-      ]
+          color: "#181818",
+        },
+      ],
     },
     {
-      "featureType": "poi.park",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "poi.park",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#616161"
-        }
-      ]
+          color: "#616161",
+        },
+      ],
     },
     {
-      "featureType": "poi.park",
-      "elementType": "labels.text.stroke",
-      "stylers": [
+      featureType: "poi.park",
+      elementType: "labels.text.stroke",
+      stylers: [
         {
-          "color": "#1b1b1b"
-        }
-      ]
+          color: "#1b1b1b",
+        },
+      ],
     },
     {
-      "featureType": "road",
-      "elementType": "geometry.fill",
-      "stylers": [
+      featureType: "road",
+      elementType: "geometry.fill",
+      stylers: [
         {
-          "color": "#2c2c2c"
-        }
-      ]
+          color: "#2c2c2c",
+        },
+      ],
     },
     {
-      "featureType": "road",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "road",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#8a8a8a"
-        }
-      ]
+          color: "#8a8a8a",
+        },
+      ],
     },
     {
-      "featureType": "road.arterial",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "road.arterial",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#373737"
-        }
-      ]
+          color: "#373737",
+        },
+      ],
     },
     {
-      "featureType": "road.highway",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "road.highway",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#3c3c3c"
-        }
-      ]
+          color: "#3c3c3c",
+        },
+      ],
     },
     {
-      "featureType": "road.highway.controlled_access",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "road.highway.controlled_access",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#4e4e4e"
-        }
-      ]
+          color: "#4e4e4e",
+        },
+      ],
     },
     {
-      "featureType": "road.local",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "road.local",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#616161"
-        }
-      ]
+          color: "#616161",
+        },
+      ],
     },
     {
-      "featureType": "transit",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "transit",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#757575"
-        }
-      ]
+          color: "#757575",
+        },
+      ],
     },
     {
-      "featureType": "water",
-      "elementType": "geometry",
-      "stylers": [
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [
         {
-          "color": "#000000"
-        }
-      ]
+          color: "#000000",
+        },
+      ],
     },
     {
-      "featureType": "water",
-      "elementType": "labels.text.fill",
-      "stylers": [
+      featureType: "water",
+      elementType: "labels.text.fill",
+      stylers: [
         {
-          "color": "#3d3d3d"
-        }
-      ]
-    }
+          color: "#3d3d3d",
+        },
+      ],
+    },
   ];
 
   // Update region when initialRegion changes
@@ -247,11 +247,11 @@ const LocationMapView: React.FC<LocationMapProps> = ({
     if (initialRegion) {
       const newRegion = {
         ...DEFAULT_DELTA,
-        ...initialRegion
+        ...initialRegion,
       };
-      
+
       setCurrentRegion(newRegion);
-      
+
       // Animate to the new region if the map is ready
       if (mapRef.current) {
         mapRef.current.animateToRegion(newRegion, 500);
@@ -260,32 +260,38 @@ const LocationMapView: React.FC<LocationMapProps> = ({
   }, [initialRegion]);
 
   // Handle map region change
-  const handleRegionChange = useCallback((region: Region) => {
-    setCurrentRegion(region);
-    onRegionChange?.(region);
-  }, [onRegionChange]);
+  const handleRegionChange = useCallback(
+    (region: Region) => {
+      setCurrentRegion(region);
+      onRegionChange?.(region);
+    },
+    [onRegionChange],
+  );
 
   // Memoize region prop to prevent re-renders
   const regionProp = useCallback(() => currentRegion, [currentRegion]);
 
   // Handle map press
-  const handleMapPress = useCallback((event: any) => {
-    onMapPress?.(event.nativeEvent.coordinate);
-  }, [onMapPress]);
+  const handleMapPress = useCallback(
+    (event: any) => {
+      onMapPress?.(event.nativeEvent.coordinate);
+    },
+    [onMapPress],
+  );
 
   // Zoom level calculations
   useEffect(() => {
     if (zoomLevel && mapRef.current) {
       const newDelta = {
         latitudeDelta: 0.0922 / Math.pow(2, zoomLevel - 10),
-        longitudeDelta: 0.0421 / Math.pow(2, zoomLevel - 10)
+        longitudeDelta: 0.0421 / Math.pow(2, zoomLevel - 10),
       };
-      
+
       const newRegion = {
         ...currentRegion,
-        ...newDelta
+        ...newDelta,
       };
-      
+
       setCurrentRegion(newRegion);
       mapRef.current.animateToRegion(newRegion, 500);
     }
@@ -325,11 +331,11 @@ const LocationMapView: React.FC<LocationMapProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderRadius: 8,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -340,10 +346,10 @@ const styles = StyleSheet.create({
     }),
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
 });
 
 // Apply memo to prevent unnecessary re-renders
-export default memo(LocationMapView); 
+export default memo(LocationMapView);

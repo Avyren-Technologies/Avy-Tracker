@@ -1,5 +1,5 @@
-import ManagementDashboard from './management';
+import ManagementDashboard from "./management";
 
 export default function Management() {
-    return <ManagementDashboard />;
+  return <ManagementDashboard />;
 }

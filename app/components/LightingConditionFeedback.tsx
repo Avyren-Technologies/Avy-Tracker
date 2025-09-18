@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   Animated,
   AccessibilityInfo,
   Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import { FaceDetectionData, FaceQuality } from '../types/faceDetection';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import { FaceDetectionData, FaceQuality } from "../types/faceDetection";
 
 interface LightingConditionFeedbackProps {
   faceData: FaceDetectionData | null;
@@ -19,7 +19,7 @@ interface LightingConditionFeedbackProps {
 }
 
 interface LightingCondition {
-  level: 'excellent' | 'good' | 'fair' | 'poor' | 'very-poor';
+  level: "excellent" | "good" | "fair" | "poor" | "very-poor";
   message: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -29,10 +29,10 @@ interface LightingCondition {
 
 /**
  * Lighting Condition Feedback Component
- * 
+ *
  * Provides real-time feedback about lighting conditions for optimal face verification.
  * Includes specific suggestions for improving lighting and accessibility features.
- * 
+ *
  * Requirements addressed:
  * - 1.7: Lighting condition feedback and guidance
  * - 6.3: Real-time feedback indicators
@@ -45,118 +45,131 @@ export default function LightingConditionFeedback({
   enableVoiceGuidance = true,
 }: LightingConditionFeedbackProps) {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#ffffff', '#1e293b');
-  const textColor = useThemeColor('#1f2937', '#f8fafc');
-  const successColor = useThemeColor('#10b981', '#34d399');
-  const warningColor = useThemeColor('#f59e0b', '#fbbf24');
-  const errorColor = useThemeColor('#ef4444', '#f87171');
-  const infoColor = useThemeColor('#3b82f6', '#60a5fa');
+  const backgroundColor = useThemeColor("#ffffff", "#1e293b");
+  const textColor = useThemeColor("#1f2937", "#f8fafc");
+  const successColor = useThemeColor("#10b981", "#34d399");
+  const warningColor = useThemeColor("#f59e0b", "#fbbf24");
+  const errorColor = useThemeColor("#ef4444", "#f87171");
+  const infoColor = useThemeColor("#3b82f6", "#60a5fa");
 
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [pulseAnim] = useState(new Animated.Value(1));
-  const [lightingCondition, setLightingCondition] = useState<LightingCondition | null>(null);
-  const [lastVoiceMessage, setLastVoiceMessage] = useState<string>('');
+  const [lightingCondition, setLightingCondition] =
+    useState<LightingCondition | null>(null);
+  const [lastVoiceMessage, setLastVoiceMessage] = useState<string>("");
 
   /**
    * Announce message to screen readers
    */
-  const announceToScreenReader = useCallback((message: string) => {
-    if (Platform.OS === 'ios' && enableVoiceGuidance) {
-      // Avoid repeating the same message
-      if (message !== lastVoiceMessage) {
-        AccessibilityInfo.announceForAccessibility(message);
-        setLastVoiceMessage(message);
+  const announceToScreenReader = useCallback(
+    (message: string) => {
+      if (Platform.OS === "ios" && enableVoiceGuidance) {
+        // Avoid repeating the same message
+        if (message !== lastVoiceMessage) {
+          AccessibilityInfo.announceForAccessibility(message);
+          setLastVoiceMessage(message);
+        }
       }
-    }
-  }, [enableVoiceGuidance, lastVoiceMessage]);
+    },
+    [enableVoiceGuidance, lastVoiceMessage],
+  );
 
   /**
    * Analyze lighting conditions based on face detection data
    */
-  const analyzeLightingConditions = useCallback((): LightingCondition | null => {
-    if (!faceData || !faceQuality) {
-      return null;
-    }
+  const analyzeLightingConditions =
+    useCallback((): LightingCondition | null => {
+      if (!faceData || !faceQuality) {
+        return null;
+      }
 
-    const lightingScore = faceQuality.lighting;
-    const eyeOpenAverage = (faceData.leftEyeOpenProbability + faceData.rightEyeOpenProbability) / 2;
+      const lightingScore = faceQuality.lighting;
+      const eyeOpenAverage =
+        (faceData.leftEyeOpenProbability + faceData.rightEyeOpenProbability) /
+        2;
 
-    // Determine lighting level based on multiple factors
-    let level: LightingCondition['level'];
-    let message: string;
-    let icon: keyof typeof Ionicons.glyphMap;
-    let color: string;
-    let suggestions: string[];
-    let voiceMessage: string;
+      // Determine lighting level based on multiple factors
+      let level: LightingCondition["level"];
+      let message: string;
+      let icon: keyof typeof Ionicons.glyphMap;
+      let color: string;
+      let suggestions: string[];
+      let voiceMessage: string;
 
-    if (lightingScore >= 0.8 && eyeOpenAverage >= 0.8) {
-      level = 'excellent';
-      message = 'Excellent lighting conditions';
-      icon = 'sunny';
-      color = successColor;
-      suggestions = ['Perfect! Maintain current lighting'];
-      voiceMessage = 'Excellent lighting conditions detected';
-    } else if (lightingScore >= 0.6 && eyeOpenAverage >= 0.6) {
-      level = 'good';
-      message = 'Good lighting conditions';
-      icon = 'partly-sunny';
-      color = successColor;
-      suggestions = ['Good lighting, slight improvements possible'];
-      voiceMessage = 'Good lighting conditions';
-    } else if (lightingScore >= 0.4 && eyeOpenAverage >= 0.4) {
-      level = 'fair';
-      message = 'Fair lighting - improvements needed';
-      icon = 'cloudy';
-      color = warningColor;
-      suggestions = [
-        'Move to a brighter area',
-        'Turn on additional lights',
-        'Face a window or light source',
-      ];
-      voiceMessage = 'Fair lighting conditions. Consider moving to a brighter area';
-    } else if (lightingScore >= 0.2 && eyeOpenAverage >= 0.2) {
-      level = 'poor';
-      message = 'Poor lighting conditions';
-      icon = 'cloudy-night';
-      color = errorColor;
-      suggestions = [
-        'Move to a well-lit area immediately',
-        'Turn on room lights',
-        'Use phone flashlight as additional light',
-        'Avoid backlighting from windows',
-      ];
-      voiceMessage = 'Poor lighting conditions detected. Please move to a brighter area';
-    } else {
-      level = 'very-poor';
-      message = 'Very poor lighting - verification may fail';
-      icon = 'moon';
-      color = errorColor;
-      suggestions = [
-        'Find a bright, well-lit location',
-        'Turn on all available lights',
-        'Use multiple light sources',
-        'Avoid shadows on your face',
-        'Consider using verification during daylight hours',
-      ];
-      voiceMessage = 'Very poor lighting conditions. Verification may fail. Please find better lighting';
-    }
+      if (lightingScore >= 0.8 && eyeOpenAverage >= 0.8) {
+        level = "excellent";
+        message = "Excellent lighting conditions";
+        icon = "sunny";
+        color = successColor;
+        suggestions = ["Perfect! Maintain current lighting"];
+        voiceMessage = "Excellent lighting conditions detected";
+      } else if (lightingScore >= 0.6 && eyeOpenAverage >= 0.6) {
+        level = "good";
+        message = "Good lighting conditions";
+        icon = "partly-sunny";
+        color = successColor;
+        suggestions = ["Good lighting, slight improvements possible"];
+        voiceMessage = "Good lighting conditions";
+      } else if (lightingScore >= 0.4 && eyeOpenAverage >= 0.4) {
+        level = "fair";
+        message = "Fair lighting - improvements needed";
+        icon = "cloudy";
+        color = warningColor;
+        suggestions = [
+          "Move to a brighter area",
+          "Turn on additional lights",
+          "Face a window or light source",
+        ];
+        voiceMessage =
+          "Fair lighting conditions. Consider moving to a brighter area";
+      } else if (lightingScore >= 0.2 && eyeOpenAverage >= 0.2) {
+        level = "poor";
+        message = "Poor lighting conditions";
+        icon = "cloudy-night";
+        color = errorColor;
+        suggestions = [
+          "Move to a well-lit area immediately",
+          "Turn on room lights",
+          "Use phone flashlight as additional light",
+          "Avoid backlighting from windows",
+        ];
+        voiceMessage =
+          "Poor lighting conditions detected. Please move to a brighter area";
+      } else {
+        level = "very-poor";
+        message = "Very poor lighting - verification may fail";
+        icon = "moon";
+        color = errorColor;
+        suggestions = [
+          "Find a bright, well-lit location",
+          "Turn on all available lights",
+          "Use multiple light sources",
+          "Avoid shadows on your face",
+          "Consider using verification during daylight hours",
+        ];
+        voiceMessage =
+          "Very poor lighting conditions. Verification may fail. Please find better lighting";
+      }
 
-    return {
-      level,
-      message,
-      icon,
-      color,
-      suggestions,
-      voiceMessage,
-    };
-  }, [faceData, faceQuality, successColor, warningColor, errorColor]);
+      return {
+        level,
+        message,
+        icon,
+        color,
+        suggestions,
+        voiceMessage,
+      };
+    }, [faceData, faceQuality, successColor, warningColor, errorColor]);
 
   /**
    * Start pulse animation for poor lighting conditions
    */
   const startPulseAnimation = useCallback(() => {
-    if (lightingCondition?.level === 'poor' || lightingCondition?.level === 'very-poor') {
+    if (
+      lightingCondition?.level === "poor" ||
+      lightingCondition?.level === "very-poor"
+    ) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -169,7 +182,7 @@ export default function LightingConditionFeedback({
             duration: 600,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     }
   }, [pulseAnim, lightingCondition]);
@@ -207,7 +220,13 @@ export default function LightingConditionFeedback({
     if (condition?.voiceMessage) {
       announceToScreenReader(condition.voiceMessage);
     }
-  }, [faceData, faceQuality, isVisible, analyzeLightingConditions, announceToScreenReader]);
+  }, [
+    faceData,
+    faceQuality,
+    isVisible,
+    analyzeLightingConditions,
+    announceToScreenReader,
+  ]);
 
   // Handle visibility changes
   useEffect(() => {
@@ -256,20 +275,13 @@ export default function LightingConditionFeedback({
             },
           ]}
         >
-          <Ionicons
-            name={lightingCondition.icon}
-            size={24}
-            color="#ffffff"
-          />
+          <Ionicons name={lightingCondition.icon} size={24} color="#ffffff" />
         </View>
       </Animated.View>
 
       {/* Lighting Message */}
       <Text
-        style={[
-          styles.message,
-          { color: textColor },
-        ]}
+        style={[styles.message, { color: textColor }]}
         accessibilityRole="text"
       >
         {lightingCondition.message}
@@ -280,7 +292,9 @@ export default function LightingConditionFeedback({
         <Text style={[styles.qualityLabel, { color: textColor }]}>
           Lighting Quality
         </Text>
-        <View style={[styles.qualityBar, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+        <View
+          style={[styles.qualityBar, { backgroundColor: "rgba(0,0,0,0.1)" }]}
+        >
           <View
             style={[
               styles.qualityFill,
@@ -346,31 +360,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     margin: 16,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
   indicatorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
   },
   indicator: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
   message: {
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -379,36 +393,36 @@ const styles = StyleSheet.create({
   },
   qualityLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   qualityBar: {
     height: 8,
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 4,
   },
   qualityFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 4,
   },
   qualityPercentage: {
     fontSize: 12,
-    textAlign: 'center',
-    fontWeight: '500',
+    textAlign: "center",
+    fontWeight: "500",
   },
   suggestionsContainer: {
     marginBottom: 16,
   },
   suggestionsTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 6,
   },
   suggestionIcon: {
@@ -422,12 +436,12 @@ const styles = StyleSheet.create({
   },
   tipsContainer: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: "rgba(0,0,0,0.1)",
     paddingTop: 12,
   },
   tipsTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   tipText: {

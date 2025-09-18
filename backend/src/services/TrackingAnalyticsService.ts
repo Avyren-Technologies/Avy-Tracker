@@ -1,6 +1,6 @@
-import { pool } from '../config/database';
-import { Redis } from 'ioredis';
-import { Location } from '../types/liveTracking';
+import { pool } from "../config/database";
+import { Redis } from "ioredis";
+import { Location } from "../types/liveTracking";
 import { logLocationError } from "../utils/errorLogger";
 
 export class TrackingAnalyticsService {
@@ -35,7 +35,7 @@ export class TrackingAnalyticsService {
              AND (end_time IS NULL OR end_time >= NOW())
              AND status = 'active'
              LIMIT 1`,
-      [userId]
+      [userId],
     );
     return result.rows[0]?.id || null;
   }
@@ -43,7 +43,7 @@ export class TrackingAnalyticsService {
   private async updateDistanceMetrics(
     location: Location,
     userId: number,
-    shiftId: number
+    shiftId: number,
   ): Promise<void> {
     const lastLocationKey = `last_location:${userId}`;
 
@@ -67,7 +67,7 @@ export class TrackingAnalyticsService {
           lastLocation.latitude,
           lastLocation.longitude,
           location.latitude,
-          location.longitude
+          location.longitude,
         );
 
         if (distance > 0) {
@@ -76,7 +76,7 @@ export class TrackingAnalyticsService {
             const checkResult = await pool.query(
               `SELECT id FROM tracking_analytics 
                WHERE user_id = $1 AND date = CURRENT_DATE`,
-              [userId]
+              [userId],
             );
 
             if (checkResult.rows.length > 0) {
@@ -85,7 +85,7 @@ export class TrackingAnalyticsService {
                 `UPDATE tracking_analytics 
                  SET total_distance = total_distance + $1 
                  WHERE id = $2`,
-                [distance, checkResult.rows[0].id]
+                [distance, checkResult.rows[0].id],
               );
             } else {
               // Create new record
@@ -93,13 +93,13 @@ export class TrackingAnalyticsService {
                 `INSERT INTO tracking_analytics 
                  (user_id, date, total_distance, last_update) 
                  VALUES ($1, CURRENT_DATE, $2, NOW())`,
-                [userId, distance]
+                [userId, distance],
               );
             }
           } catch (error) {
             console.error(
               `Error updating distance metrics for user ${userId}:`,
-              error
+              error,
             );
           }
         }
@@ -114,12 +114,12 @@ export class TrackingAnalyticsService {
           timestamp: location.timestamp,
         }),
         "EX",
-        86400 // 24 hours TTL
+        86400, // 24 hours TTL
       );
     } catch (error) {
       console.error(
         `Error in updateDistanceMetrics for user ${userId}:`,
-        error
+        error,
       );
       // Log error properly using the error logger
       logLocationError(error, userId, location);
@@ -129,7 +129,7 @@ export class TrackingAnalyticsService {
   private async updateTimeMetrics(
     location: Location,
     userId: number,
-    shiftId: number
+    shiftId: number,
   ): Promise<void> {
     const isIndoors = await this.checkIfIndoors(location);
     const timeField = isIndoors ? "indoor_time" : "outdoor_time";
@@ -139,14 +139,14 @@ export class TrackingAnalyticsService {
       const checkResult = await pool.query(
         `SELECT id, last_update FROM tracking_analytics 
                  WHERE user_id = $1 AND date = CURRENT_DATE`,
-        [userId]
+        [userId],
       );
 
       if (checkResult.rows.length > 0) {
         // Update existing record with time increment
         const lastUpdate = checkResult.rows[0].last_update || new Date();
         const timeIncrement = Math.floor(
-          (new Date().getTime() - new Date(lastUpdate).getTime()) / 1000
+          (new Date().getTime() - new Date(lastUpdate).getTime()) / 1000,
         );
 
         await pool.query(
@@ -154,7 +154,7 @@ export class TrackingAnalyticsService {
                      SET ${timeField} = ${timeField} + $1, 
                      last_update = NOW() 
                      WHERE id = $2`,
-          [timeIncrement, checkResult.rows[0].id]
+          [timeIncrement, checkResult.rows[0].id],
         );
       } else {
         // Create new record
@@ -167,7 +167,7 @@ export class TrackingAnalyticsService {
           `INSERT INTO tracking_analytics 
                      (user_id, date, indoor_time, outdoor_time, last_update) 
                      VALUES ($1, CURRENT_DATE, $2, $3, NOW())`,
-          [userId, initialFields.indoor_time, initialFields.outdoor_time]
+          [userId, initialFields.indoor_time, initialFields.outdoor_time],
         );
       }
     } catch (error) {
@@ -179,7 +179,7 @@ export class TrackingAnalyticsService {
   private async updateGeofenceMetrics(
     location: Location,
     userId: number,
-    shiftId: number
+    shiftId: number,
   ): Promise<void> {
     const result = await pool.query(
       `SELECT cg.id, ST_DWithin(
@@ -190,7 +190,7 @@ export class TrackingAnalyticsService {
              FROM company_geofences cg
              JOIN users u ON u.company_id = cg.company_id
              WHERE u.id = $3`,
-      [location.longitude, location.latitude, userId]
+      [location.longitude, location.latitude, userId],
     );
 
     for (const geofence of result.rows) {
@@ -217,11 +217,11 @@ export class TrackingAnalyticsService {
   private async logGeofenceEntry(
     userId: number,
     geofenceId: number,
-    shiftId: number
+    shiftId: number,
   ): Promise<void> {
     if (!shiftId) {
       console.error(
-        `No shift found for user ${userId} when logging geofence entry for geofence ${geofenceId}`
+        `No shift found for user ${userId} when logging geofence entry for geofence ${geofenceId}`,
       );
       return;
     }
@@ -229,18 +229,18 @@ export class TrackingAnalyticsService {
     await pool.query(
       `INSERT INTO geofence_events (user_id, geofence_id, shift_id, event_type, timestamp)
              VALUES ($1, $2, $3, 'entry', NOW())`,
-      [userId, geofenceId, shiftId]
+      [userId, geofenceId, shiftId],
     );
   }
 
   private async logGeofenceExit(
     userId: number,
     geofenceId: number,
-    shiftId: number
+    shiftId: number,
   ): Promise<void> {
     if (!shiftId) {
       console.error(
-        `No shift found for user ${userId} when logging geofence exit for geofence ${geofenceId}`
+        `No shift found for user ${userId} when logging geofence exit for geofence ${geofenceId}`,
       );
       return;
     }
@@ -248,7 +248,7 @@ export class TrackingAnalyticsService {
     await pool.query(
       `INSERT INTO geofence_events (user_id, geofence_id, shift_id, event_type, timestamp)
              VALUES ($1, $2, $3, 'exit', NOW())`,
-      [userId, geofenceId, shiftId]
+      [userId, geofenceId, shiftId],
     );
   }
 
@@ -256,7 +256,7 @@ export class TrackingAnalyticsService {
     lat1: number,
     lon1: number,
     lat2: number,
-    lon2: number
+    lon2: number,
   ): number {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
@@ -271,4 +271,4 @@ export class TrackingAnalyticsService {
 
     return R * c; // Distance in meters
   }
-} 
+}

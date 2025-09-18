@@ -29,7 +29,7 @@ router.get("/", async (req: CustomRequest, res: Response) => {
       req.user!.id,
       "employee",
       limit,
-      offset
+      offset,
     );
 
     res.json(notifications);
@@ -70,13 +70,13 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
           `SELECT id, user_id, read, title, message, type 
            FROM notifications 
            WHERE id = $1`,
-          [notificationId]
+          [notificationId],
         ),
         client.query(
           `SELECT id, user_id, sent, title, message, type 
            FROM push_notifications 
            WHERE id = $1`,
-          [notificationId]
+          [notificationId],
         ),
       ]);
 
@@ -105,7 +105,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
               ownerIdType: typeof pushUserId,
               requesterId: userId,
               requesterIdType: typeof userId,
-            }
+            },
           );
           return res.status(403).json({
             error: "Unauthorized access",
@@ -128,12 +128,12 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
             pushNotification.title,
             pushNotification.message,
             pushNotification.type,
-          ]
+          ],
         );
 
         console.log(
           "[MarkAsRead] Push notification marked as read:",
-          createInAppResult.rows[0]
+          createInAppResult.rows[0],
         );
         return res.json(createInAppResult.rows[0]);
       }
@@ -154,7 +154,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
               ownerIdType: typeof inAppUserId,
               requesterId: userId,
               requesterIdType: typeof userId,
-            }
+            },
           );
           return res.status(403).json({
             error: "Unauthorized access",
@@ -169,12 +169,12 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
            SET read = true 
            WHERE id = $1 AND user_id = $2 
            RETURNING id, user_id, title, message, type, read, created_at`,
-          [notificationId, userId]
+          [notificationId, userId],
         );
 
         console.log(
           "[MarkAsRead] In-app notification marked as read:",
-          updateResult.rows[0]
+          updateResult.rows[0],
         );
         return res.json(updateResult.rows[0]);
       }
@@ -201,7 +201,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
 router.get("/unread-count", async (req: CustomRequest, res: Response) => {
   try {
     const count = await NotificationService.getUnreadNotificationCount(
-      req.user!.id
+      req.user!.id,
     );
     res.json({ count });
   } catch (error) {
@@ -231,7 +231,7 @@ router.post("/register-device", async (req: CustomRequest, res: Response) => {
       req.user!.id.toString(),
       token,
       deviceType || "unknown",
-      deviceName || "unknown"
+      deviceName || "unknown",
     );
 
     console.log("[Device Registration] Success:", result.rows[0]);
@@ -258,7 +258,7 @@ router.delete(
 
       await NotificationService.removeDeviceToken(
         req.user!.id.toString(),
-        token
+        token,
       );
       res.json({ success: true });
     } catch (error) {
@@ -268,7 +268,7 @@ router.delete(
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
 );
 
 // Send notification to group admin
@@ -289,7 +289,7 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
     try {
       const result = await client.query(
         "SELECT group_admin_id FROM users WHERE id = $1 AND role = 'employee'",
-        [req.user.id]
+        [req.user.id],
       );
 
       if (!result.rows.length || !result.rows[0].group_admin_id) {
@@ -316,7 +316,7 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
             employeeId: req.user.id,
             employeeName: req.user.name,
           }),
-        ]
+        ],
       );
 
       // Use the generated ID for sending the push notification
@@ -334,7 +334,7 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
             employeeName: req.user.name,
           },
         },
-        [groupAdminId.toString()]
+        [groupAdminId.toString()],
       );
 
       // Create in-app notification matching exact schema
@@ -348,7 +348,7 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
           message, // text
           type, // varchar(50)
           false, // boolean default false
-        ]
+        ],
       );
 
       res.json({ success: true });

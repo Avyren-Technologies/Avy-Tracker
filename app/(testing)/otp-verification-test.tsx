@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,32 +6,40 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, useThemeColor } from '../hooks/useColorScheme';
-import OTPVerification from '../components/OTPVerification';
-import { OTPVerificationResult, OTPError } from '../types/otp';
+} from "react-native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useColorScheme, useThemeColor } from "../hooks/useColorScheme";
+import OTPVerification from "../components/OTPVerification";
+import { OTPVerificationResult, OTPError } from "../types/otp";
 
 export default function OTPVerificationTest() {
   const colorScheme = useColorScheme();
-  const backgroundColor = useThemeColor('#f8fafc', '#0f172a');
-  const textColor = useThemeColor('#334155', '#e2e8f0');
-  const cardColor = useThemeColor('#ffffff', '#1e293b');
-  const primaryColor = useThemeColor('#3b82f6', '#60a5fa');
+  const backgroundColor = useThemeColor("#f8fafc", "#0f172a");
+  const textColor = useThemeColor("#334155", "#e2e8f0");
+  const cardColor = useThemeColor("#ffffff", "#1e293b");
+  const primaryColor = useThemeColor("#3b82f6", "#60a5fa");
 
   const [showOTP, setShowOTP] = useState(false);
-  const [testPurpose, setTestPurpose] = useState<string>('face-settings-access');
+  const [testPurpose, setTestPurpose] = useState<string>(
+    "face-settings-access",
+  );
   const [testResults, setTestResults] = useState<string[]>([]);
 
   const addTestResult = (result: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${result}`,
+    ]);
   };
 
   const handleOTPSuccess = (data: OTPVerificationResult) => {
     addTestResult(`✅ OTP Success: ${data.message}`);
     setShowOTP(false);
-    Alert.alert('Success', `OTP verified successfully!\n\nPurpose: ${data.purpose}\nVerified at: ${data.verifiedAt}`);
+    Alert.alert(
+      "Success",
+      `OTP verified successfully!\n\nPurpose: ${data.purpose}\nVerified at: ${data.verifiedAt}`,
+    );
   };
 
   const handleOTPError = (error: OTPError) => {
@@ -45,25 +53,25 @@ export default function OTPVerificationTest() {
   };
 
   const handleOTPCancel = () => {
-    addTestResult('🚫 OTP Cancelled by user');
+    addTestResult("🚫 OTP Cancelled by user");
     setShowOTP(false);
   };
 
   const testScenarios = [
     {
-      title: 'Face Settings Access',
-      purpose: 'face-settings-access',
-      description: 'Test OTP for accessing face configuration settings',
+      title: "Face Settings Access",
+      purpose: "face-settings-access",
+      description: "Test OTP for accessing face configuration settings",
     },
     {
-      title: 'Profile Update',
-      purpose: 'profile-update',
-      description: 'Test OTP for updating user profile',
+      title: "Profile Update",
+      purpose: "profile-update",
+      description: "Test OTP for updating user profile",
     },
     {
-      title: 'Security Verification',
-      purpose: 'security-verification',
-      description: 'Test OTP for security verification',
+      title: "Security Verification",
+      purpose: "security-verification",
+      description: "Test OTP for security verification",
     },
   ];
 
@@ -75,12 +83,12 @@ export default function OTPVerificationTest() {
     <View style={[styles.container, { backgroundColor }]}>
       <Stack.Screen
         options={{
-          title: 'OTP Verification Test',
+          title: "OTP Verification Test",
           headerStyle: { backgroundColor: cardColor },
           headerTintColor: textColor,
         }}
       />
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -98,7 +106,7 @@ export default function OTPVerificationTest() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Test Scenarios
           </Text>
-          
+
           {testScenarios.map((scenario, index) => (
             <TouchableOpacity
               key={index}
@@ -135,7 +143,7 @@ export default function OTPVerificationTest() {
               <Text style={styles.clearButtonText}>Clear</Text>
             </TouchableOpacity>
           </View>
-          
+
           {testResults.length === 0 ? (
             <Text style={[styles.noResults, { color: textColor }]}>
               No test results yet. Run a test scenario above.
@@ -143,7 +151,10 @@ export default function OTPVerificationTest() {
           ) : (
             <View style={styles.resultsList}>
               {testResults.map((result, index) => (
-                <Text key={index} style={[styles.resultItem, { color: textColor }]}>
+                <Text
+                  key={index}
+                  style={[styles.resultItem, { color: textColor }]}
+                >
                   {result}
                 </Text>
               ))}
@@ -156,7 +167,7 @@ export default function OTPVerificationTest() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Component Features
           </Text>
-          
+
           <View style={styles.featuresList}>
             <Text style={[styles.featureItem, { color: textColor }]}>
               ✅ Auto-focus OTP input fields
@@ -193,7 +204,7 @@ export default function OTPVerificationTest() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>
             Usage Instructions
           </Text>
-          
+
           <Text style={[styles.instruction, { color: textColor }]}>
             1. Select a test scenario above to open the OTP verification modal
           </Text>
@@ -244,17 +255,17 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.8,
   },
   section: {
@@ -264,7 +275,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   scenarioButton: {
@@ -275,7 +286,7 @@ const styles = StyleSheet.create({
   },
   scenarioTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
   },
   scenarioDescription: {
@@ -285,13 +296,13 @@ const styles = StyleSheet.create({
   },
   scenarioPurpose: {
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     opacity: 0.6,
   },
   resultsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   clearButton: {
@@ -300,14 +311,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   clearButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   noResults: {
-    fontStyle: 'italic',
+    fontStyle: "italic",
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
     paddingVertical: 20,
   },
   resultsList: {
@@ -315,7 +326,7 @@ const styles = StyleSheet.create({
   },
   resultItem: {
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     marginBottom: 4,
     paddingVertical: 2,
   },

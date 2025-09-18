@@ -1,13 +1,17 @@
-import express, { Response } from 'express';
-import { pool } from '../config/database';
-import { authMiddleware, adminMiddleware, verifyToken } from '../middleware/auth';
-import { CustomRequest } from '../types';
-import { format } from 'date-fns';
+import express, { Response } from "express";
+import { pool } from "../config/database";
+import {
+  authMiddleware,
+  adminMiddleware,
+  verifyToken,
+} from "../middleware/auth";
+import { CustomRequest } from "../types";
+import { format } from "date-fns";
 
 // Add type definitions
 interface Report {
   id: number;
-  type: 'expense' | 'attendance' | 'activity';
+  type: "expense" | "attendance" | "activity";
   title: string;
   date: Date | string;
   amount: number | null;
@@ -37,21 +41,25 @@ interface DatabaseError {
 const router = express.Router();
 
 // Get all reports for a group admin
-router.get('/', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
 
-    const adminId = req.user.id;
-    
-    // Get reports from different tables
     try {
-      // Get expense reports
-      const expenseReports = await client.query<Report>(
-        `SELECT 
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const adminId = req.user.id;
+
+      // Get reports from different tables
+      try {
+        // Get expense reports
+        const expenseReports = await client.query<Report>(
+          `SELECT 
           CONCAT('exp_', id) as id,
           'expense' as type,
           'Expense Report' as title,
@@ -62,12 +70,12 @@ router.get('/', authMiddleware, adminMiddleware, async (req: CustomRequest, res:
          WHERE group_admin_id = $1 
          ORDER BY created_at DESC 
          LIMIT 5`,
-        [adminId]
-      );
+          [adminId],
+        );
 
-      // Get attendance reports
-      const attendanceReports = await client.query<Report>(
-        `SELECT 
+        // Get attendance reports
+        const attendanceReports = await client.query<Report>(
+          `SELECT 
           CONCAT('att_', id) as id,
           'attendance' as type,
           'Attendance Report' as title,
@@ -80,12 +88,12 @@ router.get('/', authMiddleware, adminMiddleware, async (req: CustomRequest, res:
          )
          ORDER BY date DESC 
          LIMIT 5`,
-        [adminId]
-      );
+          [adminId],
+        );
 
-      // Get activity reports (from tasks)
-      const activityReports = await client.query<Report>(
-        `SELECT 
+        // Get activity reports (from tasks)
+        const activityReports = await client.query<Report>(
+          `SELECT 
           CONCAT('act_', id) as id,
           'activity' as type,
           'Task Report' as title,
@@ -96,65 +104,79 @@ router.get('/', authMiddleware, adminMiddleware, async (req: CustomRequest, res:
          WHERE assigned_by = $1
          ORDER BY created_at DESC 
          LIMIT 5`,
-        [adminId]
-      );
+          [adminId],
+        );
 
-      // Add type assertion for combined reports
-      const allReports = [
-        ...expenseReports.rows,
-        ...attendanceReports.rows,
-        ...activityReports.rows
-      ].sort((a: Report, b: Report) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return isNaN(dateB) || isNaN(dateA) ? 0 : dateB - dateA;
+        // Add type assertion for combined reports
+        const allReports = [
+          ...expenseReports.rows,
+          ...attendanceReports.rows,
+          ...activityReports.rows,
+        ].sort((a: Report, b: Report) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return isNaN(dateB) || isNaN(dateA) ? 0 : dateB - dateA;
+        });
+
+        res.json(allReports.slice(0, 10));
+      } catch (dbError: unknown) {
+        console.error("Database query error:", dbError);
+        const error = dbError as DatabaseError;
+        res.status(500).json({
+          error: "Database error",
+          details:
+            process.env.NODE_ENV === "development"
+              ? {
+                  message: error.message,
+                  detail: error.detail,
+                  hint: error.hint,
+                }
+              : undefined,
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error fetching reports:", error);
+      const err = error as Error;
+      res.status(500).json({
+        error: "Failed to fetch reports",
+        details:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
       });
-
-      res.json(allReports.slice(0, 10));
-
-    } catch (dbError: unknown) {
-      console.error('Database query error:', dbError);
-      const error = dbError as DatabaseError;
-      res.status(500).json({ 
-        error: 'Database error', 
-        details: process.env.NODE_ENV === 'development' ? {
-          message: error.message,
-          detail: error.detail,
-          hint: error.hint
-        } : undefined 
-      });
+    } finally {
+      client.release();
     }
-  } catch (error: unknown) {
-    console.error('Error fetching reports:', error);
-    const err = error as Error;
-    res.status(500).json({ 
-      error: 'Failed to fetch reports',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 // Add these new endpoints for expense reports
-router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const adminId = req.user.id;
-    
-    // Extract filter parameters
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // Default to 6 months ago
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
-    const department = req.query.department as string;
-
-    // First check if category column exists and add it if it doesn't
+router.get(
+  "/expenses/overview",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
     try {
-      await client.query(`
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const adminId = req.user.id;
+
+      // Extract filter parameters
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // Default to 6 months ago
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
+      const employeeId = req.query.employeeId
+        ? Number(req.query.employeeId)
+        : undefined;
+      const department = req.query.department as string;
+
+      // First check if category column exists and add it if it doesn't
+      try {
+        await client.query(`
         DO $$ 
         BEGIN
           IF NOT EXISTS (
@@ -179,25 +201,30 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
           END IF;
         END $$;
       `);
-    } catch (err) {
-      console.error('Error checking/adding category column:', err);
-    }
+      } catch (err) {
+        console.error("Error checking/adding category column:", err);
+      }
 
-    // Build parameters array
-    const baseParams: Array<string | number | Date> = [adminId, startDate, endDate];
-    
-    if (employeeId) {
-      baseParams.push(employeeId);
-    }
-    
-    if (department) {
-      baseParams.push(department);
-    }
+      // Build parameters array
+      const baseParams: (string | number | Date)[] = [
+        adminId,
+        startDate,
+        endDate,
+      ];
 
-    // Monthly data query with error handling
-    let monthlyData;
-    try {
-      monthlyData = await client.query(`
+      if (employeeId) {
+        baseParams.push(employeeId);
+      }
+
+      if (department) {
+        baseParams.push(department);
+      }
+
+      // Monthly data query with error handling
+      let monthlyData;
+      try {
+        monthlyData = await client.query(
+          `
         SELECT 
           TO_CHAR(date, 'Mon') as month,
           COALESCE(SUM(total_amount), 0) as amount
@@ -205,18 +232,21 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ' AND user_id = $4' : ''}
-        ${department ? ' AND user_id IN (SELECT id FROM users WHERE department = $5)' : ''}
+        ${employeeId ? " AND user_id = $4" : ""}
+        ${department ? " AND user_id IN (SELECT id FROM users WHERE department = $5)" : ""}
         GROUP BY TO_CHAR(date, 'Mon')
         ORDER BY MIN(date)
-      `, baseParams);
-    } catch (err) {
-      console.error('Error fetching monthly data:', err);
-      monthlyData = { rows: [] };
-    }
+      `,
+          baseParams,
+        );
+      } catch (err) {
+        console.error("Error fetching monthly data:", err);
+        monthlyData = { rows: [] };
+      }
 
-    // Update category data query to use specific expense columns
-    const categoryData = await client.query(`
+      // Update category data query to use specific expense columns
+      const categoryData = await client.query(
+        `
       WITH category_totals AS (
         SELECT 
           'Lodging' as name,
@@ -225,8 +255,8 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
         AND lodging_expenses > 0
         
         UNION ALL
@@ -238,8 +268,8 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
         AND daily_allowance > 0
         
         UNION ALL
@@ -251,8 +281,8 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
         AND diesel > 0
         
         UNION ALL
@@ -264,8 +294,8 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
         AND toll_charges > 0
         
         UNION ALL
@@ -277,8 +307,8 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
         AND other_expenses > 0
       )
       SELECT 
@@ -292,24 +322,27 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
       FROM category_totals
       WHERE population > 0
       ORDER BY population DESC
-    `, baseParams);
+    `,
+        baseParams,
+      );
 
-    // Remove the manual percentage calculation since it's now part of the query
-    const processedCategoryData = categoryData.rows.map(row => ({
-      name: row.name,
-      population: parseFloat(row.population),
-      percentage: row.percentage,
-      color: getCategoryColor(row.name),
-      legendFontColor: '#7F7F7F',
-      legendFontSize: 12
-    }));
+      // Remove the manual percentage calculation since it's now part of the query
+      const processedCategoryData = categoryData.rows.map((row) => ({
+        name: row.name,
+        population: parseFloat(row.population),
+        percentage: row.percentage,
+        color: getCategoryColor(row.name),
+        legendFontColor: "#7F7F7F",
+        legendFontSize: 12,
+      }));
 
-    console.log('Processed category data:', processedCategoryData);
+      console.log("Processed category data:", processedCategoryData);
 
-    // Summary data query with error handling
-    let summaryData;
-    try {
-      summaryData = await client.query(`
+      // Summary data query with error handling
+      let summaryData;
+      try {
+        summaryData = await client.query(
+          `
         SELECT 
           COUNT(*) as total_count,
           COALESCE(SUM(total_amount), 0) as total_amount,
@@ -322,95 +355,115 @@ router.get('/expenses/overview', authMiddleware, adminMiddleware, async (req: Cu
         WHERE group_admin_id = $1
         AND date >= $2
         AND date <= $3
-        ${employeeId ? ` AND user_id = $4` : ''}
-        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ''}
-      `, baseParams);
-    } catch (err) {
-      console.error('Error fetching summary data:', err);
-      summaryData = {
-        rows: [{
+        ${employeeId ? ` AND user_id = $4` : ""}
+        ${department ? ` AND user_id IN (SELECT id FROM users WHERE department = $5)` : ""}
+      `,
+          baseParams,
+        );
+      } catch (err) {
+        console.error("Error fetching summary data:", err);
+        summaryData = {
+          rows: [
+            {
+              total_count: 0,
+              total_amount: 0,
+              average_expense: 0,
+              highest_expense: 0,
+              approved_count: 0,
+              rejected_count: 0,
+              pending_count: 0,
+            },
+          ],
+        };
+      }
+
+      console.log("Sending response:", {
+        monthlyData: monthlyData.rows,
+        categoryData: processedCategoryData,
+        summary: summaryData.rows[0],
+      });
+
+      res.json({
+        monthlyData: monthlyData.rows,
+        categoryData: processedCategoryData,
+        summary: summaryData.rows[0],
+      });
+    } catch (error) {
+      console.error("Error fetching expense overview:", error);
+      // Send a structured error response
+      res.status(500).json({
+        error: "Failed to fetch expense overview",
+        monthlyData: [],
+        categoryData: [],
+        summary: {
           total_count: 0,
           total_amount: 0,
           average_expense: 0,
           highest_expense: 0,
           approved_count: 0,
           rejected_count: 0,
-          pending_count: 0
-        }]
-      };
+          pending_count: 0,
+        },
+      });
+    } finally {
+      client.release();
     }
-
-    console.log('Sending response:', {
-      monthlyData: monthlyData.rows,
-      categoryData: processedCategoryData,
-      summary: summaryData.rows[0]
-    });
-
-    res.json({
-      monthlyData: monthlyData.rows,
-      categoryData: processedCategoryData,
-      summary: summaryData.rows[0]
-    });
-
-  } catch (error) {
-    console.error('Error fetching expense overview:', error);
-    // Send a structured error response
-    res.status(500).json({
-      error: 'Failed to fetch expense overview',
-      monthlyData: [],
-      categoryData: [],
-      summary: {
-        total_count: 0,
-        total_amount: 0,
-        average_expense: 0,
-        highest_expense: 0,
-        approved_count: 0,
-        rejected_count: 0,
-        pending_count: 0
-      }
-    });
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 // Add this new endpoint for employee expense stats
-router.get('/expenses/employee-stats', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/expenses/employee-stats",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    // Extract filter parameters
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // Default to 6 months ago
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
-    const department = req.query.department as string;
+      // Extract filter parameters
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // Default to 6 months ago
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
+      const employeeId = req.query.employeeId
+        ? Number(req.query.employeeId)
+        : undefined;
+      const department = req.query.department as string;
 
-    // First get all employees under this admin
-    const employeeQuery = `
+      // First get all employees under this admin
+      const employeeQuery = `
       SELECT id, name, employee_number, department
       FROM users 
       WHERE group_admin_id = $1 AND role = 'employee'
-      ${department ? 'AND department = $2' : ''}
+      ${department ? "AND department = $2" : ""}
       ORDER BY name ASC`;
 
-    const employeeParams = department ? [req.user.id, department] : [req.user.id];
-    const employees = await client.query(employeeQuery, employeeParams);
+      const employeeParams = department
+        ? [req.user.id, department]
+        : [req.user.id];
+      const employees = await client.query(employeeQuery, employeeParams);
 
-    // Build additional filter conditions for expenses query
-    let additionalFilters = '';
-    const queryParams: Array<string | number | Date> = [req.user.id, startDate, endDate];
-    let paramIndex = 4; // Start from 4 since we have 3 parameters already
+      // Build additional filter conditions for expenses query
+      let additionalFilters = "";
+      const queryParams: (string | number | Date)[] = [
+        req.user.id,
+        startDate,
+        endDate,
+      ];
+      let paramIndex = 4; // Start from 4 since we have 3 parameters already
 
-    if (employeeId) {
-      additionalFilters += ` AND user_id = $${paramIndex}`;
-      queryParams.push(employeeId);
-    }
+      if (employeeId) {
+        additionalFilters += ` AND user_id = $${paramIndex}`;
+        queryParams.push(employeeId);
+      }
 
-    // Get expense stats for selected employee or all employees
-    const expenseQuery = `
+      // Get expense stats for selected employee or all employees
+      const expenseQuery = `
       SELECT 
         u.id as employee_id,
         u.name as employee_name,
@@ -434,70 +487,78 @@ router.get('/expenses/employee-stats', authMiddleware, adminMiddleware, async (r
       GROUP BY u.id, u.name, u.employee_number, DATE_TRUNC('month', e.date)
       ORDER BY DATE_TRUNC('month', e.date) ASC`;
 
-    const expenseStats = await client.query(expenseQuery, queryParams);
+      const expenseStats = await client.query(expenseQuery, queryParams);
 
-    // Process the stats to include category data
-    const processedStats = expenseStats.rows.map(row => {
-      const categoryData = [
-        { name: 'Lodging', amount: parseFloat(row.lodging_expenses) || 0 },
-        { name: 'Daily Allowance', amount: parseFloat(row.daily_allowance) || 0 },
-        { name: 'Fuel', amount: parseFloat(row.diesel) || 0 },
-        { name: 'Toll', amount: parseFloat(row.toll_charges) || 0 },
-        { name: 'Other', amount: parseFloat(row.other_expenses) || 0 }
-      ].filter(cat => cat.amount > 0);
+      // Process the stats to include category data
+      const processedStats = expenseStats.rows.map((row) => {
+        const categoryData = [
+          { name: "Lodging", amount: parseFloat(row.lodging_expenses) || 0 },
+          {
+            name: "Daily Allowance",
+            amount: parseFloat(row.daily_allowance) || 0,
+          },
+          { name: "Fuel", amount: parseFloat(row.diesel) || 0 },
+          { name: "Toll", amount: parseFloat(row.toll_charges) || 0 },
+          { name: "Other", amount: parseFloat(row.other_expenses) || 0 },
+        ].filter((cat) => cat.amount > 0);
 
-      const total = categoryData.reduce((sum, cat) => sum + cat.amount, 0);
+        const total = categoryData.reduce((sum, cat) => sum + cat.amount, 0);
 
-      return {
-        employee_id: row.employee_id,
-        employee_name: row.employee_name,
-        employee_number: row.employee_number,
-        month: row.month,
-        expense_count: parseInt(row.expense_count),
-        total_amount: parseFloat(row.total_amount),
-        approved_count: parseInt(row.approved_count),
-        rejected_count: parseInt(row.rejected_count),
-        categoryData: categoryData.map(cat => ({
-          name: cat.name,
-          population: cat.amount,
-          percentage: ((cat.amount / total) * 100).toFixed(1),
-          color: getCategoryColor(cat.name),
-          legendFontColor: '#7F7F7F',
-          legendFontSize: 12
-        }))
-      };
-    });
+        return {
+          employee_id: row.employee_id,
+          employee_name: row.employee_name,
+          employee_number: row.employee_number,
+          month: row.month,
+          expense_count: parseInt(row.expense_count),
+          total_amount: parseFloat(row.total_amount),
+          approved_count: parseInt(row.approved_count),
+          rejected_count: parseInt(row.rejected_count),
+          categoryData: categoryData.map((cat) => ({
+            name: cat.name,
+            population: cat.amount,
+            percentage: ((cat.amount / total) * 100).toFixed(1),
+            color: getCategoryColor(cat.name),
+            legendFontColor: "#7F7F7F",
+            legendFontSize: 12,
+          })),
+        };
+      });
 
-    res.json({
-      employees: employees.rows,
-      expenseStats: processedStats
-    });
-
-  } catch (error) {
-    console.error('Error fetching employee expense stats:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch employee expense stats',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    client.release();
-  }
-});
+      res.json({
+        employees: employees.rows,
+        expenseStats: processedStats,
+      });
+    } catch (error) {
+      console.error("Error fetching employee expense stats:", error);
+      res.status(500).json({
+        error: "Failed to fetch employee expense stats",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Add this new endpoint for report analytics
-router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const adminId = req.user.id;
-
-    // Get expense analytics with error handling
-    let expenseAnalytics;
+router.get(
+  "/analytics",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
     try {
-      expenseAnalytics = await client.query(`
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const adminId = req.user.id;
+
+      // Get expense analytics with error handling
+      let expenseAnalytics;
+      try {
+        expenseAnalytics = await client.query(
+          `
         WITH current_month AS (
           SELECT 
             COALESCE(SUM(total_amount), 0)::numeric as total,
@@ -522,24 +583,27 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
           COALESCE(pm.previous_month_total, 0) as previousMonthTotal
         FROM current_month cm
         CROSS JOIN previous_month pm`,
-        [adminId]
-      );
-    } catch (err) {
-      console.error('Error in expense analytics query:', err);
-      expenseAnalytics = {
-        rows: [{
-          total: 0,
-          average: 0,
-          currentMonthTotal: 0,
-          previousMonthTotal: 0
-        }]
-      };
-    }
+          [adminId],
+        );
+      } catch (err) {
+        console.error("Error in expense analytics query:", err);
+        expenseAnalytics = {
+          rows: [
+            {
+              total: 0,
+              average: 0,
+              currentMonthTotal: 0,
+              previousMonthTotal: 0,
+            },
+          ],
+        };
+      }
 
-    // Get attendance analytics with fallback
-    let attendanceAnalytics;
-    try {
-      attendanceAnalytics = await client.query(`
+      // Get attendance analytics with fallback
+      let attendanceAnalytics;
+      try {
+        attendanceAnalytics = await client.query(
+          `
         WITH employee_count AS (
           SELECT COUNT(*) as total_employees
         FROM users 
@@ -560,38 +624,47 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
         FROM employee_count e
         LEFT JOIN attendance_data a ON true
         GROUP BY e.total_employees`,
-        [adminId]
-      );
-    } catch (err) {
-      console.error('Error in attendance analytics query:', err);
-      attendanceAnalytics = {
-        rows: [{
-          total: 0,
-          average: 0,
-          trend: '0%'
-        }]
-      };
-    }
+          [adminId],
+        );
+      } catch (err) {
+        console.error("Error in attendance analytics query:", err);
+        attendanceAnalytics = {
+          rows: [
+            {
+              total: 0,
+              average: 0,
+              trend: "0%",
+            },
+          ],
+        };
+      }
 
-    // Add Task Analytics
-    const taskCurrentMonth = await client.query(`
+      // Add Task Analytics
+      const taskCurrentMonth = await client.query(
+        `
       SELECT COUNT(*) as count
       FROM employee_tasks
       WHERE assigned_by = $1
       AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
       AND created_at < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
-    `, [adminId]);
+    `,
+        [adminId],
+      );
 
-    const taskPreviousMonth = await client.query(`
+      const taskPreviousMonth = await client.query(
+        `
       SELECT COUNT(*) as count
       FROM employee_tasks
       WHERE assigned_by = $1
       AND created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
       AND created_at < DATE_TRUNC('month', CURRENT_DATE)
-    `, [adminId]);
+    `,
+        [adminId],
+      );
 
-    // Updated metrics query to properly calculate average completion time
-    const taskMetrics = await client.query(`
+      // Updated metrics query to properly calculate average completion time
+      const taskMetrics = await client.query(
+        `
       WITH task_stats AS (
         SELECT 
           COUNT(*) as total_tasks,
@@ -604,18 +677,21 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
         total_tasks,
         ROUND(avg_tasks_per_day::numeric, 2) as avg_completion_time
       FROM task_stats
-    `, [adminId]);
+    `,
+        [adminId],
+      );
 
-    // Add debug logging
-    console.log('Task Metrics Raw:', taskMetrics.rows[0]);
-    console.log('Task Average:', {
-      total: taskMetrics.rows[0]?.total_tasks,
-      average: taskMetrics.rows[0]?.avg_completion_time,
-      avgNumber: Number(taskMetrics.rows[0]?.avg_completion_time || 0)
-    });
+      // Add debug logging
+      console.log("Task Metrics Raw:", taskMetrics.rows[0]);
+      console.log("Task Average:", {
+        total: taskMetrics.rows[0]?.total_tasks,
+        average: taskMetrics.rows[0]?.avg_completion_time,
+        avgNumber: Number(taskMetrics.rows[0]?.avg_completion_time || 0),
+      });
 
-    // Get travel analytics
-    const travelMetrics = await client.query(`
+      // Get travel analytics
+      const travelMetrics = await client.query(
+        `
       SELECT 
         COUNT(*) as total_trips,
         ROUND(AVG(total_amount)::numeric, 2) as avg_trip_cost,
@@ -630,10 +706,13 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
       FROM expenses
       WHERE group_admin_id = $1
       AND date >= DATE_TRUNC('month', CURRENT_DATE)
-    `, [adminId]);
+    `,
+        [adminId],
+      );
 
-    // Add Performance Analytics
-    const performanceMetrics = await client.query(`
+      // Add Performance Analytics
+      const performanceMetrics = await client.query(
+        `
       WITH employee_metrics AS (
         SELECT 
           COUNT(DISTINCT u.id) as total_employees,
@@ -662,11 +741,14 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
         COALESCE(pt.current_hours, 0) as avg_hours
       FROM employee_metrics em
       CROSS JOIN performance_trend pt
-    `, [adminId]);
-    console.log('Performance Metrics:', performanceMetrics.rows[0]);
+    `,
+        [adminId],
+      );
+      console.log("Performance Metrics:", performanceMetrics.rows[0]);
 
-    // Add Leave Analytics
-    const leaveMetrics = await client.query(`
+      // Add Leave Analytics
+      const leaveMetrics = await client.query(
+        `
       WITH monthly_stats AS (
         SELECT 
           COUNT(*) as total_requests,
@@ -687,119 +769,142 @@ router.get('/analytics', authMiddleware, adminMiddleware, async (req: CustomRequ
         COALESCE(avg_leave_days, 0) as avg_leave_days,
         ROUND((approved_count::float / NULLIF(total_requests, 0) * 100)::numeric, 1) as approval_rate
       FROM monthly_stats
-    `, [adminId]);
-    console.log('Leave Metrics:', leaveMetrics.rows[0]);
+    `,
+        [adminId],
+      );
+      console.log("Leave Metrics:", leaveMetrics.rows[0]);
 
-    // Add to the existing response object
-    const response = {
-      expense: {
-        total: expenseAnalytics.rows[0]?.total || 0,
-        average: expenseAnalytics.rows[0]?.average || 0,
-        currentMonthTotal: expenseAnalytics.rows[0]?.currentMonthTotal || 0,
-        previousMonthTotal: expenseAnalytics.rows[0]?.previousMonthTotal || 0,
-        lastUpdated: new Date().toISOString()
-      },
-      attendance: {
-        total: attendanceAnalytics.rows[0]?.total || 0,
-        average: attendanceAnalytics.rows[0]?.average || 0,
-        trend: attendanceAnalytics.rows[0]?.trend || '0%',
-        lastUpdated: new Date().toISOString()
-      },
-      task: {
-        total_tasks: Number(taskMetrics.rows[0]?.total_tasks || 0),
-        currentMonthTotal: Number(taskCurrentMonth.rows[0]?.count || 0),
-        previousMonthTotal: Number(taskPreviousMonth.rows[0]?.count || 0),
-        avg_completion_time: Number(taskMetrics.rows[0]?.avg_completion_time || 0),
-        lastUpdated: new Date().toISOString()
-      },
-      travel: {
-        total: Number(travelMetrics.rows[0]?.total_trips || 0),
-        currentMonthTotal: Number(travelMetrics.rows[0]?.current_month_total || 0),
-        previousMonthTotal: Number(travelMetrics.rows[0]?.previous_month_total || 0),
-        average: Number(travelMetrics.rows[0]?.avg_trip_cost || 0).toFixed(2),
-        lastUpdated: new Date().toISOString()
-      },
-      performance: {
-        total: Number(performanceMetrics.rows[0]?.total_employees || 0),
-        trend: `${performanceMetrics.rows[0]?.active_employees || 0}%`,
-        average: Number(performanceMetrics.rows[0]?.avg_performance_score || 0).toFixed(2),
-        lastUpdated: new Date().toISOString()
-      },
-      leave: {
-        total: Number(leaveMetrics.rows[0]?.total_requests || 0),
-        trend: `${leaveMetrics.rows[0]?.approval_rate || 0}%`,
-        average: Number(leaveMetrics.rows[0]?.avg_leave_days || 0).toFixed(2),
-        lastUpdated: new Date().toISOString()
-      }
-    };
+      // Add to the existing response object
+      const response = {
+        expense: {
+          total: expenseAnalytics.rows[0]?.total || 0,
+          average: expenseAnalytics.rows[0]?.average || 0,
+          currentMonthTotal: expenseAnalytics.rows[0]?.currentMonthTotal || 0,
+          previousMonthTotal: expenseAnalytics.rows[0]?.previousMonthTotal || 0,
+          lastUpdated: new Date().toISOString(),
+        },
+        attendance: {
+          total: attendanceAnalytics.rows[0]?.total || 0,
+          average: attendanceAnalytics.rows[0]?.average || 0,
+          trend: attendanceAnalytics.rows[0]?.trend || "0%",
+          lastUpdated: new Date().toISOString(),
+        },
+        task: {
+          total_tasks: Number(taskMetrics.rows[0]?.total_tasks || 0),
+          currentMonthTotal: Number(taskCurrentMonth.rows[0]?.count || 0),
+          previousMonthTotal: Number(taskPreviousMonth.rows[0]?.count || 0),
+          avg_completion_time: Number(
+            taskMetrics.rows[0]?.avg_completion_time || 0,
+          ),
+          lastUpdated: new Date().toISOString(),
+        },
+        travel: {
+          total: Number(travelMetrics.rows[0]?.total_trips || 0),
+          currentMonthTotal: Number(
+            travelMetrics.rows[0]?.current_month_total || 0,
+          ),
+          previousMonthTotal: Number(
+            travelMetrics.rows[0]?.previous_month_total || 0,
+          ),
+          average: Number(travelMetrics.rows[0]?.avg_trip_cost || 0).toFixed(2),
+          lastUpdated: new Date().toISOString(),
+        },
+        performance: {
+          total: Number(performanceMetrics.rows[0]?.total_employees || 0),
+          trend: `${performanceMetrics.rows[0]?.active_employees || 0}%`,
+          average: Number(
+            performanceMetrics.rows[0]?.avg_performance_score || 0,
+          ).toFixed(2),
+          lastUpdated: new Date().toISOString(),
+        },
+        leave: {
+          total: Number(leaveMetrics.rows[0]?.total_requests || 0),
+          trend: `${leaveMetrics.rows[0]?.approval_rate || 0}%`,
+          average: Number(leaveMetrics.rows[0]?.avg_leave_days || 0).toFixed(2),
+          lastUpdated: new Date().toISOString(),
+        },
+      };
 
-    res.json(response);
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    res.status(500).json({ error: 'Failed to fetch analytics' });
-  } finally {
-    client.release();
-  }
-});
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Add this endpoint to fetch attendance analytics
-router.get('/attendance-analytics', 
-  authMiddleware, 
-  adminMiddleware, 
+router.get(
+  "/attendance-analytics",
+  authMiddleware,
+  adminMiddleware,
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {
-      console.log('Attendance analytics requested by:', {
+      console.log("Attendance analytics requested by:", {
         userId: req.user?.id,
-        role: req.user?.role
+        role: req.user?.role,
       });
 
       if (!req.user?.id) {
-        return res.status(401).json({ 
-          error: 'Authentication required'
+        return res.status(401).json({
+          error: "Authentication required",
         });
       }
 
       const { id: adminId } = req.user;
-      
+
       // Extract filter parameters
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-      const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
+      const employeeId = req.query.employeeId
+        ? Number(req.query.employeeId)
+        : undefined;
       const department = req.query.department as string;
-      
+
       // Format dates for consistent parameter handling
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-      
+      const startDateStr = startDate.toISOString().split("T")[0];
+      const endDateStr = endDate.toISOString().split("T")[0];
+
       // Build parameters array
-      const baseParams: Array<string | number> = [adminId, startDateStr, endDateStr];
-      
+      const baseParams: (string | number)[] = [
+        adminId,
+        startDateStr,
+        endDateStr,
+      ];
+
       // Prepare filter conditions
-      let employeeFilter = '';
-      let departmentFilter = '';
+      let employeeFilter = "";
+      let departmentFilter = "";
       let paramIndex = 4;
-      
+
       if (employeeId) {
         employeeFilter = ` AND user_id = $${paramIndex}`;
         baseParams.push(employeeId);
         paramIndex++;
       }
-      
+
       if (department) {
         departmentFilter = ` AND u.department = $${paramIndex}`;
         baseParams.push(department);
       }
-      
+
       // Debug query for employee check
-      const employeeCheck = await client.query(`
+      const employeeCheck = await client.query(
+        `
         SELECT COUNT(*) as employee_count 
         FROM users 
         WHERE group_admin_id = $1`,
-        [adminId]
+        [adminId],
       );
-      
-      console.log('Employee count:', employeeCheck.rows[0]?.employee_count);
+
+      console.log("Employee count:", employeeCheck.rows[0]?.employee_count);
 
       // Get daily attendance for bar chart
       const dailyQuery = `
@@ -815,7 +920,7 @@ router.get('/attendance-analytics',
           FROM employee_shifts
           WHERE start_time >= $2::date
           AND start_time <= $3::date
-          ${employeeId ? employeeFilter : ''}
+          ${employeeId ? employeeFilter : ""}
         )
         SELECT 
           days.day,
@@ -829,7 +934,7 @@ router.get('/attendance-analytics',
         LEFT JOIN shifts s ON days.day = s.shift_day
         LEFT JOIN users u ON s.user_id = u.id 
         WHERE u.group_admin_id = $1 OR u.id IS NULL
-        ${department ? departmentFilter : ''}
+        ${department ? departmentFilter : ""}
         GROUP BY days.day
         ORDER BY days.day`;
 
@@ -847,8 +952,8 @@ router.get('/attendance-analytics',
           WHERE u.group_admin_id = $1 
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
-          ${employeeId ? employeeFilter : ''}
-          ${department ? departmentFilter : ''}
+          ${employeeId ? employeeFilter : ""}
+          ${department ? departmentFilter : ""}
         )
         SELECT 
           DATE_TRUNC('week', start_time)::date as week,
@@ -877,8 +982,8 @@ router.get('/attendance-analytics',
           WHERE u.group_admin_id = $1 
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
-          ${employeeId ? employeeFilter : ''}
-          ${department ? departmentFilter : ''}
+          ${employeeId ? employeeFilter : ""}
+          ${department ? departmentFilter : ""}
         )
         SELECT 
           start_time::date as date,
@@ -903,8 +1008,8 @@ router.get('/attendance-analytics',
           WHERE u.group_admin_id = $1 
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
-          ${employeeId ? employeeFilter : ''}
-          ${department ? departmentFilter : ''}
+          ${employeeId ? employeeFilter : ""}
+          ${department ? departmentFilter : ""}
         ),
         metrics AS (
           SELECT 
@@ -984,8 +1089,8 @@ router.get('/attendance-analytics',
           OR
           (lr.start_date <= $2::date AND lr.end_date >= $3::date)
         )
-        ${employeeId ? employeeFilter.replace('user_id', 'lr.user_id') : ''}
-        ${department ? departmentFilter : ''}
+        ${employeeId ? employeeFilter.replace("user_id", "lr.user_id") : ""}
+        ${department ? departmentFilter : ""}
         ORDER BY lr.start_date
       `;
 
@@ -1009,8 +1114,8 @@ router.get('/attendance-analytics',
           WHERE u.group_admin_id = $1
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
-          ${employeeId ? employeeFilter.replace('user_id', 'es.user_id') : ''}
-          ${department ? departmentFilter : ''}
+          ${employeeId ? employeeFilter.replace("user_id", "es.user_id") : ""}
+          ${department ? departmentFilter : ""}
           GROUP BY DATE_TRUNC('month', es.start_time)
         )
         SELECT 
@@ -1047,8 +1152,8 @@ router.get('/attendance-analytics',
           WHERE u.group_admin_id = $1
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
-          ${employeeId ? employeeFilter.replace('user_id', 'es.user_id') : ''}
-          ${department ? departmentFilter : ''}
+          ${employeeId ? employeeFilter.replace("user_id", "es.user_id") : ""}
+          ${department ? departmentFilter : ""}
           GROUP BY EXTRACT(YEAR FROM es.start_time)
         )
         SELECT 
@@ -1063,7 +1168,17 @@ router.get('/attendance-analytics',
         ORDER BY y.year
       `;
 
-      const [dailyResult, weeklyResult, monthlyResult, yearlyResult, heatmapResult, metricsResult, employeesResult, departmentsResult, leaveResult] = await Promise.all([
+      const [
+        dailyResult,
+        weeklyResult,
+        monthlyResult,
+        yearlyResult,
+        heatmapResult,
+        metricsResult,
+        employeesResult,
+        departmentsResult,
+        leaveResult,
+      ] = await Promise.all([
         client.query(dailyQuery, baseParams),
         client.query(weeklyQuery, baseParams),
         client.query(monthlyQuery, baseParams),
@@ -1072,31 +1187,35 @@ router.get('/attendance-analytics',
         client.query(metricsQuery, baseParams),
         client.query(employeesQuery, [adminId]),
         client.query(departmentsQuery, [adminId]),
-        client.query(leaveQuery, baseParams)
+        client.query(leaveQuery, baseParams),
       ]);
 
       // Log the results
-      console.log('Query results:', {
+      console.log("Query results:", {
         dailyCount: dailyResult.rows.length,
         weeklyCount: weeklyResult.rows.length,
         monthlyCount: monthlyResult.rows.length,
         yearlyCount: yearlyResult.rows.length,
         heatmapCount: heatmapResult.rows.length,
         hasMetrics: !!metricsResult.rows.length,
-        leaveCount: leaveResult.rows.length
+        leaveCount: leaveResult.rows.length,
       });
 
       const response = {
-        daily: dailyResult.rows.length ? dailyResult.rows : Array(7).fill({ 
-          day: 0, 
-          attendance_count: 0, 
-          on_time_count: 0 
-        }),
-        weekly: weeklyResult.rows.length ? weeklyResult.rows : Array(4).fill({ 
-          week: new Date(), 
-          attendance_count: 0, 
-          avg_hours: 0 
-        }),
+        daily: dailyResult.rows.length
+          ? dailyResult.rows
+          : Array(7).fill({
+              day: 0,
+              attendance_count: 0,
+              on_time_count: 0,
+            }),
+        weekly: weeklyResult.rows.length
+          ? weeklyResult.rows
+          : Array(4).fill({
+              week: new Date(),
+              attendance_count: 0,
+              avg_hours: 0,
+            }),
         monthly: monthlyResult.rows.length ? monthlyResult.rows : [],
         yearly: yearlyResult.rows.length ? yearlyResult.rows : [],
         heatmap: heatmapResult.rows.length ? heatmapResult.rows : [],
@@ -1107,76 +1226,90 @@ router.get('/attendance-analytics',
           total_distance: 0,
           total_expenses: 0,
           active_shifts: 0,
-          completed_shifts: 0
+          completed_shifts: 0,
         },
         employees: employeesResult.rows || [],
-        departments: departmentsResult.rows.map(row => row.department) || [],
-        leave: leaveResult.rows.map(row => ({
+        departments: departmentsResult.rows.map((row) => row.department) || [],
+        leave: leaveResult.rows.map((row) => ({
           employeeId: row.employee_id,
           employeeName: row.employee_name,
           employeeNumber: row.employee_number,
           department: row.department,
           startDate: new Date(row.start_date).toISOString(),
           endDate: new Date(row.end_date).toISOString(),
-          daysCount: parseFloat(row.days_count || '0'),
+          daysCount: parseFloat(row.days_count || "0"),
           leaveType: row.leave_type,
-          isPaid: row.is_paid
-        }))
+          isPaid: row.is_paid,
+        })),
       };
 
-      console.log('Sending response for attendance analytics');
+      console.log("Sending response for attendance analytics");
       res.json(response);
-  } catch (error) {
-      console.error('Error in attendance analytics:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch attendance analytics',
-        message: error instanceof Error ? error.message : 'Unknown error'
+    } catch (error) {
+      console.error("Error in attendance analytics:", error);
+      res.status(500).json({
+        error: "Failed to fetch attendance analytics",
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       client.release();
     }
-  }
+  },
 );
 
 // Add this endpoint to fetch task analytics
-router.get('/task-analytics', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/task-analytics",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const adminId = req.user.id;
+      const adminId = req.user.id;
 
-    // Extract filter parameters
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
-    const department = req.query.department as string;
+      // Extract filter parameters
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
+      const employeeId = req.query.employeeId
+        ? Number(req.query.employeeId)
+        : undefined;
+      const department = req.query.department as string;
 
-    // Format dates for consistent parameter handling
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+      // Format dates for consistent parameter handling
+      const startDateStr = startDate.toISOString().split("T")[0];
+      const endDateStr = endDate.toISOString().split("T")[0];
 
-    // Build parameters array and filter conditions
-    const queryParams: Array<string | number> = [adminId, startDateStr, endDateStr];
-    let employeeFilter = '';
-    let departmentFilter = '';
-    let paramIndex = 4; // Start from 4 since we have 3 parameters already
+      // Build parameters array and filter conditions
+      const queryParams: (string | number)[] = [
+        adminId,
+        startDateStr,
+        endDateStr,
+      ];
+      let employeeFilter = "";
+      let departmentFilter = "";
+      let paramIndex = 4; // Start from 4 since we have 3 parameters already
 
-    if (employeeId) {
-      employeeFilter = ` AND et.assigned_to = $${paramIndex}`;
-      queryParams.push(employeeId);
-      paramIndex++;
-    }
+      if (employeeId) {
+        employeeFilter = ` AND et.assigned_to = $${paramIndex}`;
+        queryParams.push(employeeId);
+        paramIndex++;
+      }
 
-    if (department) {
-      departmentFilter = ` AND u.department = $${paramIndex}`;
-      queryParams.push(department);
-    }
+      if (department) {
+        departmentFilter = ` AND u.department = $${paramIndex}`;
+        queryParams.push(department);
+      }
 
-    // Get task status distribution for pie chart
-    const statusQuery = `
+      // Get task status distribution for pie chart
+      const statusQuery = `
       SELECT 
         et.status,
         COUNT(*) as count
@@ -1190,8 +1323,8 @@ router.get('/task-analytics', authMiddleware, adminMiddleware, async (req: Custo
       GROUP BY et.status
       ORDER BY count DESC`;
 
-    // Get daily task creation trend for line chart
-    const trendQuery = `
+      // Get daily task creation trend for line chart
+      const trendQuery = `
       WITH days AS (
         SELECT generate_series(
           date_trunc('day', $2::date),
@@ -1213,8 +1346,8 @@ router.get('/task-analytics', authMiddleware, adminMiddleware, async (req: Custo
       GROUP BY days.day
       ORDER BY days.day`;
 
-    // Get task priority distribution for bar chart
-    const priorityQuery = `
+      // Get task priority distribution for bar chart
+      const priorityQuery = `
       SELECT 
         et.priority,
         COUNT(*) as count
@@ -1234,8 +1367,8 @@ router.get('/task-analytics', authMiddleware, adminMiddleware, async (req: Custo
           ELSE 4
         END`;
 
-    // Get overall metrics
-    const metricsQuery = `
+      // Get overall metrics
+      const metricsQuery = `
       WITH task_metrics AS (
         SELECT 
           COUNT(*) as total_tasks,
@@ -1263,101 +1396,129 @@ router.get('/task-analytics', authMiddleware, adminMiddleware, async (req: Custo
       FROM task_metrics
     `;
 
-    // Get employees for filtering
-    const employeesQuery = `
+      // Get employees for filtering
+      const employeesQuery = `
       SELECT id, name, employee_number, department
       FROM users
       WHERE group_admin_id = $1 AND role = 'employee'
       ORDER BY name ASC
     `;
 
-    // Get departments for filtering
-    const departmentsQuery = `
+      // Get departments for filtering
+      const departmentsQuery = `
       SELECT DISTINCT department
       FROM users
       WHERE group_admin_id = $1 AND role = 'employee' AND department IS NOT NULL
       ORDER BY department
     `;
 
-    const [statusResult, trendResult, priorityResult, metricsResult, employeesResult, departmentsResult] = await Promise.all([
-      client.query(statusQuery, queryParams),
-      client.query(trendQuery, queryParams),
-      client.query(priorityQuery, queryParams),
-      client.query(metricsQuery, queryParams),
-      client.query(employeesQuery, [adminId]),
-      client.query(departmentsQuery, [adminId])
-    ]);
+      const [
+        statusResult,
+        trendResult,
+        priorityResult,
+        metricsResult,
+        employeesResult,
+        departmentsResult,
+      ] = await Promise.all([
+        client.query(statusQuery, queryParams),
+        client.query(trendQuery, queryParams),
+        client.query(priorityQuery, queryParams),
+        client.query(metricsQuery, queryParams),
+        client.query(employeesQuery, [adminId]),
+        client.query(departmentsQuery, [adminId]),
+      ]);
 
-    // Process and format the response
-    const response = {
-      status: statusResult.rows,
-      trend: trendResult.rows,
-      priority: priorityResult.rows,
-      metrics: {
-        total_tasks: Number(metricsResult.rows[0]?.total_tasks || 0),
-        assigned_employees: Number(metricsResult.rows[0]?.assigned_employees || 0),
-        completion_rate: Number(metricsResult.rows[0]?.completion_rate || 0).toFixed(1),
-        overdue_tasks: Number(metricsResult.rows[0]?.overdue_tasks || 0),
-        avg_completion_time: Number(metricsResult.rows[0]?.avg_completion_time || 0).toFixed(1)
-      },
-      employees: employeesResult.rows || [],
-      departments: departmentsResult.rows.map(row => row.department) || []
-    };
+      // Process and format the response
+      const response = {
+        status: statusResult.rows,
+        trend: trendResult.rows,
+        priority: priorityResult.rows,
+        metrics: {
+          total_tasks: Number(metricsResult.rows[0]?.total_tasks || 0),
+          assigned_employees: Number(
+            metricsResult.rows[0]?.assigned_employees || 0,
+          ),
+          completion_rate: Number(
+            metricsResult.rows[0]?.completion_rate || 0,
+          ).toFixed(1),
+          overdue_tasks: Number(metricsResult.rows[0]?.overdue_tasks || 0),
+          avg_completion_time: Number(
+            metricsResult.rows[0]?.avg_completion_time || 0,
+          ).toFixed(1),
+        },
+        employees: employeesResult.rows || [],
+        departments: departmentsResult.rows.map((row) => row.department) || [],
+      };
 
-    // After executing the query, add debug logging
-    console.log('Task Analytics Metrics:', metricsResult.rows[0]);
+      // After executing the query, add debug logging
+      console.log("Task Analytics Metrics:", metricsResult.rows[0]);
 
-    res.json(response);
-  } catch (error) {
-    console.error('Error in task analytics:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch task analytics',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    client.release();
-  }
-});
+      res.json(response);
+    } catch (error) {
+      console.error("Error in task analytics:", error);
+      res.status(500).json({
+        error: "Failed to fetch task analytics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Add this endpoint to fetch travel analytics
-router.get('/travel-analytics', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/travel-analytics",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const adminId = req.user.id;
+      const adminId = req.user.id;
 
-    // Extract filter parameters
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
-    const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
-    const department = req.query.department as string;
+      // Extract filter parameters
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to 30 days ago
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : new Date();
+      const employeeId = req.query.employeeId
+        ? Number(req.query.employeeId)
+        : undefined;
+      const department = req.query.department as string;
 
-    // Format dates for consistent parameter handling
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+      // Format dates for consistent parameter handling
+      const startDateStr = startDate.toISOString().split("T")[0];
+      const endDateStr = endDate.toISOString().split("T")[0];
 
-    // Build parameters array and filter conditions
-    const queryParams: Array<string | number> = [adminId, startDateStr, endDateStr];
-    let employeeFilter = '';
-    let departmentFilter = '';
-    let paramIndex = 4; // Start from 4 since we have 3 parameters already
+      // Build parameters array and filter conditions
+      const queryParams: (string | number)[] = [
+        adminId,
+        startDateStr,
+        endDateStr,
+      ];
+      let employeeFilter = "";
+      let departmentFilter = "";
+      let paramIndex = 4; // Start from 4 since we have 3 parameters already
 
-    if (employeeId) {
-      employeeFilter = ` AND e.user_id = $${paramIndex}`;
-      queryParams.push(employeeId);
-      paramIndex++;
-    }
+      if (employeeId) {
+        employeeFilter = ` AND e.user_id = $${paramIndex}`;
+        queryParams.push(employeeId);
+        paramIndex++;
+      }
 
-    if (department) {
-      departmentFilter = ` AND u.department = $${paramIndex}`;
-      queryParams.push(department);
-    }
+      if (department) {
+        departmentFilter = ` AND u.department = $${paramIndex}`;
+        queryParams.push(department);
+      }
 
-    // Get expense distribution by category
-    const expenseQuery = `
+      // Get expense distribution by category
+      const expenseQuery = `
       WITH expense_categories AS (
         SELECT 
           'Lodging' as category, lodging_expenses as amount
@@ -1418,8 +1579,8 @@ router.get('/travel-analytics', authMiddleware, adminMiddleware, async (req: Cus
       GROUP BY category
       ORDER BY total_amount DESC`;
 
-    // Get top locations by expense amount
-    const locationQuery = `
+      // Get top locations by expense amount
+      const locationQuery = `
       SELECT 
         location,
         COUNT(*) as trip_count,
@@ -1436,8 +1597,8 @@ router.get('/travel-analytics', authMiddleware, adminMiddleware, async (req: Cus
       ORDER BY total_amount DESC
       LIMIT 5`;
 
-    // Get transport type distribution
-    const transportQuery = `
+      // Get transport type distribution
+      const transportQuery = `
       SELECT 
         e.vehicle_type,
         COUNT(*) as trip_count,
@@ -1454,8 +1615,8 @@ router.get('/travel-analytics', authMiddleware, adminMiddleware, async (req: Cus
       GROUP BY e.vehicle_type
       ORDER BY total_amount DESC`;
 
-    // Get overall metrics
-    const metricsQuery = `
+      // Get overall metrics
+      const metricsQuery = `
       SELECT 
         COUNT(DISTINCT e.user_id) as total_travelers,
         COUNT(*) as total_trips,
@@ -1470,74 +1631,86 @@ router.get('/travel-analytics', authMiddleware, adminMiddleware, async (req: Cus
       ${employeeFilter}
       ${departmentFilter}`;
 
-    // Get employees for filtering
-    const employeesQuery = `
+      // Get employees for filtering
+      const employeesQuery = `
       SELECT id, name, employee_number, department
       FROM users
       WHERE group_admin_id = $1 AND role = 'employee'
       ORDER BY name ASC
     `;
 
-    // Get departments for filtering
-    const departmentsQuery = `
+      // Get departments for filtering
+      const departmentsQuery = `
       SELECT DISTINCT department
       FROM users
       WHERE group_admin_id = $1 AND role = 'employee' AND department IS NOT NULL
       ORDER BY department
     `;
 
-    const [expenseResult, locationResult, transportResult, metricsResult, employeesResult, departmentsResult] = await Promise.all([
-      client.query(expenseQuery, queryParams),
-      client.query(locationQuery, queryParams),
-      client.query(transportQuery, queryParams),
-      client.query(metricsQuery, queryParams),
-      client.query(employeesQuery, [adminId]),
-      client.query(departmentsQuery, [adminId])
-    ]);
+      const [
+        expenseResult,
+        locationResult,
+        transportResult,
+        metricsResult,
+        employeesResult,
+        departmentsResult,
+      ] = await Promise.all([
+        client.query(expenseQuery, queryParams),
+        client.query(locationQuery, queryParams),
+        client.query(transportQuery, queryParams),
+        client.query(metricsQuery, queryParams),
+        client.query(employeesQuery, [adminId]),
+        client.query(departmentsQuery, [adminId]),
+      ]);
 
-    // Process and format the response
-    const response = {
-      expenses: expenseResult.rows.map(row => ({
-        ...row,
-        color: getCategoryColor(row.category)
-      })),
-      locations: locationResult.rows,
-      transport: transportResult.rows,
-      metrics: {
-        total_travelers: Number(metricsResult.rows[0]?.total_travelers || 0),
-        total_trips: Number(metricsResult.rows[0]?.total_trips || 0),
-        total_distance: Number(metricsResult.rows[0]?.total_distance || 0),
-        total_expenses: Number(metricsResult.rows[0]?.total_expenses || 0),
-        avg_trip_cost: Number(metricsResult.rows[0]?.avg_trip_cost || 0)
-      },
-      employees: employeesResult.rows || [],
-      departments: departmentsResult.rows.map(row => row.department) || []
-    };
+      // Process and format the response
+      const response = {
+        expenses: expenseResult.rows.map((row) => ({
+          ...row,
+          color: getCategoryColor(row.category),
+        })),
+        locations: locationResult.rows,
+        transport: transportResult.rows,
+        metrics: {
+          total_travelers: Number(metricsResult.rows[0]?.total_travelers || 0),
+          total_trips: Number(metricsResult.rows[0]?.total_trips || 0),
+          total_distance: Number(metricsResult.rows[0]?.total_distance || 0),
+          total_expenses: Number(metricsResult.rows[0]?.total_expenses || 0),
+          avg_trip_cost: Number(metricsResult.rows[0]?.avg_trip_cost || 0),
+        },
+        employees: employeesResult.rows || [],
+        departments: departmentsResult.rows.map((row) => row.department) || [],
+      };
 
-    res.json(response);
-  } catch (error) {
-    console.error('Error in travel analytics:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch travel analytics',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    client.release();
-  }
-});
+      res.json(response);
+    } catch (error) {
+      console.error("Error in travel analytics:", error);
+      res.status(500).json({
+        error: "Failed to fetch travel analytics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Add this endpoint to fetch performance analytics
-router.get('/performance-analytics', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/performance-analytics",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const adminId = req.user.id;
+      const adminId = req.user.id;
 
-    // Get attendance performance - Updated query
-    const attendanceQuery = `
+      // Get attendance performance - Updated query
+      const attendanceQuery = `
       WITH employee_list AS (
         SELECT id, name 
         FROM users 
@@ -1568,8 +1741,8 @@ router.get('/performance-analytics', authMiddleware, adminMiddleware, async (req
       FROM employee_attendance
       ORDER BY days_present DESC, punctuality_rate DESC`;
 
-    // Get task performance - Updated query
-    const taskQuery = `
+      // Get task performance - Updated query
+      const taskQuery = `
       WITH employee_list AS (
         SELECT id, name 
         FROM users 
@@ -1592,8 +1765,8 @@ router.get('/performance-analytics', authMiddleware, adminMiddleware, async (req
       GROUP BY u.id, u.name
       ORDER BY total_tasks DESC`;
 
-    // Get expense compliance - Updated query
-    const expenseQuery = `
+      // Get expense compliance - Updated query
+      const expenseQuery = `
       WITH employee_list AS (
         SELECT id, name 
         FROM users 
@@ -1612,8 +1785,8 @@ router.get('/performance-analytics', authMiddleware, adminMiddleware, async (req
       GROUP BY u.id, u.name
       ORDER BY total_expenses DESC`;
 
-    // Get overall metrics - Updated query
-    const metricsQuery = `
+      // Get overall metrics - Updated query
+      const metricsQuery = `
       WITH employee_metrics AS (
         SELECT 
           COUNT(DISTINCT u.id) as total_employees,
@@ -1659,50 +1832,62 @@ router.get('/performance-analytics', authMiddleware, adminMiddleware, async (req
       CROSS JOIN task_metrics tm
       CROSS JOIN expense_metrics ex`;
 
-    const [attendanceResult, taskResult, expenseResult, metricsResult] = await Promise.all([
-      client.query(attendanceQuery, [adminId]),
-      client.query(taskQuery, [adminId]),
-      client.query(expenseQuery, [adminId]),
-      client.query(metricsQuery, [adminId])
-    ]);
+      const [attendanceResult, taskResult, expenseResult, metricsResult] =
+        await Promise.all([
+          client.query(attendanceQuery, [adminId]),
+          client.query(taskQuery, [adminId]),
+          client.query(expenseQuery, [adminId]),
+          client.query(metricsQuery, [adminId]),
+        ]);
 
-    // Process and format the response
-    const response = {
-      attendance: attendanceResult.rows,
-      tasks: taskResult.rows,
-      expenses: expenseResult.rows,
-      metrics: {
-        total_employees: Number(metricsResult.rows[0]?.total_employees || 0),
-        avg_working_hours: Number(metricsResult.rows[0]?.avg_working_hours || 0),
-        task_completion_rate: Number(metricsResult.rows[0]?.task_completion_rate || 0),
-        expense_approval_rate: Number(metricsResult.rows[0]?.expense_approval_rate || 0)
-      }
-    };
+      // Process and format the response
+      const response = {
+        attendance: attendanceResult.rows,
+        tasks: taskResult.rows,
+        expenses: expenseResult.rows,
+        metrics: {
+          total_employees: Number(metricsResult.rows[0]?.total_employees || 0),
+          avg_working_hours: Number(
+            metricsResult.rows[0]?.avg_working_hours || 0,
+          ),
+          task_completion_rate: Number(
+            metricsResult.rows[0]?.task_completion_rate || 0,
+          ),
+          expense_approval_rate: Number(
+            metricsResult.rows[0]?.expense_approval_rate || 0,
+          ),
+        },
+      };
 
-    res.json(response);
-  } catch (error) {
-    console.error('Error in performance analytics:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch performance analytics',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  } finally {
-    client.release();
-  }
-});
+      res.json(response);
+    } catch (error) {
+      console.error("Error in performance analytics:", error);
+      res.status(500).json({
+        error: "Failed to fetch performance analytics",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Add this endpoint to fetch leave analytics
-router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+router.get(
+  "/leave-analytics",
+  authMiddleware,
+  adminMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
 
-    const adminId = req.user.id;
+      const adminId = req.user.id;
 
-    // Get leave type distribution
-    const leaveTypeQuery = `
+      // Get leave type distribution
+      const leaveTypeQuery = `
       SELECT 
         lt.name as leave_type,
         lt.id as leave_type_id,
@@ -1726,8 +1911,8 @@ router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: Cust
       GROUP BY lt.id, lt.name, lp.default_days, lp.max_consecutive_days
       ORDER BY request_count DESC`;
 
-    // Get employee leave stats
-    const employeeStatsQuery = `
+      // Get employee leave stats
+      const employeeStatsQuery = `
       WITH employee_list AS (
         SELECT id, name 
         FROM users 
@@ -1756,8 +1941,8 @@ router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: Cust
       )
       SELECT * FROM employee_leaves`;
 
-    // Get leave balances
-    const balancesQuery = `
+      // Get leave balances
+      const balancesQuery = `
       WITH employee_count AS (
         SELECT COUNT(*) as count FROM users WHERE group_admin_id = $1 AND role = 'employee'
       ),
@@ -1790,8 +1975,8 @@ router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: Cust
         ) as leave_types_balances
       FROM leave_type_balances lt`;
 
-    // Get monthly trend
-    const trendQuery = `
+      // Get monthly trend
+      const trendQuery = `
       SELECT 
         TO_CHAR(lr.start_date, 'YYYY-MM-DD') as date,
         COUNT(*) as request_count,
@@ -1808,8 +1993,8 @@ router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: Cust
       GROUP BY date
       ORDER BY date ASC`;
 
-    // Get overall metrics
-    const metricsQuery = `
+      // Get overall metrics
+      const metricsQuery = `
       WITH leave_stats AS (
         SELECT 
           COUNT(DISTINCT lr.user_id) as total_employees_on_leave,
@@ -1834,72 +2019,83 @@ router.get('/leave-analytics', authMiddleware, adminMiddleware, async (req: Cust
       )
       SELECT * FROM leave_stats`;
 
-    // Execute all queries
-    const [leaveTypeResults, employeeStatsResults, balancesResults, trendResults, metricsResults] = await Promise.all([
-      client.query(leaveTypeQuery, [adminId]),
-      client.query(employeeStatsQuery, [adminId]),
-      client.query(balancesQuery, [adminId]),
-      client.query(trendQuery, [adminId]),
-      client.query(metricsQuery, [adminId])
-    ]);
+      // Execute all queries
+      const [
+        leaveTypeResults,
+        employeeStatsResults,
+        balancesResults,
+        trendResults,
+        metricsResults,
+      ] = await Promise.all([
+        client.query(leaveTypeQuery, [adminId]),
+        client.query(employeeStatsQuery, [adminId]),
+        client.query(balancesQuery, [adminId]),
+        client.query(trendQuery, [adminId]),
+        client.query(metricsQuery, [adminId]),
+      ]);
 
-    // Format response
-    const response = {
-      leaveTypes: leaveTypeResults.rows,
-      employeeStats: employeeStatsResults.rows,
-      balances: {
-        ...balancesResults.rows[0],
-        casual_leave: 0,  // Keeping for backward compatibility
-        sick_leave: 0,    // Keeping for backward compatibility
-        annual_leave: 0   // Keeping for backward compatibility
-      },
-      trend: trendResults.rows,
-      metrics: metricsResults.rows[0] || {
-        total_employees_on_leave: 0,
-        total_requests: 0,
-        approved_requests: 0,
-        pending_requests: 0,
-        approval_rate: 0,
-        total_leave_days: 0
+      // Format response
+      const response = {
+        leaveTypes: leaveTypeResults.rows,
+        employeeStats: employeeStatsResults.rows,
+        balances: {
+          ...balancesResults.rows[0],
+          casual_leave: 0, // Keeping for backward compatibility
+          sick_leave: 0, // Keeping for backward compatibility
+          annual_leave: 0, // Keeping for backward compatibility
+        },
+        trend: trendResults.rows,
+        metrics: metricsResults.rows[0] || {
+          total_employees_on_leave: 0,
+          total_requests: 0,
+          approved_requests: 0,
+          pending_requests: 0,
+          approval_rate: 0,
+          total_leave_days: 0,
+        },
+      };
+
+      // Extract common leave types for backward compatibility
+      if (balancesResults.rows[0]?.leave_types_balances) {
+        balancesResults.rows[0].leave_types_balances.forEach((ltb: any) => {
+          const type = ltb.leave_type.toLowerCase();
+          if (type.includes("casual") || type.includes("cl")) {
+            response.balances.casual_leave = ltb.total_available || 0;
+          }
+          if (type.includes("sick") || type.includes("sl")) {
+            response.balances.sick_leave = ltb.total_available || 0;
+          }
+          if (
+            type.includes("annual") ||
+            type.includes("privilege") ||
+            type.includes("pl") ||
+            type.includes("el")
+          ) {
+            response.balances.annual_leave = ltb.total_available || 0;
+          }
+        });
       }
-    };
 
-    // Extract common leave types for backward compatibility
-    if (balancesResults.rows[0]?.leave_types_balances) {
-      balancesResults.rows[0].leave_types_balances.forEach((ltb: any) => {
-        const type = ltb.leave_type.toLowerCase();
-        if (type.includes('casual') || type.includes('cl')) {
-          response.balances.casual_leave = ltb.total_available || 0;
-        }
-        if (type.includes('sick') || type.includes('sl')) {
-          response.balances.sick_leave = ltb.total_available || 0;
-        }
-        if (type.includes('annual') || type.includes('privilege') || 
-            type.includes('pl') || type.includes('el')) {
-          response.balances.annual_leave = ltb.total_available || 0;
-        }
-      });
+      return res.json(response);
+    } catch (error) {
+      console.error("Error fetching leave analytics:", error);
+      return res.status(500).json({ error: "Failed to fetch leave analytics" });
+    } finally {
+      client.release();
     }
-
-    return res.json(response);
-  } catch (error) {
-    console.error('Error fetching leave analytics:', error);
-    return res.status(500).json({ error: 'Failed to fetch leave analytics' });
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 // Helper function to get category colors
 function getCategoryColor(category: string): string {
   const colors: { [key: string]: string } = {
-    'Lodging': '#3B82F6',     // Blue
-    'Daily Allowance': '#10B981', // Green
-    'Fuel': '#F59E0B',        // Yellow
-    'Toll': '#8B5CF6',        // Purple
-    'Other': '#6B7280'        // Gray
+    Lodging: "#3B82F6", // Blue
+    "Daily Allowance": "#10B981", // Green
+    Fuel: "#F59E0B", // Yellow
+    Toll: "#8B5CF6", // Purple
+    Other: "#6B7280", // Gray
   };
-  return colors[category] || colors['Other'];
+  return colors[category] || colors["Other"];
 }
 
-export default router; 
+export default router;

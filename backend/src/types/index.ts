@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import { User } from './user';
+import { Request } from "express";
+import { User } from "./user";
 
 // Define all interfaces and types here
 export interface JwtPayload {
@@ -107,4 +107,4 @@ export interface DatabaseError {
   stack?: string;
 }
 
-export type ParsedCSV = string[][]; 
+export type ParsedCSV = string[][];

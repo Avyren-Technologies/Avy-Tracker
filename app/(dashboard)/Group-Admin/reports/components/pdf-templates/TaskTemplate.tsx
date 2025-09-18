@@ -1,4 +1,4 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
 
 interface TaskData {
   summary: {
@@ -8,23 +8,23 @@ interface TaskData {
     overdueTasks: number;
     avgCompletionTime: number | null;
   };
-  statusBreakdown: Array<{
+  statusBreakdown: {
     status: string;
     count: number;
     percentage: string;
-  }>;
-  priorityBreakdown: Array<{
+  }[];
+  priorityBreakdown: {
     priority: string;
     count: number;
     percentage: string;
-  }>;
-  employeePerformance: Array<{
+  }[];
+  employeePerformance: {
     employeeName: string;
     totalTasks: number;
     completedTasks: number;
     onTimeCompletion: number;
     avgCompletionTime: number | null;
-  }>;
+  }[];
   companyInfo: {
     name: string;
     logo: string;
@@ -33,7 +33,10 @@ interface TaskData {
   };
 }
 
-export const generateTaskReport = (data: TaskData, options: TemplateOptions): string => {
+export const generateTaskReport = (
+  data: TaskData,
+  options: TemplateOptions,
+): string => {
   // Add safe checks for data access
   const summary = data?.summary || {};
   const statusBreakdown = data?.statusBreakdown || [];
@@ -50,7 +53,7 @@ export const generateTaskReport = (data: TaskData, options: TemplateOptions): st
         </div>
         <div class="stat-box">
           <div class="stat-label">Completion Rate</div>
-          <div class="stat-value">${summary.completionRate?.toFixed(1) || '0.0'}%</div>
+          <div class="stat-value">${summary.completionRate?.toFixed(1) || "0.0"}%</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Overdue Tasks</div>
@@ -58,7 +61,7 @@ export const generateTaskReport = (data: TaskData, options: TemplateOptions): st
         </div>
         <div class="stat-box">
           <div class="stat-label">Avg. Completion Time</div>
-          <div class="stat-value">${summary.avgCompletionTime?.toFixed(1) || '0.0'}h</div>
+          <div class="stat-value">${summary.avgCompletionTime?.toFixed(1) || "0.0"}h</div>
         </div>
       </div>
 
@@ -73,13 +76,17 @@ export const generateTaskReport = (data: TaskData, options: TemplateOptions): st
             </tr>
           </thead>
           <tbody>
-            ${statusBreakdown.map(status => `
+            ${statusBreakdown
+              .map(
+                (status) => `
               <tr>
-                <td>${status.status || 'Unknown'}</td>
+                <td>${status.status || "Unknown"}</td>
                 <td>${status.count || 0}</td>
-                <td>${status.percentage || '0.0'}%</td>
+                <td>${status.percentage || "0.0"}%</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
 
@@ -93,13 +100,17 @@ export const generateTaskReport = (data: TaskData, options: TemplateOptions): st
             </tr>
           </thead>
           <tbody>
-            ${priorityBreakdown.map(priority => `
+            ${priorityBreakdown
+              .map(
+                (priority) => `
               <tr>
-                <td>${priority.priority || 'Unknown'}</td>
+                <td>${priority.priority || "Unknown"}</td>
                 <td>${priority.count || 0}</td>
-                <td>${priority.percentage || '0.0'}%</td>
+                <td>${priority.percentage || "0.0"}%</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -116,26 +127,30 @@ export const generateTaskReport = (data: TaskData, options: TemplateOptions): st
           </tr>
         </thead>
         <tbody>
-          ${employeePerformance.map(emp => `
+          ${employeePerformance
+            .map(
+              (emp) => `
             <tr>
-              <td>${emp.employeeName || 'Unknown'}</td>
+              <td>${emp.employeeName || "Unknown"}</td>
               <td>${emp.totalTasks || 0}</td>
               <td>${emp.completedTasks || 0}</td>
-              <td>${emp.onTimeCompletion?.toFixed(1) || '0.0'}%</td>
-              <td>${emp.avgCompletionTime?.toFixed(1) || '0.0'}h</td>
+              <td>${emp.onTimeCompletion?.toFixed(1) || "0.0"}%</td>
+              <td>${emp.avgCompletionTime?.toFixed(1) || "0.0"}h</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
   `;
 
   return generateBaseTemplate({
-    title: 'Task Report',
+    title: "Task Report",
     date: new Date().toLocaleDateString(),
     content,
     theme: options.theme,
     companyInfo: options.companyInfo,
-    adminName: options.adminName
+    adminName: options.adminName,
   });
-}; 
+};

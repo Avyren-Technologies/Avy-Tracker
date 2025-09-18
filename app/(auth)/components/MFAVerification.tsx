@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,42 +12,49 @@ import {
   ScrollView,
   Platform,
   Dimensions,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../context/ThemeContext';
-import AuthContext from '../../context/AuthContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import Constants from 'expo-constants';
-import axios from 'axios';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../context/ThemeContext";
+import AuthContext from "../../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
+import axios from "axios";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL =
+  Constants.expoConfig?.extra?.apiUrl ||
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://localhost:3000";
 
 interface MFAVerificationProps {
   email: string;
   sessionId: string;
-  onVerificationSuccess: (tokens: { accessToken: string; refreshToken: string; user: any }) => void;
+  onVerificationSuccess: (tokens: {
+    accessToken: string;
+    refreshToken: string;
+    user: any;
+  }) => void;
   onBack: () => void;
 }
 
-export default function MFAVerification({ 
-  email, 
-  sessionId, 
-  onVerificationSuccess, 
-  onBack 
+export default function MFAVerification({
+  email,
+  sessionId,
+  onVerificationSuccess,
+  onBack,
 }: MFAVerificationProps) {
   const { theme } = ThemeContext.useTheme();
   const { verifyMFA } = AuthContext.useAuth();
   const router = useRouter();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
   const scrollViewRef = useRef<ScrollView>(null);
 
   // OTP state - array of 6 digits
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [resendDisabled, setResendDisabled] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [otpExpires, setOtpExpires] = useState<Date | null>(null);
@@ -64,37 +71,37 @@ export default function MFAVerification({
   // Theme-based colors
   const colors = {
     light: {
-      primary: '#3B82F6',
-      secondary: '#0EA5E9',
-      accent: '#6366F1',
-      background: '#F8FAFC',
-      surface: '#FFFFFF',
-      text: '#0F172A',
-      textSecondary: '#475569',
-      border: '#E2E8F0',
-      inputBackground: '#FFFFFF',
-      inputBorder: '#E2E8F0',
-      inputBorderFocus: '#3B82F6',
-      inputBorderError: '#EF4444',
-      success: '#10B981',
-      error: '#EF4444',
+      primary: "#3B82F6",
+      secondary: "#0EA5E9",
+      accent: "#6366F1",
+      background: "#F8FAFC",
+      surface: "#FFFFFF",
+      text: "#0F172A",
+      textSecondary: "#475569",
+      border: "#E2E8F0",
+      inputBackground: "#FFFFFF",
+      inputBorder: "#E2E8F0",
+      inputBorderFocus: "#3B82F6",
+      inputBorderError: "#EF4444",
+      success: "#10B981",
+      error: "#EF4444",
     },
     dark: {
-      primary: '#60A5FA',
-      secondary: '#38BDF8',
-      accent: '#818CF8',
-      background: '#0F172A',
-      surface: '#1E293B',
-      text: '#F8FAFC',
-      textSecondary: '#CBD5E1',
-      border: '#334155',
-      inputBackground: '#1E293B',
-      inputBorder: '#334155',
-      inputBorderFocus: '#60A5FA',
-      inputBorderError: '#F87171',
-      success: '#34D399',
-      error: '#F87171',
-    }
+      primary: "#60A5FA",
+      secondary: "#38BDF8",
+      accent: "#818CF8",
+      background: "#0F172A",
+      surface: "#1E293B",
+      text: "#F8FAFC",
+      textSecondary: "#CBD5E1",
+      border: "#334155",
+      inputBackground: "#1E293B",
+      inputBorder: "#334155",
+      inputBorderFocus: "#60A5FA",
+      inputBorderError: "#F87171",
+      success: "#34D399",
+      error: "#F87171",
+    },
   };
 
   const currentColors = colors[theme];
@@ -120,7 +127,7 @@ export default function MFAVerification({
         toValue: 1,
         duration: 8000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
 
     // Start countdown for resend button
@@ -130,7 +137,7 @@ export default function MFAVerification({
   const startCountdown = () => {
     setResendDisabled(true);
     setCountdown(60);
-    
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -146,15 +153,15 @@ export default function MFAVerification({
   // Handle OTP digit input
   const handleOtpChange = (text: string, index: number) => {
     // Only allow numbers
-    const digit = text.replace(/[^0-9]/g, '');
-    
+    const digit = text.replace(/[^0-9]/g, "");
+
     // Update the digit at the specified index
     const newOtpDigits = [...otpDigits];
     newOtpDigits[index] = digit;
     setOtpDigits(newOtpDigits);
-    
+
     // Clear error when user starts typing
-    if (error) setError('');
+    if (error) setError("");
 
     // Auto-focus next input if digit was entered
     if (digit && index < 5) {
@@ -165,11 +172,26 @@ export default function MFAVerification({
   // Auto-submit when all 6 digits are entered
   useEffect(() => {
     const otp = getOtpString();
-    console.log('OTP digits changed:', otpDigits, 'OTP string:', otp, 'Length:', otp.length, 'Auto-submit triggered:', autoSubmitTriggered);
-    
+    console.log(
+      "OTP digits changed:",
+      otpDigits,
+      "OTP string:",
+      otp,
+      "Length:",
+      otp.length,
+      "Auto-submit triggered:",
+      autoSubmitTriggered,
+    );
+
     // Only auto-submit if we have exactly 6 digits and this isn't the initial state
-    if (otp.length === 6 && !isLoading && !error && !autoSubmitTriggered && otpDigits.some(digit => digit !== '')) {
-      console.log('Auto-submitting OTP:', otp);
+    if (
+      otp.length === 6 &&
+      !isLoading &&
+      !error &&
+      !autoSubmitTriggered &&
+      otpDigits.some((digit) => digit !== "")
+    ) {
+      console.log("Auto-submitting OTP:", otp);
       setAutoSubmitTriggered(true);
       // Small delay to ensure the last digit is properly set
       setTimeout(() => {
@@ -180,35 +202,35 @@ export default function MFAVerification({
 
   // Handle backspace
   const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otpDigits[index] && index > 0) {
+    if (e.nativeEvent.key === "Backspace" && !otpDigits[index] && index > 0) {
       // Move to previous input on backspace if current is empty
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   // Get the complete OTP string
-  const getOtpString = () => otpDigits.join('');
+  const getOtpString = () => otpDigits.join("");
 
   const handleVerifyOTP = async () => {
     const otp = getOtpString();
-    console.log('handleVerifyOTP called with OTP:', otp, 'Length:', otp.length);
-    
+    console.log("handleVerifyOTP called with OTP:", otp, "Length:", otp.length);
+
     if (otp.length !== 6) {
-      console.log('OTP length check failed:', otp.length);
-      setError('Please enter a complete 6-digit verification code');
+      console.log("OTP length check failed:", otp.length);
+      setError("Please enter a complete 6-digit verification code");
       return;
     }
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const result = await verifyMFA(email, otp, sessionId);
-      
+
       if (result.error) {
         setError(result.error);
         // Clear OTP on error for security
-        setOtpDigits(['', '', '', '', '', '']);
+        setOtpDigits(["", "", "", "", "", ""]);
         setAutoSubmitTriggered(false);
         // Focus first input
         inputRefs.current[0]?.focus();
@@ -218,21 +240,24 @@ export default function MFAVerification({
         onBack();
       }
     } catch (error: any) {
-      console.error('MFA verification error:', error);
-      
+      console.error("MFA verification error:", error);
+
       // Handle specific error types
       if (error.response?.status === 400) {
-        setError(error.response.data?.error || 'Invalid verification code. Please try again.');
+        setError(
+          error.response.data?.error ||
+            "Invalid verification code. Please try again.",
+        );
       } else if (error.response?.status === 401) {
-        setError('Session expired. Please request a new code.');
+        setError("Session expired. Please request a new code.");
       } else if (!error.response) {
-        setError('Network error. Please check your internet connection.');
+        setError("Network error. Please check your internet connection.");
       } else {
-        setError('Failed to verify code. Please try again.');
+        setError("Failed to verify code. Please try again.");
       }
-      
+
       // Clear OTP on error for security
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpDigits(["", "", "", "", "", ""]);
       setAutoSubmitTriggered(false);
       // Focus first input
       inputRefs.current[0]?.focus();
@@ -245,7 +270,7 @@ export default function MFAVerification({
     if (resendDisabled) return;
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const response = await axios.post(`${API_URL}/auth/resend-mfa-otp`, {
@@ -253,17 +278,17 @@ export default function MFAVerification({
         sessionId,
       });
 
-      setError('');
+      setError("");
       startCountdown();
-      
+
       // Clear previous OTP
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpDigits(["", "", "", "", "", ""]);
       setAutoSubmitTriggered(false);
-      
+
       // Show success message
-      setError('New verification code sent successfully');
-      setTimeout(() => setError(''), 3000);
-      
+      setError("New verification code sent successfully");
+      setTimeout(() => setError(""), 3000);
+
       // Focus first input
       inputRefs.current[0]?.focus();
     } catch (error: any) {
@@ -271,12 +296,12 @@ export default function MFAVerification({
         if (error.response?.data?.error) {
           setError(error.response.data.error);
         } else if (!error.response) {
-          setError('Network error. Please check your internet connection');
+          setError("Network error. Please check your internet connection");
         } else {
-          setError('Failed to resend code. Please try again');
+          setError("Failed to resend code. Please try again");
         }
       } else {
-        setError('Failed to resend code. Please try again');
+        setError("Failed to resend code. Please try again");
       }
     } finally {
       setIsLoading(false);
@@ -291,10 +316,10 @@ export default function MFAVerification({
   return (
     <>
       <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={currentColors.background}
       />
-      
+
       <View style={{ flex: 1, backgroundColor: currentColors.background }}>
         {/* Animated background gradient */}
         <Animated.View
@@ -308,7 +333,11 @@ export default function MFAVerification({
           }}
         >
           <LinearGradient
-            colors={[currentColors.primary, currentColors.secondary, currentColors.accent]}
+            colors={[
+              currentColors.primary,
+              currentColors.secondary,
+              currentColors.accent,
+            ]}
             style={{ flex: 1 }}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -316,11 +345,13 @@ export default function MFAVerification({
         </Animated.View>
 
         {/* Floating geometric shapes */}
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        >
           {/* Blue circle */}
           <Animated.View
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: height * 0.1,
               right: width * 0.1,
               width: 60,
@@ -331,11 +362,11 @@ export default function MFAVerification({
               transform: [{ translateY: floatingOffset }],
             }}
           />
-          
+
           {/* Sky square */}
           <Animated.View
             style={{
-              position: 'absolute',
+              position: "absolute",
               bottom: height * 0.2,
               left: width * 0.1,
               width: 40,
@@ -343,17 +374,21 @@ export default function MFAVerification({
               borderRadius: 8,
               backgroundColor: currentColors.secondary,
               opacity: 0.3,
-              transform: [{ translateY: floatingOffset.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, -15],
-              }) }],
+              transform: [
+                {
+                  translateY: floatingOffset.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -15],
+                  }),
+                },
+              ],
             }}
           />
-          
+
           {/* Indigo triangle */}
           <Animated.View
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: height * 0.6,
               right: width * 0.2,
               width: 0,
@@ -361,14 +396,18 @@ export default function MFAVerification({
               borderLeftWidth: 25,
               borderRightWidth: 25,
               borderBottomWidth: 43,
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
+              borderLeftColor: "transparent",
+              borderRightColor: "transparent",
               borderBottomColor: currentColors.accent,
               opacity: 0.15,
-              transform: [{ translateY: floatingOffset.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 10],
-              }) }],
+              transform: [
+                {
+                  translateY: floatingOffset.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 10],
+                  }),
+                },
+              ],
             }}
           />
         </View>
@@ -394,13 +433,15 @@ export default function MFAVerification({
                 style={{
                   width: 48,
                   height: 48,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  alignItems: "center",
+                  justifyContent: "center",
                   borderRadius: 24,
-                  backgroundColor: isDark ? 'rgba(55, 65, 81, 0.8)' : 'rgba(243, 244, 246, 0.8)',
+                  backgroundColor: isDark
+                    ? "rgba(55, 65, 81, 0.8)"
+                    : "rgba(243, 244, 246, 0.8)",
                   marginBottom: 24,
                   elevation: 2,
-                  shadowColor: '#000',
+                  shadowColor: "#000",
                   shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: 0.2,
                   shadowRadius: 1.41,
@@ -409,32 +450,34 @@ export default function MFAVerification({
                 <Ionicons
                   name="arrow-back"
                   size={24}
-                  color={isDark ? '#FFFFFF' : '#111827'}
+                  color={isDark ? "#FFFFFF" : "#111827"}
                 />
               </TouchableOpacity>
 
               <Text
                 style={{
                   fontSize: 32,
-                  fontWeight: '800',
+                  fontWeight: "800",
                   color: currentColors.text,
                   marginBottom: 8,
-                  textAlign: 'center',
+                  textAlign: "center",
                 }}
               >
                 Two-Factor Authentication
               </Text>
-              
+
               <Text
                 style={{
                   fontSize: 16,
                   color: currentColors.textSecondary,
-                  textAlign: 'center',
+                  textAlign: "center",
                   lineHeight: 24,
                 }}
               >
-                We've sent a verification code to{' '}
-                <Text style={{ fontWeight: '600', color: currentColors.primary }}>
+                We've sent a verification code to{" "}
+                <Text
+                  style={{ fontWeight: "600", color: currentColors.primary }}
+                >
                   {email}
                 </Text>
               </Text>
@@ -442,20 +485,26 @@ export default function MFAVerification({
 
             {/* Error Message */}
             {error && (
-              <View style={[
-                styles.errorContainer,
-                { 
-                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
-                  borderColor: currentColors.error,
-                }
-              ]}>
+              <View
+                style={[
+                  styles.errorContainer,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(239, 68, 68, 0.1)"
+                      : "rgba(239, 68, 68, 0.05)",
+                    borderColor: currentColors.error,
+                  },
+                ]}
+              >
                 <Ionicons
                   name="alert-circle"
                   size={20}
                   color={currentColors.error}
                   style={{ marginRight: 8 }}
                 />
-                <Text style={[styles.errorText, { color: currentColors.error }]}>
+                <Text
+                  style={[styles.errorText, { color: currentColors.error }]}
+                >
                   {error}
                 </Text>
               </View>
@@ -466,15 +515,15 @@ export default function MFAVerification({
               <Text
                 style={{
                   fontSize: 16,
-                  fontWeight: '600',
+                  fontWeight: "600",
                   color: currentColors.text,
                   marginBottom: 20,
-                  textAlign: 'center',
+                  textAlign: "center",
                 }}
               >
                 Enter Verification Code
               </Text>
-              
+
               <View style={styles.otpContainer}>
                 {otpDigits.map((digit, index) => (
                   <TextInput
@@ -491,10 +540,14 @@ export default function MFAVerification({
                     style={[
                       styles.otpInput,
                       {
-                        backgroundColor: isDark ? 'rgba(55, 65, 81, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                        borderColor: error ? currentColors.inputBorderError : currentColors.inputBorder,
+                        backgroundColor: isDark
+                          ? "rgba(55, 65, 81, 0.8)"
+                          : "rgba(255, 255, 255, 0.8)",
+                        borderColor: error
+                          ? currentColors.inputBorderError
+                          : currentColors.inputBorder,
                         borderWidth: 2,
-                      }
+                      },
                     ]}
                     placeholderTextColor={currentColors.textSecondary}
                     autoFocus={index === 0}
@@ -502,12 +555,12 @@ export default function MFAVerification({
                   />
                 ))}
               </View>
-              
+
               <Text
                 style={{
                   fontSize: 14,
                   color: currentColors.textSecondary,
-                  textAlign: 'center',
+                  textAlign: "center",
                   marginTop: 16,
                 }}
               >
@@ -524,16 +577,14 @@ export default function MFAVerification({
                   styles.primaryButton,
                   {
                     backgroundColor: currentColors.primary,
-                    opacity: (isLoading || getOtpString().length !== 6) ? 0.6 : 1,
-                  }
+                    opacity: isLoading || getOtpString().length !== 6 ? 0.6 : 1,
+                  },
                 ]}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>
-                    Verify & Sign In
-                  </Text>
+                  <Text style={styles.primaryButtonText}>Verify & Sign In</Text>
                 )}
               </TouchableOpacity>
 
@@ -544,8 +595,8 @@ export default function MFAVerification({
                   styles.secondaryButton,
                   {
                     borderColor: currentColors.primary,
-                    opacity: (resendDisabled || isLoading) ? 0.6 : 1,
-                  }
+                    opacity: resendDisabled || isLoading ? 0.6 : 1,
+                  },
                 ]}
               >
                 <Ionicons
@@ -554,31 +605,43 @@ export default function MFAVerification({
                   color={currentColors.primary}
                   style={{ marginRight: 8 }}
                 />
-                <Text style={[styles.secondaryButtonText, { color: currentColors.primary }]}>
-                  {resendDisabled 
-                    ? `Resend in ${countdown}s` 
-                    : 'Resend Code'
-                  }
+                <Text
+                  style={[
+                    styles.secondaryButtonText,
+                    { color: currentColors.primary },
+                  ]}
+                >
+                  {resendDisabled ? `Resend in ${countdown}s` : "Resend Code"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Security Notice */}
-            <View style={[
-              styles.securityNotice,
-              { 
-                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
-                borderColor: currentColors.primary,
-              }
-            ]}>
+            <View
+              style={[
+                styles.securityNotice,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(59, 130, 246, 0.1)"
+                    : "rgba(59, 130, 246, 0.05)",
+                  borderColor: currentColors.primary,
+                },
+              ]}
+            >
               <Ionicons
                 name="shield-checkmark"
                 size={20}
                 color={currentColors.primary}
                 style={{ marginRight: 8 }}
               />
-              <Text style={[styles.securityNoticeText, { color: currentColors.textSecondary }]}>
-                This adds an extra layer of security to your account. Never share this code with anyone.
+              <Text
+                style={[
+                  styles.securityNoticeText,
+                  { color: currentColors.textSecondary },
+                ]}
+              >
+                This adds an extra layer of security to your account. Never
+                share this code with anyone.
               </Text>
             </View>
           </Animated.View>
@@ -593,21 +656,21 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   otpInput: {
     width: 50,
     height: 60,
     borderRadius: 12,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 24,
-    fontWeight: '700',
-    color: '#3B82F6',
+    fontWeight: "700",
+    color: "#3B82F6",
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -616,37 +679,37 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
     elevation: 6,
-    shadowColor: '#3B82F6',
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   secondaryButton: {
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
@@ -655,11 +718,11 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   securityNotice: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     padding: 16,
     borderRadius: 12,
     marginTop: 32,
@@ -669,6 +732,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
-import axios from 'axios';
-import ThemeContext from '../../../context/ThemeContext';
-import AuthContext from '../../../context/AuthContext';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import axios from "axios";
+import ThemeContext from "../../../context/ThemeContext";
+import AuthContext from "../../../context/AuthContext";
 
 interface GroupAdminFormData {
   name: string;
@@ -33,21 +42,23 @@ export default function IndividualUpload() {
   const router = useRouter();
 
   const [formData, setFormData] = useState<GroupAdminFormData>({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    gender: '',
-    employeeNumber: '',
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    gender: "",
+    employeeNumber: "",
   });
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const validatePhoneNumber = (phone: string) => {
     // Remove any non-digit characters and the +91 prefix
-    const cleanPhone = phone.replace(/^\+91/, '').replace(/\D/g, '');
-    
+    const cleanPhone = phone.replace(/^\+91/, "").replace(/\D/g, "");
+
     // Check if it's exactly 10 digits and starts with 6-9
     if (!cleanPhone) return true; // Allow empty phone as it's optional
     if (cleanPhone.length !== 10) return false;
@@ -56,19 +67,19 @@ export default function IndividualUpload() {
 
   const formatPhoneNumber = (phone: string) => {
     // Remove any existing +91 prefix and any non-digit characters
-    const cleanPhone = phone.replace(/^\+91/, '').replace(/\D/g, '');
+    const cleanPhone = phone.replace(/^\+91/, "").replace(/\D/g, "");
     // Add the +91 prefix back if there are digits
-    return cleanPhone ? `+91${cleanPhone}` : '';
+    return cleanPhone ? `+91${cleanPhone}` : "";
   };
 
   const handlePhoneChange = (text: string) => {
     // Remove any non-digit characters except the +91 prefix
     const formattedPhone = formatPhoneNumber(text);
-    setFormData(prev => ({ ...prev, phone: formattedPhone }));
-    
+    setFormData((prev) => ({ ...prev, phone: formattedPhone }));
+
     // Clear phone error if the field is empty or valid
     if (!text || validatePhoneNumber(formattedPhone)) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors.phone;
         return newErrors;
@@ -78,43 +89,44 @@ export default function IndividualUpload() {
 
   const validateForm = () => {
     const errors: ValidationErrors = {};
-    
+
     // Name validation
     if (!formData.name.trim()) {
-      errors.name = 'Name is required';
+      errors.name = "Name is required";
     } else if (formData.name.length < 2) {
-      errors.name = 'Name must be at least 2 characters';
+      errors.name = "Name must be at least 2 characters";
     }
 
     // Email validation
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Invalid email format';
+      errors.email = "Invalid email format";
     }
 
     // Employee Number validation
     if (!formData.employeeNumber.trim()) {
-      errors.employeeNumber = 'Employee number is required';
+      errors.employeeNumber = "Employee number is required";
     }
 
     // Password validation
     if (!formData.password) {
-      errors.password = 'Password is required';
+      errors.password = "Password is required";
     } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+      errors.password = "Password must be at least 8 characters";
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      errors.password = 'Password must contain uppercase, lowercase and numbers';
+      errors.password =
+        "Password must contain uppercase, lowercase and numbers";
     }
 
     // Gender validation
     if (!formData.gender) {
-      errors.gender = 'Please select a gender';
+      errors.gender = "Please select a gender";
     }
 
     // Phone validation (if provided)
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
-      errors.phone = 'Please enter a valid 10-digit Indian mobile number';
+      errors.phone = "Please enter a valid 10-digit Indian mobile number";
     }
 
     return errors;
@@ -139,50 +151,58 @@ export default function IndividualUpload() {
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        }
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
 
       if (response.data) {
-        Alert.alert(
-          'Success',
-          'Group admin created successfully',
-          [{
-            text: 'OK',
+        Alert.alert("Success", "Group admin created successfully", [
+          {
+            text: "OK",
             onPress: () => {
               // Clear form and navigate back
-              setFormData({ name: '', email: '', phone: '', password: '', gender: '', employeeNumber: '' });
+              setFormData({
+                name: "",
+                email: "",
+                phone: "",
+                password: "",
+                gender: "",
+                employeeNumber: "",
+              });
               router.back();
-            }
-          }]
-        );
+            },
+          },
+        ]);
       }
     } catch (error: any) {
-      console.error('Error creating group admin:', error.response?.data || error.message);
-      
+      console.error(
+        "Error creating group admin:",
+        error.response?.data || error.message,
+      );
+
       if (error.response?.status === 409) {
-        setValidationErrors({ email: 'Email already exists' });
+        setValidationErrors({ email: "Email already exists" });
       } else if (error.response?.status === 400) {
         // Handle validation errors from server
         const serverErrors = error.response.data.errors;
         if (serverErrors) {
           setValidationErrors(serverErrors);
-        } else if (error.response.data.error === 'User limit reached') {
+        } else if (error.response.data.error === "User limit reached") {
           const details = error.response.data.details;
           Alert.alert(
-            'User Limit Reached',
+            "User Limit Reached",
             `${details.message}\n\nCurrent Users: ${details.currentCount}\nUser Limit: ${details.limit}\n\nPlease contact your super admin to increase the user limit.`,
-            [{ text: 'OK' }]
+            [{ text: "OK" }],
           );
         } else {
-          setApiError(error.response.data.error || 'Invalid input data');
+          setApiError(error.response.data.error || "Invalid input data");
         }
       } else if (error.response?.data?.error) {
         setApiError(error.response.data.error);
       } else {
-        setApiError('Failed to create group admin. Please try again.');
+        setApiError("Failed to create group admin. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -190,9 +210,24 @@ export default function IndividualUpload() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme === 'dark' ? '#111827' : '#F3F4F6' }]}>
-      <View style={[styles.card, { backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF' }]}>
-        <Text style={[styles.title, { color: theme === 'dark' ? '#F9FAFB' : '#111827' }]}>
+    <ScrollView
+      style={[
+        styles.container,
+        { backgroundColor: theme === "dark" ? "#111827" : "#F3F4F6" },
+      ]}
+    >
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.title,
+            { color: theme === "dark" ? "#F9FAFB" : "#111827" },
+          ]}
+        >
           Create New Group Admin
         </Text>
 
@@ -203,101 +238,141 @@ export default function IndividualUpload() {
         )}
 
         {[
-          { label: 'Full Name', key: 'name', placeholder: 'Enter full name' },
-          { label: 'Email Address', key: 'email', placeholder: 'Enter email address', keyboardType: 'email-address' },
-          { label: 'Employee Number', key: 'employeeNumber', placeholder: 'Enter employee number' },
-          { 
-            label: 'Phone Number', 
-            key: 'phone', 
-            placeholder: 'Enter 10-digit number',
-            keyboardType: 'phone-pad',
-            prefix: '+91'
+          { label: "Full Name", key: "name", placeholder: "Enter full name" },
+          {
+            label: "Email Address",
+            key: "email",
+            placeholder: "Enter email address",
+            keyboardType: "email-address",
           },
-          { 
-            label: 'Gender', 
-            key: 'gender', 
-            placeholder: 'Select gender',
+          {
+            label: "Employee Number",
+            key: "employeeNumber",
+            placeholder: "Enter employee number",
+          },
+          {
+            label: "Phone Number",
+            key: "phone",
+            placeholder: "Enter 10-digit number",
+            keyboardType: "phone-pad",
+            prefix: "+91",
+          },
+          {
+            label: "Gender",
+            key: "gender",
+            placeholder: "Select gender",
             isDropdown: true,
             options: [
-              { label: 'Select Gender', value: '' },
-              { label: 'Male', value: 'male' },
-              { label: 'Female', value: 'female' },
-              { label: 'Other', value: 'other' }
-            ]
+              { label: "Select Gender", value: "" },
+              { label: "Male", value: "male" },
+              { label: "Female", value: "female" },
+              { label: "Other", value: "other" },
+            ],
           },
-          { label: 'Password', key: 'password', placeholder: 'Enter password', secure: true }
+          {
+            label: "Password",
+            key: "password",
+            placeholder: "Enter password",
+            secure: true,
+          },
         ].map((field) => (
           <View key={field.key} style={styles.fieldContainer}>
-            <Text style={[styles.label, { color: theme === 'dark' ? '#D1D5DB' : '#374151' }]}>
+            <Text
+              style={[
+                styles.label,
+                { color: theme === "dark" ? "#D1D5DB" : "#374151" },
+              ]}
+            >
               {field.label}
             </Text>
             {field.isDropdown ? (
-              <View style={[
-                styles.input,
-                { 
-                  backgroundColor: theme === 'dark' ? '#374151' : '#F9FAFB',
-                  borderColor: validationErrors[field.key] ? '#EF4444' : (theme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                  padding: 0,
-                  overflow: 'hidden',
-                  height: 56
-                }
-              ]}>
+              <View
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F9FAFB",
+                    borderColor: validationErrors[field.key]
+                      ? "#EF4444"
+                      : theme === "dark"
+                        ? "#4B5563"
+                        : "#D1D5DB",
+                    padding: 0,
+                    overflow: "hidden",
+                    height: 56,
+                  },
+                ]}
+              >
                 <Picker
-                  selectedValue={formData[field.key as keyof GroupAdminFormData]}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, [field.key]: value }))}
+                  selectedValue={
+                    formData[field.key as keyof GroupAdminFormData]
+                  }
+                  onValueChange={(value: string) =>
+                    setFormData((prev) => ({ ...prev, [field.key]: value }))
+                  }
                   style={[
-                    { 
-                      color: theme === 'dark' ? '#FFFFFF' : '#000000',
-                      backgroundColor: theme === 'dark' ? '#374151' : '#FFFFFF',
+                    {
+                      color: theme === "dark" ? "#FFFFFF" : "#000000",
+                      backgroundColor: theme === "dark" ? "#374151" : "#FFFFFF",
                       height: 56,
-                    }
+                    },
                   ]}
-                  dropdownIconColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
+                  dropdownIconColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
                   mode="dropdown"
                 >
-                  {field.options?.map(option => (
-                    <Picker.Item 
-                      key={option.value} 
-                      label={option.label} 
+                  {field.options?.map((option) => (
+                    <Picker.Item
+                      key={option.value}
+                      label={option.label}
                       value={option.value}
-                      color={theme === 'dark' ? '#FFFFFF' : '#000000'}
+                      color={theme === "dark" ? "#FFFFFF" : "#000000"}
                       style={{
-                        backgroundColor: theme === 'dark' ? '#374151' : '#FFFFFF',
+                        backgroundColor:
+                          theme === "dark" ? "#374151" : "#FFFFFF",
                         fontSize: 16,
                       }}
                     />
                   ))}
                 </Picker>
               </View>
-            ) : field.key === 'phone' ? (
-              <View style={[
-                styles.input,
-                styles.phoneInputContainer,
-                { 
-                  backgroundColor: theme === 'dark' ? '#374151' : '#F9FAFB',
-                  borderColor: validationErrors[field.key] ? '#EF4444' : (theme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                  padding: 0,
-                  paddingLeft: 16
-                }
-              ]}>
-                <Text style={[
-                  styles.phonePrefix,
-                  { color: theme === 'dark' ? '#9CA3AF' : '#6B7280' }
-                ]}>
+            ) : field.key === "phone" ? (
+              <View
+                style={[
+                  styles.input,
+                  styles.phoneInputContainer,
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F9FAFB",
+                    borderColor: validationErrors[field.key]
+                      ? "#EF4444"
+                      : theme === "dark"
+                        ? "#4B5563"
+                        : "#D1D5DB",
+                    padding: 0,
+                    paddingLeft: 16,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.phonePrefix,
+                    { color: theme === "dark" ? "#9CA3AF" : "#6B7280" },
+                  ]}
+                >
                   +91
                 </Text>
                 <TextInput
                   style={[
                     styles.phoneInput,
-                    { 
-                      color: theme === 'dark' ? '#F9FAFB' : '#111827',
-                      backgroundColor: 'transparent',
+                    {
+                      color: theme === "dark" ? "#F9FAFB" : "#111827",
+                      backgroundColor: "transparent",
                       borderWidth: 0,
-                    }
+                    },
                   ]}
                   placeholder="Enter 10-digit number"
-                  placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
-                  value={formData[field.key].replace(/^\+91/, '')}
+                  placeholderTextColor={
+                    theme === "dark" ? "#9CA3AF" : "#6B7280"
+                  }
+                  value={formData[field.key].replace(/^\+91/, "")}
                   onChangeText={(text) => handlePhoneChange(text)}
                   keyboardType="phone-pad"
                   maxLength={10}
@@ -307,24 +382,32 @@ export default function IndividualUpload() {
               <TextInput
                 style={[
                   styles.input,
-                  { 
-                    backgroundColor: theme === 'dark' ? '#374151' : '#F9FAFB',
-                    color: theme === 'dark' ? '#F9FAFB' : '#111827',
-                    borderColor: validationErrors[field.key] ? '#EF4444' : (theme === 'dark' ? '#4B5563' : '#D1D5DB')
-                  }
+                  {
+                    backgroundColor: theme === "dark" ? "#374151" : "#F9FAFB",
+                    color: theme === "dark" ? "#F9FAFB" : "#111827",
+                    borderColor: validationErrors[field.key]
+                      ? "#EF4444"
+                      : theme === "dark"
+                        ? "#4B5563"
+                        : "#D1D5DB",
+                  },
                 ]}
                 placeholder={field.placeholder}
-                placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
+                placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
                 value={formData[field.key as keyof GroupAdminFormData]}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, [field.key]: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, [field.key]: text }))
+                }
                 secureTextEntry={field.secure}
-                keyboardType={field.keyboardType as any || 'default'}
-                autoCapitalize={field.key === 'email' ? 'none' : 'words'}
+                keyboardType={(field.keyboardType as any) || "default"}
+                autoCapitalize={field.key === "email" ? "none" : "words"}
                 autoComplete="off"
               />
             )}
             {validationErrors[field.key] && (
-              <Text style={styles.errorText}>{validationErrors[field.key]}</Text>
+              <Text style={styles.errorText}>
+                {validationErrors[field.key]}
+              </Text>
             )}
           </View>
         ))}
@@ -353,7 +436,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -361,7 +444,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 24,
   },
   fieldContainer: {
@@ -369,7 +452,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   input: {
@@ -380,12 +463,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   phoneInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   phonePrefix: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginRight: 8,
   },
   phoneInput: {
@@ -395,26 +478,26 @@ const styles = StyleSheet.create({
     paddingLeft: 0,
   },
   button: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
     height: 48,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 24,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: "#FEE2E2",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: '#EF4444',
+    color: "#EF4444",
     fontSize: 14,
     marginTop: 4,
   },

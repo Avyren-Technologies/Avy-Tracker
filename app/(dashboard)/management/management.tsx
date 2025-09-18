@@ -56,7 +56,7 @@ interface LeaveStats {
 const newQuickActions = [
   {
     title: "Group Admin",
-    icon: "people-outline", 
+    icon: "people-outline",
     description: "Manage group admins and permissions",
     route: "/(dashboard)/management/group-admin-management",
     color: "#F59E0B",
@@ -122,7 +122,7 @@ export default function ManagementDashboard() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/management/dashboard-stats`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // Update state with new data
@@ -134,7 +134,7 @@ export default function ManagementDashboard() {
         JSON.stringify({
           data: response.data,
           timestamp: Date.now(),
-        })
+        }),
       );
     } catch (error) {
       console.error("Error details:", {
@@ -226,7 +226,7 @@ export default function ManagementDashboard() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/stats`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       if (response.data) {
@@ -247,7 +247,7 @@ export default function ManagementDashboard() {
               JSON.stringify({
                 data: validStats,
                 timestamp: Date.now(),
-              })
+              }),
             );
           } catch (error) {
             console.error("Error updating cache:", error);
@@ -299,12 +299,12 @@ export default function ManagementDashboard() {
   useEffect(() => {
     if (Platform.OS === "ios") {
       RNStatusBar.setBarStyle(
-        theme === "dark" ? "light-content" : "dark-content"
+        theme === "dark" ? "light-content" : "dark-content",
       );
     } else {
       RNStatusBar.setBackgroundColor(theme === "dark" ? "#1F2937" : "#FFFFFF");
       RNStatusBar.setBarStyle(
-        theme === "dark" ? "light-content" : "dark-content"
+        theme === "dark" ? "light-content" : "dark-content",
       );
     }
   }, [theme]);
@@ -315,7 +315,7 @@ export default function ManagementDashboard() {
     const updateShiftStatus = async () => {
       try {
         const shiftStatusData = await AsyncStorage.getItem(
-          `${user?.role}-shiftStatus`
+          `${user?.role}-shiftStatus`,
         );
 
         if (shiftStatusData) {
@@ -387,7 +387,7 @@ export default function ManagementDashboard() {
             styles.header,
             {
               paddingTop:
-                Platform.OS === "ios" ? 50 : RNStatusBar.currentHeight ?? 0,
+                Platform.OS === "ios" ? 50 : (RNStatusBar.currentHeight ?? 0),
             },
           ] as unknown as ViewStyle
         }
@@ -460,8 +460,8 @@ export default function ManagementDashboard() {
                     ? "#DC2626"
                     : "#EF4444"
                   : theme === "dark"
-                  ? "#059669"
-                  : "#10B981",
+                    ? "#059669"
+                    : "#10B981",
               },
             ]}
           >
@@ -476,8 +476,8 @@ export default function ManagementDashboard() {
                           ? "rgba(220, 38, 38, 0.8)"
                           : "rgba(239, 68, 68, 0.8)"
                         : theme === "dark"
-                        ? "rgba(5, 150, 105, 0.8)"
-                        : "rgba(16, 185, 129, 0.8)",
+                          ? "rgba(5, 150, 105, 0.8)"
+                          : "rgba(16, 185, 129, 0.8)",
                     },
                   ]}
                 >
@@ -913,8 +913,8 @@ export default function ManagementDashboard() {
                                   description.status === "pending"
                                     ? "text-yellow-500"
                                     : description.status === "approved"
-                                    ? "text-green-500"
-                                    : "text-red-500"
+                                      ? "text-green-500"
+                                      : "text-red-500"
                                 }`}
                               >
                                 {description.status?.toUpperCase() ?? "UNKNOWN"}

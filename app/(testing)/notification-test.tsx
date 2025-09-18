@@ -1,5 +1,5 @@
-import TestNotifications from './components/TestNotifications';
+import TestNotifications from "./components/TestNotifications";
 
 export default function NotificationTestScreen() {
   return <TestNotifications />;
-} 
+}

@@ -1,5 +1,5 @@
-import { Location } from '../types/liveTracking';
-import { pool } from '../config/database';
+import { Location } from "../types/liveTracking";
+import { pool } from "../config/database";
 
 export class LocationValidationService {
   private readonly MIN_ACCURACY = 500; // meters - increased from 100 to allow for less accurate GPS readings
@@ -10,7 +10,7 @@ export class LocationValidationService {
   async validateLocation(
     location: Location,
     userId: number,
-    isBackgroundUpdate: boolean = false
+    isBackgroundUpdate: boolean = false,
   ): Promise<{ isValid: boolean; reason?: string }> {
     try {
       // Check basic location data
@@ -28,7 +28,7 @@ export class LocationValidationService {
         // If it's a background update, log the issue but accept the location anyway
         if (isBackgroundUpdate) {
           console.log(
-            `Accepting low accuracy background update (${location.accuracy}m) for user ${userId}`
+            `Accepting low accuracy background update (${location.accuracy}m) for user ${userId}`,
           );
           // Continue processing without returning
         } else {
@@ -50,7 +50,7 @@ export class LocationValidationService {
       // Check company settings
       const isCompliantWithSettings = await this.checkCompanySettings(
         location,
-        userId
+        userId,
       );
       if (!isCompliantWithSettings) {
         return {
@@ -86,7 +86,7 @@ export class LocationValidationService {
 
   private isValidAccuracy(
     location: Location,
-    threshold: number = this.MIN_ACCURACY
+    threshold: number = this.MIN_ACCURACY,
   ): boolean {
     return !location.accuracy || location.accuracy <= threshold;
   }
@@ -97,7 +97,7 @@ export class LocationValidationService {
 
   private async checkSpeed(
     location: Location,
-    userId: number
+    userId: number,
   ): Promise<boolean> {
     try {
       // Get last location
@@ -107,7 +107,7 @@ export class LocationValidationService {
                 WHERE user_id = $1 
                 ORDER BY timestamp DESC 
                 LIMIT 1`,
-        [userId]
+        [userId],
       );
 
       if (!result.rows.length) {
@@ -128,7 +128,7 @@ export class LocationValidationService {
         location.latitude,
         location.longitude,
         lastLocation.latitude,
-        lastLocation.longitude
+        lastLocation.longitude,
       );
 
       const speed = distance / 1000 / (timeDiff / 3600); // km/h
@@ -141,7 +141,7 @@ export class LocationValidationService {
 
   private async checkCompanySettings(
     location: Location,
-    userId: number
+    userId: number,
   ): Promise<boolean> {
     try {
       const result = await pool.query(
@@ -149,7 +149,7 @@ export class LocationValidationService {
                 FROM company_tracking_settings cs
                 JOIN users u ON u.company_id = cs.company_id
                 WHERE u.id = $1`,
-        [userId]
+        [userId],
       );
 
       if (!result.rows.length) {
@@ -177,7 +177,7 @@ export class LocationValidationService {
     lat1: number,
     lon1: number,
     lat2: number,
-    lon2: number
+    lon2: number,
   ): number {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
@@ -192,4 +192,4 @@ export class LocationValidationService {
 
     return R * c; // Distance in meters
   }
-} 
+}

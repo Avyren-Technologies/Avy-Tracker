@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Platform, StatusBar as RNStatusBar, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import ThemeContext from '../../context/ThemeContext';
-import axios from 'axios';
-import Modal from 'react-native-modal';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Platform,
+  StatusBar as RNStatusBar,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemeContext from "../../context/ThemeContext";
+import axios from "axios";
+import Modal from "react-native-modal";
+import { StatusBar } from "expo-status-bar";
 import { superAdminNavItems } from "./utils/navigationItems";
 import BottomNav from "../../components/BottomNav";
 
@@ -53,7 +65,7 @@ export default function CompanyManagement() {
     if (Platform.OS === "android") {
       RNStatusBar.setBackgroundColor(theme === "dark" ? "#1F2937" : "#FFFFFF");
       RNStatusBar.setBarStyle(
-        theme === "dark" ? "light-content" : "dark-content"
+        theme === "dark" ? "light-content" : "dark-content",
       );
     }
   }, [theme]);
@@ -63,7 +75,7 @@ export default function CompanyManagement() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/companies`
+        `${process.env.EXPO_PUBLIC_API_URL}/api/companies`,
       );
       setCompanies(response.data);
       if (response.data.length === 0) {
@@ -72,7 +84,7 @@ export default function CompanyManagement() {
     } catch (error: any) {
       setError(
         error.response?.data?.message ||
-          "Failed to fetch companies. Please try again."
+          "Failed to fetch companies. Please try again.",
       );
       setCompanies([]);
     } finally {
@@ -84,15 +96,15 @@ export default function CompanyManagement() {
     try {
       setUpdatingStatus(companyId);
       const response = await axios.patch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/companies/${companyId}/toggle-status`
+        `${process.env.EXPO_PUBLIC_API_URL}/api/companies/${companyId}/toggle-status`,
       );
 
       setCompanies(
         companies.map((company) =>
           company.id === companyId
             ? { ...company, status: response.data.status }
-            : company
-        )
+            : company,
+        ),
       );
 
       Alert.alert("Success", response.data.message, [{ text: "OK" }]);
@@ -101,7 +113,7 @@ export default function CompanyManagement() {
       Alert.alert(
         "Error",
         error.response?.data?.error || "Failed to update company status",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } finally {
       setUpdatingStatus(null);
@@ -145,15 +157,15 @@ export default function CompanyManagement() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/companies/${selectedCompany.id}/user-limit`,
         {
           userLimit: limit,
-        }
+        },
       );
 
       setCompanies(
         companies.map((company) =>
           company.id === selectedCompany.id
             ? { ...company, user_limit: limit }
-            : company
-        )
+            : company,
+        ),
       );
 
       setIsEditLimitModalVisible(false);
@@ -291,8 +303,8 @@ export default function CompanyManagement() {
                   statusFilter === status
                     ? "bg-blue-500"
                     : theme === "dark"
-                    ? "bg-gray-800"
-                    : "bg-white"
+                      ? "bg-gray-800"
+                      : "bg-white"
                 }`}
               >
                 <Text
@@ -300,8 +312,8 @@ export default function CompanyManagement() {
                     statusFilter === status
                       ? "text-white"
                       : theme === "dark"
-                      ? "text-gray-300"
-                      : "text-gray-600"
+                        ? "text-gray-300"
+                        : "text-gray-600"
                   }
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -495,7 +507,7 @@ export default function CompanyManagement() {
                   <TouchableOpacity
                     onPress={() =>
                       router.push(
-                        `/super-admin/company/${company.id}/pending-users`
+                        `/super-admin/company/${company.id}/pending-users`,
                       )
                     }
                     className="absolute top-2 right-20 px-2 py-1 bg-yellow-100 rounded-full"
@@ -602,52 +614,52 @@ export default function CompanyManagement() {
 
 const styles = StyleSheet.create({
   header: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   backButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   addButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   companyCard: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
   actionButton: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
   input: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
   searchInput: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-  }
+  },
 });

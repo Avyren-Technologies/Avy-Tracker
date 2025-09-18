@@ -9,10 +9,12 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ThemeContext from '../context/ThemeContext';
-import biometricAuthService, { BiometricSettings } from '../utils/biometricAuth';
+import biometricAuthService, {
+  BiometricSettings,
+} from '../utils/biometricAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,10 +32,12 @@ export default function BiometricAuthWrapper({
   const { theme } = ThemeContext.useTheme();
   const isDark = theme === 'dark';
   const [showBiometricModal, setShowBiometricModal] = useState(false);
-  const [biometricSettings, setBiometricSettings] = useState<BiometricSettings>({
-    enabled: false,
-    required: false,
-  });
+  const [biometricSettings, setBiometricSettings] = useState<BiometricSettings>(
+    {
+      enabled: false,
+      required: false,
+    }
+  );
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [biometricType, setBiometricType] = useState<string>('');
 
@@ -119,13 +123,17 @@ export default function BiometricAuthWrapper({
   };
 
   const handleSkipAuthentication = () => {
-    if (onAuthenticationFailure) {
-      onAuthenticationFailure();
-    } else {
-      // Default behavior: proceed without authentication
-      setShowBiometricModal(false);
-      onAuthenticationSuccess();
+    // Only allow skipping if biometric is not required
+    if (!biometricSettings.required) {
+      if (onAuthenticationFailure) {
+        onAuthenticationFailure();
+      } else {
+        // Default behavior: proceed without authentication
+        setShowBiometricModal(false);
+        onAuthenticationSuccess();
+      }
     }
+    // If biometric is required, do nothing - user must authenticate
   };
 
   // If biometric is not required, render children normally
@@ -167,17 +175,31 @@ export default function BiometricAuthWrapper({
         visible={showBiometricModal}
         transparent
         animationType="none"
-        onRequestClose={() => {}} // Prevent closing with back button
+        onRequestClose={() => {
+          // Only allow closing if biometric is not required
+          if (!biometricSettings.required) {
+            handleSkipAuthentication();
+          }
+        }}
       >
         <StatusBar
           barStyle={isDark ? 'light-content' : 'dark-content'}
           backgroundColor={currentColors.background}
         />
 
-        <View style={[styles.container, { backgroundColor: currentColors.background }]}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: currentColors.background },
+          ]}
+        >
           {/* Background gradient */}
           <LinearGradient
-            colors={[currentColors.primary, currentColors.secondary, currentColors.accent]}
+            colors={[
+              currentColors.primary,
+              currentColors.secondary,
+              currentColors.accent,
+            ]}
             style={styles.backgroundGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -199,26 +221,25 @@ export default function BiometricAuthWrapper({
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+                  backgroundColor: isDark
+                    ? 'rgba(59, 130, 246, 0.1)'
+                    : 'rgba(59, 130, 246, 0.05)',
                   borderColor: currentColors.primary,
                 },
               ]}
             >
-              <Ionicons
-                name={biometricAuthService.getBiometricIconName(biometricType) as keyof typeof Ionicons.glyphMap}
+              <MaterialCommunityIcons
+                name={biometricAuthService.getBiometricIconName(biometricType)}
                 size={48}
                 color={currentColors.primary}
               />
             </View>
 
             {/* Title */}
-            <Text
-              style={[
-                styles.title,
-                { color: currentColors.text },
-              ]}
-            >
-              Biometric Authentication Required
+            <Text style={[styles.title, { color: currentColors.text }]}>
+              {biometricSettings.required
+                ? 'Biometric Authentication Required'
+                : 'Biometric Authentication Available'}
             </Text>
 
             {/* Description */}
@@ -228,7 +249,13 @@ export default function BiometricAuthWrapper({
                 { color: currentColors.textSecondary },
               ]}
             >
-              Please authenticate using your {biometricAuthService.getBiometricTypeName(biometricType).toLowerCase()} to access Avy Tracker.
+              {biometricSettings.required
+                ? `You must authenticate using your ${biometricAuthService
+                    .getBiometricTypeName(biometricType)
+                    .toLowerCase()} to access Avy Tracker.`
+                : `Please authenticate using your ${biometricAuthService
+                    .getBiometricTypeName(biometricType)
+                    .toLowerCase()} to access Avy Tracker.`}
             </Text>
 
             {/* Action Buttons */}
@@ -244,8 +271,10 @@ export default function BiometricAuthWrapper({
                 onPress={handleBiometricAuthentication}
                 disabled={isAuthenticating}
               >
-                <Ionicons
-                  name={biometricAuthService.getBiometricIconName(biometricType) as keyof typeof Ionicons.glyphMap}
+                <MaterialCommunityIcons
+                  name={biometricAuthService.getBiometricIconName(
+                    biometricType
+                  )}
                   size={20}
                   color="#FFFFFF"
                   style={{ marginRight: 8 }}
@@ -255,19 +284,27 @@ export default function BiometricAuthWrapper({
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.secondaryButton,
-                  {
-                    borderColor: currentColors.border,
-                  },
-                ]}
-                onPress={handleSkipAuthentication}
-              >
-                <Text style={[styles.secondaryButtonText, { color: currentColors.textSecondary }]}>
-                  Skip for Now
-                </Text>
-              </TouchableOpacity>
+              {/* Only show skip button if biometric is not required */}
+              {!biometricSettings.required && (
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    {
+                      borderColor: currentColors.border,
+                    },
+                  ]}
+                  onPress={handleSkipAuthentication}
+                >
+                  <Text
+                    style={[
+                      styles.secondaryButtonText,
+                      { color: currentColors.textSecondary },
+                    ]}
+                  >
+                    Skip for Now
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Security Notice */}
@@ -275,7 +312,9 @@ export default function BiometricAuthWrapper({
               style={[
                 styles.securityNotice,
                 {
-                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+                  backgroundColor: isDark
+                    ? 'rgba(59, 130, 246, 0.1)'
+                    : 'rgba(59, 130, 246, 0.05)',
                   borderColor: currentColors.primary,
                 },
               ]}
@@ -286,8 +325,14 @@ export default function BiometricAuthWrapper({
                 color={currentColors.primary}
                 style={{ marginRight: 8 }}
               />
-              <Text style={[styles.securityNoticeText, { color: currentColors.textSecondary }]}>
-                This adds an extra layer of security to protect your account and company data.
+              <Text
+                style={[
+                  styles.securityNoticeText,
+                  { color: currentColors.textSecondary },
+                ]}
+              >
+                This adds an extra layer of security to protect your account and
+                company data.
               </Text>
             </View>
           </Animated.View>

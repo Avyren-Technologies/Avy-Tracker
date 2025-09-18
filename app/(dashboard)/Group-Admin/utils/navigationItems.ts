@@ -1,4 +1,4 @@
-import { NavItem } from '../../../types/nav';
+import { NavItem } from "../../../types/nav";
 
 export const groupAdminNavItems: NavItem[] = [
   {
@@ -41,4 +41,4 @@ export const groupAdminNavItems: NavItem[] = [
     label: "Settings",
     href: "/(dashboard)/Group-Admin/settings",
   },
-]; 
+];

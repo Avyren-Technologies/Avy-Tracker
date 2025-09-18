@@ -1,4 +1,4 @@
-import { Theme } from '../../types';
+import { Theme } from "../../types";
 
 interface BaseTemplateProps {
   title: string;
@@ -40,28 +40,29 @@ export const generateBaseTemplate = ({
   title,
   date,
   content,
-  theme = 'light',
+  theme = "light",
   companyInfo,
-  adminName = 'Group Admin',
-  filters
+  adminName = "Group Admin",
+  filters,
 }: BaseTemplateProps): string => {
-  const isDark = theme === 'dark';
-  
+  const isDark = theme === "dark";
+
   // Use companyInfo if provided, fallback to env variables
-  const companyName = companyInfo?.name || 'Company Name';
-  const companyLogo = companyInfo?.logo || 'Company Logo';
-  const companyAddress = companyInfo?.address || 'Company Address';
-  const companyContact = companyInfo?.contact || 'Company Contact';
+  const companyName = companyInfo?.name || "Company Name";
+  const companyLogo = companyInfo?.logo || "Company Logo";
+  const companyAddress = companyInfo?.address || "Company Address";
+  const companyContact = companyInfo?.contact || "Company Contact";
 
   // Ensure we're not wrapping content that's already an HTML document
-  const isContentHTML = content.trim().toLowerCase().startsWith('<!doctype html') || 
-                       content.trim().toLowerCase().startsWith('<html');
+  const isContentHTML =
+    content.trim().toLowerCase().startsWith("<!doctype html") ||
+    content.trim().toLowerCase().startsWith("<html");
 
   // If content is already a complete HTML document, return it as is
   if (isContentHTML) {
     return content;
   }
-  
+
   return `
     <!DOCTYPE html>
     <html>
@@ -71,8 +72,8 @@ export const generateBaseTemplate = ({
         <style>
           body {
             font-family: 'Helvetica', sans-serif;
-            color: ${isDark ? '#FFFFFF' : '#000000'};
-            background-color: ${isDark ? '#1F2937' : '#FFFFFF'};
+            color: ${isDark ? "#FFFFFF" : "#000000"};
+            background-color: ${isDark ? "#1F2937" : "#FFFFFF"};
             margin: 0;
             padding: 40px;
             font-size: 14px;
@@ -107,7 +108,7 @@ export const generateBaseTemplate = ({
 
           .date {
             font-size: 14px;
-            color: ${isDark ? '#9CA3AF' : '#6B7280'};
+            color: ${isDark ? "#9CA3AF" : "#6B7280"};
           }
 
           .content {
@@ -126,7 +127,7 @@ export const generateBaseTemplate = ({
           }
 
           .stat-box {
-            background-color: ${isDark ? '#374151' : '#F3F4F6'};
+            background-color: ${isDark ? "#374151" : "#F3F4F6"};
             padding: 20px;
             border-radius: 8px;
             text-align: center;
@@ -134,21 +135,21 @@ export const generateBaseTemplate = ({
 
           .stat-label {
             font-size: 14px;
-            color: ${isDark ? '#9CA3AF' : '#6B7280'};
+            color: ${isDark ? "#9CA3AF" : "#6B7280"};
             margin-bottom: 8px;
           }
 
           .stat-value {
             font-size: 24px;
             font-weight: bold;
-            color: ${isDark ? '#FFFFFF' : '#111827'};
+            color: ${isDark ? "#FFFFFF" : "#111827"};
           }
 
           table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            background-color: ${isDark ? '#374151' : '#FFFFFF'};
+            background-color: ${isDark ? "#374151" : "#FFFFFF"};
             border-radius: 8px;
             overflow: hidden;
           }
@@ -163,7 +164,7 @@ export const generateBaseTemplate = ({
 
           td {
             padding: 12px;
-            border-bottom: 1px solid ${isDark ? '#4B5563' : '#E5E7EB'};
+            border-bottom: 1px solid ${isDark ? "#4B5563" : "#E5E7EB"};
           }
 
           tr:last-child td {
@@ -178,7 +179,7 @@ export const generateBaseTemplate = ({
           }
 
           .performer-card {
-            background-color: ${isDark ? '#374151' : '#F3F4F6'};
+            background-color: ${isDark ? "#374151" : "#F3F4F6"};
             padding: 20px;
             border-radius: 8px;
           }
@@ -192,20 +193,20 @@ export const generateBaseTemplate = ({
             margin-top: 40px;
             text-align: center;
             font-size: 12px;
-            color: ${isDark ? '#9CA3AF' : '#6B7280'};
-            border-top: 1px solid ${isDark ? '#4B5563' : '#E5E7EB'};
+            color: ${isDark ? "#9CA3AF" : "#6B7280"};
+            border-top: 1px solid ${isDark ? "#4B5563" : "#E5E7EB"};
             padding-top: 20px;
           }
 
           .admin-info {
             font-size: 14px;
-            color: ${isDark ? '#9CA3AF' : '#6B7280'};
+            color: ${isDark ? "#9CA3AF" : "#6B7280"};
             margin-top: 4px;
           }
           
           .filter-info {
             font-size: 14px;
-            background-color: ${isDark ? '#374151' : '#F3F4F6'};
+            background-color: ${isDark ? "#374151" : "#F3F4F6"};
             padding: 8px 12px;
             border-radius: 6px;
             margin-top: 10px;
@@ -222,24 +223,31 @@ export const generateBaseTemplate = ({
       </head>
       <body>
         <div class="header">
-          ${companyLogo 
-            ? `<img src="${companyLogo}" class="logo" alt="${companyName}" onerror="this.style.display='none'"/>` 
-            : ''}
+          ${
+            companyLogo
+              ? `<img src="${companyLogo}" class="logo" alt="${companyName}" onerror="this.style.display='none'"/>`
+              : ""
+          }
           <div class="company-info">
             <div class="title" style="text-align: center; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
             <div class="date">Generated on: ${date}</div>
             <div class="admin-info">Generated by: ${adminName}</div>
             <div class="company-details">
-              <div>${companyName || ''}</div>
-              <div>${companyAddress || ''}</div>
-              <div>${companyContact || ''}</div>
+              <div>${companyName || ""}</div>
+              <div>${companyAddress || ""}</div>
+              <div>${companyContact || ""}</div>
             </div>
-            ${filters && (filters.dateRange || filters.employee || filters.department) ? `
+            ${
+              filters &&
+              (filters.dateRange || filters.employee || filters.department)
+                ? `
             <div class="filter-info">
-              ${filters.dateRange ? `Date Range: ${filters.dateRange}<br>` : ''}
-              ${filters.employee ? `Employee: ${filters.employee}<br>` : ''}
-              ${filters.department ? `Department: ${filters.department}` : ''}
-            </div>` : ''}
+              ${filters.dateRange ? `Date Range: ${filters.dateRange}<br>` : ""}
+              ${filters.employee ? `Employee: ${filters.employee}<br>` : ""}
+              ${filters.department ? `Department: ${filters.department}` : ""}
+            </div>`
+                : ""
+            }
           </div>
         </div>
         <div class="content">
@@ -252,4 +260,4 @@ export const generateBaseTemplate = ({
       </body>
     </html>
   `;
-}; 
+};

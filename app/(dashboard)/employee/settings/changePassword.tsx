@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   ScrollView,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import ThemeContext from '../../../context/ThemeContext';
-import AuthContext from '../../../context/AuthContext';
-import axios from 'axios';
-import CustomModal from '../../shared/components/customModal';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import ThemeContext from "../../../context/ThemeContext";
+import AuthContext from "../../../context/AuthContext";
+import axios from "axios";
+import CustomModal from "../../shared/components/customModal";
 
 interface PasswordValidation {
   minLength: boolean;
@@ -32,12 +32,12 @@ export default function ChangePassword() {
   const { theme } = ThemeContext.useTheme();
   const { token } = AuthContext.useAuth();
   const router = useRouter();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [changing, setChanging] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -58,7 +58,7 @@ export default function ChangePassword() {
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [warningModalVisible, setWarningModalVisible] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const [modalMessage, setModalMessage] = useState("");
 
   const validatePassword = (password: string, confirmPassword: string) => {
     const newValidation: PasswordValidation = {
@@ -68,7 +68,7 @@ export default function ChangePassword() {
       hasNumber: /[0-9]/.test(password),
       hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
       hasNoSpaces: !/\s/.test(password),
-      matchesConfirm: password === confirmPassword && password !== '',
+      matchesConfirm: password === confirmPassword && password !== "",
     };
     setValidation(newValidation);
     return Object.values(newValidation).every(Boolean);
@@ -80,30 +80,34 @@ export default function ChangePassword() {
       [field]: value,
     };
     setPasswordData(newPasswordData);
-    
-    if (field === 'newPassword') {
+
+    if (field === "newPassword") {
       setShowSuggestions(true);
       validatePassword(value, newPasswordData.confirmPassword);
-      
+
       // Check if new password matches current password
-      if (value === passwordData.currentPassword && value !== '') {
-        setModalMessage('This password is already in use. Please choose a different password.');
+      if (value === passwordData.currentPassword && value !== "") {
+        setModalMessage(
+          "This password is already in use. Please choose a different password.",
+        );
         setWarningModalVisible(true);
       }
-    } else if (field === 'confirmPassword') {
+    } else if (field === "confirmPassword") {
       validatePassword(newPasswordData.newPassword, value);
     }
   };
 
   const handleChangePassword = async () => {
-    if (!validatePassword(passwordData.newPassword, passwordData.confirmPassword)) {
-      setModalMessage('Please ensure all password requirements are met');
+    if (
+      !validatePassword(passwordData.newPassword, passwordData.confirmPassword)
+    ) {
+      setModalMessage("Please ensure all password requirements are met");
       setErrorModalVisible(true);
       return;
     }
 
     if (passwordData.currentPassword === passwordData.newPassword) {
-      setModalMessage('New password must be different from current password');
+      setModalMessage("New password must be different from current password");
       setErrorModalVisible(true);
       return;
     }
@@ -116,13 +120,15 @@ export default function ChangePassword() {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      setModalMessage('Your password has been changed successfully');
+      setModalMessage("Your password has been changed successfully");
       setSuccessModalVisible(true);
     } catch (error: any) {
-      setModalMessage(error.response?.data?.message || 'Failed to change password');
+      setModalMessage(
+        error.response?.data?.message || "Failed to change password",
+      );
       setErrorModalVisible(true);
     } finally {
       setChanging(false);
@@ -130,50 +136,83 @@ export default function ChangePassword() {
   };
 
   const PasswordRequirements = () => (
-    <View className="mb-8 p-4 rounded-lg" style={{ backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }}>
-      <Text className={`text-base font-semibold mb-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+    <View
+      className="mb-8 p-4 rounded-lg"
+      style={{ backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }}
+    >
+      <Text
+        className={`text-base font-semibold mb-3 ${isDark ? "text-gray-200" : "text-gray-800"}`}
+      >
         Password Requirements:
       </Text>
       <View className="space-y-2">
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.minLength ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.minLength ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.minLength ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.minLength ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             Minimum 8 characters long
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.hasUpperCase ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.hasUpperCase ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.hasUpperCase ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.hasUpperCase ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             At least one uppercase letter
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.hasLowerCase ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.hasLowerCase ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.hasLowerCase ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.hasLowerCase ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             At least one lowercase letter
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.hasNumber ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.hasNumber ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.hasNumber ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.hasNumber ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             At least one number
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.hasSpecialChar ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.hasSpecialChar ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.hasSpecialChar ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.hasSpecialChar ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             At least one special character (!@#$%^&*)
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.hasNoSpaces ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.hasNoSpaces ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.hasNoSpaces ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.hasNoSpaces ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             No spaces allowed
           </Text>
         </View>
         <View className="flex-row items-center">
-          <View className={`w-2 h-2 rounded-full mr-2 ${validation.matchesConfirm ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <Text className={`text-sm ${validation.matchesConfirm ? 'text-green-500' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <View
+            className={`w-2 h-2 rounded-full mr-2 ${validation.matchesConfirm ? "bg-green-500" : "bg-gray-400"}`}
+          />
+          <Text
+            className={`text-sm ${validation.matchesConfirm ? "text-green-500" : isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             Passwords must match
           </Text>
         </View>
@@ -506,24 +545,24 @@ export default function ChangePassword() {
 
 const styles = StyleSheet.create({
   header: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   card: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   submitButton: {
-    shadowColor: '#3B82F6',
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 2,
-  }
+  },
 });

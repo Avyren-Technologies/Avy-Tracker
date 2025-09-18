@@ -78,7 +78,7 @@ export default function GroupAdminDashboard() {
         toValue: 1,
         duration: 12000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, []);
 
@@ -101,7 +101,7 @@ export default function GroupAdminDashboard() {
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin/recent-activities`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       setActivities(response.data);
     } catch (error) {
@@ -130,7 +130,7 @@ export default function GroupAdminDashboard() {
     const updateShiftStatus = async () => {
       try {
         const shiftStatusData = await AsyncStorage.getItem(
-          `${user?.role}-shiftStatus`
+          `${user?.role}-shiftStatus`,
         );
 
         if (shiftStatusData) {
@@ -142,7 +142,7 @@ export default function GroupAdminDashboard() {
             // Calculate duration in real-time
             const elapsedSeconds = differenceInSeconds(
               new Date(),
-              new Date(startTime)
+              new Date(startTime),
             );
             const hours = Math.floor(elapsedSeconds / 3600);
             const minutes = Math.floor((elapsedSeconds % 3600) / 60);
@@ -988,4 +988,3 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 });
-

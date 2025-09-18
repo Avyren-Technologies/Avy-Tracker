@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,17 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-} from 'react-native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useCameraLiveness } from '../hooks/useCameraLiveness';
-import { FaceDetectionData } from '../types/faceDetection';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCameraLiveness } from "../hooks/useCameraLiveness";
+import { FaceDetectionData } from "../types/faceDetection";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Mock face data for testing
 const createMockFaceData = (
   leftEyeOpen: number,
-  rightEyeOpen: number
+  rightEyeOpen: number,
 ): FaceDetectionData => ({
   bounds: { x: 100, y: 100, width: 200, height: 250 },
   leftEyeOpenProbability: leftEyeOpen,
@@ -27,7 +27,9 @@ const createMockFaceData = (
 });
 
 export default function CameraLivenessTest() {
-  const [mockFaceData, setMockFaceData] = useState<FaceDetectionData | null>(null);
+  const [mockFaceData, setMockFaceData] = useState<FaceDetectionData | null>(
+    null,
+  );
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
 
@@ -63,15 +65,14 @@ export default function CameraLivenessTest() {
       if (simulationStep < blinkSequence.length) {
         const step = blinkSequence[simulationStep];
         setMockFaceData(createMockFaceData(step.left, step.right));
-        setSimulationStep(prev => prev + 1);
+        setSimulationStep((prev) => prev + 1);
       } else {
         // Reset and continue with random variations
         setSimulationStep(0);
         const randomVariation = Math.random() * 0.2 - 0.1; // ±0.1 variation
-        setMockFaceData(createMockFaceData(
-          0.8 + randomVariation,
-          0.8 + randomVariation
-        ));
+        setMockFaceData(
+          createMockFaceData(0.8 + randomVariation, 0.8 + randomVariation),
+        );
       }
     }, 150); // 150ms intervals
 
@@ -83,7 +84,7 @@ export default function CameraLivenessTest() {
     setIsSimulating(true);
     setSimulationStep(0);
     startLivenessDetection();
-    
+
     // Generate initial face data
     setMockFaceData(createMockFaceData(0.9, 0.9));
   };
@@ -101,14 +102,14 @@ export default function CameraLivenessTest() {
 
   const simulateBlink = () => {
     if (!mockFaceData) return;
-    
+
     // Simulate a quick blink sequence
     const blinkSteps = [
       { left: 0.9, right: 0.9 }, // Open
       { left: 0.2, right: 0.2 }, // Closed
       { left: 0.9, right: 0.9 }, // Open
     ];
-    
+
     blinkSteps.forEach((step, index) => {
       setTimeout(() => {
         setMockFaceData(createMockFaceData(step.left, step.right));
@@ -117,18 +118,18 @@ export default function CameraLivenessTest() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return '#10b981'; // Green
-    if (score >= 0.6) return '#f59e0b'; // Yellow
-    return '#ef4444'; // Red
+    if (score >= 0.8) return "#10b981"; // Green
+    if (score >= 0.6) return "#f59e0b"; // Yellow
+    return "#ef4444"; // Red
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          title: 'Camera Liveness Test',
-          headerStyle: { backgroundColor: '#1f2937' },
-          headerTintColor: '#ffffff',
+          title: "Camera Liveness Test",
+          headerStyle: { backgroundColor: "#1f2937" },
+          headerTintColor: "#ffffff",
         }}
       />
       <StatusBar style="light" />
@@ -140,24 +141,30 @@ export default function CameraLivenessTest() {
           <View style={styles.statusGrid}>
             <View style={styles.statusItem}>
               <Text style={styles.statusLabel}>Active</Text>
-              <View style={[
-                styles.statusIndicator,
-                { backgroundColor: isLivenessActive ? '#10b981' : '#6b7280' }
-              ]} />
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: isLivenessActive ? "#10b981" : "#6b7280" },
+                ]}
+              />
             </View>
             <View style={styles.statusItem}>
               <Text style={styles.statusLabel}>Live</Text>
-              <View style={[
-                styles.statusIndicator,
-                { backgroundColor: isLive ? '#10b981' : '#ef4444' }
-              ]} />
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: isLive ? "#10b981" : "#ef4444" },
+                ]}
+              />
             </View>
             <View style={styles.statusItem}>
               <Text style={styles.statusLabel}>Simulating</Text>
-              <View style={[
-                styles.statusIndicator,
-                { backgroundColor: isSimulating ? '#3b82f6' : '#6b7280' }
-              ]} />
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: isSimulating ? "#3b82f6" : "#6b7280" },
+                ]}
+              />
             </View>
           </View>
         </View>
@@ -165,23 +172,27 @@ export default function CameraLivenessTest() {
         {/* Metrics Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Liveness Metrics</Text>
-          
+
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Liveness Score:</Text>
-            <Text style={[
-              styles.metricValue,
-              { color: getScoreColor(livenessScore) }
-            ]}>
+            <Text
+              style={[
+                styles.metricValue,
+                { color: getScoreColor(livenessScore) },
+              ]}
+            >
               {(livenessScore * 100).toFixed(1)}%
             </Text>
           </View>
 
           <View style={styles.metricRow}>
             <Text style={styles.metricLabel}>Eye Movement Score:</Text>
-            <Text style={[
-              styles.metricValue,
-              { color: getScoreColor(eyeMovementScore) }
-            ]}>
+            <Text
+              style={[
+                styles.metricValue,
+                { color: getScoreColor(eyeMovementScore) },
+              ]}
+            >
               {(eyeMovementScore * 100).toFixed(1)}%
             </Text>
           </View>
@@ -204,10 +215,12 @@ export default function CameraLivenessTest() {
             <Text style={styles.sectionTitle}>Current Face Data</Text>
             <View style={styles.faceDataContainer}>
               <Text style={styles.faceDataText}>
-                Left Eye: {(mockFaceData.leftEyeOpenProbability * 100).toFixed(1)}%
+                Left Eye:{" "}
+                {(mockFaceData.leftEyeOpenProbability * 100).toFixed(1)}%
               </Text>
               <Text style={styles.faceDataText}>
-                Right Eye: {(mockFaceData.rightEyeOpenProbability * 100).toFixed(1)}%
+                Right Eye:{" "}
+                {(mockFaceData.rightEyeOpenProbability * 100).toFixed(1)}%
               </Text>
               <Text style={styles.faceDataText}>
                 Roll Angle: {mockFaceData.rollAngle.toFixed(1)}°
@@ -225,19 +238,21 @@ export default function CameraLivenessTest() {
             <Text style={styles.sectionTitle}>Detailed Liveness Data</Text>
             <View style={styles.livenessDataContainer}>
               <Text style={styles.dataText}>
-                Timestamp: {new Date(livenessData.timestamp).toLocaleTimeString()}
+                Timestamp:{" "}
+                {new Date(livenessData.timestamp).toLocaleTimeString()}
               </Text>
               <Text style={styles.dataText}>
-                Blink Detected: {livenessData.blinkDetected ? 'Yes' : 'No'}
+                Blink Detected: {livenessData.blinkDetected ? "Yes" : "No"}
               </Text>
               <Text style={styles.dataText}>
                 Total Blinks: {livenessData.blinkCount}
               </Text>
               <Text style={styles.dataText}>
-                Eye Movement: {(livenessData.eyeMovementScore * 100).toFixed(1)}%
+                Eye Movement: {(livenessData.eyeMovementScore * 100).toFixed(1)}
+                %
               </Text>
               <Text style={styles.dataText}>
-                Is Live: {livenessData.isLive ? 'Yes' : 'No'}
+                Is Live: {livenessData.isLive ? "Yes" : "No"}
               </Text>
             </View>
           </View>
@@ -246,7 +261,7 @@ export default function CameraLivenessTest() {
         {/* Controls Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Test Controls</Text>
-          
+
           <TouchableOpacity
             style={[styles.button, styles.primaryButton]}
             onPress={handleStartTest}
@@ -260,7 +275,9 @@ export default function CameraLivenessTest() {
             onPress={handleStopTest}
             disabled={!isLivenessActive}
           >
-            <Text style={[styles.buttonText, { color: '#374151' }]}>Stop Test</Text>
+            <Text style={[styles.buttonText, { color: "#374151" }]}>
+              Stop Test
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -306,34 +323,34 @@ export default function CameraLivenessTest() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
   },
   content: {
     flex: 1,
     padding: 16,
   },
   section: {
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#f9fafb',
+    fontWeight: "600",
+    color: "#f9fafb",
     marginBottom: 12,
   },
   statusGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   statusItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statusLabel: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: "#d1d5db",
     marginBottom: 8,
   },
   statusIndicator: {
@@ -342,77 +359,77 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   metricLabel: {
     fontSize: 16,
-    color: '#d1d5db',
+    color: "#d1d5db",
   },
   metricValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   blinkAlert: {
-    backgroundColor: '#10b981',
+    backgroundColor: "#10b981",
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   blinkText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   faceDataContainer: {
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
     padding: 12,
     borderRadius: 8,
   },
   faceDataText: {
     fontSize: 14,
-    color: '#e5e7eb',
+    color: "#e5e7eb",
     marginBottom: 4,
   },
   livenessDataContainer: {
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
     padding: 12,
     borderRadius: 8,
   },
   dataText: {
     fontSize: 14,
-    color: '#e5e7eb',
+    color: "#e5e7eb",
     marginBottom: 4,
   },
   button: {
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
   },
   primaryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
   },
   secondaryButton: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
   },
   warningButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: "#f59e0b",
   },
   dangerButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: "#ffffff",
   },
   instructionText: {
     fontSize: 14,
-    color: '#d1d5db',
+    color: "#d1d5db",
     marginBottom: 8,
     lineHeight: 20,
   },

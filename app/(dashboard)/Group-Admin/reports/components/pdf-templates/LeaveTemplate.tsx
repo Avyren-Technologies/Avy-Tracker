@@ -1,36 +1,41 @@
-import { generateBaseTemplate, TemplateOptions } from './BaseTemplate';
-import { LeaveAnalyticsData, LeaveTypeData, LeaveTypeBalance, EmployeeStat } from '../../../types';
+import { generateBaseTemplate, TemplateOptions } from "./BaseTemplate";
+import {
+  LeaveAnalyticsData,
+  LeaveTypeData,
+  LeaveTypeBalance,
+  EmployeeStat,
+} from "../../../types";
 
 // Helper to get color for leave types - fully dynamic approach
 const getLeaveTypeColor = (leaveType: string): string => {
   const type = leaveType.toLowerCase();
-  
+
   // Define color palette for common leave types
   const colorMap: Record<string, string> = {
-    casual: '#3B82F6',    // Blue
-    sick: '#EF4444',      // Red
-    annual: '#10B981',    // Green
-    privilege: '#10B981', // Green
-    pl: '#10B981',        // Green (Privilege Leave)
-    el: '#10B981',        // Green (Earned Leave)
-    sl: '#EF4444',        // Red (Sick Leave)
-    cl: '#3B82F6',        // Blue (Casual Leave)
-    maternity: '#EC4899', // Pink
-    paternity: '#8B5CF6', // Purple
-    marriage: '#8B5CF6',  // Purple
-    bereavement: '#6B7280', // Gray
-    public: '#F59E0B',    // Amber
-    holiday: '#F59E0B',   // Amber
-    compensatory: '#14B8A6', // Teal
-    comp: '#14B8A6',      // Teal
-    special: '#6366F1',   // Indigo
-    scl: '#6366F1',       // Indigo (Special Casual Leave)
-    sabbatical: '#7C3AED', // Violet
-    without: '#9CA3AF',   // Gray
-    lwp: '#9CA3AF',       // Gray (Leave Without Pay)
-    birthday: '#F97316',  // Orange
-    adoption: '#EC4899',  // Pink
-    child: '#A855F7',     // Purple
+    casual: "#3B82F6", // Blue
+    sick: "#EF4444", // Red
+    annual: "#10B981", // Green
+    privilege: "#10B981", // Green
+    pl: "#10B981", // Green (Privilege Leave)
+    el: "#10B981", // Green (Earned Leave)
+    sl: "#EF4444", // Red (Sick Leave)
+    cl: "#3B82F6", // Blue (Casual Leave)
+    maternity: "#EC4899", // Pink
+    paternity: "#8B5CF6", // Purple
+    marriage: "#8B5CF6", // Purple
+    bereavement: "#6B7280", // Gray
+    public: "#F59E0B", // Amber
+    holiday: "#F59E0B", // Amber
+    compensatory: "#14B8A6", // Teal
+    comp: "#14B8A6", // Teal
+    special: "#6366F1", // Indigo
+    scl: "#6366F1", // Indigo (Special Casual Leave)
+    sabbatical: "#7C3AED", // Violet
+    without: "#9CA3AF", // Gray
+    lwp: "#9CA3AF", // Gray (Leave Without Pay)
+    birthday: "#F97316", // Orange
+    adoption: "#EC4899", // Pink
+    child: "#A855F7", // Purple
   };
 
   // Find the first matching type in our map
@@ -39,27 +44,43 @@ const getLeaveTypeColor = (leaveType: string): string => {
       return color;
     }
   }
-  
+
   // Default - create a consistent color based on the leave type string
-  const hashCode = Array.from(type).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hashCode = Array.from(type).reduce(
+    (acc, char) => acc + char.charCodeAt(0),
+    0,
+  );
   const colors = [
-    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
-    '#EC4899', '#6366F1', '#64748B', '#14B8A6', '#F97316'
+    "#3B82F6",
+    "#EF4444",
+    "#10B981",
+    "#F59E0B",
+    "#8B5CF6",
+    "#EC4899",
+    "#6366F1",
+    "#64748B",
+    "#14B8A6",
+    "#F97316",
   ];
   return colors[hashCode % colors.length];
 };
 
-export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateOptions): string => {
-  console.log('Generating leave report with data structure:', {
+export const generateLeaveReport = (
+  data: LeaveAnalyticsData,
+  options: TemplateOptions,
+): string => {
+  console.log("Generating leave report with data structure:", {
     hasLeaveTypes: Array.isArray(data.leaveTypes),
     employeeStatsCount: data.employeeStats?.length || 0,
     hasBalances: !!data.balances,
-    hasMetrics: !!data.metrics
+    hasMetrics: !!data.metrics,
   });
 
   // Extract data from the analytics with safe fallbacks
-  const sortedLeaveTypes = [...(data.leaveTypes || [])].sort((a, b) => b.request_count - a.request_count);
-  
+  const sortedLeaveTypes = [...(data.leaveTypes || [])].sort(
+    (a, b) => b.request_count - a.request_count,
+  );
+
   // Calculate rejected counts (not directly available in the metrics)
   const metrics = data.metrics || {
     total_requests: 0,
@@ -67,46 +88,60 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
     pending_requests: 0,
     total_employees_on_leave: 0,
     approval_rate: 0,
-    total_leave_days: 0
+    total_leave_days: 0,
   };
-  
-  const rejectedCount = metrics.total_requests - 
-                      metrics.approved_requests - 
-                      metrics.pending_requests;
-  
+
+  const rejectedCount =
+    metrics.total_requests -
+    metrics.approved_requests -
+    metrics.pending_requests;
+
   // Group leave types for visualization purposes (optional)
   const groupLeavesByCategory = () => {
     // This is a dynamic approach that categorizes leave types based on analysis of their names
     // rather than hardcoding specific category mappings
-    
+
     const result: Record<string, LeaveTypeData[]> = {
-      'Regular': [],
-      'Special': [],
-      'Other': []
+      Regular: [],
+      Special: [],
+      Other: [],
     };
-    
+
     // Dynamically categorize leave types
-    (data.leaveTypes || []).forEach(lt => {
+    (data.leaveTypes || []).forEach((lt) => {
       const name = lt.leave_type.toLowerCase();
-      if (name.includes('casual') || name.includes('sick') || name.includes('annual') || 
-          name.includes('privilege') || name.includes('cl') || name.includes('sl') || 
-          name.includes('el') || name.includes('pl')) {
-        result['Regular'].push(lt);
-      } else if (name.includes('maternity') || name.includes('paternity') || 
-                name.includes('marriage') || name.includes('bereavement') || 
-                name.includes('sabbatical') || name.includes('child') || 
-                name.includes('adoption') || name.includes('special')) {
-        result['Special'].push(lt);
+      if (
+        name.includes("casual") ||
+        name.includes("sick") ||
+        name.includes("annual") ||
+        name.includes("privilege") ||
+        name.includes("cl") ||
+        name.includes("sl") ||
+        name.includes("el") ||
+        name.includes("pl")
+      ) {
+        result["Regular"].push(lt);
+      } else if (
+        name.includes("maternity") ||
+        name.includes("paternity") ||
+        name.includes("marriage") ||
+        name.includes("bereavement") ||
+        name.includes("sabbatical") ||
+        name.includes("child") ||
+        name.includes("adoption") ||
+        name.includes("special")
+      ) {
+        result["Special"].push(lt);
       } else {
-        result['Other'].push(lt);
+        result["Other"].push(lt);
       }
     });
-    
+
     return result;
   };
-  
+
   const groupedLeaves = groupLeavesByCategory();
-  
+
   const content = `
     <div class="summary-section">
       <h2>Leave Summary</h2>
@@ -162,10 +197,15 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
           </tr>
         </thead>
         <tbody>
-          ${sortedLeaveTypes.map(type => {
-            const percentage = metrics.total_requests > 0 ? 
-              Math.round((type.request_count / metrics.total_requests) * 100) : 0;
-            return `
+          ${sortedLeaveTypes
+            .map((type) => {
+              const percentage =
+                metrics.total_requests > 0
+                  ? Math.round(
+                      (type.request_count / metrics.total_requests) * 100,
+                    )
+                  : 0;
+              return `
               <tr>
                 <td>
                   <div style="display: flex; align-items: center;">
@@ -181,11 +221,14 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
                 <td>${percentage}%</td>
               </tr>
             `;
-          }).join('')}
+            })
+            .join("")}
         </tbody>
       </table>
 
-      ${data.monthlyTrend && data.monthlyTrend.length > 0 ? `
+      ${
+        data.monthlyTrend && data.monthlyTrend.length > 0
+          ? `
         <h2>Monthly Trend</h2>
         <table>
           <thead>
@@ -195,15 +238,21 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
             </tr>
           </thead>
           <tbody>
-            ${data.monthlyTrend.map(month => `
+            ${data.monthlyTrend
+              .map(
+                (month) => `
               <tr>
                 <td>${month.month}</td>
                 <td>${month.count}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
-      ` : ''}
+      `
+          : ""
+      }
 
       <h2>Employee Leave Statistics</h2>
       <table>
@@ -217,7 +266,9 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
           </tr>
         </thead>
         <tbody>
-          ${(data.employeeStats || []).map(emp => `
+          ${(data.employeeStats || [])
+            .map(
+              (emp) => `
             <tr>
               <td>${emp.employee_name}</td>
               <td>${emp.total_requests}</td>
@@ -225,11 +276,15 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
               <td>${emp.total_leave_days}</td>
               <td>${emp.leave_types}</td>
             </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
 
-      ${data.balances && data.balances.leave_types_balances ? `
+      ${
+        data.balances && data.balances.leave_types_balances
+          ? `
         <h2>Leave Balance Overview</h2>
         <div class="stats-grid">
           <div class="stat-box">
@@ -261,7 +316,9 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
             </tr>
           </thead>
           <tbody>
-            ${(data.balances.leave_types_balances || []).map((balance, index) => `
+            ${(data.balances.leave_types_balances || [])
+              .map(
+                (balance, index) => `
               <tr>
                 <td>
                   <div style="display: flex; align-items: center;">
@@ -273,17 +330,22 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
                 <td>${balance.total_used}</td>
                 <td>${balance.total_pending}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
-      ` : ''}
+      `
+          : ""
+      }
       
       <h2>Leave Categories</h2>
       
-      ${Object.entries(groupedLeaves).map(([category, leaves]) => {
-        if (leaves.length === 0) return '';
-        
-        return `
+      ${Object.entries(groupedLeaves)
+        .map(([category, leaves]) => {
+          if (leaves.length === 0) return "";
+
+          return `
           <h3>${category} Leave Types</h3>
           <table>
             <thead>
@@ -295,7 +357,9 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
               </tr>
             </thead>
             <tbody>
-              ${leaves.map(leave => `
+              ${leaves
+                .map(
+                  (leave) => `
                 <tr>
                   <td>
                     <div style="display: flex; align-items: center;">
@@ -307,20 +371,23 @@ export const generateLeaveReport = (data: LeaveAnalyticsData, options: TemplateO
                   <td>${leave.approved_count}</td>
                   <td>${leave.total_days}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
         `;
-      }).join('')}
+        })
+        .join("")}
     </div>
   `;
 
   return generateBaseTemplate({
-    title: 'Leave Analysis Report',
+    title: "Leave Analysis Report",
     date: new Date().toLocaleDateString(),
     content,
     theme: options.theme,
     companyInfo: options.companyInfo,
-    adminName: options.adminName
+    adminName: options.adminName,
   });
-}; 
+};

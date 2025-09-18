@@ -137,8 +137,8 @@ export default function Reports() {
                 selectedPeriod === period
                   ? "bg-blue-500"
                   : theme === "dark"
-                  ? "bg-gray-800"
-                  : "bg-white"
+                    ? "bg-gray-800"
+                    : "bg-white"
               }`}
               style={styles.periodButton}
             >
@@ -147,8 +147,8 @@ export default function Reports() {
                   selectedPeriod === period
                     ? "text-white"
                     : theme === "dark"
-                    ? "text-gray-300"
-                    : "text-gray-600"
+                      ? "text-gray-300"
+                      : "text-gray-600"
                 }`}
               >
                 {period}

@@ -1,6 +1,6 @@
-import { Server } from 'socket.io';
+import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/postgres-adapter";
-import { pool } from '../config/database';
+import { pool } from "../config/database";
 import { Location } from "../types/liveTracking";
 import { verifySocketToken } from "../utils/auth";
 import { LocationValidationService } from "./LocationValidationService";
@@ -51,7 +51,7 @@ class LocationSocketService {
   constructor(httpServer: any) {
     // Initialize services
     this.redis = new RedisManager(
-      process.env.REDIS_URL || "redis://localhost:6379"
+      process.env.REDIS_URL || "redis://localhost:6379",
     );
 
     // Set up a Redis health check and status monitor
@@ -138,7 +138,9 @@ class LocationSocketService {
 
   private setupEventHandlers() {
     this.io.on("connection", (socket) => {
-      console.log(`Socket connected: ${socket.id} - User: ${socket.data.user?.id} - Role: ${socket.data.user?.role}`);
+      console.log(
+        `Socket connected: ${socket.id} - User: ${socket.data.user?.id} - Role: ${socket.data.user?.role}`,
+      );
 
       // Join appropriate rooms based on user role
       this.handleRoomJoining(socket);
@@ -150,13 +152,17 @@ class LocationSocketService {
       socket.on("location:update", async (data: any) => {
         try {
           // Add more detailed logging
-          console.log(`Received location update from user ${socket.data.user?.id}`, {
-            coords: data.latitude && data.longitude 
-              ? `${data.latitude.toFixed(6)},${data.longitude.toFixed(6)}`
-              : 'Invalid coordinates',
-            timestamp: new Date().toISOString(),
-            eventName: "location:update"
-          });
+          console.log(
+            `Received location update from user ${socket.data.user?.id}`,
+            {
+              coords:
+                data.latitude && data.longitude
+                  ? `${data.latitude.toFixed(6)},${data.longitude.toFixed(6)}`
+                  : "Invalid coordinates",
+              timestamp: new Date().toISOString(),
+              eventName: "location:update",
+            },
+          );
 
           // Ensure data has the userId
           const locationUpdate: LocationUpdate = {
@@ -169,7 +175,7 @@ class LocationSocketService {
             error,
             "LocationUpdate",
             socket.data.user.id,
-            { locationData: data }
+            { locationData: data },
           );
           socket.emit("location:error", {
             message: error.message || "Failed to update location",
@@ -179,7 +185,7 @@ class LocationSocketService {
             await this.retryService.queueForRetry(
               socket.data.user.id,
               data,
-              error
+              error,
             );
           }
         }
@@ -188,10 +194,13 @@ class LocationSocketService {
       // Add a backup event name to handle any client misconfiguration
       socket.on("employee:location_update", async (data: any) => {
         try {
-          console.log(`Received location update via alternate event from user ${socket.data.user?.id}`, {
-            timestamp: new Date().toISOString(),
-            eventName: "employee:location_update"
-          });
+          console.log(
+            `Received location update via alternate event from user ${socket.data.user?.id}`,
+            {
+              timestamp: new Date().toISOString(),
+              eventName: "employee:location_update",
+            },
+          );
 
           // Forward to standard handler
           const locationUpdate: LocationUpdate = {
@@ -204,7 +213,7 @@ class LocationSocketService {
             error,
             "AlternateLocationUpdate",
             socket.data.user.id,
-            { locationData: data }
+            { locationData: data },
           );
         }
       });
@@ -219,20 +228,20 @@ class LocationSocketService {
               socket.data.user.role !== "Admin"
             ) {
               throw new Error(
-                "Unauthorized: Only Group Admins can subscribe to employee updates"
+                "Unauthorized: Only Group Admins can subscribe to employee updates",
               );
             }
 
             console.log(
               `Admin ${socket.data.user.id} subscribing to employees:`,
-              data.employeeIds
+              data.employeeIds,
             );
 
             // Validate that these employees belong to this admin
             const validEmployees =
               await this.groupAdminTracking.validateEmployeesForAdmin(
                 socket.data.user.id,
-                data.employeeIds
+                data.employeeIds,
               );
 
             if (validEmployees.length === 0) {
@@ -245,7 +254,7 @@ class LocationSocketService {
             // Subscribe to the employee updates
             await this.groupAdminTracking.subscribeToEmployeeUpdates(
               socket,
-              validEmployees
+              validEmployees,
             );
 
             socket.emit("admin:subscription_success", {
@@ -258,14 +267,14 @@ class LocationSocketService {
               error,
               "AdminSubscription",
               socket.data.user.id,
-              { employeeIds: data.employeeIds }
+              { employeeIds: data.employeeIds },
             );
             socket.emit("admin:subscription_error", {
               message:
                 error.message || "Failed to subscribe to employee updates",
             });
           }
-        }
+        },
       );
 
       // Handle group admin unsubscription from employee updates
@@ -278,19 +287,19 @@ class LocationSocketService {
               socket.data.user.role !== "Admin"
             ) {
               throw new Error(
-                "Unauthorized: Only Group Admins can unsubscribe from employee updates"
+                "Unauthorized: Only Group Admins can unsubscribe from employee updates",
               );
             }
 
             console.log(
               `Admin ${socket.data.user.id} unsubscribing from employees:`,
-              data.employeeIds
+              data.employeeIds,
             );
 
             // Unsubscribe from the employee updates
             await this.groupAdminTracking.unsubscribeFromEmployeeUpdates(
               socket,
-              data.employeeIds
+              data.employeeIds,
             );
 
             socket.emit("admin:unsubscription_success", {
@@ -302,14 +311,14 @@ class LocationSocketService {
               error,
               "AdminUnsubscription",
               socket.data.user.id,
-              { employeeIds: data.employeeIds }
+              { employeeIds: data.employeeIds },
             );
             socket.emit("admin:unsubscription_error", {
               message:
                 error.message || "Failed to unsubscribe from employee updates",
             });
           }
-        }
+        },
       );
 
       // Handle disconnection
@@ -322,7 +331,7 @@ class LocationSocketService {
       socket.on("location:get_failed", async () => {
         try {
           const failedUpdates = await this.retryService.getFailedUpdates(
-            socket.data.user.id
+            socket.data.user.id,
           );
           socket.emit("location:failed_updates", failedUpdates);
         } catch (error) {
@@ -339,7 +348,7 @@ class LocationSocketService {
         async (data: { batteryLevel: number; isCharging: boolean }) => {
           try {
             const lastLocation = await this.getLastLocation(
-              socket.data.user.id
+              socket.data.user.id,
             );
             const interval =
               await this.batteryOptimization.getOptimalUpdateInterval(
@@ -347,7 +356,7 @@ class LocationSocketService {
                 data.batteryLevel,
                 data.isCharging,
                 lastLocation?.speed || 0,
-                lastLocation?.isInGeofence || false
+                lastLocation?.isInGeofence || false,
               );
             socket.emit("location:update_interval", { interval });
           } catch (error) {
@@ -356,14 +365,14 @@ class LocationSocketService {
               message: "Failed to calculate update interval",
             });
           }
-        }
+        },
       );
     });
   }
 
   private async handleLocationUpdate(
     socket: any,
-    data: LocationUpdate
+    data: LocationUpdate,
   ): Promise<void> {
     try {
       // Log background updates more verbosely
@@ -377,7 +386,7 @@ class LocationSocketService {
             longitude: data.longitude,
             isBackground: true,
             timestamp: data.timestamp,
-          }
+          },
         );
       }
 
@@ -447,7 +456,7 @@ class LocationSocketService {
         // Use the correct signature for updateAnalytics
         await this.analyticsService.updateAnalytics(
           cleanedLocation,
-          Number(userId)
+          Number(userId),
         );
       } catch (analyticsError) {
         console.error("Error updating analytics:", analyticsError);
@@ -475,7 +484,7 @@ class LocationSocketService {
         error instanceof Error ? error : new Error(String(error)),
         "LocationUpdate",
         Number(socket.data?.user?.id || 0),
-        { location: data && typeof data === "object" ? data : {} }
+        { location: data && typeof data === "object" ? data : {} },
       );
 
       // Send error notification to client
@@ -489,7 +498,7 @@ class LocationSocketService {
 
   private async checkGeofence(
     userId: number,
-    location: Location
+    location: Location,
   ): Promise<any> {
     const result = await pool.query(
       `SELECT cg.id as geofence_id, 
@@ -501,7 +510,7 @@ class LocationSocketService {
              FROM company_geofences cg
              JOIN users u ON u.company_id = cg.company_id
              WHERE u.id = $3`,
-      [location.longitude, location.latitude, userId]
+      [location.longitude, location.latitude, userId],
     );
 
     if (!result.rows.length) {
@@ -513,7 +522,7 @@ class LocationSocketService {
       await this.geofenceHysteresis.validateGeofenceState(
         userId,
         geofence.geofence_id,
-        geofence.is_inside
+        geofence.is_inside,
       );
 
     return {
@@ -524,7 +533,7 @@ class LocationSocketService {
 
   private async processLocationUpdate(
     userId: number,
-    location: Location
+    location: Location,
   ): Promise<void> {
     try {
       console.log(`[Socket] Processing location update for user ${userId}`);
@@ -542,7 +551,7 @@ class LocationSocketService {
           location.batteryLevel,
           location.isMoving || false,
           location.is_tracking_active || false,
-        ]
+        ],
       );
 
       // Update the last known location in Redis
@@ -552,7 +561,7 @@ class LocationSocketService {
     } catch (error) {
       console.error(
         `[Socket] Error processing location update for user ${userId}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -560,7 +569,7 @@ class LocationSocketService {
 
   private async updateLastLocation(
     userId: number,
-    location: any
+    location: any,
   ): Promise<void> {
     try {
       // Add timestamp for when this was saved
@@ -584,7 +593,7 @@ class LocationSocketService {
       }
 
       console.log(
-        `Location updated in Redis for user ${userId} with ${keyFormats.length} key formats`
+        `Location updated in Redis for user ${userId} with ${keyFormats.length} key formats`,
       );
 
       // Publish an update event that the admin socket can listen for
@@ -603,7 +612,7 @@ class LocationSocketService {
 
   private async broadcastLocationUpdate(
     socket: any,
-    location: Location
+    location: Location,
   ): Promise<void> {
     try {
       const userId = socket.data.user.id;
@@ -627,7 +636,7 @@ class LocationSocketService {
                LIMIT 1
              ) el ON true
              WHERE u.id = $1`,
-        [userId]
+        [userId],
       );
 
       if (userResult.rows.length > 0) {
@@ -648,7 +657,7 @@ class LocationSocketService {
                AND is_active = true
                ORDER BY last_used_at DESC
                LIMIT 1`,
-          [userId]
+          [userId],
         );
 
         const deviceInfo =
@@ -692,35 +701,46 @@ class LocationSocketService {
 
         // Get list of subscribers for this employee
         const subscribers = await this.getEmployeeSubscribers(userId);
-        
+
         // Log detailed information about the broadcast
         console.log(`Broadcasting location for employee ${userId} to:`, {
           adminCount: subscribers.length,
-          roomCount: this.io.sockets.adapter.rooms.get(`employee:${userId}`)?.size || 0,
+          roomCount:
+            this.io.sockets.adapter.rooms.get(`employee:${userId}`)?.size || 0,
           batteryLevel: location.batteryLevel,
           isMoving: location.isMoving,
           trackingActive: location.is_tracking_active,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         // Broadcast to all relevant rooms using SAME EVENT NAME to ensure consistency
-        
+
         // 1. Broadcast to employee's own room for immediate UI updates
-        this.io.to(`employee:${userId}`).emit("employee:location_update", employeeLocationData);
+        this.io
+          .to(`employee:${userId}`)
+          .emit("employee:location_update", employeeLocationData);
 
         // 2. Broadcast to group admin specific room for this employee
         // NOTE: This is the key event that needs to match the admin subscription
-        this.io.to(`employee:${userId}`).emit("employee:location_update", employeeLocationData);
+        this.io
+          .to(`employee:${userId}`)
+          .emit("employee:location_update", employeeLocationData);
 
         // 3. Broadcast to group admin room if available
         if (user.group_admin_id) {
-          this.io.to(`admin:${user.group_admin_id}`).emit("employee:location_update", employeeLocationData);
-          this.io.to(`group-admin:${user.group_admin_id}`).emit("employee:location_update", employeeLocationData);
+          this.io
+            .to(`admin:${user.group_admin_id}`)
+            .emit("employee:location_update", employeeLocationData);
+          this.io
+            .to(`group-admin:${user.group_admin_id}`)
+            .emit("employee:location_update", employeeLocationData);
         }
 
         // 4. Broadcast to company room if available
         if (user.company_id) {
-          this.io.to(`company:${user.company_id}`).emit("employee:location_update", employeeLocationData);
+          this.io
+            .to(`company:${user.company_id}`)
+            .emit("employee:location_update", employeeLocationData);
         }
 
         // Cache in Redis with TTL
@@ -746,7 +766,7 @@ class LocationSocketService {
           await this.redis.set(
             key,
             JSON.stringify(locationData),
-            300 // 5 minute TTL
+            300, // 5 minute TTL
           );
         }
 
@@ -754,32 +774,43 @@ class LocationSocketService {
       }
     } catch (error) {
       console.error("Error broadcasting location update:", error);
-      
+
       // Don't throw error to prevent breaking the app flow
       // Instead, log to error monitoring and continue
       this.errorLogger.logError(
-        error instanceof Error ? error : new Error(String(error)), 
-        "BroadcastLocation", 
-        socket?.data?.user?.id
+        error instanceof Error ? error : new Error(String(error)),
+        "BroadcastLocation",
+        socket?.data?.user?.id,
       );
     }
   }
 
-  private async handleLeaveNotification(userId: number, event: string, data: LeaveNotification) {
+  private async handleLeaveNotification(
+    userId: number,
+    event: string,
+    data: LeaveNotification,
+  ) {
     try {
       // Get user's socket
       const sockets = await this.io.in(`user:${userId}`).fetchSockets();
-      
+
       // Emit to all user's sockets
       for (const socket of sockets) {
         socket.emit(event, data);
       }
     } catch (error) {
-      console.error(`Error sending leave notification to user ${userId}:`, error);
+      console.error(
+        `Error sending leave notification to user ${userId}:`,
+        error,
+      );
     }
   }
 
-  public async emitToUser(userId: number, event: string, data: LeaveNotification) {
+  public async emitToUser(
+    userId: number,
+    event: string,
+    data: LeaveNotification,
+  ) {
     await this.handleLeaveNotification(userId, event, data);
   }
 
@@ -791,12 +822,12 @@ class LocationSocketService {
     socket.join(`role:${socket.data.user.role.toLowerCase()}`);
 
     // If group admin, join company room
-    if (socket.data.user.role === 'group_admin') {
+    if (socket.data.user.role === "group_admin") {
       socket.join(`company:${socket.data.user.company_id}`);
     }
 
     // If management, join company room
-    if (socket.data.user.role === 'management') {
+    if (socket.data.user.role === "management") {
       socket.join(`company:${socket.data.user.company_id}`);
     }
   }
@@ -812,12 +843,12 @@ class LocationSocketService {
       if (role === "group_admin") {
         const employees = await pool.query(
           "SELECT id FROM users WHERE group_admin_id = $1",
-          [socket.data.user.id]
+          [socket.data.user.id],
         );
         const employeeIds = employees.rows.map((emp) => emp.id);
         await this.groupAdminTracking.unsubscribeFromEmployeeUpdates(
           socket,
-          employeeIds
+          employeeIds,
         );
       }
 
@@ -831,7 +862,7 @@ class LocationSocketService {
         error,
         "SocketDisconnect",
         socket.data.user.id,
-        { role: socket.data.user.role }
+        { role: socket.data.user.role },
       );
       console.error("Error handling socket disconnection:", error);
     }
@@ -862,12 +893,12 @@ class LocationSocketService {
         // Get employees under this admin
         const employees = await pool.query(
           "SELECT id FROM users WHERE group_admin_id = $1",
-          [userId]
+          [userId],
         );
         const employeeIds = employees.rows.map((emp) => emp.id);
         await this.groupAdminTracking.subscribeToEmployeeUpdates(
           socket,
-          employeeIds
+          employeeIds,
         );
       }
 
@@ -880,7 +911,7 @@ class LocationSocketService {
 
   async handleShiftStart(
     socket: any,
-    data: { latitude: number; longitude: number }
+    data: { latitude: number; longitude: number },
   ): Promise<void> {
     try {
       const userId = socket.user.id;
@@ -898,14 +929,14 @@ class LocationSocketService {
 
   async handleShiftEnd(
     socket: any,
-    data: { latitude: number; longitude: number }
+    data: { latitude: number; longitude: number },
   ): Promise<void> {
     try {
       const userId = socket.user.id;
       const shiftData = await this.shiftService.endShift(
         userId,
         data.latitude,
-        data.longitude
+        data.longitude,
       );
       socket.emit("shiftEnded", { success: true, data: shiftData });
     } catch (error: any) {
@@ -927,7 +958,7 @@ class LocationSocketService {
           u.company_id
         FROM users u
         WHERE u.id = $1`,
-        [employeeId]
+        [employeeId],
       );
 
       if (userResult.rows.length === 0) {
@@ -952,7 +983,7 @@ class LocationSocketService {
         `SELECT id FROM users 
          WHERE (role = 'Admin' OR role = 'SuperAdmin')
          AND (company_id = $1 OR role = 'SuperAdmin')`,
-        [company_id]
+        [company_id],
       );
 
       // Add admin IDs
@@ -960,7 +991,9 @@ class LocationSocketService {
         subscribers.push(row.id);
       }
 
-      console.log(`Found ${subscribers.length} subscribers for employee ${employeeId}`);
+      console.log(
+        `Found ${subscribers.length} subscribers for employee ${employeeId}`,
+      );
       return subscribers;
     } catch (error) {
       console.error(`Error getting employee subscribers:`, error);
@@ -969,4 +1002,4 @@ class LocationSocketService {
   }
 }
 
-export default LocationSocketService; 
+export default LocationSocketService;

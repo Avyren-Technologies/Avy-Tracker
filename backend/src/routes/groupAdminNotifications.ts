@@ -13,17 +13,19 @@ router.use(verifyToken);
 const ensureGroupAdmin = (
   req: CustomRequest,
   res: Response,
-  next: Function
+  next: Function,
 ) => {
   if (!req.user?.id) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
   if (req.user.role !== "group-admin") {
-    console.log(`Access denied: User role ${req.user.role} attempted to access group-admin endpoint`);
-    return res.status(403).json({ 
+    console.log(
+      `Access denied: User role ${req.user.role} attempted to access group-admin endpoint`,
+    );
+    return res.status(403).json({
       error: "Access restricted to group admins",
-      details: `Your role (${req.user.role}) does not have permission to access this resource`
+      details: `Your role (${req.user.role}) does not have permission to access this resource`,
     });
   }
   next();
@@ -41,7 +43,7 @@ router.get("/", async (req: CustomRequest, res: Response) => {
       req.user!.id,
       "group-admin",
       limit,
-      offset
+      offset,
     );
 
     res.json(notifications);
@@ -79,7 +81,7 @@ router.post("/send-group", async (req: CustomRequest, res: Response) => {
         type,
         priority: "high",
         data: { screen: "/(dashboard)/employee/notifications" },
-      }
+      },
     );
 
     res.json({ success: true });
@@ -111,7 +113,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
         `SELECT id, user_id, read 
          FROM notifications 
          WHERE id = $1 AND user_id = $2`,
-        [notificationId, userId]
+        [notificationId, userId],
       );
 
       // Then check in push_notifications table
@@ -119,7 +121,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
         `SELECT id, user_id, sent 
          FROM push_notifications 
          WHERE id = $1 AND user_id = $2`,
-        [notificationId, userId]
+        [notificationId, userId],
       );
 
       console.log("[MarkAsRead] Search results:", {
@@ -135,12 +137,12 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
            SET read = true 
            WHERE id = $1 AND user_id = $2 
            RETURNING id, user_id, title, message, type, read, created_at`,
-          [notificationId, userId]
+          [notificationId, userId],
         );
 
         console.log(
           "[MarkAsRead] In-app notification marked as read:",
-          updateResult.rows[0]
+          updateResult.rows[0],
         );
         return res.json(updateResult.rows[0]);
       }
@@ -161,12 +163,12 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
            FROM push_notifications 
            WHERE id = $1 AND user_id = $2
            RETURNING id, user_id, title, message, type, read, created_at`,
-          [notificationId, userId]
+          [notificationId, userId],
         );
 
         console.log(
           "[MarkAsRead] Push notification marked as read:",
-          createInAppResult.rows[0]
+          createInAppResult.rows[0],
         );
         return res.json(createInAppResult.rows[0]);
       }
@@ -193,7 +195,7 @@ router.put("/:id/read", async (req: CustomRequest, res: Response) => {
 router.get("/unread-count", async (req: CustomRequest, res: Response) => {
   try {
     const count = await NotificationService.getUnreadNotificationCount(
-      req.user!.id
+      req.user!.id,
     );
     res.json({ count });
   } catch (error) {
@@ -218,7 +220,7 @@ router.post("/register-device", async (req: CustomRequest, res: Response) => {
       req.user!.id.toString(),
       token,
       deviceType || "unknown",
-      deviceName || "unknown"
+      deviceName || "unknown",
     );
 
     res.json({ success: true, device: result.rows[0] });
@@ -244,7 +246,7 @@ router.delete(
 
       await NotificationService.removeDeviceToken(
         req.user!.id.toString(),
-        token
+        token,
       );
       res.json({ success: true });
     } catch (error) {
@@ -254,7 +256,7 @@ router.delete(
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  }
+  },
 );
 
 // Test notification endpoint for group-admin
@@ -276,7 +278,7 @@ router.post("/test", async (req: CustomRequest, res: Response) => {
         priority: "high",
         data: { screen: "/(dashboard)/Group-Admin/notifications" },
       },
-      [req.user!.id.toString()]
+      [req.user!.id.toString()],
     );
 
     res.json({ success: true });
@@ -289,180 +291,197 @@ router.post("/test", async (req: CustomRequest, res: Response) => {
   }
 });
 
-
 // Send notification for task assignment
-router.post("/notify-task-assignment", async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { employeeId, taskDetails } = req.body;
+router.post(
+  "/notify-task-assignment",
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { employeeId, taskDetails } = req.body;
 
-    if (!employeeId || !taskDetails) {
-      return res.status(400).json({ error: "Missing required parameters" });
-    }
+      if (!employeeId || !taskDetails) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
 
-    // Determine if this is a reassignment
-    const isReassignment = taskDetails.isReassignment;
-    const titlePrefix = isReassignment ? '🔄 Task Reassigned' : '📋 New Task Assigned';
-    
-    // Use formatted due date if provided, otherwise format it
-    const dueDateDisplay = taskDetails.formattedDueDate || 
-      (taskDetails.dueDate ? new Date(taskDetails.dueDate).toLocaleDateString() : 'Not set');
-    
-    const title = titlePrefix;
-    const message = `${isReassignment ? 'You have been reassigned a task' : 'You have been assigned a new task'}.\n\n` +
-      `📌 Task: ${taskDetails.title}\n` +
-      `📝 Description: ${taskDetails.description}\n` +
-      `⚡ Priority: ${taskDetails.priority.toUpperCase()}\n` +
-      `📅 Due Date: ${dueDateDisplay}\n` +
-      `\n🔔 Please review and start working on this task.`;
+      // Determine if this is a reassignment
+      const isReassignment = taskDetails.isReassignment;
+      const titlePrefix = isReassignment
+        ? "🔄 Task Reassigned"
+        : "📋 New Task Assigned";
 
-    // Store notification in database first
-    const notificationData = {
-      screen: "/(dashboard)/employee/employee",
-      isReassignment,
-      taskId: taskDetails.taskId
-    };
+      // Use formatted due date if provided, otherwise format it
+      const dueDateDisplay =
+        taskDetails.formattedDueDate ||
+        (taskDetails.dueDate
+          ? new Date(taskDetails.dueDate).toLocaleDateString()
+          : "Not set");
 
-    const insertResult = await client.query(
-      `INSERT INTO push_notifications 
+      const title = titlePrefix;
+      const message =
+        `${isReassignment ? "You have been reassigned a task" : "You have been assigned a new task"}.\n\n` +
+        `📌 Task: ${taskDetails.title}\n` +
+        `📝 Description: ${taskDetails.description}\n` +
+        `⚡ Priority: ${taskDetails.priority.toUpperCase()}\n` +
+        `📅 Due Date: ${dueDateDisplay}\n` +
+        `\n🔔 Please review and start working on this task.`;
+
+      // Store notification in database first
+      const notificationData = {
+        screen: "/(dashboard)/employee/employee",
+        isReassignment,
+        taskId: taskDetails.taskId,
+      };
+
+      const insertResult = await client.query(
+        `INSERT INTO push_notifications 
        (user_id, title, message, type, priority, data, sent, sent_at, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [
-        employeeId,
-        title,
-        message,
-        "task-assignment",
-        "high",
-        JSON.stringify(notificationData)
-      ]
-    );
+        [
+          employeeId,
+          title,
+          message,
+          "task-assignment",
+          "high",
+          JSON.stringify(notificationData),
+        ],
+      );
 
-    // Send push notification with the database ID
-    await NotificationService.sendPushNotification(
-      {
-        id: insertResult.rows[0].id,
-        user_id: employeeId.toString(),
-        title,
-        message,
-        type: "task-assignment",
-        priority: "high",
-        data: notificationData,
-      },
-      [employeeId.toString()]
-    );
+      // Send push notification with the database ID
+      await NotificationService.sendPushNotification(
+        {
+          id: insertResult.rows[0].id,
+          user_id: employeeId.toString(),
+          title,
+          message,
+          type: "task-assignment",
+          priority: "high",
+          data: notificationData,
+        },
+        [employeeId.toString()],
+      );
 
-    await client.query('COMMIT');
-    res.json({ success: true, notificationId: insertResult.rows[0].id });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error("Error sending task assignment notification:", error);
-    res.status(500).json({
-      error: "Failed to send notification",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  } finally {
-    client.release();
-  }
-});
+      await client.query("COMMIT");
+      res.json({ success: true, notificationId: insertResult.rows[0].id });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error sending task assignment notification:", error);
+      res.status(500).json({
+        error: "Failed to send notification",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Send notification for leave request status update
-router.post("/notify-leave-status", async (req: CustomRequest, res: Response) => {
-  const client = await pool.connect();
-  try {
-    const { employeeId, status, leaveDetails, reason } = req.body;
+router.post(
+  "/notify-leave-status",
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { employeeId, status, leaveDetails, reason } = req.body;
 
-    if (!employeeId || !status || !leaveDetails) {
-      return res.status(400).json({ error: "Missing required parameters" });
-    }
+      if (!employeeId || !status || !leaveDetails) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
 
-    const statusEmoji = status === 'approved' ? '✅' : status === 'rejected' ? '❌' : '⏫';
-    const title = `${statusEmoji} Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`;
-    
-    const message = `Your leave request has been ${status}.\n\n` +
-      `📅 Period: ${new Date(leaveDetails.start_date).toLocaleDateString()} to ${new Date(leaveDetails.end_date).toLocaleDateString()}\n` +
-      `📝 Type: ${leaveDetails.leave_type_name}\n` +
-      `⏱️ Duration: ${leaveDetails.days_requested} day(s)\n` +
-      (reason ? `\n📋 Reason: ${reason}` : '');
+      const statusEmoji =
+        status === "approved" ? "✅" : status === "rejected" ? "❌" : "⏫";
+      const title = `${statusEmoji} Leave Request ${status.charAt(0).toUpperCase() + status.slice(1)}`;
 
-    const notificationData = { 
-      screen: "/(dashboard)/employee/leave-insights",
-      leaveId: leaveDetails.id,
-      status
-    };
+      const message =
+        `Your leave request has been ${status}.\n\n` +
+        `📅 Period: ${new Date(leaveDetails.start_date).toLocaleDateString()} to ${new Date(leaveDetails.end_date).toLocaleDateString()}\n` +
+        `📝 Type: ${leaveDetails.leave_type_name}\n` +
+        `⏱️ Duration: ${leaveDetails.days_requested} day(s)\n` +
+        (reason ? `\n📋 Reason: ${reason}` : "");
 
-    // Store notification in database first
-    const insertResult = await client.query(
-      `INSERT INTO push_notifications 
+      const notificationData = {
+        screen: "/(dashboard)/employee/leave-insights",
+        leaveId: leaveDetails.id,
+        status,
+      };
+
+      // Store notification in database first
+      const insertResult = await client.query(
+        `INSERT INTO push_notifications 
        (user_id, title, message, type, priority, data, sent, sent_at, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [
-        employeeId,
-        title,
-        message,
-        "leave-status",
-        "high",
-        JSON.stringify(notificationData)
-      ]
-    );
+        [
+          employeeId,
+          title,
+          message,
+          "leave-status",
+          "high",
+          JSON.stringify(notificationData),
+        ],
+      );
 
-    // Send push notification with the database ID
-    await NotificationService.sendPushNotification(
-      {
-        id: insertResult.rows[0].id,
-        user_id: employeeId.toString(),
-        title,
-        message,
-        type: "leave-status",
-        priority: "high",
-        data: notificationData,
-      },
-      [employeeId.toString()]
-    );
+      // Send push notification with the database ID
+      await NotificationService.sendPushNotification(
+        {
+          id: insertResult.rows[0].id,
+          user_id: employeeId.toString(),
+          title,
+          message,
+          type: "leave-status",
+          priority: "high",
+          data: notificationData,
+        },
+        [employeeId.toString()],
+      );
 
-    await client.query('COMMIT');
-    res.json({ success: true, notificationId: insertResult.rows[0].id });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error("Error sending leave status notification:", error);
-    res.status(500).json({
-      error: "Failed to send notification",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  } finally {
-    client.release();
-  }
-});
+      await client.query("COMMIT");
+      res.json({ success: true, notificationId: insertResult.rows[0].id });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error sending leave status notification:", error);
+      res.status(500).json({
+        error: "Failed to send notification",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // Send notification to management
 router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
   const client = await pool.connect();
   try {
-    console.log('[GroupAdmin Notification] Starting notification process');
-    console.log('[GroupAdmin Notification] User:', req.user);
+    console.log("[GroupAdmin Notification] Starting notification process");
+    console.log("[GroupAdmin Notification] User:", req.user);
 
     if (!req.user?.id) {
-      console.log('[GroupAdmin Notification] Error: No user ID');
+      console.log("[GroupAdmin Notification] Error: No user ID");
       return res.status(401).json({ error: "Authentication required" });
     }
 
     // Verify the user is a group admin
     const userCheck = await client.query(
       "SELECT role, company_id FROM users WHERE id = $1 AND role = 'group-admin'",
-      [req.user.id]
+      [req.user.id],
     );
 
     if (!userCheck.rows.length) {
-      console.log('[GroupAdmin Notification] Error: User is not a group admin');
-      return res.status(403).json({ error: "Access restricted to group admins" });
+      console.log("[GroupAdmin Notification] Error: User is not a group admin");
+      return res
+        .status(403)
+        .json({ error: "Access restricted to group admins" });
     }
 
     const { title, message, type = "group-admin-update" } = req.body;
-    console.log('[GroupAdmin Notification] Payload:', { title, message, type });
+    console.log("[GroupAdmin Notification] Payload:", { title, message, type });
 
     if (!title || !message) {
-      console.log('[GroupAdmin Notification] Error: Missing required parameters');
+      console.log(
+        "[GroupAdmin Notification] Error: Missing required parameters",
+      );
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
@@ -471,16 +490,19 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
     // Get the management user for this company
     const managementResult = await client.query(
       "SELECT id, name FROM users WHERE company_id = $1 AND role = 'management'",
-      [companyId]
+      [companyId],
     );
 
     if (!managementResult.rows.length) {
-      console.log('[GroupAdmin Notification] Error: No management user found for company:', companyId);
+      console.log(
+        "[GroupAdmin Notification] Error: No management user found for company:",
+        companyId,
+      );
       return res.status(400).json({ error: "No management user found" });
     }
 
     const managementId = managementResult.rows[0].id;
-    console.log('[GroupAdmin Notification] Found management ID:', managementId);
+    console.log("[GroupAdmin Notification] Found management ID:", managementId);
 
     // Create push notification with correct schema
     const pushNotifResult = await client.query(
@@ -498,12 +520,15 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
           screen: "/(dashboard)/management/notifications",
           groupAdminId: req.user.id,
           groupAdminName: req.user.name,
-          companyId: companyId
+          companyId: companyId,
         }),
-      ]
+      ],
     );
 
-    console.log('[GroupAdmin Notification] Created push notification:', pushNotifResult.rows[0]);
+    console.log(
+      "[GroupAdmin Notification] Created push notification:",
+      pushNotifResult.rows[0],
+    );
 
     // Send push notification
     await NotificationService.sendPushNotification(
@@ -518,10 +543,10 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
           screen: "/(dashboard)/management/notifications",
           groupAdminId: req.user.id,
           groupAdminName: req.user.name,
-          companyId: companyId
+          companyId: companyId,
         },
       },
-      [managementId.toString()]
+      [managementId.toString()],
     );
 
     // Create in-app notification
@@ -529,21 +554,15 @@ router.post("/notify-admin", async (req: CustomRequest, res: Response) => {
       `INSERT INTO notifications 
        (user_id, title, message, type, read, created_at) 
        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-      [
-        managementId,
-        title,
-        message,
-        type,
-        false
-      ]
+      [managementId, title, message, type, false],
     );
 
-    console.log('[GroupAdmin Notification] Successfully created notifications');
-    await client.query('COMMIT');
+    console.log("[GroupAdmin Notification] Successfully created notifications");
+    await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('[GroupAdmin Notification] Error:', error);
+    await client.query("ROLLBACK");
+    console.error("[GroupAdmin Notification] Error:", error);
     res.status(500).json({
       error: "Failed to send notification",
       details: error instanceof Error ? error.message : "Unknown error",
@@ -563,7 +582,7 @@ router.get("/users", async (req: CustomRequest, res: Response) => {
       // First get the company_id and group_id of the current group-admin
       const adminResult = await client.query(
         `SELECT company_id FROM users WHERE id = $1`,
-        [currentUserId]
+        [currentUserId],
       );
 
       if (!adminResult.rows[0]?.company_id) {
@@ -581,18 +600,18 @@ router.get("/users", async (req: CustomRequest, res: Response) => {
          AND role = 'employee'
          AND id != $3
          ORDER BY name`,
-        [company_id, currentUserId, currentUserId]
+        [company_id, currentUserId, currentUserId],
       );
 
       // Group users by role (in this case, only employees)
       const groupedUsers = {
-        employee: result.rows.map(user => ({
+        employee: result.rows.map((user) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          employee_number: user.employee_number
-        }))
+          employee_number: user.employee_number,
+        })),
       };
 
       res.json(groupedUsers);
@@ -636,7 +655,7 @@ router.post("/send-users", async (req: CustomRequest, res: Response) => {
 
     await NotificationService.sendPushNotification(
       notification,
-      userIds.map(String)
+      userIds.map(String),
     );
     res.json({ success: true });
   } catch (error) {

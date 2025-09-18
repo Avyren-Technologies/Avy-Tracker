@@ -1,17 +1,17 @@
-import * as TaskManager from 'expo-task-manager';
-import * as Location from 'expo-location';
-import * as Battery from 'expo-battery';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Location as LocationType } from '../types/liveTracking';
-import axios from 'axios';
+import * as TaskManager from "expo-task-manager";
+import * as Location from "expo-location";
+import * as Battery from "expo-battery";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Location as LocationType } from "../types/liveTracking";
+import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import * as Network from "expo-network";
 import io from "socket.io-client";
 import { Alert, AppState, Platform } from "react-native";
-import { TrackingStatus } from '../types/liveTracking';
-import { createEnhancedLocation } from './locationUtils';
-import EventEmitter from './EventEmitter';
-import Constants from 'expo-constants';
+import { TrackingStatus } from "../types/liveTracking";
+import { createEnhancedLocation } from "./locationUtils";
+import EventEmitter from "./EventEmitter";
+import Constants from "expo-constants";
 
 // Task name for background location updates
 export const BACKGROUND_LOCATION_TASK = "background-location-tracking";
@@ -37,47 +37,47 @@ const RETRY_DELAY_MS = 2000; // 2 seconds
 
 // Add these constants near the top of the file with other constants
 const HEALTH_CHECK_INTERVAL = 15 * 60 * 1000; // 15 minutes
-const LAST_HEALTH_CHECK_KEY = 'last_location_health_check';
+const LAST_HEALTH_CHECK_KEY = "last_location_health_check";
 const HEALTH_CHECK_THRESHOLD = 30 * 60 * 1000; // 30 minutes - if no updates for this long, restart tracking
-const TRACKING_RESTART_ATTEMPTS_KEY = 'tracking_restart_attempts';
+const TRACKING_RESTART_ATTEMPTS_KEY = "tracking_restart_attempts";
 const MAX_RESTART_ATTEMPTS = 3; // Maximum number of auto-restart attempts within RESTART_PERIOD
 const RESTART_PERIOD = 24 * 60 * 60 * 1000; // 24 hours - reset restart counter after this period
 let healthCheckTimer: NodeJS.Timeout | null = null;
 
 // Add these additional constants for adaptive tracking
-const BATTERY_ADAPTIVE_TRACKING_KEY = 'battery_adaptive_tracking';
-const ACTIVITY_ADAPTIVE_TRACKING_KEY = 'activity_adaptive_tracking';
-const STATIONARY_ADAPTIVE_TRACKING_KEY = 'stationary_adaptive_tracking';
+const BATTERY_ADAPTIVE_TRACKING_KEY = "battery_adaptive_tracking";
+const ACTIVITY_ADAPTIVE_TRACKING_KEY = "activity_adaptive_tracking";
+const STATIONARY_ADAPTIVE_TRACKING_KEY = "stationary_adaptive_tracking";
 
 // Battery level thresholds for adaptive tracking
 const BATTERY_CRITICAL = 15; // 15% - critical battery level
-const BATTERY_LOW = 30;      // 30% - low battery level
-const BATTERY_MEDIUM = 50;   // 50% - medium battery level
+const BATTERY_LOW = 30; // 30% - low battery level
+const BATTERY_MEDIUM = 50; // 50% - medium battery level
 
 // Update intervals based on battery level (in milliseconds)
-const INTERVAL_BATTERY_CRITICAL = 5 * 60 * 1000;  // 5 minutes
-const INTERVAL_BATTERY_LOW = 2 * 60 * 1000;       // 2 minutes
-const INTERVAL_BATTERY_MEDIUM = 60 * 1000;        // 1 minute
-const INTERVAL_BATTERY_HIGH = 30 * 1000;          // 30 seconds
+const INTERVAL_BATTERY_CRITICAL = 5 * 60 * 1000; // 5 minutes
+const INTERVAL_BATTERY_LOW = 2 * 60 * 1000; // 2 minutes
+const INTERVAL_BATTERY_MEDIUM = 60 * 1000; // 1 minute
+const INTERVAL_BATTERY_HIGH = 30 * 1000; // 30 seconds
 
 // Update intervals based on activity (in milliseconds)
-const INTERVAL_STATIONARY = 3 * 60 * 1000;        // 3 minutes
-const INTERVAL_WALKING = 45 * 1000;               // 45 seconds
-const INTERVAL_RUNNING = 30 * 1000;               // 30 seconds
-const INTERVAL_AUTOMOTIVE = 20 * 1000;            // 20 seconds
+const INTERVAL_STATIONARY = 3 * 60 * 1000; // 3 minutes
+const INTERVAL_WALKING = 45 * 1000; // 45 seconds
+const INTERVAL_RUNNING = 30 * 1000; // 30 seconds
+const INTERVAL_AUTOMOTIVE = 20 * 1000; // 20 seconds
 
 // Movement detection thresholds
-const MOVEMENT_SIGNIFICANT = 20;  // 20 meters
-const MOVEMENT_MINIMAL = 5;       // 5 meters
+const MOVEMENT_SIGNIFICANT = 20; // 20 meters
+const MOVEMENT_MINIMAL = 5; // 5 meters
 
 // Stationary detection
-const STATIONARY_TIMEOUT = 5 * 60 * 1000;  // 5 minutes without significant movement
-const LAST_SIGNIFICANT_MOVEMENT_KEY = 'last_significant_movement';
+const STATIONARY_TIMEOUT = 5 * 60 * 1000; // 5 minutes without significant movement
+const LAST_SIGNIFICANT_MOVEMENT_KEY = "last_significant_movement";
 
 // Add these constants
 const MEMORY_CHECK_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const LOCATION_CACHE_SIZE = 100; // Maximum number of locations to store in memory
-const LOCATION_HISTORY_KEY = 'location_history';
+const LOCATION_HISTORY_KEY = "location_history";
 let memoryCheckTimer: NodeJS.Timeout | null = null;
 let locationCache: any[] = [];
 
@@ -89,11 +89,14 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     console.error("Background location task error:", error);
     // Log the error but don't terminate the task
     try {
-      await AsyncStorage.setItem('lastTrackingError', JSON.stringify({
-        message: error.message || 'Unknown error',
-        timestamp: new Date().toISOString(),
-        type: 'task_error'
-      }));
+      await AsyncStorage.setItem(
+        "lastTrackingError",
+        JSON.stringify({
+          message: error.message || "Unknown error",
+          timestamp: new Date().toISOString(),
+          type: "task_error",
+        }),
+      );
     } catch (storageError) {
       console.error("Error storing tracking error:", storageError);
     }
@@ -114,35 +117,35 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     }
 
     console.log(
-      `Background location update received (${locations.length} locations)`
+      `Background location update received (${locations.length} locations)`,
     );
 
     const location = locations[0];
-    
+
     // Update movement status for adaptive tracking
     await updateMovementStatus(location);
-    
+
     const { coords, timestamp } = location;
 
     // Log basic location data for debugging
     console.log(
-      `Location data: ${coords.latitude}, ${coords.longitude}, accuracy: ${coords.accuracy}m`
+      `Location data: ${coords.latitude}, ${coords.longitude}, accuracy: ${coords.accuracy}m`,
     );
 
     // RATE LIMITING: Check if enough time has passed since the last update
     const now = Date.now();
     const lastUpdateTimeStr = await AsyncStorage.getItem(LAST_UPDATE_TIME_KEY);
     const lastUpdateTime = lastUpdateTimeStr ? parseInt(lastUpdateTimeStr) : 0;
-    
-    // Ensure we don't update too frequently, but also make sure we don't drop 
+
+    // Ensure we don't update too frequently, but also make sure we don't drop
     // updates if it has been too long
     const timeSinceLastUpdate = now - lastUpdateTime;
-    
+
     if (timeSinceLastUpdate < MIN_UPDATE_INTERVAL) {
       console.log(
         `Rate limiting - skipping update (${Math.round(
-          timeSinceLastUpdate / 1000
-        )}s since last update)`
+          timeSinceLastUpdate / 1000,
+        )}s since last update)`,
       );
 
       // Only store significant location changes to prevent queue bloat
@@ -154,22 +157,22 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
           coords.latitude,
           coords.longitude,
           lastLocation.latitude,
-          lastLocation.longitude
+          lastLocation.longitude,
         );
 
         // Only queue if movement is significant (more than 20 meters)
         if (distance > 20) {
           console.log(
             `Significant movement detected: ${distance.toFixed(
-              1
-            )}m, queueing update`
+              1,
+            )}m, queueing update`,
           );
           await manageLocationQueue(location);
         } else {
           console.log(
             `Insignificant movement: ${distance.toFixed(
-              1
-            )}m, not queueing location`
+              1,
+            )}m, not queueing location`,
           );
         }
       } else {
@@ -177,25 +180,31 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
         console.log("No previous location found, queueing this one");
         await manageLocationQueue(location);
       }
-      
+
       // Still update the last location in storage even if we don't send it
       try {
-        await AsyncStorage.setItem("lastLocation", JSON.stringify({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracy: coords.accuracy,
-          altitude: coords.altitude,
-          heading: coords.heading,
-          speed: coords.speed,
-          timestamp: timestamp,
-          updatedAt: new Date().toISOString(),
-          isBackground: true,
-        }));
+        await AsyncStorage.setItem(
+          "lastLocation",
+          JSON.stringify({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            altitude: coords.altitude,
+            heading: coords.heading,
+            speed: coords.speed,
+            timestamp: timestamp,
+            updatedAt: new Date().toISOString(),
+            isBackground: true,
+          }),
+        );
         console.log("Updated last location in storage (rate limited)");
       } catch (storageError) {
-        console.error("Failed to update last location in storage:", storageError);
+        console.error(
+          "Failed to update last location in storage:",
+          storageError,
+        );
       }
-      
+
       return;
     }
 
@@ -206,7 +215,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     const token = await getAuthToken();
     if (!token) {
       console.warn(
-        "No authentication token available for background location updates"
+        "No authentication token available for background location updates",
       );
       await manageLocationQueue(location);
       return;
@@ -254,17 +263,20 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     if (!networkState.isConnected || !networkState.isInternetReachable) {
       console.log("No network connection, queueing location update");
       await manageLocationQueue(location);
-      
+
       // Still update last update time to prevent excessive queueing
       await AsyncStorage.setItem(LAST_UPDATE_TIME_KEY, now.toString());
-      
+
       // Update last location in storage
-      await AsyncStorage.setItem("lastLocation", JSON.stringify({
-        ...locationData,
-        savedAt: new Date().toISOString(),
-        hasNetworkConnectivity: false
-      }));
-      
+      await AsyncStorage.setItem(
+        "lastLocation",
+        JSON.stringify({
+          ...locationData,
+          savedAt: new Date().toISOString(),
+          hasNetworkConnectivity: false,
+        }),
+      );
+
       return;
     }
 
@@ -296,8 +308,11 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
 
         // Try sending multiple ways to ensure delivery
         socketInstance.emit("location:update", validatedLocationData);
-        socketInstance.volatile.emit("background:location", validatedLocationData);
-        
+        socketInstance.volatile.emit(
+          "background:location",
+          validatedLocationData,
+        );
+
         console.log("Background location update sent via socket");
         updateSent = true;
 
@@ -310,13 +325,13 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
           JSON.stringify({
             ...validatedLocationData,
             savedAt: new Date().toISOString(),
-            sentVia: 'socket'
-          })
+            sentVia: "socket",
+          }),
         );
       } catch (socketError) {
         console.error(
           "Failed to send location via socket, falling back to HTTP:",
-          socketError
+          socketError,
         );
         // Fall back to HTTP if socket fails
         try {
@@ -335,7 +350,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
         console.error("Failed to send via HTTP API:", httpError);
       }
     }
-    
+
     // If both methods failed, queue the location
     if (!updateSent) {
       console.log("Failed to send location update, queueing for later");
@@ -358,27 +373,29 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
       timestamp: location.timestamp,
-      speed: location.coords.speed
+      speed: location.coords.speed,
     };
-    
+
     // Add to cache with memory limit checking
     locationCache.push(minimalLocation);
     if (locationCache.length > LOCATION_CACHE_SIZE) {
       // Remove oldest entries when cache gets too large
       locationCache = locationCache.slice(-LOCATION_CACHE_SIZE);
     }
-    
+
     // Update health check timestamp
     await AsyncStorage.setItem(LAST_HEALTH_CHECK_KEY, now.toString());
-    
   } catch (taskError: any) {
     console.error("Error in background location task:", taskError);
     try {
-      await AsyncStorage.setItem('lastTrackingError', JSON.stringify({
-        message: taskError.message || 'Unknown error',
-        timestamp: new Date().toISOString(),
-        type: 'processing_error'
-      }));
+      await AsyncStorage.setItem(
+        "lastTrackingError",
+        JSON.stringify({
+          message: taskError.message || "Unknown error",
+          timestamp: new Date().toISOString(),
+          type: "processing_error",
+        }),
+      );
     } catch (storageError) {
       console.error("Error storing tracking error:", storageError);
     }
@@ -392,7 +409,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
 async function sendLocationViaHttp(
   apiUrl: string,
   token: string,
-  locationData: LocationType
+  locationData: LocationType,
 ) {
   try {
     // Add log before API calls to help debug
@@ -411,7 +428,7 @@ async function sendLocationViaHttp(
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     // Update the last update time
@@ -425,7 +442,7 @@ async function sendLocationViaHttp(
       JSON.stringify({
         ...locationData,
         savedAt: new Date().toISOString(),
-      })
+      }),
     );
   } catch (error) {
     console.error("Failed to send background location update via HTTP:", error);
@@ -439,7 +456,7 @@ async function sendLocationViaHttp(
 async function ensureSocketConnection(
   apiUrl: string,
   token: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   try {
     // If socket exists and is connected, return true
@@ -477,9 +494,9 @@ async function ensureSocketConnection(
       },
       query: {
         userId: userId,
-        isBackground: 'true', // Explicitly mark as background connection
+        isBackground: "true", // Explicitly mark as background connection
         platform: Platform.OS,
-        appState: 'background'
+        appState: "background",
       },
     });
 
@@ -500,10 +517,10 @@ async function ensureSocketConnection(
         const heartbeatInterval = setInterval(() => {
           if (socketInstance && socketInstance.connected) {
             console.log("Sending socket heartbeat from background");
-            socketInstance.emit("heartbeat", { 
+            socketInstance.emit("heartbeat", {
               timestamp: new Date().toISOString(),
               isBackground: true,
-              userId: userId
+              userId: userId,
             });
           } else {
             clearInterval(heartbeatInterval);
@@ -525,12 +542,12 @@ async function ensureSocketConnection(
       socketInstance.on("connect_error", (error: any) => {
         console.error("Socket connection error in background:", error);
         clearTimeout(connectionTimeout);
-        
+
         // More detailed error logging
         if (error.message) {
           console.error(`Socket error details: ${error.message}`);
         }
-        
+
         // Try reconnecting with HTTP fallback next time
         resolve(false);
       });
@@ -538,9 +555,9 @@ async function ensureSocketConnection(
       // Handle disconnection
       socketInstance.on("disconnect", (reason: string) => {
         console.log(`Socket disconnected in background: ${reason}`);
-        
+
         // If server initiated disconnect, try to reconnect
-        if (reason === 'io server disconnect' || reason === 'transport close') {
+        if (reason === "io server disconnect" || reason === "transport close") {
           console.log("Attempting immediate reconnect after server disconnect");
           socketInstance?.connect();
         }
@@ -562,7 +579,7 @@ function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371e3; // Earth radius in meters
   const φ1 = (lat1 * Math.PI) / 180;
@@ -581,7 +598,7 @@ function calculateDistance(
  * Manage the location queue to prevent it from growing too large
  */
 async function manageLocationQueue(
-  location: Location.LocationObject
+  location: Location.LocationObject,
 ): Promise<void> {
   try {
     // Get existing queue
@@ -606,12 +623,12 @@ async function manageLocationQueue(
       // Sort by timestamp to find the oldest
       queue.sort(
         (a: any, b: any) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
       // Remove the oldest entry
       queue.shift();
       console.log(
-        `Queue at max capacity (${MAX_QUEUE_SIZE}), replaced oldest entry`
+        `Queue at max capacity (${MAX_QUEUE_SIZE}), replaced oldest entry`,
       );
     }
 
@@ -636,40 +653,48 @@ export async function startBackgroundLocationTracking(
     distanceInterval?: number;
     accuracy?: Location.Accuracy;
   },
-  retryCount: number = 0
+  retryCount: number = 0,
 ): Promise<boolean> {
   try {
-    console.log('Starting background location tracking...');
-    
+    console.log("Starting background location tracking...");
+
     // Start memory monitoring
     startMemoryMonitoring();
-    
+
     // Check if background permissions are granted
     const { status } = await Location.getBackgroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.error('Background location permission not granted');
+    if (status !== "granted") {
+      console.error("Background location permission not granted");
       return false;
     }
 
     // Store tracking configuration for future restarts
-    await AsyncStorage.setItem('trackingConfig', JSON.stringify(options));
-    
+    await AsyncStorage.setItem("trackingConfig", JSON.stringify(options));
+
     // Get adaptive parameters if enabled, otherwise use provided options
-    const adaptiveTrackingEnabled = await AsyncStorage.getItem(BATTERY_ADAPTIVE_TRACKING_KEY);
+    const adaptiveTrackingEnabled = await AsyncStorage.getItem(
+      BATTERY_ADAPTIVE_TRACKING_KEY,
+    );
     let locationOptions;
-    
-    if (adaptiveTrackingEnabled === 'true') {
+
+    if (adaptiveTrackingEnabled === "true") {
       const adaptiveParams = await getAdaptiveTrackingParams();
-      
+
       locationOptions = {
-        accuracy: adaptiveParams.accuracy || options.accuracy || Location.Accuracy.BestForNavigation,
-        timeInterval: adaptiveParams.timeInterval || options.timeInterval || 20000,
-        distanceInterval: adaptiveParams.distanceInterval || options.distanceInterval || 5,
+        accuracy:
+          adaptiveParams.accuracy ||
+          options.accuracy ||
+          Location.Accuracy.BestForNavigation,
+        timeInterval:
+          adaptiveParams.timeInterval || options.timeInterval || 20000,
+        distanceInterval:
+          adaptiveParams.distanceInterval || options.distanceInterval || 5,
         // Enhanced foreground service for Android
         foregroundService: {
           notificationTitle: "Avy Tracker is tracking your location",
-          notificationBody: "To stop tracking, open the app and turn off tracking",
-          notificationColor: "#3B82F6"
+          notificationBody:
+            "To stop tracking, open the app and turn off tracking",
+          notificationColor: "#3B82F6",
           // Only using supported properties
           // notificationChannelId, notificationPriority, displayOnLockScreen, enableWakeLock not supported in Expo SDK
         },
@@ -683,8 +708,10 @@ export async function startBackgroundLocationTracking(
         // mayShowUserSettingsDialog: true, // Not supported in Expo SDK
         // useSignificantChanges: true, // Not supported in Expo SDK
       };
-      
-      console.log(`Using adaptive tracking parameters: interval=${locationOptions.timeInterval}ms, distance=${locationOptions.distanceInterval}m`);
+
+      console.log(
+        `Using adaptive tracking parameters: interval=${locationOptions.timeInterval}ms, distance=${locationOptions.distanceInterval}m`,
+      );
     } else {
       // Use fixed parameters
       locationOptions = {
@@ -694,8 +721,9 @@ export async function startBackgroundLocationTracking(
         // Enhanced foreground service for Android
         foregroundService: {
           notificationTitle: "Avy Tracker is tracking your location",
-          notificationBody: "To stop tracking, open the app and turn off tracking",
-          notificationColor: "#3B82F6"
+          notificationBody:
+            "To stop tracking, open the app and turn off tracking",
+          notificationColor: "#3B82F6",
           // Only using supported properties
           // notificationChannelId, notificationPriority, displayOnLockScreen, enableWakeLock not supported in Expo SDK
         },
@@ -709,111 +737,134 @@ export async function startBackgroundLocationTracking(
         // mayShowUserSettingsDialog: true, // Not supported in Expo SDK
         // useSignificantChanges: true, // Not supported in Expo SDK
       };
-      
-      console.log(`Using fixed tracking parameters: interval=${locationOptions.timeInterval}ms, distance=${locationOptions.distanceInterval}m`);
+
+      console.log(
+        `Using fixed tracking parameters: interval=${locationOptions.timeInterval}ms, distance=${locationOptions.distanceInterval}m`,
+      );
     }
-    
+
     // Stop any existing tasks first
     if (await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK)) {
-        await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
-        
-        // Small delay to ensure clean restart
-        await new Promise(resolve => setTimeout(resolve, 500));
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+
+      // Small delay to ensure clean restart
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
-    
+
     // Start the location updates task
-    await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, locationOptions);
-    
-    console.log('Background location tracking task started');
-    
+    await Location.startLocationUpdatesAsync(
+      BACKGROUND_LOCATION_TASK,
+      locationOptions,
+    );
+
+    console.log("Background location tracking task started");
+
     // Store tracking state
-    await AsyncStorage.setItem('backgroundTrackingEnabled', 'true');
-    await AsyncStorage.setItem('backgroundTrackingStartTime', new Date().toISOString());
-    await AsyncStorage.setItem('trackingStatus', TrackingStatus.ACTIVE);
+    await AsyncStorage.setItem("backgroundTrackingEnabled", "true");
+    await AsyncStorage.setItem(
+      "backgroundTrackingStartTime",
+      new Date().toISOString(),
+    );
+    await AsyncStorage.setItem("trackingStatus", TrackingStatus.ACTIVE);
 
     // Platform-specific optimizations
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       await requestAndroidLocationUpdates();
-    } else if (Platform.OS === 'ios') {
+    } else if (Platform.OS === "ios") {
       // For iOS, start a "significant location changes" task as a backup
       await setupiOSSignificantLocationTask();
     }
-    
+
     // Start health check
-    startLocationHealthCheck().catch(err => 
-      console.error('Failed to start location health check:', err)
+    startLocationHealthCheck().catch((err) =>
+      console.error("Failed to start location health check:", err),
     );
 
     // Emit event for tracking started
-    EventEmitter.emit('backgroundTrackingStarted');
-    
+    EventEmitter.emit("backgroundTrackingStarted");
+
     return true;
   } catch (error) {
-    console.error('Error starting background tracking:', error);
-    
+    console.error("Error starting background tracking:", error);
+
     // Retry logic for resilience
     if (retryCount < 2) {
-      console.log(`Retrying background tracking start (attempt ${retryCount + 1})...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(
+        `Retrying background tracking start (attempt ${retryCount + 1})...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       return startBackgroundLocationTracking(options, retryCount + 1);
     }
-    
+
     return false;
   }
 }
 
 // Add helper for iOS significant location changes
 async function setupiOSSignificantLocationTask(): Promise<void> {
-  if (Platform.OS !== 'ios') return;
-  
+  if (Platform.OS !== "ios") return;
+
   try {
     // Define a separate task for significant location changes
-    const SIGNIFICANT_CHANGE_TASK = 'significant-location-changes';
-    
+    const SIGNIFICANT_CHANGE_TASK = "significant-location-changes";
+
     // Check if task is already defined
     if (!TaskManager.isTaskDefined(SIGNIFICANT_CHANGE_TASK)) {
-      TaskManager.defineTask(SIGNIFICANT_CHANGE_TASK, async ({ data, error }) => {
-        if (error) {
-          console.error('Significant location changes task error:', error);
-          return;
-        }
-        
-        if (!data) return;
-        
-        try {
-          const { locations } = data as { locations: Location.LocationObject[] };
-          if (!locations || locations.length === 0) return;
-          
-          console.log('Significant location change detected');
-          
-          // Check if background tracking should be active
-          const isEnabled = await AsyncStorage.getItem('backgroundTrackingEnabled');
-          
-          if (isEnabled === 'true') {
-            // Verify the main task is running
-            const isActive = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
-            
-            if (!isActive) {
-              console.log('Main tracking task not active, attempting to restart from significant change');
-              
-              // Get stored config
-              const configStr = await AsyncStorage.getItem('trackingConfig');
-              const config = configStr ? JSON.parse(configStr) : {
-                timeInterval: 30000,
-                distanceInterval: 10,
-                accuracy: Location.Accuracy.Balanced
-              };
-              
-              // Try to restart the main tracking task
-              await startBackgroundLocationTracking(config);
-            }
+      TaskManager.defineTask(
+        SIGNIFICANT_CHANGE_TASK,
+        async ({ data, error }) => {
+          if (error) {
+            console.error("Significant location changes task error:", error);
+            return;
           }
-        } catch (err) {
-          console.error('Error in significant location changes task:', err);
-        }
-      });
+
+          if (!data) return;
+
+          try {
+            const { locations } = data as {
+              locations: Location.LocationObject[];
+            };
+            if (!locations || locations.length === 0) return;
+
+            console.log("Significant location change detected");
+
+            // Check if background tracking should be active
+            const isEnabled = await AsyncStorage.getItem(
+              "backgroundTrackingEnabled",
+            );
+
+            if (isEnabled === "true") {
+              // Verify the main task is running
+              const isActive = await TaskManager.isTaskRegisteredAsync(
+                BACKGROUND_LOCATION_TASK,
+              );
+
+              if (!isActive) {
+                console.log(
+                  "Main tracking task not active, attempting to restart from significant change",
+                );
+
+                // Get stored config
+                const configStr = await AsyncStorage.getItem("trackingConfig");
+                const config = configStr
+                  ? JSON.parse(configStr)
+                  : {
+                      timeInterval: 30000,
+                      distanceInterval: 10,
+                      accuracy: Location.Accuracy.Balanced,
+                    };
+
+                // Try to restart the main tracking task
+                await startBackgroundLocationTracking(config);
+              }
+            }
+          } catch (err) {
+            console.error("Error in significant location changes task:", err);
+          }
+        },
+      );
     }
-    
+
     // Stop any existing significant changes task first
     try {
       if (await TaskManager.isTaskRegisteredAsync(SIGNIFICANT_CHANGE_TASK)) {
@@ -822,19 +873,22 @@ async function setupiOSSignificantLocationTask(): Promise<void> {
     } catch (e) {
       // Ignore errors if the task wasn't running
     }
-    
+
     // Start the significant location changes task
     await Location.startLocationUpdatesAsync(SIGNIFICANT_CHANGE_TASK, {
       accuracy: Location.Accuracy.Balanced,
       showsBackgroundLocationIndicator: true,
       activityType: Location.ActivityType.AutomotiveNavigation,
       pausesUpdatesAutomatically: false,
-      deferredUpdatesInterval: 0
+      deferredUpdatesInterval: 0,
     });
-    
-    console.log('iOS significant location changes task started');
+
+    console.log("iOS significant location changes task started");
   } catch (error) {
-    console.error('Error setting up iOS significant location changes task:', error);
+    console.error(
+      "Error setting up iOS significant location changes task:",
+      error,
+    );
   }
 }
 
@@ -844,33 +898,35 @@ async function setupiOSSignificantLocationTask(): Promise<void> {
 export async function stopBackgroundLocationTracking(): Promise<boolean> {
   try {
     // Check if task is registered
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(
+      BACKGROUND_LOCATION_TASK,
+    );
 
     if (isRegistered) {
-        await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
-      console.log('Background location tracking stopped');
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+      console.log("Background location tracking stopped");
     }
-    
+
     // Stop health check timer
     if (healthCheckTimer) {
       clearInterval(healthCheckTimer);
       healthCheckTimer = null;
-      console.log('Location health check stopped');
+      console.log("Location health check stopped");
     }
-    
+
     // Stop memory monitoring
     if (memoryCheckTimer) {
       clearInterval(memoryCheckTimer);
       memoryCheckTimer = null;
-      console.log('Memory monitoring stopped');
+      console.log("Memory monitoring stopped");
     }
 
     // Perform final cleanup
     await performMemoryCleanup();
-    
+
     // Update stored tracking state
-    await AsyncStorage.setItem('backgroundTrackingEnabled', 'false');
-    
+    await AsyncStorage.setItem("backgroundTrackingEnabled", "false");
+
     // Clean up socket
     if (socketInstance) {
       socketInstance.disconnect();
@@ -881,16 +937,16 @@ export async function stopBackgroundLocationTracking(): Promise<boolean> {
       clearInterval(socketReconnectInterval);
       socketReconnectInterval = null;
     }
-    
+
     // Clear references
     locationCache = [];
-    
+
     // Emit event for tracking stopped
-    EventEmitter.emit('backgroundTrackingStopped');
-    
+    EventEmitter.emit("backgroundTrackingStopped");
+
     return true;
   } catch (error) {
-    console.error('Error stopping background tracking:', error);
+    console.error("Error stopping background tracking:", error);
     return false;
   }
 }
@@ -900,10 +956,15 @@ export async function stopBackgroundLocationTracking(): Promise<boolean> {
  */
 export async function isBackgroundLocationTrackingActive(): Promise<boolean> {
   try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(
+      BACKGROUND_LOCATION_TASK,
+    );
     return isRegistered;
   } catch (error) {
-    console.error('Error checking if background location tracking is active:', error);
+    console.error(
+      "Error checking if background location tracking is active:",
+      error,
+    );
     return false;
   }
 }
@@ -912,24 +973,24 @@ export async function isBackgroundLocationTrackingActive(): Promise<boolean> {
  * Android-specific function to handle location requests
  */
 async function requestAndroidLocationUpdates(): Promise<void> {
-  if (Platform.OS !== 'android') return;
-  
+  if (Platform.OS !== "android") return;
+
   try {
     // Ensure location services are enabled
     const hasServicesEnabled = await Location.hasServicesEnabledAsync();
     if (!hasServicesEnabled) {
-      console.warn('Location services are not enabled on this device');
+      console.warn("Location services are not enabled on this device");
       return;
     }
-    
+
     // Get current position to "warm up" the location provider
     await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.BestForNavigation
+      accuracy: Location.Accuracy.BestForNavigation,
     });
-    
-    console.log('Successfully initialized Android location provider');
+
+    console.log("Successfully initialized Android location provider");
   } catch (error) {
-    console.error('Error initializing Android location provider:', error);
+    console.error("Error initializing Android location provider:", error);
   }
 }
 
@@ -939,40 +1000,46 @@ async function requestAndroidLocationUpdates(): Promise<void> {
 export async function setupLocationWakeupTimer(): Promise<() => void> {
   try {
     // Check if background timer is already set
-    const timerExists = await AsyncStorage.getItem('locationWakeupTimerSet');
-    if (timerExists === 'true') return () => {};
-    
+    const timerExists = await AsyncStorage.getItem("locationWakeupTimerSet");
+    if (timerExists === "true") return () => {};
+
     // Set up a background timer that periodically requests location
-    const interval = setInterval(async () => {
-      try {
-        const isActive = await isBackgroundLocationTrackingActive();
-        if (isActive) {
-          console.log('Location wakeup timer triggered');
-          const location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.BestForNavigation
-          });
-          
-          if (location) {
-            // Store the last location
-            await AsyncStorage.setItem('lastLocation', JSON.stringify({
-              ...createEnhancedLocation(location),
-              timestamp: new Date().toISOString()
-            }));
+    const interval = setInterval(
+      async () => {
+        try {
+          const isActive = await isBackgroundLocationTrackingActive();
+          if (isActive) {
+            console.log("Location wakeup timer triggered");
+            const location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.BestForNavigation,
+            });
+
+            if (location) {
+              // Store the last location
+              await AsyncStorage.setItem(
+                "lastLocation",
+                JSON.stringify({
+                  ...createEnhancedLocation(location),
+                  timestamp: new Date().toISOString(),
+                }),
+              );
+            }
           }
+        } catch (err) {
+          console.log("Wakeup location error:", err);
         }
-      } catch (err) {
-        console.log('Wakeup location error:', err);
-      }
-    }, 5 * 60 * 1000); // Every 5 minutes
-    
-    await AsyncStorage.setItem('locationWakeupTimerSet', 'true');
-    
+      },
+      5 * 60 * 1000,
+    ); // Every 5 minutes
+
+    await AsyncStorage.setItem("locationWakeupTimerSet", "true");
+
     return () => {
       clearInterval(interval);
-      AsyncStorage.removeItem('locationWakeupTimerSet');
+      AsyncStorage.removeItem("locationWakeupTimerSet");
     };
   } catch (error) {
-    console.error('Error setting up location wakeup timer:', error);
+    console.error("Error setting up location wakeup timer:", error);
     return () => {};
   }
 }
@@ -1002,7 +1069,7 @@ async function getBatteryLevel(): Promise<number> {
 async function sendQueuedLocations(
   token: string,
   apiUrl: string,
-  maxLocations: number = 5
+  maxLocations: number = 5,
 ): Promise<void> {
   try {
     // Get the queue
@@ -1013,7 +1080,7 @@ async function sendQueuedLocations(
     if (queue.length === 0) return;
 
     console.log(
-      `Processing location queue (${queue.length} items, sending max ${maxLocations})`
+      `Processing location queue (${queue.length} items, sending max ${maxLocations})`,
     );
 
     // Get battery level
@@ -1061,7 +1128,7 @@ async function sendQueuedLocations(
           } catch (socketError) {
             console.error(
               "Failed to send queued location via socket:",
-              socketError
+              socketError,
             );
             // Fall back to HTTP
           }
@@ -1075,7 +1142,7 @@ async function sendQueuedLocations(
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         console.log("Queued location sent via HTTP:", i);
@@ -1146,24 +1213,27 @@ async function getAuthToken(): Promise<string | null> {
       if (response.data && response.data.accessToken) {
         // Save the new tokens (both access and refresh tokens)
         await AsyncStorage.setItem("auth_token", response.data.accessToken);
-        
+
         // Also save the new refresh token if provided
         if (response.data.refreshToken) {
-          await AsyncStorage.setItem("refresh_token", response.data.refreshToken);
+          await AsyncStorage.setItem(
+            "refresh_token",
+            response.data.refreshToken,
+          );
         }
-        
+
         try {
           if (SecureStore) {
             await SecureStore.setItemAsync(
               "auth_token",
-              response.data.accessToken
+              response.data.accessToken,
             );
-            
+
             // Also save the new refresh token to SecureStore
             if (response.data.refreshToken) {
               await SecureStore.setItemAsync(
                 "refresh_token",
-                response.data.refreshToken
+                response.data.refreshToken,
               );
             }
           }
@@ -1231,21 +1301,21 @@ export function cleanupBackgroundTracking() {
     clearInterval(socketReconnectInterval);
     socketReconnectInterval = null;
   }
-  
+
   if (healthCheckTimer) {
     clearInterval(healthCheckTimer);
     healthCheckTimer = null;
   }
-  
+
   if (memoryCheckTimer) {
     clearInterval(memoryCheckTimer);
     memoryCheckTimer = null;
   }
-  
+
   // Clear any in-memory caches
   locationCache = [];
-  
-  console.log('All background tracking resources cleaned up');
+
+  console.log("All background tracking resources cleaned up");
 }
 
 /**
@@ -1258,60 +1328,67 @@ export async function startLocationHealthCheck(): Promise<() => void> {
     clearInterval(healthCheckTimer);
     healthCheckTimer = null;
   }
-  
+
   // Record start of health check
   await AsyncStorage.setItem(LAST_HEALTH_CHECK_KEY, Date.now().toString());
-  
-  console.log('Starting location tracking health check');
-  
+
+  console.log("Starting location tracking health check");
+
   // Set up periodic health check
   healthCheckTimer = setInterval(async () => {
     try {
       // Check if tracking is supposed to be active
-      const isEnabled = await AsyncStorage.getItem('backgroundTrackingEnabled');
-      if (isEnabled !== 'true') {
-        console.log('Background tracking not enabled, skipping health check');
+      const isEnabled = await AsyncStorage.getItem("backgroundTrackingEnabled");
+      if (isEnabled !== "true") {
+        console.log("Background tracking not enabled, skipping health check");
         return;
       }
-      
+
       // Check if the task is still running
       const isActive = await isBackgroundLocationTrackingActive();
       if (!isActive) {
-        console.log('Background tracking task not active, attempting to restart');
+        console.log(
+          "Background tracking task not active, attempting to restart",
+        );
         await attemptTrackingRestart();
         return;
       }
-      
+
       // Check when the last location update was received
-      const lastUpdateTimeStr = await AsyncStorage.getItem(LAST_UPDATE_TIME_KEY);
+      const lastUpdateTimeStr =
+        await AsyncStorage.getItem(LAST_UPDATE_TIME_KEY);
       if (!lastUpdateTimeStr) {
-        console.log('No record of last location update, skipping health check');
+        console.log("No record of last location update, skipping health check");
         return;
       }
-      
+
       const lastUpdateTime = parseInt(lastUpdateTimeStr);
       const now = Date.now();
-      
+
       // If it's been too long since the last update, restart tracking
       if (now - lastUpdateTime > HEALTH_CHECK_THRESHOLD) {
-        console.warn(`No location updates for ${Math.round((now - lastUpdateTime) / 60000)} minutes, attempting to restart tracking`);
+        console.warn(
+          `No location updates for ${Math.round((now - lastUpdateTime) / 60000)} minutes, attempting to restart tracking`,
+        );
         await attemptTrackingRestart();
       } else {
-        console.log(`Location tracking healthy, last update ${Math.round((now - lastUpdateTime) / 60000)} minutes ago`);
+        console.log(
+          `Location tracking healthy, last update ${Math.round((now - lastUpdateTime) / 60000)} minutes ago`,
+        );
         // Update health check timestamp
         await AsyncStorage.setItem(LAST_HEALTH_CHECK_KEY, now.toString());
       }
     } catch (error) {
-      console.error('Error in location health check:', error);
+      console.error("Error in location health check:", error);
     }
   }, HEALTH_CHECK_INTERVAL);
-  
+
   // Return cleanup function
   return () => {
     if (healthCheckTimer) {
       clearInterval(healthCheckTimer);
       healthCheckTimer = null;
-      console.log('Location health check stopped');
+      console.log("Location health check stopped");
     }
   };
 }
@@ -1322,76 +1399,92 @@ export async function startLocationHealthCheck(): Promise<() => void> {
 async function attemptTrackingRestart(): Promise<boolean> {
   try {
     // Check restart attempts counter
-    const attemptsStr = await AsyncStorage.getItem(TRACKING_RESTART_ATTEMPTS_KEY);
-    const attemptsData = attemptsStr ? JSON.parse(attemptsStr) : { count: 0, timestamp: Date.now() };
-    
+    const attemptsStr = await AsyncStorage.getItem(
+      TRACKING_RESTART_ATTEMPTS_KEY,
+    );
+    const attemptsData = attemptsStr
+      ? JSON.parse(attemptsStr)
+      : { count: 0, timestamp: Date.now() };
+
     const now = Date.now();
-    
+
     // Reset counter if it's been more than RESTART_PERIOD since the first attempt
     if (now - attemptsData.timestamp > RESTART_PERIOD) {
       attemptsData.count = 0;
       attemptsData.timestamp = now;
     }
-    
+
     // Abort if we've exceeded max attempts
     if (attemptsData.count >= MAX_RESTART_ATTEMPTS) {
-      console.warn(`Maximum restart attempts (${MAX_RESTART_ATTEMPTS}) exceeded within period, aborting auto-restart`);
-      
+      console.warn(
+        `Maximum restart attempts (${MAX_RESTART_ATTEMPTS}) exceeded within period, aborting auto-restart`,
+      );
+
       // Add an event emission for tracking failure
-      EventEmitter.emit('trackingAutoRestartFailed', {
+      EventEmitter.emit("trackingAutoRestartFailed", {
         attempts: attemptsData.count,
-        since: new Date(attemptsData.timestamp).toISOString()
+        since: new Date(attemptsData.timestamp).toISOString(),
       });
-      
+
       return false;
     }
-    
+
     // Attempt to restart tracking
-    console.log(`Attempting to auto-restart tracking (attempt ${attemptsData.count + 1} of ${MAX_RESTART_ATTEMPTS})`);
-    
+    console.log(
+      `Attempting to auto-restart tracking (attempt ${attemptsData.count + 1} of ${MAX_RESTART_ATTEMPTS})`,
+    );
+
     // First stop any existing task
     if (await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK)) {
       await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
-      console.log('Stopped existing background location task before restart');
+      console.log("Stopped existing background location task before restart");
     }
-    
+
     // Get tracking configuration from storage or use defaults
-    const configStr = await AsyncStorage.getItem('trackingConfig');
-    const config = configStr ? JSON.parse(configStr) : {
-      timeInterval: 20000,
-      distanceInterval: 5,
-      accuracy: Location.Accuracy.BestForNavigation
-    };
-    
+    const configStr = await AsyncStorage.getItem("trackingConfig");
+    const config = configStr
+      ? JSON.parse(configStr)
+      : {
+          timeInterval: 20000,
+          distanceInterval: 5,
+          accuracy: Location.Accuracy.BestForNavigation,
+        };
+
     // Restart tracking
     const success = await startBackgroundLocationTracking(config);
-    
+
     if (success) {
-      console.log('Successfully auto-restarted background tracking');
-      
+      console.log("Successfully auto-restarted background tracking");
+
       // Reset attempts counter if successful
-      await AsyncStorage.setItem(TRACKING_RESTART_ATTEMPTS_KEY, JSON.stringify({
-        count: 0,
-        timestamp: now
-      }));
-      
+      await AsyncStorage.setItem(
+        TRACKING_RESTART_ATTEMPTS_KEY,
+        JSON.stringify({
+          count: 0,
+          timestamp: now,
+        }),
+      );
+
       // Emit event for successful restart
-      EventEmitter.emit('trackingAutoRestartSuccess', {
-        timestamp: new Date().toISOString()
+      EventEmitter.emit("trackingAutoRestartSuccess", {
+        timestamp: new Date().toISOString(),
       });
-      
+
       return true;
     } else {
-      console.error('Failed to auto-restart tracking');
-      
+      console.error("Failed to auto-restart tracking");
+
       // Increment attempts counter
       attemptsData.count++;
-      await AsyncStorage.setItem(TRACKING_RESTART_ATTEMPTS_KEY, JSON.stringify(attemptsData));
-      
+      await AsyncStorage.setItem(
+        TRACKING_RESTART_ATTEMPTS_KEY,
+        JSON.stringify(attemptsData),
+      );
+
       return false;
     }
   } catch (error) {
-    console.error('Error attempting to restart tracking:', error);
+    console.error("Error attempting to restart tracking:", error);
     return false;
   }
 }
@@ -1407,53 +1500,71 @@ export async function getAdaptiveTrackingParams(): Promise<{
   try {
     // Default values
     const defaultParams = {
-      timeInterval: 30000,  // 30 seconds
+      timeInterval: 30000, // 30 seconds
       distanceInterval: 10, // 10 meters
-      accuracy: Location.Accuracy.Balanced
+      accuracy: Location.Accuracy.Balanced,
     };
-    
+
     // Check if adaptive tracking is enabled
-    const batteryAdaptive = await AsyncStorage.getItem(BATTERY_ADAPTIVE_TRACKING_KEY);
-    const activityAdaptive = await AsyncStorage.getItem(ACTIVITY_ADAPTIVE_TRACKING_KEY);
-    const stationaryAdaptive = await AsyncStorage.getItem(STATIONARY_ADAPTIVE_TRACKING_KEY);
-    
+    const batteryAdaptive = await AsyncStorage.getItem(
+      BATTERY_ADAPTIVE_TRACKING_KEY,
+    );
+    const activityAdaptive = await AsyncStorage.getItem(
+      ACTIVITY_ADAPTIVE_TRACKING_KEY,
+    );
+    const stationaryAdaptive = await AsyncStorage.getItem(
+      STATIONARY_ADAPTIVE_TRACKING_KEY,
+    );
+
     // If all adaptive features are disabled, return default params
-    if (batteryAdaptive !== 'true' && activityAdaptive !== 'true' && stationaryAdaptive !== 'true') {
+    if (
+      batteryAdaptive !== "true" &&
+      activityAdaptive !== "true" &&
+      stationaryAdaptive !== "true"
+    ) {
       return defaultParams;
     }
-    
+
     // Initialize with default params
     let params = { ...defaultParams };
-    
+
     // Get battery level
     const batteryLevel = await getBatteryLevel();
-    
+
     // Get last known activity and movement
-    const lastLocationStr = await AsyncStorage.getItem('lastLocation');
-    const lastMovementStr = await AsyncStorage.getItem(LAST_SIGNIFICANT_MOVEMENT_KEY);
+    const lastLocationStr = await AsyncStorage.getItem("lastLocation");
+    const lastMovementStr = await AsyncStorage.getItem(
+      LAST_SIGNIFICANT_MOVEMENT_KEY,
+    );
     const lastMovementTime = lastMovementStr ? parseInt(lastMovementStr) : 0;
     const now = Date.now();
-    
+
     // Check if we're stationary
     const isStationary = now - lastMovementTime > STATIONARY_TIMEOUT;
-    
+
     // Adapt based on battery level if enabled
-    if (batteryAdaptive === 'true') {
+    if (batteryAdaptive === "true") {
       if (batteryLevel <= BATTERY_CRITICAL) {
         params.timeInterval = INTERVAL_BATTERY_CRITICAL;
         params.distanceInterval = MOVEMENT_SIGNIFICANT;
         params.accuracy = Location.Accuracy.Lowest;
-        console.log(`Battery critical (${batteryLevel}%), using power saving settings`);
+        console.log(
+          `Battery critical (${batteryLevel}%), using power saving settings`,
+        );
       } else if (batteryLevel <= BATTERY_LOW) {
         params.timeInterval = INTERVAL_BATTERY_LOW;
         params.distanceInterval = MOVEMENT_MINIMAL;
         params.accuracy = Location.Accuracy.Low;
-        console.log(`Battery low (${batteryLevel}%), reducing tracking frequency`);
+        console.log(
+          `Battery low (${batteryLevel}%), reducing tracking frequency`,
+        );
       } else if (batteryLevel <= BATTERY_MEDIUM) {
         params.timeInterval = INTERVAL_BATTERY_MEDIUM;
         params.distanceInterval = MOVEMENT_MINIMAL;
         params.accuracy = Location.Accuracy.Balanced;
-        console.log(`Battery medium (${batteryLevel}%), using balanced settings`);
+        console.log(
+          `Battery medium (${batteryLevel}%), using balanced settings`,
+        );
       } else {
         params.timeInterval = INTERVAL_BATTERY_HIGH;
         params.distanceInterval = 5;
@@ -1461,58 +1572,72 @@ export async function getAdaptiveTrackingParams(): Promise<{
         console.log(`Battery good (${batteryLevel}%), using high accuracy`);
       }
     }
-    
+
     // Further adapt based on activity if enabled
-    if (activityAdaptive === 'true' && lastLocationStr) {
+    if (activityAdaptive === "true" && lastLocationStr) {
       try {
         const lastLocation = JSON.parse(lastLocationStr);
-        
+
         // Use speed to infer activity type
-        const speed = lastLocation.speed !== null && lastLocation.speed !== undefined 
-          ? lastLocation.speed 
-          : 0;
-        
+        const speed =
+          lastLocation.speed !== null && lastLocation.speed !== undefined
+            ? lastLocation.speed
+            : 0;
+
         // Convert m/s to km/h for easier understanding
         const speedKmh = speed * 3.6;
-        
+
         if (speedKmh >= 20) {
           // Driving/transport
-          params.timeInterval = Math.min(params.timeInterval, INTERVAL_AUTOMOTIVE);
+          params.timeInterval = Math.min(
+            params.timeInterval,
+            INTERVAL_AUTOMOTIVE,
+          );
           params.distanceInterval = 15; // Larger distance when moving fast
-          console.log(`Fast movement detected (${speedKmh.toFixed(1)} km/h), using vehicle settings`);
+          console.log(
+            `Fast movement detected (${speedKmh.toFixed(1)} km/h), using vehicle settings`,
+          );
         } else if (speedKmh >= 5) {
           // Running/cycling
           params.timeInterval = Math.min(params.timeInterval, INTERVAL_RUNNING);
           params.distanceInterval = 10;
-          console.log(`Moderate movement detected (${speedKmh.toFixed(1)} km/h), using running/cycling settings`);
+          console.log(
+            `Moderate movement detected (${speedKmh.toFixed(1)} km/h), using running/cycling settings`,
+          );
         } else if (speedKmh >= 1) {
           // Walking
           params.timeInterval = Math.min(params.timeInterval, INTERVAL_WALKING);
           params.distanceInterval = 5;
-          console.log(`Slow movement detected (${speedKmh.toFixed(1)} km/h), using walking settings`);
+          console.log(
+            `Slow movement detected (${speedKmh.toFixed(1)} km/h), using walking settings`,
+          );
         }
       } catch (e) {
-        console.error('Error parsing last location for activity detection:', e);
+        console.error("Error parsing last location for activity detection:", e);
       }
     }
-    
+
     // Adapt based on stationary detection if enabled
-    if (stationaryAdaptive === 'true' && isStationary) {
+    if (stationaryAdaptive === "true" && isStationary) {
       // If we've been stationary for a while, drastically reduce updates
       params.timeInterval = Math.max(params.timeInterval, INTERVAL_STATIONARY);
       params.distanceInterval = MOVEMENT_SIGNIFICANT;
       params.accuracy = Location.Accuracy.Balanced;
-      console.log(`Stationary for ${Math.round((now - lastMovementTime) / 60000)} minutes, reducing updates`);
+      console.log(
+        `Stationary for ${Math.round((now - lastMovementTime) / 60000)} minutes, reducing updates`,
+      );
     }
-    
-    console.log(`Adaptive tracking params: interval=${params.timeInterval}ms, distance=${params.distanceInterval}m, accuracy=${params.accuracy}`);
+
+    console.log(
+      `Adaptive tracking params: interval=${params.timeInterval}ms, distance=${params.distanceInterval}m, accuracy=${params.accuracy}`,
+    );
     return params;
   } catch (error) {
-    console.error('Error calculating adaptive tracking params:', error);
+    console.error("Error calculating adaptive tracking params:", error);
     return {
       timeInterval: 30000,
       distanceInterval: 10,
-      accuracy: Location.Accuracy.Balanced
+      accuracy: Location.Accuracy.Balanced,
     };
   }
 }
@@ -1520,70 +1645,81 @@ export async function getAdaptiveTrackingParams(): Promise<{
 /**
  * Update the movement status based on new location
  */
-async function updateMovementStatus(newLocation: Location.LocationObject): Promise<boolean> {
+async function updateMovementStatus(
+  newLocation: Location.LocationObject,
+): Promise<boolean> {
   try {
-    const lastLocationStr = await AsyncStorage.getItem('lastLocation');
+    const lastLocationStr = await AsyncStorage.getItem("lastLocation");
     if (!lastLocationStr) {
       // First location, record it as movement
-      await AsyncStorage.setItem(LAST_SIGNIFICANT_MOVEMENT_KEY, Date.now().toString());
+      await AsyncStorage.setItem(
+        LAST_SIGNIFICANT_MOVEMENT_KEY,
+        Date.now().toString(),
+      );
       return true;
     }
-    
+
     try {
       const lastLocation = JSON.parse(lastLocationStr);
-      
+
       // Calculate distance from last location
       const distance = calculateDistance(
         newLocation.coords.latitude,
         newLocation.coords.longitude,
         lastLocation.latitude,
-        lastLocation.longitude
+        lastLocation.longitude,
       );
-      
+
       // If significant movement detected, update last movement time
       if (distance > MOVEMENT_SIGNIFICANT) {
-        await AsyncStorage.setItem(LAST_SIGNIFICANT_MOVEMENT_KEY, Date.now().toString());
+        await AsyncStorage.setItem(
+          LAST_SIGNIFICANT_MOVEMENT_KEY,
+          Date.now().toString(),
+        );
         console.log(`Significant movement detected: ${distance.toFixed(1)}m`);
         return true;
       }
-      
+
       return false;
     } catch (e) {
-      console.error('Error parsing last location for movement detection:', e);
+      console.error("Error parsing last location for movement detection:", e);
       return false;
     }
   } catch (error) {
-    console.error('Error updating movement status:', error);
+    console.error("Error updating movement status:", error);
     return false;
   }
 }
 
 // Add new function to toggle adaptive tracking settings
 export async function toggleAdaptiveTracking(
-  type: 'battery' | 'activity' | 'stationary', 
-  enabled: boolean
+  type: "battery" | "activity" | "stationary",
+  enabled: boolean,
 ): Promise<boolean> {
   try {
-    const key = type === 'battery' 
-      ? BATTERY_ADAPTIVE_TRACKING_KEY 
-      : type === 'activity'
-        ? ACTIVITY_ADAPTIVE_TRACKING_KEY
-        : STATIONARY_ADAPTIVE_TRACKING_KEY;
-    
-    await AsyncStorage.setItem(key, enabled ? 'true' : 'false');
-    console.log(`${type} adaptive tracking ${enabled ? 'enabled' : 'disabled'}`);
-    
+    const key =
+      type === "battery"
+        ? BATTERY_ADAPTIVE_TRACKING_KEY
+        : type === "activity"
+          ? ACTIVITY_ADAPTIVE_TRACKING_KEY
+          : STATIONARY_ADAPTIVE_TRACKING_KEY;
+
+    await AsyncStorage.setItem(key, enabled ? "true" : "false");
+    console.log(
+      `${type} adaptive tracking ${enabled ? "enabled" : "disabled"}`,
+    );
+
     // If tracking is currently active, restart it with new settings
     const isTrackingActive = await isBackgroundLocationTrackingActive();
     if (isTrackingActive) {
-      const configStr = await AsyncStorage.getItem('trackingConfig');
+      const configStr = await AsyncStorage.getItem("trackingConfig");
       const config = configStr ? JSON.parse(configStr) : {};
-      
+
       console.log(`Restarting tracking with updated adaptive settings`);
       await stopBackgroundLocationTracking();
       await startBackgroundLocationTracking(config);
     }
-    
+
     return true;
   } catch (error) {
     console.error(`Error toggling ${type} adaptive tracking:`, error);
@@ -1596,25 +1732,25 @@ export async function toggleAdaptiveTracking(
  */
 export async function performMemoryCleanup(): Promise<void> {
   try {
-    console.log('Performing memory cleanup for tracking...');
-    
+    console.log("Performing memory cleanup for tracking...");
+
     // Clear any excessive socket listeners
     if (socketInstance) {
       // Remove any duplicate listeners
-      socketInstance.off('connect_error');
-      socketInstance.off('disconnect');
-      
+      socketInstance.off("connect_error");
+      socketInstance.off("disconnect");
+
       // Reconnect with fresh instance if needed
       if (!socketInstance.connected && socketReconnectInterval) {
         clearInterval(socketReconnectInterval);
         socketReconnectInterval = null;
-        
+
         // Only create a new instance if we truly need it
         socketInstance.disconnect();
         socketInstance = null;
       }
     }
-    
+
     // Trim location history in AsyncStorage to prevent storage bloat
     const historyStr = await AsyncStorage.getItem(LOCATION_HISTORY_KEY);
     if (historyStr) {
@@ -1623,22 +1759,29 @@ export async function performMemoryCleanup(): Promise<void> {
         if (Array.isArray(history) && history.length > LOCATION_CACHE_SIZE) {
           // Keep only the most recent locations
           const trimmedHistory = history.slice(-LOCATION_CACHE_SIZE);
-          await AsyncStorage.setItem(LOCATION_HISTORY_KEY, JSON.stringify(trimmedHistory));
-          console.log(`Trimmed location history from ${history.length} to ${trimmedHistory.length} entries`);
+          await AsyncStorage.setItem(
+            LOCATION_HISTORY_KEY,
+            JSON.stringify(trimmedHistory),
+          );
+          console.log(
+            `Trimmed location history from ${history.length} to ${trimmedHistory.length} entries`,
+          );
         }
       } catch (e) {
         // If parse fails, just remove the corrupted data
         await AsyncStorage.removeItem(LOCATION_HISTORY_KEY);
-        console.log('Removed corrupted location history');
+        console.log("Removed corrupted location history");
       }
     }
-    
+
     // Clear in-memory location cache if it's too large
     if (locationCache.length > LOCATION_CACHE_SIZE) {
       locationCache = locationCache.slice(-LOCATION_CACHE_SIZE);
-      console.log(`Trimmed in-memory location cache to ${locationCache.length} entries`);
+      console.log(
+        `Trimmed in-memory location cache to ${locationCache.length} entries`,
+      );
     }
-    
+
     // Clear any location queue that's too old
     const queueStr = await AsyncStorage.getItem(LOCATION_QUEUE_KEY);
     if (queueStr) {
@@ -1647,27 +1790,34 @@ export async function performMemoryCleanup(): Promise<void> {
         if (Array.isArray(queue) && queue.length > 0) {
           // Filter out locations older than 24 hours
           const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-          const freshQueue = queue.filter(item => {
-            const timestamp = item.queuedAt ? new Date(item.queuedAt).getTime() : 0;
+          const freshQueue = queue.filter((item) => {
+            const timestamp = item.queuedAt
+              ? new Date(item.queuedAt).getTime()
+              : 0;
             return timestamp > oneDayAgo;
           });
-          
+
           if (freshQueue.length < queue.length) {
-            await AsyncStorage.setItem(LOCATION_QUEUE_KEY, JSON.stringify(freshQueue));
-            console.log(`Removed ${queue.length - freshQueue.length} stale items from location queue`);
+            await AsyncStorage.setItem(
+              LOCATION_QUEUE_KEY,
+              JSON.stringify(freshQueue),
+            );
+            console.log(
+              `Removed ${queue.length - freshQueue.length} stale items from location queue`,
+            );
           }
         }
       } catch (e) {
-        console.error('Error cleaning location queue:', e);
+        console.error("Error cleaning location queue:", e);
       }
     }
-    
+
     // Force garbage collection by clearing references
     locationCache = [];
-    
-    console.log('Memory cleanup completed');
+
+    console.log("Memory cleanup completed");
   } catch (error) {
-    console.error('Error in memory cleanup:', error);
+    console.error("Error in memory cleanup:", error);
   }
 }
 
@@ -1678,22 +1828,22 @@ export function startMemoryMonitoring(): () => void {
     clearInterval(memoryCheckTimer);
     memoryCheckTimer = null;
   }
-  
-  console.log('Starting memory usage monitoring');
-  
+
+  console.log("Starting memory usage monitoring");
+
   // Schedule periodic cleanup
   memoryCheckTimer = setInterval(() => {
-    performMemoryCleanup().catch(error => 
-      console.error('Error in scheduled memory cleanup:', error)
+    performMemoryCleanup().catch((error) =>
+      console.error("Error in scheduled memory cleanup:", error),
     );
   }, MEMORY_CHECK_INTERVAL);
-  
+
   // Return cleanup function
   return () => {
     if (memoryCheckTimer) {
       clearInterval(memoryCheckTimer);
       memoryCheckTimer = null;
-      console.log('Memory monitoring stopped');
+      console.log("Memory monitoring stopped");
     }
   };
-} 
+}
