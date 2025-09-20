@@ -41,9 +41,13 @@ interface Task {
   title: string;
   description: string;
   status: "pending" | "in_progress" | "completed";
-  priority: "low" | "medium" | "high";
+  priority: "low" | "medium" | "high" | "critical";
   due_date: string;
   assigned_by_name: string;
+  customer_name?: string;
+  customer_contact?: string;
+  customer_notes?: string;
+  attachments?: any[];
 }
 
 // Add this interface near your other interfaces
@@ -106,13 +110,13 @@ export default function EmployeeDashboard() {
   // Dynamic quick actions based on face registration status
   const getQuickActions = () => {
     const baseActions = [
-      {
-        id: 1,
-        title: "Shift Tracker",
-        icon: "time-outline",
-        color: "#10B981",
-        action: () => router.push("/(dashboard)/shared/shiftTracker"),
-      },
+      // {
+      //   id: 1,
+      //   title: "Shift Tracker",
+      //   icon: "time-outline",
+      //   color: "#10B981",
+      //   action: () => router.push("/(dashboard)/shared/shiftTracker"),
+      // },
       {
         id: 2,
         title: "Submit Expenses",

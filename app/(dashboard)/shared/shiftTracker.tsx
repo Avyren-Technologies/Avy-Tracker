@@ -860,7 +860,7 @@ export default function EmployeeShiftTracker() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      const isRegistered = response.data?.isRegistered || false;
+      const isRegistered = response.data?.face_registered || false;
       setFaceRegistrationRequired(!isRegistered);
       return isRegistered;
     } catch (error) {

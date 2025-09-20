@@ -18,8 +18,10 @@ import AuthContext from "../../context/AuthContext";
 import axios from "axios";
 import { Calendar } from "react-native-calendars";
 import { format } from "date-fns";
+import RegularizationRequestForm from "../../components/RegularizationRequestForm";
 
 interface ShiftDetail {
+  id?: number;
   shift_start: string;
   shift_end: string | null;
   total_hours: number | string;
@@ -98,6 +100,8 @@ export default function AttendanceManagement() {
     [key: string]: AttendanceData;
   }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [showRegularizationForm, setShowRegularizationForm] = useState(false);
+  const [selectedShiftForRegularization, setSelectedShiftForRegularization] = useState<any>(null);
   const [monthStats, setMonthStats] = useState({
     totalDays: 0,
     totalHours: 0,
@@ -323,7 +327,20 @@ export default function AttendanceManagement() {
           >
             {getRoleSpecificTitle(user?.role || "employee")}
           </Text>
-          <View style={{ width: 40 }} />
+          {user?.role === 'employee' && (
+            <TouchableOpacity
+              onPress={() => setShowRegularizationForm(true)}
+              className="p-2 rounded-full"
+              style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6" }}
+            >
+              <Ionicons
+                name="add"
+                size={24}
+                color={isDark ? "#FFFFFF" : "#000000"}
+              />
+            </TouchableOpacity>
+          )}
+          {user?.role !== 'employee' && <View style={{ width: 40 }} />}
         </View>
       </LinearGradient>
 
@@ -634,6 +651,38 @@ export default function AttendanceManagement() {
                       </View>
                     ))}
                   </View>
+                  
+                  {/* Regularization Button for Employees */}
+                  {user?.role === 'employee' && (
+                    <View className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedShiftForRegularization({
+                            id: shift.id || Math.random(), // Use shift ID if available
+                            start_time: shift.shift_start,
+                            end_time: shift.shift_end,
+                            date: shift.date
+                          });
+                          setShowRegularizationForm(true);
+                        }}
+                        className="flex-row items-center justify-center py-3 px-4 rounded-lg"
+                        style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6" }}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={isDark ? "#60A5FA" : "#3B82F6"}
+                        />
+                        <Text
+                          className={`ml-2 font-medium ${
+                            isDark ? "text-blue-400" : "text-blue-600"
+                          }`}
+                        >
+                          Request Regularization
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               ),
             )}
@@ -663,6 +712,20 @@ export default function AttendanceManagement() {
           </View>
         )}
       </ScrollView>
+
+      {/* Regularization Request Form Modal */}
+      <RegularizationRequestForm
+        visible={showRegularizationForm}
+        onClose={() => {
+          setShowRegularizationForm(false);
+          setSelectedShiftForRegularization(null);
+        }}
+        onSuccess={() => {
+          // Refresh attendance data after successful submission
+          fetchAttendanceData(format(selectedDate, "yyyy-MM"));
+        }}
+        shiftData={selectedShiftForRegularization}
+      />
     </View>
   );
 }

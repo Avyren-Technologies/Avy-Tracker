@@ -12,15 +12,21 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import TaskDetailsModal from "../../../components/TaskDetailsModal";
 
 interface Task {
   id: number;
   title: string;
   description: string;
   status: "pending" | "in_progress" | "completed";
-  priority: "low" | "medium" | "high";
+  priority: "low" | "medium" | "high" | "critical";
   due_date: string | null;
   assigned_by_name: string;
+  customer_name?: string;
+  customer_contact?: string;
+  customer_notes?: string;
+  attachments?: any[];
 }
 
 interface Props {
@@ -45,9 +51,16 @@ export default function TaskList({
   activeTaskType,
   onChangeTaskType,
 }: Props) {
-  const [selectedTask, setSelectedTask] = useState<number | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusLoading, setStatusLoading] = useState<number | null>(null);
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<any[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  
+  // Task details modal state
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   const taskTypes = ["All Tasks", "Pending", "In Progress", "Completed"];
   const statusOptions = [
@@ -76,6 +89,45 @@ export default function TaskList({
     }
   };
 
+  const handleTaskClick = (taskId: number) => {
+    setSelectedTaskId(taskId);
+    setShowTaskDetails(true);
+  };
+
+  const handleCloseTaskDetails = () => {
+    setShowTaskDetails(false);
+    setSelectedTaskId(null);
+  };
+
+  const handleTaskUpdate = () => {
+    onRefresh(); // Refresh tasks when details are updated
+  };
+
+  const fetchTaskAttachments = async (taskId: number) => {
+    setLoadingAttachments(true);
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const attachments = await response.json();
+        setTaskAttachments(attachments);
+        setShowAttachments(true);
+      }
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -96,6 +148,8 @@ export default function TaskList({
       case "medium":
         return "#F59E0B";
       case "high":
+        return "#F97316";
+      case "critical":
         return "#EF4444";
       default:
         return "#6B7280";
@@ -216,11 +270,82 @@ export default function TaskList({
                     : "Not set"}
                 </Text>
 
+                {/* Customer Details */}
+                {task.customer_name && (
+                  <View style={{ marginBottom: 12, padding: 8, backgroundColor: isDark ? "#374151" : "#F3F4F6", borderRadius: 8 }}>
+                    <Text style={{ color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 12, fontWeight: "600", marginBottom: 4 }}>
+                      Customer Details
+                    </Text>
+                    <Text style={{ color: isDark ? "#fff" : "#000", fontSize: 14, fontWeight: "500" }}>
+                      {task.customer_name}
+                    </Text>
+                    {task.customer_contact && (
+                      <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 12, marginTop: 2 }}>
+                        {task.customer_contact}
+                      </Text>
+                    )}
+                    {task.customer_notes && (
+                      <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 12, marginTop: 2, fontStyle: "italic" }}>
+                        "{task.customer_notes}"
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Action Buttons */}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  {/* Attachments Button */}
+                  <TouchableOpacity
+                    onPress={() => fetchTaskAttachments(task.id)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: isDark ? "#4B5563" : "#E5E7EB",
+                    }}
+                    disabled={loadingAttachments}
+                  >
+                    <Ionicons
+                      name="document-outline"
+                      size={16}
+                      color={isDark ? "#9CA3AF" : "#6B7280"}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 12 }}>
+                      {loadingAttachments ? "Loading..." : "Attachments"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Priority Badge */}
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      backgroundColor: `${getPriorityColor(task.priority)}20`,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: getPriorityColor(task.priority),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: getPriorityColor(task.priority),
+                        fontSize: 10,
+                        fontWeight: "600",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {task.priority}
+                    </Text>
+                  </View>
+                </View>
+
                 <TouchableOpacity
-                  onPress={() => {
-                    setSelectedTask(task.id);
-                    setShowStatusModal(true);
-                  }}
+                  onPress={() => handleTaskClick(task.id)}
                   className="flex-row items-center self-end"
                   style={[
                     styles.statusButton,
@@ -307,7 +432,7 @@ export default function TaskList({
             {statusOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
-                onPress={() => handleStatusUpdate(selectedTask!, option.value)}
+                onPress={() => handleStatusUpdate(selectedTask!.id, option.value)}
                 style={[
                   styles.statusOption,
                   { borderBottomColor: isDark ? "#374151" : "#E5E7EB" },
@@ -331,6 +456,103 @@ export default function TaskList({
           </View>
         </Pressable>
       </Modal>
+
+      {/* Attachments Modal */}
+      <Modal
+        visible={showAttachments}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAttachments(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowAttachments(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDark ? "#1F2937" : "#FFFFFF", maxHeight: "80%" },
+            ]}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <Text style={{ color: isDark ? "#fff" : "#000", fontSize: 18, fontWeight: "600" }}>
+                Task Attachments
+              </Text>
+              <TouchableOpacity onPress={() => setShowAttachments(false)}>
+                <Ionicons name="close" size={24} color={isDark ? "#fff" : "#000"} />
+              </TouchableOpacity>
+            </View>
+
+            {taskAttachments.length === 0 ? (
+              <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                <Ionicons
+                  name="document-outline"
+                  size={48}
+                  color={isDark ? "#4B5563" : "#9CA3AF"}
+                />
+                <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", marginTop: 16, fontSize: 16 }}>
+                  No attachments found
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {taskAttachments.map((attachment, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: 12,
+                      backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                      borderRadius: 8,
+                      marginBottom: 8,
+                      borderWidth: 1,
+                      borderColor: isDark ? "#4B5563" : "#E5E7EB",
+                    }}
+                  >
+                    <Ionicons
+                      name="document-outline"
+                      size={24}
+                      color={isDark ? "#60A5FA" : "#3B82F6"}
+                      style={{ marginRight: 12 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: isDark ? "#fff" : "#000", fontSize: 14, fontWeight: "500" }}>
+                        {attachment.file_name}
+                      </Text>
+                      <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 12 }}>
+                        {(attachment.file_size / 1024 / 1024).toFixed(2)} MB • {attachment.file_type}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        // Here you could implement file download/viewing
+                        console.log('Download attachment:', attachment.file_name);
+                      }}
+                      style={{
+                        padding: 8,
+                        borderRadius: 6,
+                        backgroundColor: isDark ? "#3B82F620" : "#EBF4FF",
+                      }}
+                    >
+                      <Ionicons name="download-outline" size={16} color={isDark ? "#60A5FA" : "#3B82F6"} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
+      
+      {/* Task Details Modal */}
+      <TaskDetailsModal
+        visible={showTaskDetails}
+        onClose={handleCloseTaskDetails}
+        taskId={selectedTaskId}
+        isDark={isDark}
+        onTaskUpdate={handleTaskUpdate}
+      />
     </View>
   );
 }

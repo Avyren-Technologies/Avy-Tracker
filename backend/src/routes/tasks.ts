@@ -3,6 +3,8 @@ import { pool } from "../config/database";
 import { verifyToken, adminMiddleware } from "../middleware/auth";
 import { CustomRequest } from "../types";
 import axios from "axios";
+import { CustomerNotificationService } from "../services/CustomerNotificationService";
+import { TaskNotificationService } from "../services/TaskNotificationService";
 
 const router = express.Router();
 
@@ -14,10 +16,34 @@ router.post(
   async (req: CustomRequest, res: Response) => {
     const client = await pool.connect();
     try {
-      const { title, description, assignedTo, priority, dueDate } = req.body;
+      const { 
+        title, 
+        description, 
+        assignedTo, 
+        priority, 
+        dueDate,
+        customerName,
+        customerContact,
+        customerNotes,
+        sendCustomerUpdates,
+        attachments
+      } = req.body;
 
       // Format the due date properly
       const formattedDueDate = dueDate ? new Date(dueDate).toISOString() : null;
+
+      // Determine customer contact type
+      const customerContactType = customerContact ? 
+        (customerContact.includes('@') ? 'email' : 'phone') : null;
+
+      // Validate customer contact if provided
+      if (customerContact && sendCustomerUpdates) {
+        if (customerContactType === 'phone') {
+          return res.status(400).json({ 
+            error: "Customer updates via SMS are not yet implemented. Please use email contact." 
+          });
+        }
+      }
 
       console.log("Creating task with data:", {
         title,
@@ -26,12 +52,23 @@ router.post(
         assignedBy: req.user?.id,
         priority,
         dueDate: formattedDueDate,
+        customerName,
+        customerContact,
+        customerContactType,
+        sendCustomerUpdates,
+        attachmentsCount: attachments?.length || 0
       });
 
+      // Start transaction
+      await client.query('BEGIN');
+
+      // Insert task
       const result = await client.query(
         `INSERT INTO employee_tasks (
-        title, description, assigned_to, assigned_by, priority, due_date
-      ) VALUES ($1, $2, $3, $4, $5, $6) 
+        title, description, assigned_to, assigned_by, priority, due_date,
+        customer_name, customer_contact, customer_notes, send_customer_updates,
+        customer_contact_type, attachments
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
       RETURNING *`,
         [
           title,
@@ -40,12 +77,83 @@ router.post(
           req.user?.id,
           priority,
           formattedDueDate,
-        ],
+          customerName || null,
+          customerContact || null,
+          customerNotes || null,
+          sendCustomerUpdates || false,
+          customerContactType || undefined,
+          JSON.stringify(attachments || [])
+        ]
       );
 
-      console.log("Created task:", result.rows[0]);
-      res.json(result.rows[0]);
+      const task = result.rows[0];
+
+      // Handle attachments if provided
+      if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+          await client.query(
+            `INSERT INTO task_attachments (task_id, file_name, file_type, file_size, file_data)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+              task.id,
+              attachment.fileName,
+              attachment.fileType,
+              attachment.fileSize,
+              Buffer.from(attachment.fileData, 'base64')
+            ]
+          );
+        }
+      }
+
+      // Get assigned employee details for notifications
+      const employeeResult = await client.query(
+        `SELECT name, email FROM users WHERE id = $1`,
+        [assignedTo]
+      );
+
+      const employee = employeeResult.rows[0];
+
+      // Commit transaction first
+      await client.query('COMMIT');
+
+      // Send customer notification if enabled and contact is email (after transaction commit)
+      if (sendCustomerUpdates && customerContact && customerContactType === 'email') {
+        const customerNotificationService = CustomerNotificationService.getInstance();
+        
+        await customerNotificationService.sendTaskAssignmentNotification({
+          customerName: customerName || 'Valued Customer',
+          customerEmail: customerContact,
+          taskTitle: title,
+          taskDescription: description,
+          taskStatus: 'assigned',
+          taskPriority: priority,
+          dueDate: formattedDueDate || undefined,
+          assignedEmployeeName: employee?.name || 'Team Member',
+          companyName: 'Avy Tracker'
+        });
+      }
+
+      // Send task assignment notification to employee (after transaction is committed)
+      const taskNotificationService = TaskNotificationService.getInstance();
+      await taskNotificationService.sendTaskAssignmentNotification(
+        task.id,
+        assignedTo,
+        {
+          taskId: task.id,
+          taskTitle: title,
+          taskStatus: 'assigned',
+          taskPriority: priority,
+          assignedToName: employee?.name,
+          assignedByName: req.user?.name,
+          dueDate: formattedDueDate || undefined,
+        }
+      );
+
+      console.log("Created task:", task);
+      res.json(task);
     } catch (error) {
+      // Rollback transaction on error
+      await client.query('ROLLBACK');
       console.error("Error creating task:", error);
       res.status(500).json({ error: "Failed to create task" });
     } finally {
@@ -64,9 +172,11 @@ router.patch(
       const { taskId } = req.params;
       const { status } = req.body;
 
-      // Get current task
+      // Get current task with customer details
       const currentTask = await client.query(
-        "SELECT status_history FROM employee_tasks WHERE id = $1 AND assigned_to = $2",
+        `SELECT status_history, customer_name, customer_contact, customer_contact_type, 
+                send_customer_updates, title, description, priority, due_date, assigned_to, assigned_by
+         FROM employee_tasks WHERE id = $1 AND (assigned_to = $2 OR assigned_by = $2)`,
         [taskId, req.user?.id],
       );
 
@@ -74,8 +184,10 @@ router.patch(
         return res.status(404).json({ error: "Task not found" });
       }
 
+      const task = currentTask.rows[0];
+
       // Update status history
-      const statusHistory = currentTask.rows[0].status_history || [];
+      const statusHistory = task.status_history || [];
       statusHistory.push({
         status,
         updatedAt: new Date(),
@@ -88,9 +200,50 @@ router.patch(
            status_history = $2::jsonb,
            last_status_update = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND assigned_to = $4
+       WHERE id = $3 AND (assigned_to = $4 OR assigned_by = $4)
        RETURNING *`,
         [status, JSON.stringify(statusHistory), taskId, req.user?.id],
+      );
+
+      // Send customer notification if enabled
+      if (task.send_customer_updates && task.customer_contact && task.customer_contact_type === 'email') {
+        const customerNotificationService = CustomerNotificationService.getInstance();
+        
+        // Get employee name for notification
+        const employeeResult = await client.query(
+          `SELECT name FROM users WHERE id = $1`,
+          [req.user?.id]
+        );
+        
+        const employeeName = employeeResult.rows[0]?.name || 'Team Member';
+
+        await customerNotificationService.sendTaskStatusUpdate({
+          customerName: task.customer_name || 'Valued Customer',
+          customerEmail: task.customer_contact,
+          taskTitle: task.title,
+          taskDescription: task.description,
+          taskStatus: status,
+          taskPriority: task.priority,
+          dueDate: task.due_date,
+          assignedEmployeeName: employeeName,
+          companyName: 'Avy Tracker'
+        });
+      }
+
+      // Send task status update notification
+      const taskNotificationService = TaskNotificationService.getInstance();
+      await taskNotificationService.sendTaskStatusUpdateNotification(
+        parseInt(taskId),
+        task.assigned_to,
+        task.assigned_by,
+        {
+          taskId: parseInt(taskId),
+          taskTitle: task.title,
+          taskStatus: status,
+          taskPriority: task.priority,
+          assignedToName: task.assigned_to_name,
+          assignedByName: task.assigned_by_name,
+        }
       );
 
       res.json(result.rows[0]);
@@ -314,6 +467,97 @@ router.patch(
       await client.query("ROLLBACK");
       console.error("Error updating task:", error);
       res.status(500).json({ error: "Failed to update task" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Get task attachments
+router.get(
+  "/:taskId/attachments",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { taskId } = req.params;
+
+      // Verify user has access to this task
+      const taskCheck = await client.query(
+        `SELECT id FROM employee_tasks 
+         WHERE id = $1 AND (assigned_to = $2 OR assigned_by = $2)`,
+        [taskId, req.user?.id]
+      );
+
+      if (taskCheck.rows.length === 0) {
+        return res.status(404).json({ error: "Task not found or access denied" });
+      }
+
+      // Get attachments
+      const result = await client.query(
+        `SELECT id, file_name, file_type, file_size, created_at
+         FROM task_attachments 
+         WHERE task_id = $1
+         ORDER BY created_at DESC`,
+        [taskId]
+      );
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching task attachments:", error);
+      res.status(500).json({ error: "Failed to fetch attachments" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Get specific attachment file
+router.get(
+  "/:taskId/attachments/:attachmentId",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      const { taskId, attachmentId } = req.params;
+
+      // Verify user has access to this task
+      const taskCheck = await client.query(
+        `SELECT id FROM employee_tasks 
+         WHERE id = $1 AND (assigned_to = $2 OR assigned_by = $2)`,
+        [taskId, req.user?.id]
+      );
+
+      if (taskCheck.rows.length === 0) {
+        return res.status(404).json({ error: "Task not found or access denied" });
+      }
+
+      // Get attachment
+      const result = await client.query(
+        `SELECT file_name, file_type, file_size, file_data
+         FROM task_attachments 
+         WHERE id = $1 AND task_id = $2`,
+        [attachmentId, taskId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      const attachment = result.rows[0];
+      
+      // Convert binary data to base64
+      const base64Data = attachment.file_data.toString('base64');
+      
+      res.json({
+        fileName: attachment.file_name,
+        fileType: attachment.file_type,
+        fileSize: attachment.file_size,
+        fileData: base64Data
+      });
+    } catch (error) {
+      console.error("Error fetching attachment:", error);
+      res.status(500).json({ error: "Failed to fetch attachment" });
     } finally {
       client.release();
     }

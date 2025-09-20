@@ -21,6 +21,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import axios from "axios";
+import * as DocumentPicker from "expo-document-picker";
+import TaskDetailsModal from "../../components/TaskDetailsModal";
 import ThemeContext from "../../context/ThemeContext";
 import AuthContext from "../../context/AuthContext";
 import TaskCard from "./components/TaskCard";
@@ -283,6 +285,16 @@ export default function TaskManagement() {
     due_date: null,
     is_reassigned: false,
   });
+
+  // New state for enhanced task creation
+  const [customerDetails, setCustomerDetails] = useState({
+    name: "",
+    contact: "",
+    notes: "",
+    sendUpdates: false,
+  });
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -298,6 +310,10 @@ export default function TaskManagement() {
   const [showFilterEmployeePicker, setShowFilterEmployeePicker] =
     useState(false);
   const [filterEmployeeSearch, setFilterEmployeeSearch] = useState("");
+  
+  // Task details modal state
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   const fetchEmployees = async () => {
     try {
@@ -374,6 +390,13 @@ export default function TaskManagement() {
     });
   }, [employeeFilter, employees]);
 
+  // Auto-disable customer updates when phone number is entered
+  useEffect(() => {
+    if (customerDetails.contact.length > 0 && !customerDetails.contact.includes('@') && customerDetails.sendUpdates) {
+      setCustomerDetails((prev) => ({ ...prev, sendUpdates: false }));
+    }
+  }, [customerDetails.contact]);
+
   const showSuccessAnimation = () => {
     setShowSuccess(true);
     Animated.sequence([
@@ -401,6 +424,11 @@ export default function TaskManagement() {
         assignedTo: newTask.assignedTo,
         priority: newTask.priority,
         dueDate: newTask.due_date,
+        customerName: customerDetails.name,
+        customerContact: customerDetails.contact,
+        customerNotes: customerDetails.notes,
+        sendCustomerUpdates: customerDetails.sendUpdates,
+        attachments: attachments,
       };
 
       const response = await axios.post(
@@ -426,6 +454,8 @@ export default function TaskManagement() {
 
       showSuccessAnimation();
       fetchTasks();
+      
+      // Reset form
       setNewTask({
         title: "",
         description: "",
@@ -440,9 +470,24 @@ export default function TaskManagement() {
         due_date: null,
         is_reassigned: false,
       });
+      
+      setCustomerDetails({
+        name: "",
+        contact: "",
+        notes: "",
+        sendUpdates: false,
+      });
+      setAttachments([]);
     } catch (error) {
       console.error("Error creating task:", error);
-      Alert.alert("Error", "Failed to create task");
+      
+      // Extract specific error message from backend
+      let errorMessage = "Failed to create task";
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -475,6 +520,20 @@ export default function TaskManagement() {
       Alert.alert("Error", "Failed to update task");
       throw error;
     }
+  };
+
+  const handleTaskClick = (taskId: number) => {
+    setSelectedTaskId(taskId);
+    setShowTaskDetails(true);
+  };
+
+  const handleCloseTaskDetails = () => {
+    setShowTaskDetails(false);
+    setSelectedTaskId(null);
+  };
+
+  const handleTaskUpdate = () => {
+    fetchTasks(); // Refresh tasks when details are updated
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -575,6 +634,52 @@ export default function TaskManagement() {
       setRefreshing(false);
     }
   }, []);
+
+  // File picker function
+  const pickDocument = async () => {
+    try {
+      setIsUploading(true);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        
+        // Convert file to base64
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1]; // Remove data:type;base64, prefix
+          
+          const newAttachment = {
+            fileName: file.name,
+            fileType: file.mimeType || 'application/octet-stream',
+            fileSize: file.size || 0,
+            fileData: base64Data,
+          };
+          
+          setAttachments(prev => [...prev, newAttachment]);
+        };
+        
+        reader.readAsDataURL(blob);
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      Alert.alert("Error", "Failed to pick document");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Remove attachment
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const filteredEmployees = employees.filter(
     (employee) =>
@@ -1152,23 +1257,60 @@ export default function TaskManagement() {
             />
           </TouchableOpacity>
 
-          <View
-            style={[
-              styles.pickerContainer,
-              { backgroundColor: isDark ? "#374151" : "#F3F4F6" },
-            ]}
-          >
-            <Picker
-              selectedValue={newTask.priority}
-              onValueChange={(value) =>
-                setNewTask((prev) => ({ ...prev, priority: value }))
-              }
-              style={{ color: isDark ? "#FFFFFF" : "#111827" }}
+          {/* Priority Selection */}
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "500",
+                marginBottom: 8,
+                color: isDark ? "#9CA3AF" : "#374151",
+              }}
             >
-              <Picker.Item label="Low Priority" value="low" />
-              <Picker.Item label="Medium Priority" value="medium" />
-              <Picker.Item label="High Priority" value="high" />
-            </Picker>
+              Priority
+            </Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {[
+                { value: "low", label: "Low", color: "#10B981", icon: "checkmark-circle-outline" },
+                { value: "medium", label: "Medium", color: "#F59E0B", icon: "remove-circle-outline" },
+                { value: "high", label: "High", color: "#F97316", icon: "alert-circle-outline" },
+                { value: "critical", label: "Critical", color: "#EF4444", icon: "warning-outline" },
+              ].map((priority) => (
+                <TouchableOpacity
+                  key={priority.value}
+                  onPress={() => setNewTask((prev) => ({ ...prev, priority: priority.value as any }))}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 8,
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: newTask.priority === priority.value ? priority.color : isDark ? "#374151" : "#E5E7EB",
+                    backgroundColor: newTask.priority === priority.value 
+                      ? `${priority.color}20` 
+                      : isDark ? "#374151" : "#F3F4F6",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name={priority.icon as any}
+                    size={16}
+                    color={newTask.priority === priority.value ? priority.color : isDark ? "#9CA3AF" : "#6B7280"}
+                    style={{ marginBottom: 4 }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: newTask.priority === priority.value ? priority.color : isDark ? "#9CA3AF" : "#6B7280",
+                    }}
+                  >
+                    {priority.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           <View style={{ marginBottom: 16 }}>
@@ -1216,6 +1358,224 @@ export default function TaskManagement() {
                 textColor={isDark ? "#FFFFFF" : "#000000"}
               />
             )}
+          </View>
+
+          {/* Attachments Section */}
+          <View style={{ marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "500",
+                marginBottom: 8,
+                color: isDark ? "#9CA3AF" : "#374151",
+              }}
+            >
+              Attachments
+            </Text>
+            <TouchableOpacity
+              onPress={pickDocument}
+              disabled={isUploading}
+              style={{
+                borderWidth: 2,
+                borderStyle: "dashed",
+                borderColor: isDark ? "#374151" : "#E5E7EB",
+                borderRadius: 12,
+                padding: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: isDark ? "#374151" : "#F9FAFB",
+                marginBottom: 12,
+              }}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color={isDark ? "#60A5FA" : "#3B82F6"} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="cloud-upload-outline"
+                    size={32}
+                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 14 }}>
+                    Tap to upload files
+                  </Text>
+                  <Text style={{ color: isDark ? "#6B7280" : "#9CA3AF", fontSize: 12, marginTop: 4 }}>
+                    Max file size: 10MB
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Display uploaded attachments */}
+            {attachments.length > 0 && (
+              <View style={{ gap: 8 }}>
+                {attachments.map((attachment, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: 12,
+                      backgroundColor: isDark ? "#374151" : "#F3F4F6",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isDark ? "#374151" : "#E5E7EB",
+                    }}
+                  >
+                    <Ionicons
+                      name="document-outline"
+                      size={20}
+                      color={isDark ? "#60A5FA" : "#3B82F6"}
+                      style={{ marginRight: 12 }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: isDark ? "#fff" : "#000", fontSize: 14, fontWeight: "500" }}>
+                        {attachment.fileName}
+                      </Text>
+                      <Text style={{ color: isDark ? "#9CA3AF" : "#6B7280", fontSize: 12 }}>
+                        {(attachment.fileSize / 1024 / 1024).toFixed(2)} MB
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => removeAttachment(index)}
+                      style={{
+                        padding: 8,
+                        borderRadius: 6,
+                        backgroundColor: isDark ? "#EF444420" : "#FEE2E2",
+                      }}
+                    >
+                      <Ionicons name="close" size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Customer Details Section */}
+          <View
+            style={{
+              backgroundColor: isDark ? "#374151" : "#F3F4F6",
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "600",
+                marginBottom: 16,
+                color: isDark ? "#fff" : "#000",
+              }}
+            >
+              Customer Details
+            </Text>
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? "#1F2937" : "#fff",
+                  color: isDark ? "#FFFFFF" : "#111827",
+                  borderWidth: 1,
+                  borderColor: isDark ? "#374151" : "#E5E7EB",
+                  marginBottom: 12,
+                },
+              ]}
+              placeholder="Customer Name"
+              placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+              value={customerDetails.name}
+              onChangeText={(text) =>
+                setCustomerDetails((prev) => ({ ...prev, name: text }))
+              }
+            />
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? "#1F2937" : "#fff",
+                  color: isDark ? "#FFFFFF" : "#111827",
+                  borderWidth: 1,
+                  borderColor: isDark ? "#374151" : "#E5E7EB",
+                  marginBottom: 12,
+                },
+              ]}
+              placeholder="Email or Phone Number"
+              placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+              value={customerDetails.contact}
+              onChangeText={(text) =>
+                setCustomerDetails((prev) => ({ ...prev, contact: text }))
+              }
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? "#1F2937" : "#fff",
+                  color: isDark ? "#FFFFFF" : "#111827",
+                  height: 80,
+                  textAlignVertical: "top",
+                  borderWidth: 1,
+                  borderColor: isDark ? "#374151" : "#E5E7EB",
+                  marginBottom: 12,
+                },
+              ]}
+              placeholder="Customer Notes (Optional)"
+              placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+              value={customerDetails.notes}
+              onChangeText={(text) =>
+                setCustomerDetails((prev) => ({ ...prev, notes: text }))
+              }
+              multiline
+              numberOfLines={3}
+            />
+
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={() => {
+                  // Only allow toggling if contact is email or empty
+                  const isEmail = customerDetails.contact.length === 0 || customerDetails.contact.includes('@');
+                  if (isEmail) {
+                    setCustomerDetails((prev) => ({ ...prev, sendUpdates: !prev.sendUpdates }));
+                  }
+                }}
+                disabled={customerDetails.contact.length > 0 && !customerDetails.contact.includes('@')}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: customerDetails.sendUpdates ? "#3B82F6" : isDark ? "#6B7280" : "#9CA3AF",
+                  backgroundColor: customerDetails.sendUpdates ? "#3B82F6" : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                  opacity: (customerDetails.contact.length > 0 && !customerDetails.contact.includes('@')) ? 0.5 : 1,
+                }}
+              >
+                {customerDetails.sendUpdates && (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                )}
+              </TouchableOpacity>
+              <Text style={{ 
+                color: (customerDetails.contact.length > 0 && !customerDetails.contact.includes('@')) 
+                  ? isDark ? "#6B7280" : "#9CA3AF" 
+                  : isDark ? "#9CA3AF" : "#374151", 
+                fontSize: 14 
+              }}>
+                Send customer updates
+              </Text>
+              {customerDetails.contact.length > 0 && customerDetails.contact.includes('@') === false && (
+                <Text style={{ color: "#EF4444", fontSize: 12, marginLeft: 8 }}>
+                  (SMS not yet supported)
+                </Text>
+              )}
+            </View>
           </View>
 
           <TouchableOpacity
@@ -1291,6 +1651,7 @@ export default function TaskManagement() {
                 isDark={theme === "dark"}
                 employees={employees}
                 onUpdateTask={updateTask}
+                onTaskClick={handleTaskClick}
               />
             ))
           )}
@@ -1396,6 +1757,15 @@ export default function TaskManagement() {
         selectedEmployeeId={
           employeeFilter === "all" ? 0 : parseInt(employeeFilter)
         }
+      />
+      
+      {/* Task Details Modal */}
+      <TaskDetailsModal
+        visible={showTaskDetails}
+        onClose={handleCloseTaskDetails}
+        taskId={selectedTaskId}
+        isDark={isDark}
+        onTaskUpdate={handleTaskUpdate}
       />
     </View>
   );

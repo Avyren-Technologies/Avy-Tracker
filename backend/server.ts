@@ -30,6 +30,9 @@ import employeeLiveTracking from "./src/routes/employeeLiveTracking";
 import groupAdminLiveTracking from "./src/routes/groupAdminLiveTracking";
 import faceVerificationRoutes from "./src/routes/faceVerification";
 import otpVerificationRoutes from "./src/routes/otpVerification";
+import attendanceRegularizationRoutes from "./src/routes/attendanceRegularization";
+import taskDetailsRoutes from "./src/routes/taskDetails";
+import placesRoutes from "./src/routes/places";
 import LocationSocketService from "./src/services/socketService";
 import { createServer } from "http";
 import { startScheduledJobs } from "./src/jobs/scheduledTasks";
@@ -88,6 +91,9 @@ app.use("/api/employee-tracking", employeeLiveTracking);
 app.use("/api/group-admin-tracking", groupAdminLiveTracking);
 app.use("/api/face-verification", faceVerificationRoutes);
 app.use("/api/otp", otpVerificationRoutes);
+app.use("/api/attendance-regularization", attendanceRegularizationRoutes);
+app.use("/api/task-details", taskDetailsRoutes);
+app.use("/api/places", placesRoutes);
 
 // Test route at root level
 app.get("/api/test", (req, res) => {

@@ -402,7 +402,7 @@ export default function FaceConfiguration() {
               style={[styles.otpGateMessage, { color: secondaryTextColor }]}
             >
               Face configuration settings contain sensitive biometric data.
-              Please verify your identity with OTP to continue.
+              Please verify your identity with OTP sent to your email to continue.
             </Text>
 
             <TouchableOpacity
@@ -410,7 +410,7 @@ export default function FaceConfiguration() {
               onPress={() => setShowOTPModal(true)}
             >
               <Ionicons name="key" size={20} color="#ffffff" />
-              <Text style={styles.otpGateButtonText}>Verify with OTP</Text>
+              <Text style={styles.otpGateButtonText}>Verify with Email OTP</Text>
             </TouchableOpacity>
           </View>
         </View>

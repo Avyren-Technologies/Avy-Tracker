@@ -37,7 +37,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
   onError,
   onCancel,
   title = "OTP Verification",
-  subtitle = "Enter the verification code sent to your phone",
+  subtitle = "Enter the verification code sent to your contact",
   maxAttempts = 3,
   expiryMinutes = 5,
 }) => {
@@ -208,7 +208,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
 
         // Announce to screen readers
         AccessibilityInfo.announceForAccessibility(
-          `OTP sent to your phone. Please enter the 6-digit code.`,
+          `OTP sent to your contact. Please enter the 6-digit code.`,
         );
       } else {
         updateState({
@@ -424,7 +424,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
 
         // Announce to screen readers
         AccessibilityInfo.announceForAccessibility(
-          "New OTP sent to your phone",
+          "New OTP sent to your contact",
         );
       } else {
         updateState({

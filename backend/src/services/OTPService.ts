@@ -1,11 +1,13 @@
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 import ErrorHandlingService from "./ErrorHandlingService";
 import SMSService from "./SMSService";
 import { pool } from "../config/database";
 
 interface OTPRecord {
   id: string;
-  phoneNumber: string;
+  phoneNumber?: string;
+  email?: string;
   otp: string;
   purpose:
     | "shift_start"
@@ -36,10 +38,14 @@ interface OTPVerificationResult {
 export class OTPService {
   private static instance: OTPService;
   private smsService: SMSService;
+  private emailTransporter: nodemailer.Transporter;
   private otpRecords: Map<string, OTPRecord> = new Map();
   private rateLimitMap: Map<string, { count: number; resetTime: Date }> =
     new Map();
+  private emailRateLimitMap: Map<string, { count: number; resetTime: Date }> =
+    new Map();
   private blockedNumbers: Map<string, Date> = new Map();
+  private blockedEmails: Map<string, Date> = new Map();
 
   // Rate limiting configuration
   private readonly MAX_OTP_REQUESTS_PER_HOUR = 5;
@@ -50,6 +56,15 @@ export class OTPService {
 
   private constructor() {
     this.smsService = SMSService.getInstance();
+    
+    // Initialize email transporter using the same configuration as MFAService
+    this.emailTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
     // Cleanup expired records every 10 minutes
     setInterval(
@@ -59,7 +74,7 @@ export class OTPService {
       10 * 60 * 1000,
     );
 
-    console.log("OTPService initialized with SMS integration");
+    console.log("OTPService initialized with SMS and Email integration");
   }
 
   public static getInstance(): OTPService {
@@ -87,7 +102,13 @@ export class OTPService {
     return phoneRegex.test(phoneNumber);
   }
 
-  // Check rate limiting
+  // Validate email format
+  private validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // Check rate limiting for phone numbers
   private checkRateLimit(phoneNumber: string): boolean {
     const now = new Date();
     const rateLimit = this.rateLimitMap.get(phoneNumber);
@@ -117,25 +138,57 @@ export class OTPService {
     return true;
   }
 
-  // Check if number is blocked
-  private isNumberBlocked(phoneNumber: string): boolean {
-    const blockExpiry = this.blockedNumbers.get(phoneNumber);
+  // Check rate limiting for email addresses
+  private checkEmailRateLimit(email: string): boolean {
+    const now = new Date();
+    const rateLimit = this.emailRateLimitMap.get(email);
+
+    if (!rateLimit) {
+      this.emailRateLimitMap.set(email, {
+        count: 1,
+        resetTime: new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
+      });
+      return true;
+    }
+
+    if (now > rateLimit.resetTime) {
+      // Reset rate limit
+      this.emailRateLimitMap.set(email, {
+        count: 1,
+        resetTime: new Date(now.getTime() + 60 * 60 * 1000),
+      });
+      return true;
+    }
+
+    if (rateLimit.count >= this.MAX_OTP_REQUESTS_PER_HOUR) {
+      return false;
+    }
+
+    rateLimit.count++;
+    return true;
+  }
+
+  // Check if contact (phone or email) is blocked
+  private isContactBlocked(contact: string, isEmail: boolean = false): boolean {
+    const blockMap = isEmail ? this.blockedEmails : this.blockedNumbers;
+    const blockExpiry = blockMap.get(contact);
     if (!blockExpiry) return false;
 
     if (new Date() > blockExpiry) {
-      this.blockedNumbers.delete(phoneNumber);
+      blockMap.delete(contact);
       return false;
     }
     return true;
   }
 
-  // Block phone number
-  private blockNumber(phoneNumber: string): void {
+  // Block contact (phone or email)
+  private blockContact(contact: string, isEmail: boolean = false): void {
+    const blockMap = isEmail ? this.blockedEmails : this.blockedNumbers;
     const blockUntil = new Date();
     blockUntil.setMinutes(
       blockUntil.getMinutes() + this.BLOCK_DURATION_MINUTES,
     );
-    this.blockedNumbers.set(phoneNumber, blockUntil);
+    blockMap.set(contact, blockUntil);
   }
 
   // Store OTP in database
@@ -145,13 +198,14 @@ export class OTPService {
       await client.query(
         `
         INSERT INTO otp_records (
-          id, phone_number, otp_hash, purpose, expires_at, 
+          id, phone_number, email, otp_hash, purpose, expires_at, 
           attempts, is_used, device_fingerprint, ip_address, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `,
         [
           otpRecord.id,
           otpRecord.phoneNumber,
+          otpRecord.email,
           crypto.createHash("sha256").update(otpRecord.otp).digest("hex"),
           otpRecord.purpose,
           otpRecord.expiresAt,
@@ -167,7 +221,199 @@ export class OTPService {
     }
   }
 
-  // Generate and send OTP
+  // Send OTP via email
+  private async sendOTPEmail(
+    email: string,
+    userName: string,
+    otp: string,
+    purpose: string,
+  ): Promise<void> {
+    const purposeText = {
+      "face-settings-access": "access face configuration settings",
+      "profile-update": "update your profile",
+      "security-verification": "verify your security",
+      "password-reset": "reset your password",
+      "account-verification": "verify your account",
+      "face_verification": "verify your identity",
+      "manager_override": "manager override",
+    }[purpose] || "verify your identity";
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Avy Tracker - Verification Code",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #3B82F6, #0EA5E9); padding: 30px; border-radius: 15px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Avy Tracker</h1>
+            <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Verification Code</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #1F2937; margin: 0 0 20px 0; font-size: 24px;">Hello ${userName},</h2>
+            
+            <p style="color: #4B5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+              Your verification code to ${purposeText} is:
+            </p>
+            
+            <div style="background: #F3F4F6; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: bold; color: #3B82F6; letter-spacing: 8px;">${otp}</span>
+            </div>
+            
+            <p style="color: #6B7280; font-size: 14px; margin: 20px 0 0 0;">
+              This code will expire in <strong>5 minutes</strong>.
+            </p>
+            
+            <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 5px;">
+              <p style="color: #92400E; margin: 0; font-size: 14px;">
+                <strong>Security Notice:</strong> Never share this code with anyone. Avy Tracker staff will never ask for your verification code.
+              </p>
+            </div>
+            
+            <p style="color: #6B7280; font-size: 14px; margin: 20px 0 0 0;">
+              If you didn't request this code, please contact your administrator immediately.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px; color: #9CA3AF; font-size: 12px;">
+            <p>This is an automated message from Avy Tracker. Please do not reply to this email.</p>
+          </div>
+        </div>
+      `,
+      text: `
+Avy Tracker - Verification Code
+
+Hello ${userName},
+
+Your verification code to ${purposeText} is: ${otp}
+
+This code will expire in 5 minutes.
+
+Security Notice: Never share this code with anyone. Avy Tracker staff will never ask for your verification code.
+
+If you didn't request this code, please contact your administrator immediately.
+
+This is an automated message from Avy Tracker. Please do not reply to this email.
+      `,
+    };
+
+    await this.emailTransporter.sendMail(mailOptions);
+  }
+
+  // Generate and send OTP via email
+  public async generateAndSendEmailOTP(
+    email: string,
+    purpose:
+      | "face-settings-access"
+      | "profile-update"
+      | "security-verification"
+      | "password-reset"
+      | "account_verification"
+      | "face_verification"
+      | "manager_override",
+    deviceFingerprint?: string,
+    ipAddress?: string,
+  ): Promise<{ success: boolean; message: string; otpId?: string }> {
+    try {
+      // Validate email
+      if (!this.validateEmail(email)) {
+        return {
+          success: false,
+          message: "Invalid email format",
+        };
+      }
+
+      // Check if email is blocked
+      if (this.isContactBlocked(email, true)) {
+        const blockExpiry = this.blockedEmails.get(email);
+        return {
+          success: false,
+          message: `Email is temporarily blocked. Try again after ${blockExpiry?.toLocaleTimeString()}`,
+        };
+      }
+
+      // Check rate limiting
+      if (!this.checkEmailRateLimit(email)) {
+        return {
+          success: false,
+          message: "Too many OTP requests. Please try again later.",
+        };
+      }
+
+      // Get user name from database
+      const client = await pool.connect();
+      let userName = "User";
+      try {
+        const result = await client.query(
+          "SELECT name FROM users WHERE email = $1",
+          [email],
+        );
+        if (result.rows.length > 0) {
+          userName = result.rows[0].name;
+        }
+      } finally {
+        client.release();
+      }
+
+      // Generate OTP
+      const otp = this.generateOTP();
+      const otpId = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + this.OTP_EXPIRY_MINUTES);
+
+      // Create OTP record
+      const otpRecord: OTPRecord = {
+        id: otpId,
+        email,
+        otp,
+        purpose,
+        expiresAt,
+        attempts: 0,
+        isUsed: false,
+        createdAt: new Date(),
+        deviceFingerprint,
+        ipAddress,
+      };
+
+      // Store in memory and database
+      this.otpRecords.set(otpId, otpRecord);
+      await this.storeOTPInDatabase(otpRecord);
+
+      // Send email
+      await this.sendOTPEmail(email, userName, otp, purpose);
+
+      // Log successful OTP generation
+      ErrorHandlingService.logError("EMAIL_OTP_GENERATED", null, {
+        context: "OTPService.generateAndSendEmailOTP",
+        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+        purpose,
+        otpId,
+        deviceFingerprint,
+        ipAddress,
+      });
+
+      return {
+        success: true,
+        message: `OTP sent to ${email.replace(/(.{2}).*(@.*)/, "$1***$2")}`,
+        otpId,
+      };
+    } catch (error) {
+      ErrorHandlingService.logError("EMAIL_OTP_GENERATION_ERROR", error as Error, {
+        context: "OTPService.generateAndSendEmailOTP",
+        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+        purpose,
+        deviceFingerprint,
+        ipAddress,
+      });
+
+      return {
+        success: false,
+        message: "Internal error occurred. Please try again.",
+      };
+    }
+  }
+
+  // Generate and send OTP (SMS version - kept for backward compatibility)
   public async generateAndSendOTP(
     phoneNumber: string,
     purpose:
@@ -194,7 +440,7 @@ export class OTPService {
       }
 
       // Check if number is blocked
-      if (this.isNumberBlocked(phoneNumber)) {
+      if (this.isContactBlocked(phoneNumber, false)) {
         const blockExpiry = this.blockedNumbers.get(phoneNumber);
         return {
           success: false,
@@ -330,12 +576,13 @@ export class OTPService {
         };
       }
 
-      // Check if number is blocked
-      if (this.isNumberBlocked(otpRecord.phoneNumber)) {
+      // Check if contact is blocked
+      const isEmail = !!otpRecord.email;
+      const contact = otpRecord.email || otpRecord.phoneNumber!;
+      if (this.isContactBlocked(contact, isEmail)) {
         return {
           success: false,
-          message:
-            "Phone number is temporarily blocked due to too many failed attempts",
+          message: `${isEmail ? 'Email' : 'Phone number'} is temporarily blocked due to too many failed attempts`,
         };
       }
 
@@ -349,17 +596,19 @@ export class OTPService {
           this.MAX_VERIFICATION_ATTEMPTS - otpRecord.attempts;
 
         if (remainingAttempts <= 0) {
-          // Block the number and mark OTP as used
-          this.blockNumber(otpRecord.phoneNumber);
+          // Block the contact and mark OTP as used
+          this.blockContact(contact, isEmail);
           otpRecord.isUsed = true;
           await this.updateOTPInDatabase(otpId, { isUsed: true });
           this.otpRecords.delete(otpId);
 
-          const blockExpiry = this.blockedNumbers.get(otpRecord.phoneNumber);
+          const blockMap = isEmail ? this.blockedEmails : this.blockedNumbers;
+          const blockExpiry = blockMap.get(contact);
 
           ErrorHandlingService.logError("OTP_VERIFICATION_BLOCKED", null, {
             context: "OTPService.verifyOTP",
-            phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
+            contact: isEmail ? contact.replace(/(.{2}).*(@.*)/, "$1***$2") : contact.replace(/\d(?=\d{4})/g, "*"),
+            contactType: isEmail ? "email" : "phone",
             attempts: otpRecord.attempts,
             otpId,
             deviceFingerprint,
@@ -369,7 +618,7 @@ export class OTPService {
           return {
             success: false,
             message:
-              "Too many failed attempts. Phone number blocked temporarily.",
+              `Too many failed attempts. ${isEmail ? 'Email' : 'Phone number'} blocked temporarily.`,
             isBlocked: true,
             blockExpiresAt: blockExpiry,
           };
@@ -377,7 +626,8 @@ export class OTPService {
 
         ErrorHandlingService.logError("OTP_VERIFICATION_FAILED", null, {
           context: "OTPService.verifyOTP",
-          phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
+          contact: isEmail ? contact.replace(/(.{2}).*(@.*)/, "$1***$2") : contact.replace(/\d(?=\d{4})/g, "*"),
+          contactType: isEmail ? "email" : "phone",
           attempts: otpRecord.attempts,
           remainingAttempts,
           otpId,
@@ -402,7 +652,8 @@ export class OTPService {
       // Log successful verification
       ErrorHandlingService.logError("OTP_VERIFICATION_SUCCESS", null, {
         context: "OTPService.verifyOTP",
-        phoneNumber: otpRecord.phoneNumber.replace(/\d(?=\d{4})/g, "*"),
+        contact: isEmail ? contact.replace(/(.{2}).*(@.*)/, "$1***$2") : contact.replace(/\d(?=\d{4})/g, "*"),
+        contactType: isEmail ? "email" : "phone",
         purpose: otpRecord.purpose,
         attempts: otpRecord.attempts,
         otpId,
@@ -516,10 +767,24 @@ export class OTPService {
       }
     }
 
+    // Clean expired email rate limits
+    for (const [email, rateLimit] of this.emailRateLimitMap.entries()) {
+      if (now > rateLimit.resetTime) {
+        this.emailRateLimitMap.delete(email);
+      }
+    }
+
     // Clean expired blocks
     for (const [phoneNumber, blockExpiry] of this.blockedNumbers.entries()) {
       if (now > blockExpiry) {
         this.blockedNumbers.delete(phoneNumber);
+      }
+    }
+
+    // Clean expired email blocks
+    for (const [email, blockExpiry] of this.blockedEmails.entries()) {
+      if (now > blockExpiry) {
+        this.blockedEmails.delete(email);
       }
     }
 
@@ -532,13 +797,17 @@ export class OTPService {
   public getStatistics(): {
     activeOTPs: number;
     rateLimitedNumbers: number;
+    rateLimitedEmails: number;
     blockedNumbers: number;
+    blockedEmails: number;
     smsStatistics: any;
   } {
     return {
       activeOTPs: this.otpRecords.size,
       rateLimitedNumbers: this.rateLimitMap.size,
+      rateLimitedEmails: this.emailRateLimitMap.size,
       blockedNumbers: this.blockedNumbers.size,
+      blockedEmails: this.blockedEmails.size,
       smsStatistics: this.smsService.getStatistics(),
     };
   }
@@ -548,8 +817,16 @@ export class OTPService {
     return this.blockedNumbers.delete(phoneNumber);
   }
 
-  public resetRateLimit(phoneNumber: string): boolean {
-    return this.rateLimitMap.delete(phoneNumber);
+  public unblockEmail(email: string): boolean {
+    return this.blockedEmails.delete(email);
+  }
+
+  public resetRateLimit(contact: string, isEmail: boolean = false): boolean {
+    if (isEmail) {
+      return this.emailRateLimitMap.delete(contact);
+    } else {
+      return this.rateLimitMap.delete(contact);
+    }
   }
 
   // Get SMS provider status

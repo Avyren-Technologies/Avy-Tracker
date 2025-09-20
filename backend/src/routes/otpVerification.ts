@@ -173,15 +173,16 @@ router.post(
       const ipAddress = req.ip || req.socket.remoteAddress;
       const userAgent = req.get("User-Agent");
 
-      // Get user's phone number from database
+      // Get user's contact information from database
       const { pool } = await import("../config/database");
       const client = await pool.connect();
 
-      let phoneNumber: string;
+      let phoneNumber: string | null = null;
+      let email: string | null = null;
 
       try {
         const result = await client.query(
-          "SELECT phone FROM users WHERE id = $1",
+          "SELECT phone, email FROM users WHERE id = $1",
           [userId],
         );
 
@@ -195,14 +196,28 @@ router.post(
         }
 
         phoneNumber = result.rows[0].phone;
+        email = result.rows[0].email;
 
-        if (!phoneNumber) {
-          logResponse("POST /generate", false, null, "No phone number");
-          return res.status(400).json({
-            error: "Phone number not found",
-            message: "No phone number registered for this account",
-            code: "PHONE_NOT_FOUND",
-          });
+        // For face-settings-access, use email instead of phone
+        if (purpose === "face-settings-access") {
+          if (!email) {
+            logResponse("POST /generate", false, null, "No email address");
+            return res.status(400).json({
+              error: "Email address not found",
+              message: "No email address registered for this account",
+              code: "EMAIL_NOT_FOUND",
+            });
+          }
+        } else {
+          // For other purposes, use phone number
+          if (!phoneNumber) {
+            logResponse("POST /generate", false, null, "No phone number");
+            return res.status(400).json({
+              error: "Phone number not found",
+              message: "No phone number registered for this account",
+              code: "PHONE_NOT_FOUND",
+            });
+          }
         }
       } finally {
         client.release();
@@ -215,19 +230,33 @@ router.post(
         timestamp: new Date().toISOString(),
       });
 
-      // Generate OTP
-      const result = await otpService.generateAndSendOTP(
-        phoneNumber,
-        purpose,
-        deviceFingerprint,
-        ipAddress,
-      );
+      // Generate OTP based on purpose
+      let result;
+      if (purpose === "face-settings-access") {
+        // Use email OTP for face configuration
+        result = await otpService.generateAndSendEmailOTP(
+          email!,
+          purpose,
+          deviceFingerprint,
+          ipAddress,
+        );
+      } else {
+        // Use SMS OTP for other purposes
+        result = await otpService.generateAndSendOTP(
+          phoneNumber!,
+          purpose,
+          deviceFingerprint,
+          ipAddress,
+        );
+      }
 
       const responseData = {
         success: result.success,
         message: result.message,
         otpId: result.otpId,
-        phoneNumber: phoneNumber.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2"), // Mask phone number
+        contact: purpose === "face-settings-access" 
+          ? email!.replace(/(.{2}).*(@.*)/, "$1***$2") 
+          : phoneNumber!.replace(/(\d{3})\d{4}(\d{3})/, "$1****$2"), // Mask contact info
         purpose,
         processingTime: Date.now() - startTime,
       };
@@ -368,16 +397,66 @@ router.post(
         timestamp: new Date().toISOString(),
       });
 
-      // Get phone number from user record or request
-      const { phoneNumber } = req.body;
+      // Get user's contact information for resend
+      const { pool } = await import("../config/database");
+      const client = await pool.connect();
 
-      // Resend OTP
-      const result = await otpService.generateAndSendOTP(
-        phoneNumber,
-        purpose,
-        deviceFingerprint,
-        ipAddress,
-      );
+      let phoneNumber: string | null = null;
+      let email: string | null = null;
+
+      try {
+        const result = await client.query(
+          "SELECT phone, email FROM users WHERE id = $1",
+          [userId],
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            error: "User not found",
+            message: "User account not found",
+            code: "USER_NOT_FOUND",
+          });
+        }
+
+        phoneNumber = result.rows[0].phone;
+        email = result.rows[0].email;
+      } finally {
+        client.release();
+      }
+
+      // Resend OTP based on purpose
+      let result;
+      if (purpose === "face-settings-access") {
+        // Use email OTP for face configuration
+        if (!email) {
+          return res.status(400).json({
+            error: "Email address not found",
+            message: "No email address registered for this account",
+            code: "EMAIL_NOT_FOUND",
+          });
+        }
+        result = await otpService.generateAndSendEmailOTP(
+          email,
+          purpose,
+          deviceFingerprint,
+          ipAddress,
+        );
+      } else {
+        // Use SMS OTP for other purposes
+        if (!phoneNumber) {
+          return res.status(400).json({
+            error: "Phone number not found",
+            message: "No phone number registered for this account",
+            code: "PHONE_NOT_FOUND",
+          });
+        }
+        result = await otpService.generateAndSendOTP(
+          phoneNumber,
+          purpose,
+          deviceFingerprint,
+          ipAddress,
+        );
+      }
 
       const responseData = {
         success: result.success,

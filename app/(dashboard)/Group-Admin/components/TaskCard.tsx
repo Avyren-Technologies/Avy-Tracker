@@ -32,6 +32,7 @@ interface TaskCardProps {
   isDark: boolean;
   employees: any[];
   onUpdateTask: (taskId: number, updates: any) => Promise<void>;
+  onTaskClick?: (taskId: number) => void;
 }
 
 // Add helper functions for colors
@@ -88,6 +89,7 @@ export default function TaskCard({
   isDark,
   employees,
   onUpdateTask,
+  onTaskClick,
 }: TaskCardProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -110,10 +112,9 @@ export default function TaskCard({
   return (
     <>
       <TouchableOpacity
-        onPress={() => isTaskEditable(task) && setShowEditModal(true)}
+        onPress={() => onTaskClick?.(task.id)}
         className={`p-4 rounded-xl mb-4 ${isDark ? "bg-gray-800" : "bg-white"}`}
         style={styles.card}
-        disabled={!isTaskEditable(task)}
       >
         <View className="flex-row justify-between items-start mb-3">
           <View className="flex-1">
