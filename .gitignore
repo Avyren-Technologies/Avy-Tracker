@@ -13,6 +13,10 @@ backend/.env
 
 constants/
 
+# Ignore kilocode folder
+.kilocode/
+
+
 miscellaneous/
 constants/env.ts
 
