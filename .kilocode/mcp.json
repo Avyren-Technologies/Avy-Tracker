@@ -31,14 +31,6 @@
         "mcp-server-time"
       ]
     },
-    "postgres": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgres://avnadmin:AVNS_UlVi3_s7zUR63F4q-h-@parrot-pgsql-parrotanalyzer.k.aivencloud.com:15334/parrot?sslmode=require"
-      ]
-    },
     "figma-dev-mode": {
       "type": "sse",
       "url": "http://127.0.0.1:3845/sse"
