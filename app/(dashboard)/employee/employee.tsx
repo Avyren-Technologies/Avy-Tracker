@@ -31,6 +31,7 @@ import BottomNav from "../../components/BottomNav";
 import { employeeNavItems } from "./utils/navigationItems";
 import Constants from "expo-constants";
 import { promptFaceConfiguration } from "../../utils/deepLinkUtils";
+import useUserLocationStore from "../../store/adminLocationStore";
 // import PushNotificationService from '../../utils/pushNotificationService';
 
 const { width, height } = Dimensions.get("window");
@@ -69,6 +70,9 @@ export default function EmployeeDashboard() {
   const { theme } = ThemeContext.useTheme();
   const { user, token } = AuthContext.useAuth();
   const router = useRouter();
+
+  // Location store for location permissions and fetching
+  const { fetchLocation, setUserRole } = useUserLocationStore();
 
   // State management
   const [activeTab, setActiveTab] = useState("home");
@@ -489,6 +493,19 @@ export default function EmployeeDashboard() {
     };
     initialFetch();
   }, []);
+
+  // Handle location permissions for employee role
+  useEffect(() => {
+    if (user?.role === "employee") {
+      console.log("Employee dashboard loaded, ensuring location permissions...");
+      setUserRole("employee");
+      // Fetch location to request permissions if needed
+      fetchLocation().catch((error) => {
+        console.error("Error fetching employee location:", error);
+        // Non-blocking, so we don't need to handle this error specifically
+      });
+    }
+  }, [user?.role]);
 
   // Modify handleRefresh to update both tasks and stats
   const handleRefresh = async () => {

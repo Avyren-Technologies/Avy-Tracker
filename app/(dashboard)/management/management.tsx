@@ -23,6 +23,7 @@ import axios from "axios";
 import { StatusBar as RNStatusBar } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { managementNavItems } from "./utils/navigationItems";
+import useUserLocationStore from "../../store/adminLocationStore";
 
 interface Activity {
   title: string;
@@ -55,6 +56,13 @@ interface LeaveStats {
 // Add new quick actions array
 const newQuickActions = [
   {
+    title: "Regularization Approvals",
+    icon: "checkmark-circle-outline",
+    description: "Review and approve regularization requests",
+    route: "/(dashboard)/shared/AttendanceRegularization",
+    color: "#3B82F6",
+  },
+  {
     title: "Group Admin",
     icon: "people-outline",
     description: "Manage group admins and permissions",
@@ -74,6 +82,9 @@ export default function ManagementDashboard() {
   const { theme } = ThemeContext.useTheme();
   const router = useRouter();
   const { token, user } = useAuth();
+
+  // Location store for location permissions and fetching
+  const { fetchLocation, setUserRole } = useUserLocationStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -289,6 +300,19 @@ export default function ManagementDashboard() {
     fetchLeaveStats();
   }, []);
 
+  // Handle location permissions for management role
+  useEffect(() => {
+    if (user?.role === "management") {
+      console.log("Management dashboard loaded, ensuring location permissions...");
+      setUserRole("management");
+      // Fetch location to request permissions if needed
+      fetchLocation().catch((error) => {
+        console.error("Error fetching management location:", error);
+        // Non-blocking, so we don't need to handle this error specifically
+      });
+    }
+  }, [user?.role]);
+
   // Add shift status check
   useEffect(() => {
     checkShiftStatus();
@@ -364,6 +388,10 @@ export default function ManagementDashboard() {
       Alert.alert("Under Development", "This feature will be available soon!", [
         { text: "OK" },
       ]);
+      return;
+    }
+    if (action.title === "Regularization Approvals") {
+      router.push("/(dashboard)/shared/AttendanceRegularization");
       return;
     }
     router.push(action.route as any);

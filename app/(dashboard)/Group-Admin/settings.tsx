@@ -54,6 +54,11 @@ export default function GroupAdminSettings() {
   const [biometricType, setBiometricType] = useState<string>('');
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [faceRegistrationStatus, setFaceRegistrationStatus] = useState<{
+    registered: boolean;
+    enabled: boolean;
+    loading: boolean;
+  }>({ registered: false, enabled: true, loading: true });
 
   // Get current theme colors
   const currentColors = getCurrentColors(theme);
@@ -90,6 +95,7 @@ export default function GroupAdminSettings() {
     checkBiometricAvailability();
     loadBiometricSettings();
     fetchMFAStatus();
+    fetchFaceRegistrationStatus();
   }, []);
 
   const checkBiometricAvailability = async () => {
@@ -124,6 +130,42 @@ export default function GroupAdminSettings() {
       setMfaEnabled(response.data.enabled || false);
     } catch (error) {
       console.error('Error fetching MFA status:', error);
+    }
+  };
+
+  const fetchFaceRegistrationStatus = async () => {
+    try {
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Handle both old and new API response formats
+      const faceRegistered =
+        response.data.face_registered !== undefined
+          ? response.data.face_registered
+          : response.data.registered || false;
+
+      const faceEnabled =
+        response.data.face_enabled !== undefined
+          ? response.data.face_enabled
+          : response.data.enabled !== false;
+
+      setFaceRegistrationStatus({
+        registered: faceRegistered,
+        enabled: faceEnabled,
+        loading: false,
+      });
+
+      console.log('✅ Group-Admin Face registration status updated:', {
+        registered: faceRegistered,
+        enabled: faceEnabled,
+        apiResponse: response.data,
+      });
+    } catch (error) {
+      console.error('Error fetching face registration status:', error);
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -218,6 +260,22 @@ export default function GroupAdminSettings() {
     }
   };
 
+  const handleFaceRegistration = () => {
+    router.push('/(dashboard)/Group-Admin/face-registration' as any);
+  };
+
+  const handleFaceConfiguration = () => {
+    router.push('/(dashboard)/Group-Admin/face-configuration' as any);
+  };
+
+  const handleFaceSetup = () => {
+    if (faceRegistrationStatus.registered) {
+      handleFaceConfiguration();
+    } else {
+      handleFaceRegistration();
+    }
+  };
+
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
@@ -261,6 +319,21 @@ export default function GroupAdminSettings() {
           label: 'Privacy & Security',
           action: () =>
             router.push('/(dashboard)/Group-Admin/settings/PrivacySecurity'),
+          showArrow: true,
+        },
+      ],
+    },
+    {
+      title: 'Face Verification',
+      items: [
+        {
+          icon: faceRegistrationStatus.registered
+            ? 'shield-checkmark-outline'
+            : 'shield-outline',
+          label: faceRegistrationStatus.registered
+            ? 'Face Configuration'
+            : 'Set Up Face Verification',
+          action: handleFaceSetup,
           showArrow: true,
         },
       ],

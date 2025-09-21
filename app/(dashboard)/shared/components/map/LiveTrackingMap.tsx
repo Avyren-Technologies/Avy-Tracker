@@ -38,7 +38,7 @@ import {
 } from "../../../../types/liveTracking";
 import * as Location from "expo-location";
 import useMapStore from "../../../../store/useMapStore";
-import useAdminLocationStore from "../../../../store/adminLocationStore";
+import useUserLocationStore from "../../../../store/adminLocationStore";
 import { useAuth } from "../../../../context/AuthContext";
 import useGeofenceStore from "../../../../store/geofenceStore";
 import { useColorScheme } from "../../../../hooks/useColorScheme";
@@ -543,39 +543,39 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       return initialRegion;
     }
 
-    // Second, try to use the admin location from adminLocationStore
-    const { adminLocation, mapInitialRegion } =
-      useAdminLocationStore.getState();
-    console.log("LiveTrackingMap - adminLocationStore state:", {
-      adminLocation,
+    // Second, try to use the current location from userLocationStore
+    const { currentLocation, mapInitialRegion } =
+      useUserLocationStore.getState();
+    console.log("LiveTrackingMap - userLocationStore state:", {
+      currentLocation,
       mapInitialRegion,
     });
 
     if (
-      adminLocation &&
-      adminLocation.latitude !== 0 &&
-      adminLocation.longitude !== 0
+      currentLocation &&
+      currentLocation.latitude !== 0 &&
+      currentLocation.longitude !== 0
     ) {
       console.log(
-        "LiveTrackingMap - USING adminLocation from adminLocationStore:",
-        adminLocation,
+        "LiveTrackingMap - USING currentLocation from userLocationStore:",
+        currentLocation,
       );
       return {
-        latitude: adminLocation.latitude,
-        longitude: adminLocation.longitude,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
         latitudeDelta: LATITUDE_DELTA / 4, // More zoomed in
         longitudeDelta: LONGITUDE_DELTA / 4,
       };
     }
 
-    // If we have a valid mapInitialRegion in the adminLocationStore, use that
+    // If we have a valid mapInitialRegion in the userLocationStore, use that
     if (
       mapInitialRegion &&
       mapInitialRegion.latitude !== 0 &&
       mapInitialRegion.longitude !== 0
     ) {
       console.log(
-        "LiveTrackingMap - USING mapInitialRegion from adminLocationStore:",
+        "LiveTrackingMap - USING mapInitialRegion from userLocationStore:",
         mapInitialRegion,
       );
       return mapInitialRegion;
@@ -699,27 +699,27 @@ const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
         `LiveTrackingMap - detected coordinates near ${isNearZeroCoordinates ? "(0,0)" : "San Francisco"}, attempting to get actual location`,
       );
 
-      // First check the adminLocationStore
-      const { adminLocation } = useAdminLocationStore.getState();
+      // First check the userLocationStore
+      const { currentLocation } = useUserLocationStore.getState();
       if (
-        adminLocation &&
-        adminLocation.latitude !== 0 &&
-        adminLocation.longitude !== 0
+        currentLocation &&
+        currentLocation.latitude !== 0 &&
+        currentLocation.longitude !== 0
       ) {
         console.log(
-          "LiveTrackingMap - using admin location from store:",
-          adminLocation,
+          "LiveTrackingMap - using current location from store:",
+          currentLocation,
         );
         mapRef.current?.animateToRegion({
-          latitude: adminLocation.latitude,
-          longitude: adminLocation.longitude,
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
           latitudeDelta: LATITUDE_DELTA / 8,
           longitudeDelta: LONGITUDE_DELTA / 8,
         });
         return;
       }
 
-      // If adminLocation is not available, try to get the current location
+      // If currentLocation is not available, try to get the current location
       requestCurrentLocation({
         accuracy: Location.Accuracy.Balanced,
       }).then((location) => {

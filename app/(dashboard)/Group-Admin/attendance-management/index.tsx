@@ -528,18 +528,18 @@ export default function AdminAttendanceManagement() {
   ];
 
   return (
-    <View className="flex-1">
+    <ScrollView className="flex-1 mt-4">
       <LinearGradient
         colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
-        className="pb-4"
+        // className="pb-4"
         style={[
           styles.header,
-          {
-            paddingTop:
-              Platform.OS === "ios"
-                ? StatusBar.currentHeight || 44
-                : StatusBar.currentHeight || 0,
-          },
+          // {
+          //   paddingTop:
+          //     Platform.OS === "ios"
+          //       ? StatusBar.currentHeight || 44
+          //       : StatusBar.currentHeight || 0,
+          // },
         ]}
       >
         <View className="flex-row items-center justify-between px-6">
@@ -616,6 +616,49 @@ export default function AdminAttendanceManagement() {
           />
         }
       >
+        {/* Regularization Approvals Section */}
+        <View className="px-6 py-4">
+          <TouchableOpacity
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            className={`p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+            style={styles.regularizationCard}
+          >
+            <View className="flex-row items-center">
+              <View
+                className="w-14 h-14 rounded-full items-center justify-center"
+                style={{ backgroundColor: "#3B82F620" }}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={28}
+                  color="#3B82F6"
+                />
+              </View>
+              <View className="flex-1 ml-4">
+                <Text
+                  className={`text-xl font-semibold mb-1 ${
+                    isDark ? "text-white" : "text-gray-800"
+                  }`}
+                >
+                  Regularization Approvals
+                </Text>
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  Review and approve employee regularization requests
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={isDark ? "#6B7280" : "#9CA3AF"}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Monthly Stats */}
         <View className="flex-row flex-wrap p-4">
           {[
@@ -835,7 +878,7 @@ export default function AdminAttendanceManagement() {
         }}
         selectedEmployeeId={selectedEmployee}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -877,5 +920,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     marginBottom: 8,
+  },
+  regularizationCard: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
 });

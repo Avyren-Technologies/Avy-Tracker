@@ -12,7 +12,7 @@ import { Alert, Platform, AppState } from "react-native";
 import PushNotificationService from "../utils/pushNotificationService";
 import EventEmitter from "../utils/EventEmitter";
 import * as SecureStore from "expo-secure-store";
-import useAdminLocationStore from "../store/adminLocationStore";
+import useLocationStore from "../store/adminLocationStore";
 import * as Network from "expo-network";
 import {
   getTokenDebugInfo,
@@ -237,8 +237,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Token refresh timer for proactive refresh
   const tokenRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchAdminLocation =
-    useAdminLocationStore.getState().fetchAdminLocation;
+  const fetchLocation =
+    useLocationStore.getState().fetchLocation;
 
   const updateUser = (userData: Partial<User>) => {
     setUser((prev) => (prev ? { ...prev, ...userData } : null));
@@ -1017,15 +1017,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // If the user is a group-admin, fetch their location immediately
-      if (userData.role === "group-admin") {
-        console.log("Group admin logged in, fetching location...");
-        // Fetch admin location in the background (don't await to not block login flow)
-        fetchAdminLocation().catch((error) => {
-          console.error("Error fetching admin location during login:", error);
-          // Non-blocking, so we don't need to handle this error specifically
-        });
-      }
+      // Fetch location for all users (employee, group-admin, management)
+      console.log(`${userData.role} logged in, fetching location...`);
+      // Fetch location in the background (don't await to not block login flow)
+      fetchLocation().catch((error) => {
+        console.error(`Error fetching ${userData.role} location during login:`, error);
+        // Non-blocking, so we don't need to handle this error specifically
+      });
 
       // Navigate based on user role
       routeUserToDashboard(userData.role);
@@ -1193,15 +1191,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // If the user is a group-admin, fetch their location immediately
-      if (userData.role === "group-admin") {
-        console.log("Group admin logged in, fetching location...");
-        // Fetch admin location in the background (don't await to not block login flow)
-        fetchAdminLocation().catch((error) => {
-          console.error("Error fetching admin location during login:", error);
-          // Non-blocking, so we don't need to handle this error specifically
-        });
-      }
+      // Fetch location for all users (employee, group-admin, management)
+      console.log(`${userData.role} logged in, fetching location...`);
+      // Fetch location in the background (don't await to not block login flow)
+      fetchLocation().catch((error) => {
+        console.error(`Error fetching ${userData.role} location during login:`, error);
+        // Non-blocking, so we don't need to handle this error specifically
+      });
 
       // Navigate based on user role
       routeUserToDashboard(userData.role);

@@ -109,7 +109,7 @@ export default function TaskDetailsModal({
   isDark,
   onTaskUpdate,
 }: TaskDetailsModalProps) {
-  const { token } = AuthContext.useAuth();
+  const { token, user } = AuthContext.useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -139,9 +139,12 @@ export default function TaskDetailsModal({
   useEffect(() => {
     if (visible && taskId) {
       fetchTaskDetails();
-      fetchEmployees();
+      // Only fetch employees for group-admin role
+      if (user?.role === 'group-admin') {
+        fetchEmployees();
+      }
     }
-  }, [visible, taskId]);
+  }, [visible, taskId, user?.role]);
 
   const fetchTaskDetails = async () => {
     if (!taskId || !token) return;
@@ -563,6 +566,11 @@ export default function TaskDetailsModal({
       paddingHorizontal: 24,
       paddingVertical: 16,
     },
+    headerTitleContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     headerTitle: {
       fontSize: 24,
       fontWeight: 'bold',
@@ -939,27 +947,34 @@ export default function TaskDetailsModal({
                 color={isDark ? '#FFFFFF' : '#000000'}
               />
             </TouchableOpacity>
-            <Text
-              style={[
-                styles.headerTitle,
-                { color: isDark ? '#FFFFFF' : '#000000' },
-              ]}
-            >
-              Task Details
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.headerButton,
-                { backgroundColor: isDark ? '#374151' : '#F3F4F6' },
-              ]}
-              onPress={() => setShowEditModal(true)}
-            >
-              <Ionicons
-                name="create-outline"
-                size={24}
-                color={isDark ? '#FFFFFF' : '#000000'}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text
+                style={[
+                  styles.headerTitle,
+                  { color: isDark ? '#FFFFFF' : '#000000' },
+                ]}
+              >
+                Task Details
+              </Text>
+            </View>
+            {/* Only show edit button for group-admin role */}
+            {user?.role === 'group-admin' ? (
+              <TouchableOpacity
+                style={[
+                  styles.headerButton,
+                  { backgroundColor: isDark ? '#374151' : '#F3F4F6' },
+                ]}
+                onPress={() => setShowEditModal(true)}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={24}
+                  color={isDark ? '#FFFFFF' : '#000000'}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.headerButton} />
+            )}
           </View>
         </LinearGradient>
 

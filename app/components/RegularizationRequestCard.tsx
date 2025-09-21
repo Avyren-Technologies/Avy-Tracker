@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { format, parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import ThemeContext from "../context/ThemeContext";
 
 interface RegularizationRequest {
@@ -51,6 +52,38 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
 }) => {
   const { theme } = ThemeContext.useTheme();
   const isDark = theme === "dark";
+
+  // Helper function to format time in IST
+  const formatTime = (timeString: string | undefined): string => {
+    if (!timeString) return '';
+
+    try {
+      // Check if it's already a formatted time (HH:MM format)
+      if (timeString.match(/^\d{1,2}:\d{2}$/)) {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        return `${displayHour}:${minutes} ${ampm}`;
+      }
+
+      // Handle ISO format
+      const date = parseISO(timeString);
+      return formatInTimeZone(date, 'Asia/Kolkata', 'hh:mm a');
+    } catch {
+      return timeString; // Fallback to original string if parsing fails
+    }
+  };
+
+  // Helper function to format date in DD/MM/YYYY format
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = parseISO(dateString);
+      return format(date, 'dd/MM/yyyy');
+    } catch {
+      return dateString; // Fallback to original string if parsing fails
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,25 +163,15 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
   };
 
   const handleApprove = () => {
-    Alert.alert(
-      "Approve Request",
-      "Are you sure you want to approve this regularization request?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Approve", style: "default", onPress: onApprove }
-      ]
-    );
+    // Directly call the parent's onApprove function
+    // The parent will handle the confirmation and comments prompt
+    onApprove?.();
   };
 
   const handleReject = () => {
-    Alert.alert(
-      "Reject Request",
-      "Are you sure you want to reject this regularization request?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Reject", style: "destructive", onPress: onReject }
-      ]
-    );
+    // Directly call the parent's onReject function
+    // The parent will handle the confirmation and reason prompt
+    onReject?.();
   };
 
   const handleCancel = () => {
@@ -188,7 +211,7 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
         <View style={styles.dateRow}>
           <Ionicons name="calendar-outline" size={16} color={isDark ? '#666666' : '#999999'} />
           <Text style={[styles.dateText, { color: isDark ? '#ffffff' : '#000000' }]}>
-            {format(parseISO(request.request_date), 'MMM dd, yyyy')}
+            {formatDate(request.request_date)}
           </Text>
         </View>
 
@@ -196,7 +219,7 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
           <View style={styles.timeItem}>
             <Ionicons name="time-outline" size={16} color={isDark ? '#666666' : '#999999'} />
             <Text style={[styles.timeText, { color: isDark ? '#ffffff' : '#000000' }]}>
-              {request.requested_start_time} - {request.requested_end_time}
+              {formatTime(request.requested_start_time)} - {formatTime(request.requested_end_time)}
             </Text>
           </View>
         </View>
@@ -204,8 +227,8 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
         {request.original_start_time && (
           <View style={styles.originalTimeRow}>
             <Text style={[styles.originalTimeLabel, { color: isDark ? '#666666' : '#999999' }]}>
-              Original: {request.original_start_time}
-              {request.original_end_time && ` - ${request.original_end_time}`}
+              Original: {formatTime(request.original_start_time)}
+              {request.original_end_time && ` - ${formatTime(request.original_end_time)}`}
             </Text>
           </View>
         )}

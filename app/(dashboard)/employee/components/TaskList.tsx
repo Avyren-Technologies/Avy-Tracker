@@ -235,13 +235,15 @@ export default function TaskList({
           </View>
         ) : (
           filteredTasks.map((task) => (
-            <View
+            <TouchableOpacity
               key={task.id}
               style={[
                 styles.taskCard,
                 { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" },
               ]}
               className="mb-4 p-4 rounded-xl"
+              onPress={() => handleTaskClick(task.id)}
+              activeOpacity={0.7}
             >
               <View style={styles.taskContent}>
                 <Text
@@ -296,7 +298,10 @@ export default function TaskList({
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   {/* Attachments Button */}
                   <TouchableOpacity
-                    onPress={() => fetchTaskAttachments(task.id)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      fetchTaskAttachments(task.id);
+                    }}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -345,7 +350,11 @@ export default function TaskList({
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => handleTaskClick(task.id)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setSelectedTask(task);
+                    setShowStatusModal(true);
+                  }}
                   className="flex-row items-center self-end"
                   style={[
                     styles.statusButton,
@@ -407,7 +416,7 @@ export default function TaskList({
                   </View>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -468,11 +477,12 @@ export default function TaskList({
           style={styles.modalOverlay}
           onPress={() => setShowAttachments(false)}
         >
-          <View
+          <Pressable
             style={[
-              styles.modalContent,
-              { backgroundColor: isDark ? "#1F2937" : "#FFFFFF", maxHeight: "80%" },
+              styles.attachmentModalContent,
+              { backgroundColor: isDark ? "#1F2937" : "#FFFFFF" },
             ]}
+            onPress={(e) => e.stopPropagation()}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <Text style={{ color: isDark ? "#fff" : "#000", fontSize: 18, fontWeight: "600" }}>
@@ -541,7 +551,7 @@ export default function TaskList({
                 ))}
               </ScrollView>
             )}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
       
@@ -610,6 +620,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  attachmentModalContent: {
+    width: "90%",
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
   statusOption: {
     flexDirection: "row",

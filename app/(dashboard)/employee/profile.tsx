@@ -497,6 +497,48 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
+        {/* Regularization Requests Section */}
+        <View className="mx-4 mt-3">
+          <TouchableOpacity
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            style={[styles.card]}
+            className={`p-4 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}
+          >
+            <View className="flex-row items-center">
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: isDark ? "#374151" : "#F3F4F6" },
+                ]}
+                className="rounded-full items-center justify-center"
+              >
+                <Ionicons
+                  name="time-outline"
+                  size={24}
+                  color={isDark ? "#F59E0B" : "#F59E0B"}
+                />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text
+                  className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                >
+                  Regularization Requests
+                </Text>
+                <Text
+                  className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  View and submit attendance regularization requests
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={isDark ? "#6B7280" : "#9CA3AF"}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Progress Bars Section */}
         <View
           className={`mx-4 mt-4 p-4 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}

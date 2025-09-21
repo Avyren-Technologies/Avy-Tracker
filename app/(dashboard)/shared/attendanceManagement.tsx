@@ -8,6 +8,7 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
+  Modal,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -102,6 +103,9 @@ export default function AttendanceManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [showRegularizationForm, setShowRegularizationForm] = useState(false);
   const [selectedShiftForRegularization, setSelectedShiftForRegularization] = useState<any>(null);
+  const [showNoDataModal, setShowNoDataModal] = useState(false);
+  const [noDataDate, setNoDataDate] = useState<Date | null>(null);
+  const [regularizationRequestType, setRegularizationRequestType] = useState<'time_adjustment' | 'missing_shift' | 'early_departure' | 'late_arrival'>('time_adjustment');
   const [monthStats, setMonthStats] = useState({
     totalDays: 0,
     totalHours: 0,
@@ -268,13 +272,8 @@ export default function AttendanceManagement() {
     setSelectedDate(selectedDate);
 
     if (!attendanceData[selectedDateStr]) {
-      Alert.alert(
-        "No Attendance Data",
-        `No attendance record found for ${format(
-          selectedDate,
-          "MMMM d, yyyy",
-        )}.`,
-      );
+      setNoDataDate(selectedDate);
+      setShowNoDataModal(true);
     }
   };
 
@@ -291,6 +290,22 @@ export default function AttendanceManagement() {
     }
     console.log(`Unhandled value type: ${typeof value}, value: ${value}`);
     return 0;
+  };
+
+  const handleRegularizeDate = () => {
+    if (noDataDate) {
+      setShowNoDataModal(false);
+      setShowRegularizationForm(true);
+      setRegularizationRequestType('missing_shift');
+      // Pass the selected date as shift data for regularization
+      // For missing shifts, don't pass a shift_id since there's no real shift to reference
+      setSelectedShiftForRegularization({
+        id: null, // No shift_id for missing shifts
+        start_time: "09:00", // Default start time
+        end_time: "17:00", // Default end time
+        date: format(noDataDate, "yyyy-MM-dd")
+      });
+    }
   };
 
   return (
@@ -658,7 +673,7 @@ export default function AttendanceManagement() {
                       <TouchableOpacity
                         onPress={() => {
                           setSelectedShiftForRegularization({
-                            id: shift.id || Math.random(), // Use shift ID if available
+                            id: shift.id, // Use actual shift ID from employee_shifts table
                             start_time: shift.shift_start,
                             end_time: shift.shift_end,
                             date: shift.date
@@ -689,7 +704,7 @@ export default function AttendanceManagement() {
           </View>
         ) : (
           <View
-            className={`m-4 p-4 rounded-xl ${
+            className={`m-4 p-4 mb-10 rounded-xl ${
               isDark ? "bg-gray-800" : "bg-white"
             }`}
             style={styles.detailCard}
@@ -719,13 +734,72 @@ export default function AttendanceManagement() {
         onClose={() => {
           setShowRegularizationForm(false);
           setSelectedShiftForRegularization(null);
+          setRegularizationRequestType('time_adjustment'); // Reset to default
         }}
         onSuccess={() => {
           // Refresh attendance data after successful submission
           fetchAttendanceData(format(selectedDate, "yyyy-MM"));
+          setRegularizationRequestType('time_adjustment'); // Reset to default
         }}
         shiftData={selectedShiftForRegularization}
+        requestType={regularizationRequestType}
       />
+
+      {/* No Data Modal */}
+      <Modal
+        visible={showNoDataModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowNoDataModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={[styles.iconContainer, { backgroundColor: isDark ? "#374151" : "#F3F4F6" }]}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={32}
+                  color={isDark ? "#60A5FA" : "#3B82F6"}
+                />
+              </View>
+              <Text style={[styles.modalTitle, { color: isDark ? "#ffffff" : "#000000" }]}>
+                No Attendance Data
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: isDark ? "#9CA3AF" : "#6B7280" }]}>
+                {noDataDate ? format(noDataDate, "MMMM d, yyyy") : ""}
+              </Text>
+            </View>
+
+            {/* Modal Body */}
+            <View style={styles.modalBody}>
+              <Text style={[styles.modalMessage, { color: isDark ? "#D1D5DB" : "#374151" }]}>
+                No attendance record was found for the selected date. You can create a regularization request to record your attendance for this day.
+              </Text>
+
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowNoDataModal(false)}
+                >
+                  <Text style={[styles.modalButtonText, { color: isDark ? "#D1D5DB" : "#374151" }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.regularizeButton]}
+                  onPress={handleRegularizeDate}
+                >
+                  <Ionicons name="time-outline" size={20} color="#ffffff" />
+                  <Text style={styles.modalButtonText}>Regularize</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -759,5 +833,82 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 16,
+    padding: 0,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    maxWidth: 400,
+  },
+  modalHeader: {
+    padding: 24,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    fontWeight: "400",
+    textAlign: "center",
+  },
+  modalBody: {
+    padding: 24,
+  },
+  modalMessage: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  cancelButton: {
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+  },
+  regularizeButton: {
+    backgroundColor: "#007AFF",
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

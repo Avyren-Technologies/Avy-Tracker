@@ -39,7 +39,7 @@ import {
   EmployeeLocationData,
 } from "../../../types/liveTracking";
 import useMapStore from "../../../store/useMapStore";
-import useAdminLocationStore from "../../../store/adminLocationStore";
+import useUserLocationStore from "../../../store/adminLocationStore";
 import {
   Point,
   cleanRoute,
@@ -153,17 +153,17 @@ export default function GroupAdminTrackingDashboard() {
   // Add state to track initial region setup
   const [initialRegionSet, setInitialRegionSet] = useState<boolean>(false);
 
-  // Get admin location from our new store
+  // Get location from our new store
   const {
-    adminLocation,
+    currentLocation,
     mapInitialRegion,
     isLoading: isLocationLoading,
-    fetchAdminLocation,
+    fetchLocation,
     error: locationError,
-  } = useAdminLocationStore();
+  } = useUserLocationStore();
 
   // Store state
-  const { currentLocation, trackedUsers, setTrackingStatus, setTrackedUsers } =
+  const { currentLocation: trackingCurrentLocation, trackedUsers, setTrackingStatus, setTrackedUsers } =
     useLocationTrackingStore();
 
   // Geofence store
@@ -532,7 +532,7 @@ export default function GroupAdminTrackingDashboard() {
   useEffect(() => {
     // Only fetch admin location once when component mounts
     // This prevents excessive location requests
-    if (!adminLocation) {
+    if (!currentLocation) {
       getCurrentLocation();
     }
 
@@ -711,27 +711,27 @@ export default function GroupAdminTrackingDashboard() {
     console.log("[GroupAdmin] Component mounted, checking admin location...");
 
     // If admin location is not available, fetch it immediately
-    if (!adminLocation) {
-      console.log("[GroupAdmin] No admin location available, fetching now...");
-      fetchAdminLocation()
-        .then(() => {
-          console.log(
-            "[GroupAdmin] Admin location fetched on component mount:",
-            useAdminLocationStore.getState().adminLocation,
-          );
-        })
-        .catch((error) => {
-          console.error(
-            "[GroupAdmin] Error fetching admin location on mount:",
-            error,
-          );
-        });
-    } else {
-      console.log(
-        "[GroupAdmin] Admin location already available:",
-        adminLocation,
-      );
-    }
+    if (!currentLocation) {
+        console.log("[GroupAdmin] No location available, fetching now...");
+        fetchLocation()
+          .then(() => {
+            console.log(
+              "[GroupAdmin] Location fetched on component mount:",
+              useUserLocationStore.getState().currentLocation,
+            );
+          })
+          .catch((error) => {
+            console.error(
+              "[GroupAdmin] Error fetching location on mount:",
+              error,
+            );
+          });
+      } else {
+        console.log(
+          "[GroupAdmin] Location already available:",
+          currentLocation,
+        );
+      }
 
     // Always fetch employees and geofences
     fetchEmployeeLocations();
@@ -745,10 +745,10 @@ export default function GroupAdminTrackingDashboard() {
 
     try {
       // This will update the admin location store
-      await fetchAdminLocation();
+      await fetchLocation();
 
       const updatedAdminLocation =
-        useAdminLocationStore.getState().adminLocation;
+        useUserLocationStore.getState().currentLocation;
       console.log(
         "[GroupAdmin] Admin location after fetch:",
         updatedAdminLocation,
@@ -824,17 +824,20 @@ export default function GroupAdminTrackingDashboard() {
 
       // If we have admin location but the map region doesn't match it, log a warning
       if (
-        adminLocation &&
-        Math.abs(mapRegion.latitude - adminLocation.latitude) > 0.1 &&
-        Math.abs(mapRegion.longitude - adminLocation.longitude) > 0.1
+        currentLocation &&
+        trackingCurrentLocation &&
+        trackingCurrentLocation.latitude !== undefined &&
+        trackingCurrentLocation.longitude !== undefined &&
+        Math.abs(mapRegion.latitude - trackingCurrentLocation.latitude) > 0.1 &&
+        Math.abs(mapRegion.longitude - trackingCurrentLocation.longitude) > 0.1
       ) {
-        console.warn("[GroupAdmin] Map region doesn't match admin location:", {
+        console.warn("[GroupAdmin] Map region doesn't match location:", {
           mapRegion,
-          adminLocation,
+          currentLocation,
         });
       }
     }
-  }, [mapRegion, adminLocation]);
+  }, [mapRegion, trackingCurrentLocation]);
 
   // Fetch employee locations from API
   const fetchEmployeeLocations = async () => {
@@ -1092,31 +1095,31 @@ export default function GroupAdminTrackingDashboard() {
   // Use the admin location store for the map's initial region
   const computedMapRegion = useMemo(() => {
     console.log("[GroupAdmin] Computing map region from index.tsx", {
-      adminLocation: adminLocation
+      currentLocation: currentLocation
         ? {
-            latitude: adminLocation.latitude,
-            longitude: adminLocation.longitude,
-            timestamp: adminLocation.timestamp,
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            timestamp: currentLocation.timestamp,
           }
         : null,
       mapInitialRegion,
       initialRegionSet,
     });
 
-    // First priority: use the admin location from our specialized store if it's valid
+    // First priority: use the current location from our specialized store if it's valid
     if (
-      adminLocation &&
-      adminLocation.latitude !== 0 &&
-      adminLocation.longitude !== 0
+      currentLocation &&
+      currentLocation.latitude !== 0 &&
+      currentLocation.longitude !== 0
     ) {
       const region = {
-        latitude: adminLocation.latitude,
-        longitude: adminLocation.longitude,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       };
       console.log(
-        "[GroupAdmin] Using admin location for map initialRegion:",
+        "[GroupAdmin] Using current location for map initialRegion:",
         region,
       );
       return region;
@@ -1128,7 +1131,7 @@ export default function GroupAdminTrackingDashboard() {
       mapInitialRegion,
     );
     return mapInitialRegion;
-  }, [adminLocation, mapInitialRegion, initialRegionSet]);
+  }, [currentLocation, mapInitialRegion, initialRegionSet]);
 
   // Add this function before the return statement
   const getPlaceName = async (latitude: number, longitude: number) => {

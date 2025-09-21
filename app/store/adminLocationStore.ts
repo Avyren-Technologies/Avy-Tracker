@@ -15,12 +15,12 @@ const BANGALORE_REGION: Region = {
 
 // Debug logging function
 const log = (action: string, data?: any) => {
-  console.log(`[AdminLocationStore] ${action}`, data || "");
+  console.log(`[LocationStore] ${action}`, data || "");
 };
 
-interface AdminLocationState {
-  // Admin's current location
-  adminLocation: {
+interface LocationState {
+  // Current location for any user role
+  currentLocation: {
     latitude: number;
     longitude: number;
     accuracy?: number;
@@ -35,31 +35,36 @@ interface AdminLocationState {
   hasLoadedLocation: boolean;
   error: string | null;
 
+  // User role for role-specific behavior
+  userRole: string | null;
+
   // Actions
-  setAdminLocation: (location: {
+  setCurrentLocation: (location: {
     latitude: number;
     longitude: number;
     accuracy?: number;
-  }) => void;
-  fetchAdminLocation: () => Promise<void>;
+  }, role?: string) => void;
+  fetchLocation: () => Promise<void>;
   resetLocationError: () => void;
+  setUserRole: (role: string) => void;
 }
 
-const useAdminLocationStore = create(
-  persist<AdminLocationState>(
+const useUserLocationStore = create(
+  persist<LocationState>(
     (set, get) => ({
-      adminLocation: null,
+      currentLocation: null,
       mapInitialRegion: BANGALORE_REGION,
       isLoading: false,
       hasLoadedLocation: false,
       error: null,
+      userRole: null,
 
-      setAdminLocation: (location: {
+      setCurrentLocation: (location: {
         latitude: number;
         longitude: number;
         accuracy?: number;
-      }) => {
-        log("Setting admin location", location);
+      }, role?: string) => {
+        log("Setting location", { location, role });
 
         // Create the region object suitable for map initialRegion prop
         const mapRegion: Region = {
@@ -70,17 +75,18 @@ const useAdminLocationStore = create(
         };
 
         set({
-          adminLocation: {
+          currentLocation: {
             ...location,
             timestamp: Date.now(),
           },
           mapInitialRegion: mapRegion,
           hasLoadedLocation: true,
           isLoading: false,
+          userRole: role || get().userRole,
         });
       },
 
-      fetchAdminLocation: async () => {
+      fetchLocation: async () => {
         const state = get();
 
         // Don't refetch if we're already loading
@@ -90,7 +96,7 @@ const useAdminLocationStore = create(
         }
 
         set({ isLoading: true, error: null });
-        log("Fetching admin location...");
+        log("Fetching location...", { role: state.userRole });
 
         try {
           // First check for location permissions
@@ -115,13 +121,13 @@ const useAdminLocationStore = create(
           log("Location obtained successfully", location.coords);
 
           // Format the location and update state
-          const adminLocation = {
+          const currentLocation = {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
             accuracy: location.coords.accuracy || undefined,
           };
 
-          get().setAdminLocation(adminLocation);
+          get().setCurrentLocation(currentLocation, state.userRole || undefined);
         } catch (error) {
           log("Error fetching location", error);
           set({
@@ -134,12 +140,24 @@ const useAdminLocationStore = create(
       },
 
       resetLocationError: () => set({ error: null }),
+      setUserRole: (role: string) => {
+        log("Setting user role", role);
+        set({ userRole: role });
+      },
     }),
     {
-      name: "admin-location-storage",
+      name: "user-location-storage", // Different name to avoid conflicts
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
 );
 
-export default useAdminLocationStore;
+// Export with new name to avoid conflict with existing locationStore
+export default useUserLocationStore;
+
+// Backward compatibility exports
+export const useAdminLocationStore = useUserLocationStore;
+export const useLocationStore = useUserLocationStore;
+
+// Re-export types for backward compatibility
+export type { LocationState };

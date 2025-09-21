@@ -210,6 +210,11 @@ router.get("/pending-approvals", verifyToken, async (req: CustomRequest, res) =>
     }
 
     const {
+      status,
+      request_type,
+      date_from,
+      date_to,
+      employee_id,
       limit = 20,
       offset = 0
     } = req.query;
@@ -218,6 +223,11 @@ router.get("/pending-approvals", verifyToken, async (req: CustomRequest, res) =>
       req.user.id,
       req.user.role,
       {
+        status: status as string,
+        request_type: request_type as string,
+        date_from: date_from as string,
+        date_to: date_to as string,
+        employee_id: employee_id as string,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string)
       }

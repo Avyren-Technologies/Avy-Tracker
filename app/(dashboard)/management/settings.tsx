@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import biometricAuthService, {
   BiometricSettings,
 } from '../../utils/biometricAuth';
+import axios from 'axios';
 
 interface SettingItem {
   icon: string;
@@ -37,7 +38,7 @@ interface SettingSection {
 
 export default function ManagementSettings() {
   const { theme, toggleTheme } = ThemeContext.useTheme();
-  const { logout } = AuthContext.useAuth();
+  const { logout, user, token } = AuthContext.useAuth();
   const router = useRouter();
   const isDark = theme === 'dark';
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
@@ -49,6 +50,11 @@ export default function ManagementSettings() {
     });
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
   const [biometricType, setBiometricType] = React.useState<string>('');
+  const [faceRegistrationStatus, setFaceRegistrationStatus] = React.useState<{
+    registered: boolean;
+    enabled: boolean;
+    loading: boolean;
+  }>({ registered: false, enabled: true, loading: true });
 
   React.useEffect(() => {
     if (Platform.OS === 'ios') {
@@ -62,6 +68,7 @@ export default function ManagementSettings() {
   React.useEffect(() => {
     checkBiometricAvailability();
     loadBiometricSettings();
+    fetchFaceRegistrationStatus();
   }, []);
 
   React.useEffect(() => {
@@ -100,6 +107,42 @@ export default function ManagementSettings() {
       setBiometricSettings(settings);
     } catch (error) {
       console.error('Error loading biometric settings:', error);
+    }
+  };
+
+  const fetchFaceRegistrationStatus = async () => {
+    try {
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Handle both old and new API response formats
+      const faceRegistered =
+        response.data.face_registered !== undefined
+          ? response.data.face_registered
+          : response.data.registered || false;
+
+      const faceEnabled =
+        response.data.face_enabled !== undefined
+          ? response.data.face_enabled
+          : response.data.enabled !== false;
+
+      setFaceRegistrationStatus({
+        registered: faceRegistered,
+        enabled: faceEnabled,
+        loading: false,
+      });
+
+      console.log('✅ Management Face registration status updated:', {
+        registered: faceRegistered,
+        enabled: faceEnabled,
+        apiResponse: response.data,
+      });
+    } catch (error) {
+      console.error('Error fetching face registration status:', error);
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -161,6 +204,22 @@ export default function ManagementSettings() {
     }
   };
 
+  const handleFaceRegistration = () => {
+    router.push('/(dashboard)/management/face-registration' as any);
+  };
+
+  const handleFaceConfiguration = () => {
+    router.push('/(dashboard)/management/face-configuration' as any);
+  };
+
+  const handleFaceSetup = () => {
+    if (faceRegistrationStatus.registered) {
+      handleFaceConfiguration();
+    } else {
+      handleFaceRegistration();
+    }
+  };
+
   const handleThemeToggle = async () => {
     toggleTheme();
 
@@ -201,6 +260,21 @@ export default function ManagementSettings() {
           icon: 'shield-outline',
           label: 'Privacy & Security',
           action: () => router.push('/(dashboard)/management/settings/privacy'),
+          showArrow: true,
+        },
+      ],
+    },
+    {
+      title: 'Face Verification',
+      items: [
+        {
+          icon: faceRegistrationStatus.registered
+            ? 'shield-checkmark-outline'
+            : 'shield-outline',
+          label: faceRegistrationStatus.registered
+            ? 'Face Configuration'
+            : 'Set Up Face Verification',
+          action: handleFaceSetup,
           showArrow: true,
         },
       ],
