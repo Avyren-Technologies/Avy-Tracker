@@ -18,7 +18,8 @@ import ThemeContext from "../../context/ThemeContext";
 import AuthContext from "../../context/AuthContext";
 import axios from "axios";
 import { Calendar } from "react-native-calendars";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import RegularizationRequestForm from "../../components/RegularizationRequestForm";
 
 interface ShiftDetail {
@@ -112,9 +113,11 @@ export default function AttendanceManagement() {
     avgHours: 0,
     totalExpenses: 0,
   });
+  const [regularizations, setRegularizations] = useState<{[key: string]: any[]}>({});
 
   useEffect(() => {
     fetchAttendanceData(format(selectedDate, "yyyy-MM"));
+    fetchRegularizations(format(selectedDate, "yyyy-MM"));
   }, [selectedDate]);
 
   // Update the fetchAttendanceData function
@@ -199,6 +202,43 @@ export default function AttendanceManagement() {
     }
   };
 
+  const fetchRegularizations = async (month: string) => {
+    try {
+      // Calculate the last day of the month properly
+      const year = parseInt(month.split('-')[0]);
+      const monthNum = parseInt(month.split('-')[1]) - 1; // JavaScript months are 0-indexed
+      const lastDay = new Date(year, monthNum + 1, 0).getDate(); // Get last day of month
+      
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/attendance-regularization/requests`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            status: 'approved',
+            date_from: `${month}-01`,
+            date_to: `${month}-${lastDay.toString().padStart(2, '0')}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const regularizationsData = response.data.requests.reduce((acc: any, req: any) => {
+          const dateKey = format(new Date(req.request_date), "yyyy-MM-dd");
+          if (!acc[dateKey]) {
+            acc[dateKey] = [];
+          }
+          acc[dateKey].push(req);
+          return acc;
+        }, {});
+        setRegularizations(regularizationsData);
+      }
+    } catch (error) {
+      console.error("Error fetching regularizations:", error);
+      // Set empty regularizations on error to prevent UI issues
+      setRegularizations({});
+    }
+  };
+
   const calculateMonthStats = (data: AttendanceData[]) => {
     const stats = data.reduce(
       (acc, curr) => {
@@ -246,11 +286,20 @@ export default function AttendanceManagement() {
     ) {
       const dateString = format(date, "yyyy-MM-dd");
       const isAttendancePresent = attendanceData[dateString];
+      const hasRegularizations = regularizations[dateString] && regularizations[dateString].length > 0;
       const isFutureDate = date > today;
 
+      // Determine dot color based on attendance and regularizations
+      let dotColor = isDark ? "#60A5FA" : "#3B82F6"; // Default blue for attendance
+      if (hasRegularizations && isAttendancePresent) {
+        dotColor = isDark ? "#10B981" : "#059669"; // Green for both attendance and regularization
+      } else if (hasRegularizations && !isAttendancePresent) {
+        dotColor = isDark ? "#F59E0B" : "#D97706"; // Orange for regularization only
+      }
+
       marked[dateString] = {
-        marked: isAttendancePresent ? true : false,
-        dotColor: isDark ? "#60A5FA" : "#3B82F6",
+        marked: !!(isAttendancePresent || hasRegularizations),
+        dotColor: dotColor,
         selected: format(selectedDate, "yyyy-MM-dd") === dateString,
         selectedColor: isDark ? "#1E40AF" : "#93C5FD",
         disabled: isFutureDate,
@@ -271,7 +320,8 @@ export default function AttendanceManagement() {
 
     setSelectedDate(selectedDate);
 
-    if (!attendanceData[selectedDateStr]) {
+    // Check if there's no attendance data and no regularizations
+    if (!attendanceData[selectedDateStr] && (!regularizations[selectedDateStr] || regularizations[selectedDateStr].length === 0)) {
       setNoDataDate(selectedDate);
       setShowNoDataModal(true);
     }
@@ -290,6 +340,46 @@ export default function AttendanceManagement() {
     }
     console.log(`Unhandled value type: ${typeof value}, value: ${value}`);
     return 0;
+  };
+
+  // Helper function to format time in IST
+  const formatTime = (timeString: string | undefined): string => {
+    if (!timeString) return 'N/A';
+
+    try {
+      // Check if it's already a formatted time (HH:MM format)
+      if (timeString.match(/^\d{1,2}:\d{2}$/)) {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        return `${displayHour}:${minutes} ${ampm}`;
+      }
+
+      // Handle ISO format - ensure it's treated as IST
+      let date: Date;
+      
+      // If it's a full ISO string with timezone info
+      if (timeString.includes('T') && timeString.includes('Z')) {
+        date = parseISO(timeString);
+      } else if (timeString.includes('T')) {
+        // If it's ISO format without timezone, assume it's already in IST
+        date = parseISO(timeString + '+05:30');
+      } else {
+        // If it's just a time string, create a date for today with that time in IST
+        const today = new Date();
+        const [hours, minutes] = timeString.split(':');
+        date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 
+                       parseInt(hours, 10), parseInt(minutes, 10));
+        // Convert to IST by adding 5:30 offset
+        date.setHours(date.getHours() + 5, date.getMinutes() + 30);
+      }
+      
+      return formatInTimeZone(date, 'Asia/Kolkata', 'hh:mm a');
+    } catch (error) {
+      console.error('Error formatting time:', error, 'Input:', timeString);
+      return timeString; // Fallback to original string if parsing fails
+    }
   };
 
   const handleRegularizeDate = () => {
@@ -595,19 +685,9 @@ export default function AttendanceManagement() {
                       {
                         label: "Shift Time",
                         value: (() => {
-                          console.log("Rendering shift times:", {
-                            rawStart: shift.shift_start,
-                            rawEnd: shift.shift_end,
-                            displayStart: shift.shift_start.substring(11, 19),
-                            displayEnd: shift.shift_end
-                              ? shift.shift_end.substring(11, 19)
-                              : "Ongoing",
-                          });
-                          return `${shift.shift_start.substring(11, 19)} - ${
-                            shift.shift_end
-                              ? shift.shift_end.substring(11, 19)
-                              : "Ongoing"
-                          }`;
+                          const startTime = formatTime(shift.shift_start);
+                          const endTime = shift.shift_end ? formatTime(shift.shift_end) : "Ongoing";
+                          return `${startTime} - ${endTime}`;
                         })(),
                         icon: "time-outline" as keyof typeof Ionicons.glyphMap,
                       },
@@ -701,6 +781,211 @@ export default function AttendanceManagement() {
                 </View>
               ),
             )}
+
+            {/* Regularizations Section */}
+            {regularizations[format(selectedDate, "yyyy-MM-dd")] && regularizations[format(selectedDate, "yyyy-MM-dd")].length > 0 && (
+              <View className="mt-6">
+                <Text
+                  className={`text-base font-semibold mb-3 ${
+                    isDark ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Regularized Shifts
+                </Text>
+                {regularizations[format(selectedDate, "yyyy-MM-dd")].map((regularization, index) => (
+                  <View
+                    key={index}
+                    className={`mb-4 p-4 rounded-lg ${
+                      isDark ? "bg-green-900/20 border border-green-800" : "bg-green-50 border border-green-200"
+                    }`}
+                  >
+                    <View className="flex-row items-center mb-2">
+                      <View
+                        className={`w-6 h-6 rounded-full items-center justify-center mr-2 ${
+                          isDark ? "bg-green-800" : "bg-green-200"
+                        }`}
+                      >
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={16}
+                          color={isDark ? "#10B981" : "#059669"}
+                        />
+                      </View>
+                      <Text
+                        className={`text-sm font-medium ${
+                          isDark ? "text-green-400" : "text-green-600"
+                        }`}
+                      >
+                        Regularized Shift {index + 1}
+                      </Text>
+                    </View>
+
+                    <View className="space-y-2">
+                      {[
+                        {
+                          label: "Regularized Time",
+                          value: (() => {
+                            const startTime = formatTime(regularization.requested_start_time);
+                            const endTime = formatTime(regularization.requested_end_time);
+                            return `${startTime} - ${endTime}`;
+                          })(),
+                          icon: "time-outline" as keyof typeof Ionicons.glyphMap,
+                        },
+                        {
+                          label: "Type",
+                          value: regularization.request_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'N/A',
+                          icon: "document-text-outline" as keyof typeof Ionicons.glyphMap,
+                        },
+                        {
+                          label: "Reason",
+                          value: regularization.reason || 'N/A',
+                          icon: "chatbubble-outline" as keyof typeof Ionicons.glyphMap,
+                        },
+                      ].map((detail, detailIndex) => (
+                        <View key={detailIndex} className="flex-row items-start">
+                          <View
+                            className={`w-6 h-6 rounded-full items-center justify-center mr-2 mt-0.5 ${
+                              isDark ? "bg-green-800" : "bg-green-200"
+                            }`}
+                          >
+                            <Ionicons
+                              name={detail.icon}
+                              size={12}
+                              color={isDark ? "#10B981" : "#059669"}
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text
+                              className={`text-xs ${
+                                isDark ? "text-green-300" : "text-green-500"
+                              }`}
+                            >
+                              {detail.label}
+                            </Text>
+                            <Text
+                              className={`text-sm font-medium ${
+                                isDark ? "text-white" : "text-gray-900"
+                              }`}
+                            >
+                              {detail.value}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : regularizations[format(selectedDate, "yyyy-MM-dd")] && regularizations[format(selectedDate, "yyyy-MM-dd")].length > 0 ? (
+          <View
+            className={`m-4 p-4 mb-10 rounded-xl ${
+              isDark ? "bg-gray-800" : "bg-white"
+            }`}
+            style={styles.detailCard}
+          >
+            <Text
+              className={`text-lg font-bold mb-4 ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
+              {format(selectedDate, "MMMM d, yyyy")}
+            </Text>
+
+            {/* Regularizations Only Section */}
+            <View className="mt-6">
+              <Text
+                className={`text-base font-semibold mb-3 ${
+                  isDark ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
+                Regularized Shifts
+              </Text>
+              {regularizations[format(selectedDate, "yyyy-MM-dd")].map((regularization, index) => (
+                <View
+                  key={index}
+                  className={`mb-4 p-4 rounded-lg ${
+                    isDark ? "bg-green-900/20 border border-green-800" : "bg-green-50 border border-green-200"
+                  }`}
+                >
+                  <View className="flex-row items-center mb-2">
+                    <View
+                      className={`w-6 h-6 rounded-full items-center justify-center mr-2 ${
+                        isDark ? "bg-green-800" : "bg-green-200"
+                      }`}
+                    >
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={isDark ? "#10B981" : "#059669"}
+                      />
+                    </View>
+                    <Text
+                      className={`text-sm font-medium ${
+                        isDark ? "text-green-400" : "text-green-600"
+                      }`}
+                    >
+                      Regularized Shift {index + 1}
+                    </Text>
+                  </View>
+
+                  <View className="space-y-2">
+                    {[
+                        {
+                          label: "Regularized Time",
+                          value: (() => {
+                            const startTime = formatTime(regularization.requested_start_time);
+                            const endTime = formatTime(regularization.requested_end_time);
+                            return `${startTime} - ${endTime}`;
+                          })(),
+                          icon: "time-outline" as keyof typeof Ionicons.glyphMap,
+                        },
+                      {
+                        label: "Type",
+                        value: regularization.request_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'N/A',
+                        icon: "document-text-outline" as keyof typeof Ionicons.glyphMap,
+                      },
+                      {
+                        label: "Reason",
+                        value: regularization.reason || 'N/A',
+                        icon: "chatbubble-outline" as keyof typeof Ionicons.glyphMap,
+                      },
+                    ].map((detail, detailIndex) => (
+                      <View key={detailIndex} className="flex-row items-start">
+                        <View
+                          className={`w-6 h-6 rounded-full items-center justify-center mr-2 mt-0.5 ${
+                            isDark ? "bg-green-800" : "bg-green-200"
+                          }`}
+                        >
+                          <Ionicons
+                            name={detail.icon}
+                            size={12}
+                            color={isDark ? "#10B981" : "#059669"}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className={`text-xs ${
+                              isDark ? "text-green-300" : "text-green-500"
+                            }`}
+                          >
+                            {detail.label}
+                          </Text>
+                          <Text
+                            className={`text-sm font-medium ${
+                              isDark ? "text-white" : "text-gray-900"
+                            }`}
+                          >
+                            {detail.value}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         ) : (
           <View

@@ -146,7 +146,9 @@ const RegularizationRequestCard: React.FC<RegularizationRequestCardProps> = ({
     }
     
     if (userRole === 'management') {
-      return request.status === 'group_admin_approved' && request.current_approver_role === 'management';
+      // Management can approve pending requests assigned to them OR group_admin_approved requests
+      return (request.status === 'pending' && request.current_approver_role === 'management') ||
+             (request.status === 'group_admin_approved' && request.current_approver_role === 'management');
     }
     
     return false;

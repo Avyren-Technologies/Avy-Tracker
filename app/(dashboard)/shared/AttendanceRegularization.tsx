@@ -193,15 +193,36 @@ const AttendanceRegularization: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
+      // For management role, we might not have an employees endpoint
+      // For now, we'll skip fetching employees for management role
+      if (user?.role === 'management') {
+        console.log("Management role: Skipping employee fetch (endpoint not available)");
+        setEmployees([]);
+        return;
+      }
+      
+      // Use group-admin endpoint for group-admin role
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin/employees`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setEmployees(response.data);
-    } catch (error) {
+      
+      // Handle different response structures
+      if (Array.isArray(response.data)) {
+        setEmployees(response.data);
+      } else if (response.data.employees) {
+        setEmployees(response.data.employees);
+      } else {
+        console.warn("Unexpected employee data structure:", response.data);
+        setEmployees([]);
+      }
+    } catch (error: any) {
       console.error("Error fetching employees:", error);
+      console.error("Error details:", error.response?.data);
+      // Set empty employees array on error to prevent UI issues
+      setEmployees([]);
     }
   };
 

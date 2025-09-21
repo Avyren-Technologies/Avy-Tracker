@@ -705,7 +705,7 @@ router.get(
       // Get geofence-related permissions from user_tracking_permissions table
       const trackingResult = await client.query(
         `SELECT 
-        can_override_geofence
+        can_override_geofence, location_required_for_shift
       FROM user_tracking_permissions
       WHERE user_id = $1`,
         [req.user.id],

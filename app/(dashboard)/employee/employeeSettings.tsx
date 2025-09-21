@@ -482,23 +482,6 @@ export default function EmployeeSettings() {
               : "Secure your shifts with face verification",
           action: handleFaceSetup,
         },
-      ],
-    },
-    {
-      title: "Preferences",
-      items: [
-        {
-          icon: "moon-outline",
-          title: "Dark Mode",
-          type: "switch",
-          value: darkMode,
-          onChange: handleThemeToggle,
-        },
-      ],
-    },
-    {
-      title: "Security",
-      items: [
         {
           icon: getBiometricIcon(biometricType),
           title:
@@ -533,6 +516,18 @@ export default function EmployeeSettings() {
           type: "switch",
           value: mfaEnabled,
           onChange: handleMFAToggle,
+        },
+      ],
+    },
+    {
+      title: "Preferences",
+      items: [
+        {
+          icon: "moon-outline",
+          title: "Dark Mode",
+          type: "switch",
+          value: darkMode,
+          onChange: handleThemeToggle,
         },
       ],
     },

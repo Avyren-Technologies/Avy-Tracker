@@ -112,8 +112,27 @@ export class AttendanceRegularizationService {
         // Management creating their own request - they can approve it themselves
         approverRole = null;
         approverId = null;
+      } else if (creatorRole === 'group-admin') {
+        // Group-admin creating their own request - needs management approval
+        const managementResult = await client.query(
+          `SELECT u.id, u.name, u.role
+           FROM users u
+           WHERE u.company_id = (
+             SELECT company_id FROM users WHERE id = $1
+           ) AND u.role = 'management'
+           LIMIT 1`,
+          [employeeId]
+        );
+
+        if (managementResult.rows.length === 0) {
+          throw new Error('No management found for this group-admin');
+        }
+
+        const management = managementResult.rows[0];
+        approverRole = 'management';
+        approverId = management.id;
       } else {
-        // Get employee's group admin for employee requests
+        // Employee creating their own request - needs group-admin approval
         const groupAdminResult = await client.query(
           `SELECT u.id, u.name, u.role
            FROM users u
@@ -151,6 +170,24 @@ export class AttendanceRegularizationService {
       const requestedEndTime = convertTimeToTimestamp(requestData.request_date, requestData.requested_end_time);
 
       // Create the request
+      const insertParams = [
+        employeeId,
+        requestData.shift_id || null,
+        requestData.request_date,
+        originalStartTime,
+        originalEndTime,
+        requestedStartTime,
+        requestedEndTime,
+        requestData.reason,
+        requestData.supporting_documents || null,
+        requestData.request_type,
+        'pending',
+        approverRole,
+        approverRole === 'group-admin' ? approverId : null,
+        approverRole === 'management' ? approverId : null,
+        employeeId
+      ];
+      
       const result = await client.query(
         `INSERT INTO attendance_regularization_requests (
           employee_id, shift_id, request_date, original_start_time, original_end_time,
@@ -158,23 +195,7 @@ export class AttendanceRegularizationService {
           request_type, status, current_approver_role, group_admin_id, management_id, created_by
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *`,
-        [
-          employeeId,
-          requestData.shift_id || null,
-          requestData.request_date,
-          originalStartTime,
-          originalEndTime,
-          requestedStartTime,
-          requestedEndTime,
-          requestData.reason,
-          requestData.supporting_documents || null,
-          requestData.request_type,
-          'pending',
-          approverRole,
-          approverRole === 'group-admin' ? approverId : null,
-          approverRole === 'management' ? approverId : null,
-          employeeId
-        ]
+        insertParams
       );
 
       const request = result.rows[0];
@@ -234,10 +255,10 @@ export class AttendanceRegularizationService {
           whereClause = 'WHERE arr.employee_id = $1';
           break;
         case 'group-admin':
-          whereClause = 'WHERE arr.group_admin_id = $1';
+          whereClause = 'WHERE arr.group_admin_id = $1 AND arr.employee_id != $1';
           break;
         case 'management':
-          whereClause = 'WHERE arr.management_id = $1 OR (arr.status = \'group_admin_approved\' AND arr.current_approver_role = \'management\')';
+          whereClause = 'WHERE arr.management_id = $1 OR (arr.status = \'pending\' AND arr.current_approver_role = \'management\')';
           break;
         case 'super-admin':
           whereClause = ''; // Super admin can see all requests
@@ -428,7 +449,6 @@ export class AttendanceRegularizationService {
         paramIndex++;
         updateFields.push(`final_approved_by = $${paramIndex}`);
         updateParams.push(approverId);
-        paramIndex++;
         updateFields.push(`final_approved_at = CURRENT_TIMESTAMP`);
         paramIndex++;
         updateFields.push(`final_comments = $${paramIndex}`);
@@ -572,10 +592,10 @@ export class AttendanceRegularizationService {
           whereClause = 'WHERE employee_id = $1';
           break;
         case 'group-admin':
-          whereClause = 'WHERE group_admin_id = $1';
+          whereClause = 'WHERE group_admin_id = $1 AND employee_id != $1';
           break;
         case 'management':
-          whereClause = 'WHERE management_id = $1';
+          whereClause = 'WHERE management_id = $1 OR (status = \'pending\' AND current_approver_role = \'management\')';
           break;
         case 'super-admin':
           whereClause = '';

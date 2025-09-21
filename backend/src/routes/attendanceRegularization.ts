@@ -238,7 +238,10 @@ router.get("/pending-approvals", verifyToken, async (req: CustomRequest, res) =>
     if (req.user.role === 'group-admin') {
       pendingRequests = result.requests.filter(r => r.status === 'pending');
     } else if (req.user.role === 'management') {
-      pendingRequests = result.requests.filter(r => r.status === 'group_admin_approved');
+      // Management can see pending requests assigned to them OR group_admin_approved requests
+      pendingRequests = result.requests.filter(r => 
+        r.status === 'pending' || r.status === 'group_admin_approved'
+      );
     }
 
     res.json({

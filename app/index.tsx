@@ -212,7 +212,7 @@ export default function SplashScreen() {
             count = appOpenCount ? parseInt(appOpenCount) : 0;
           }
 
-          const maxShiftTrackerOpens = 4; // Show shift tracker for first 4 opens each day
+          const maxShiftTrackerOpens = 5; // Show shift tracker for first 5 opens each day
 
           // Increment app open count
           await AsyncStorage.setItem("appOpenCount", (count + 1).toString());

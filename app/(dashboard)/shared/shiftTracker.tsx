@@ -15,6 +15,7 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
+  BackHandler,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -651,14 +652,72 @@ export default function EmployeeShiftTracker() {
   const router = useRouter();
   const isDark = theme === "dark";
 
+  // Helper function to handle back navigation with fallback to role-specific dashboard
+  const handleBackNavigation = () => {
+    // Check if we can go back by checking the navigation state
+    // If we're on the first screen (shiftTracker as landing page), navigate to dashboard
+    const canGoBack = router.canGoBack();
+    
+    if (canGoBack) {
+      router.back();
+    } else {
+      // No back history available, navigate to role-specific dashboard
+      console.log("No back history available, navigating to role-specific dashboard");
+      navigateToDashboard();
+    }
+  };
+
+  // Helper function to navigate to role-specific dashboard
+  const navigateToDashboard = () => {
+    switch (user?.role) {
+      case "employee":
+        router.replace("/(dashboard)/employee/employee");
+        break;
+      case "group-admin":
+        router.replace("/(dashboard)/Group-Admin/group-admin");
+        break;
+      case "management":
+        router.replace("/(dashboard)/management/management");
+        break;
+      case "super-admin":
+        router.replace("/(dashboard)/super-admin/super-admin");
+        break;
+      default:
+        // Fallback to employee dashboard if role is unknown
+        router.replace("/(dashboard)/employee/employee");
+        break;
+    }
+  };
+
   // Animated values
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const spinValue = React.useRef(new Animated.Value(0)).current;
+
+  // Handle Android back button
+  useEffect(() => {
+    const backAction = () => {
+      // If we can go back normally, do that
+      if (router.canGoBack()) {
+        router.back();
+        return true; // Prevent default behavior
+      } else {
+        // If we're on the landing page, navigate to dashboard instead of closing app
+        console.log("Android back button pressed - navigating to dashboard");
+        navigateToDashboard();
+        return true; // Prevent default behavior (closing app)
+      }
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+
+    return () => backHandler.remove();
+  }, [user?.role]);
   const [addressRefreshAnim] = useState(new Animated.Value(0));
 
   // State
   const [isShiftActive, setIsShiftActive] = useState(false);
+  const [isShiftStatusLoading, setIsShiftStatusLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [shiftStart, setShiftStart] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -1612,11 +1671,14 @@ export default function EmployeeShiftTracker() {
   ]);
 
   const loadShiftStatus = async () => {
+    const startTime = Date.now();
+    const minLoadingTime = 1000; // Minimum 1 second loading time for better UX
+    
     try {
       const status = await AsyncStorage.getItem(`${user?.role}-shiftStatus`);
 
       if (status) {
-        const { isActive, startTime } = JSON.parse(status);
+        const { isActive, startTime: shiftStartTime } = JSON.parse(status);
 
         if (isActive) {
           // Before restoring from AsyncStorage, verify with backend that shift is still active
@@ -1629,8 +1691,8 @@ export default function EmployeeShiftTracker() {
             if (response.data) {
               // Shift is still active on backend, restore from AsyncStorage
               setIsShiftActive(isActive);
-              if (isActive && startTime) {
-                setShiftStart(new Date(startTime));
+              if (isActive && shiftStartTime) {
+                setShiftStart(new Date(shiftStartTime));
               }
 
               // Now that we've confirmed the shift is active, check for timer
@@ -1650,14 +1712,25 @@ export default function EmployeeShiftTracker() {
             console.error("Error verifying shift status with backend:", error);
             // Fall back to local storage if we can't verify with backend
             setIsShiftActive(isActive);
-            if (isActive && startTime) {
-              setShiftStart(new Date(startTime));
+            if (isActive && shiftStartTime) {
+              setShiftStart(new Date(shiftStartTime));
             }
           }
         }
       }
     } catch (error) {
       console.error("Error loading shift status:", error);
+    } finally {
+      // Ensure minimum loading time for better UX
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // Always set loading to false when shift status loading is complete
+      setIsShiftStatusLoading(false);
     }
   };
 
@@ -2150,9 +2223,9 @@ export default function EmployeeShiftTracker() {
     }, 300);
   };
 
-  // Initialize location on component mount
+  // Initialize location on component mount with retry mechanism
   useEffect(() => {
-    const initializeLocationPromptly = async () => {
+    const initializeLocationWithRetry = async () => {
       try {
         // Only initialize location for employee and group-admin roles
         if (user?.role === "management") {
@@ -2174,40 +2247,86 @@ export default function EmployeeShiftTracker() {
 
         setIsLocationServiceEnabled(true);
 
-        // Get current location with timeout
-        const locationPromise = getCurrentLocation();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Location timeout")), 10000);
-        });
+        // Check if we have a cached location first
+        const cachedLocation = useLocationStore.getState().currentLocation;
+        if (cachedLocation && cachedLocation.latitude && cachedLocation.longitude) {
+          console.log("Using cached location for initialization");
+          // Update address in background
+          getLocationAddress(cachedLocation.latitude, cachedLocation.longitude)
+            .then((address) => setCurrentAddress(address))
+            .catch((error) => console.log("Error getting address:", error));
+        }
 
-        try {
-          const location = await Promise.race([
-            locationPromise,
-            timeoutPromise,
-          ]);
+        // Try to get fresh location with progressive timeout and retry
+        let location = null;
+        let lastError = null;
 
-          if (location) {
-            // Update the store with the fresh location only if it's a valid location object
-            if (
-              location &&
-              typeof location === "object" &&
-              "coords" in location
-            ) {
-              useLocationStore.getState().setCurrentLocation(location as any);
+        // Try with different timeout values and accuracy settings
+        const attempts = [
+          { timeout: 15000, accuracy: Location.Accuracy.BestForNavigation },
+          { timeout: 20000, accuracy: Location.Accuracy.High },
+          { timeout: 25000, accuracy: Location.Accuracy.Balanced },
+        ];
+
+        for (let i = 0; i < attempts.length; i++) {
+          const { timeout, accuracy } = attempts[i];
+          console.log(`Location attempt ${i + 1}/${attempts.length} with ${timeout}ms timeout and ${accuracy} accuracy`);
+          
+          try {
+            const locationPromise = Location.getCurrentPositionAsync({
+              accuracy,
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error("Location timeout")), timeout);
+            });
+
+            location = await Promise.race([locationPromise, timeoutPromise]);
+            
+            if (location) {
+              console.log(`Location obtained successfully on attempt ${i + 1}`);
+              break;
             }
-
-            // Update address in background
-            const appLocation = convertToLocation(location);
-            if (appLocation?.latitude && appLocation?.longitude) {
-              getLocationAddress(appLocation.latitude, appLocation.longitude)
-                .then((address) => setCurrentAddress(address))
-                .catch((error) => console.log("Error getting address:", error));
+          } catch (error) {
+            console.log(`Location attempt ${i + 1} failed:`, error);
+            lastError = error;
+            
+            // If this is not the last attempt, wait a bit before trying again
+            if (i < attempts.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
             }
           }
-        } catch (locationError) {
-          console.error("Location initialization failed:", locationError);
+        }
+
+        if (location) {
+          // Update the store with the fresh location
+          if (
+            location &&
+            typeof location === "object" &&
+            "coords" in location
+          ) {
+            useLocationStore.getState().setCurrentLocation(location as any);
+          }
+
+          // Update address in background
+          const appLocation = convertToLocation(location);
+          if (appLocation?.latitude && appLocation?.longitude) {
+            getLocationAddress(appLocation.latitude, appLocation.longitude)
+              .then((address) => setCurrentAddress(address))
+              .catch((error) => console.log("Error getting address:", error));
+          }
+        } else {
+          // All attempts failed, but we might have a cached location
+          if (cachedLocation && cachedLocation.latitude && cachedLocation.longitude) {
+            console.log("Using cached location as fallback after failed attempts");
+            // Don't show error modal if we have cached location
+            return;
+          }
+          
+          // No cached location and all attempts failed
+          console.error("All location attempts failed:", lastError);
           setLocationErrorMessage(
-            "Unable to determine your current location. Please ensure location permissions are granted and try again.",
+            "Unable to determine your current location. Please ensure location permissions are granted and try again. You can still use the app with limited functionality.",
           );
           setShowLocationError(true);
         }
@@ -2221,7 +2340,7 @@ export default function EmployeeShiftTracker() {
       }
     };
 
-    initializeLocationPromptly();
+    initializeLocationWithRetry();
   }, [user?.role]);
 
   // Enhanced button validation with cooldown check
@@ -3875,10 +3994,57 @@ export default function EmployeeShiftTracker() {
       // Show loading state
       showInAppNotification("Retrying location...", "info");
 
-      // Try to get current location
-      const location = await getCurrentLocation();
+      // Use the same robust retry mechanism as initialization
+      let location = null;
+      let lastError = null;
+
+      // Try with different timeout values and accuracy settings
+      const attempts = [
+        { timeout: 15000, accuracy: Location.Accuracy.BestForNavigation },
+        { timeout: 20000, accuracy: Location.Accuracy.High },
+        { timeout: 25000, accuracy: Location.Accuracy.Balanced },
+      ];
+
+      for (let i = 0; i < attempts.length; i++) {
+        const { timeout, accuracy } = attempts[i];
+        console.log(`Location retry attempt ${i + 1}/${attempts.length} with ${timeout}ms timeout and ${accuracy} accuracy`);
+        
+        try {
+          const locationPromise = Location.getCurrentPositionAsync({
+            accuracy,
+          });
+          
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Location timeout")), timeout);
+          });
+
+          location = await Promise.race([locationPromise, timeoutPromise]);
+          
+          if (location) {
+            console.log(`Location obtained successfully on retry attempt ${i + 1}`);
+            break;
+          }
+        } catch (error) {
+          console.log(`Location retry attempt ${i + 1} failed:`, error);
+          lastError = error;
+          
+          // If this is not the last attempt, wait a bit before trying again
+          if (i < attempts.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
 
       if (location) {
+        // Update the store with the fresh location
+        if (
+          location &&
+          typeof location === "object" &&
+          "coords" in location
+        ) {
+          useLocationStore.getState().setCurrentLocation(location as any);
+        }
+
         const appLocation = convertToLocation(location);
         if (appLocation?.latitude && appLocation?.longitude) {
           // Update address
@@ -3896,7 +4062,16 @@ export default function EmployeeShiftTracker() {
           showInAppNotification("Location updated successfully", "success");
         }
       } else {
-        throw new Error("Unable to get current location");
+        // All retry attempts failed
+        console.error("All location retry attempts failed:", lastError);
+        setLocationErrorMessage(
+          "Unable to determine your current location after multiple attempts. Please ensure location permissions are granted and try again. You can still use the app with limited functionality.",
+        );
+        setShowLocationError(true);
+        showInAppNotification(
+          "Location retry failed. Please check your device settings.",
+          "error",
+        );
       }
     } catch (error) {
       console.error("Location retry failed:", error);
@@ -3910,7 +4085,6 @@ export default function EmployeeShiftTracker() {
       );
     }
   }, [
-    getCurrentLocation,
     isLocationInAnyGeofence,
     getCurrentGeofence,
     setIsInGeofence,
@@ -3932,7 +4106,7 @@ export default function EmployeeShiftTracker() {
       >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBackNavigation}
             className="mr-4 p-2 rounded-full"
             style={{ backgroundColor: isDark ? "#374151" : "#F3F4F6" }}
           >
@@ -4281,10 +4455,12 @@ export default function EmployeeShiftTracker() {
                   : () => startEndShiftVerification("start")
               }
               disabled={
+                isShiftStatusLoading ||
                 isProcessingShift ||
                 (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
               }
               className={`w-40 h-40 rounded-full items-center justify-center ${
+                isShiftStatusLoading ||
                 isProcessingShift ||
                 (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
                   ? "bg-gray-400"
@@ -4294,6 +4470,7 @@ export default function EmployeeShiftTracker() {
               }`}
               style={{
                 opacity:
+                  isShiftStatusLoading ||
                   isProcessingShift ||
                   (shiftCooldownUntil !== null && cooldownTimeLeft > 0)
                     ? 0.7
@@ -4305,7 +4482,20 @@ export default function EmployeeShiftTracker() {
                 elevation: 8,
               }}
             >
-              {isProcessingShift ? (
+              {isShiftStatusLoading ? (
+                <View className="items-center justify-center">
+                  <Animated.View style={{ transform: [{ rotate }] }}>
+                    <Ionicons
+                      name="hourglass-outline"
+                      size={60}
+                      color="white"
+                    />
+                  </Animated.View>
+                  <Text className="text-white text-lg font-bold mt-2">
+                    Loading...
+                  </Text>
+                </View>
+              ) : isProcessingShift ? (
                 <View className="items-center justify-center">
                   <Animated.View style={{ transform: [{ rotate }] }}>
                     <Ionicons

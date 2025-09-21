@@ -463,7 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 scheduleTokenRefresh(accessToken);
               }
 
-              routeUserToDashboard(userData.role);
+              await routeUserToDashboard(userData.role);
             } catch (error) {
               console.log("Token verification failed, attempting refresh...");
 
@@ -479,7 +479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       "Token refresh successful during initialization",
                     );
                     // Navigate based on cached user role
-                    routeUserToDashboard(userData.role);
+                    await routeUserToDashboard(userData.role);
                     return;
                   }
                 } catch (refreshError) {
@@ -499,8 +499,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await AsyncStorage.setItem(OFFLINE_MODE_KEY, "true");
                 setPendingSync(true);
 
-                // Navigate based on cached user role
-                routeUserToDashboard(userData.role);
+              // Navigate based on cached user role
+              await routeUserToDashboard(userData.role);
               } else {
                 console.log("Offline login expired or not allowed");
                 await clearAuthData();
@@ -518,7 +518,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setPendingSync(true);
 
               // Navigate based on cached user role
-              routeUserToDashboard(userData.role);
+              await routeUserToDashboard(userData.role);
             } else {
               console.log("Offline login expired or tokens invalid");
               await clearAuthData();
@@ -553,24 +553,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Helper function to route user to correct dashboard
-  const routeUserToDashboard = (role: UserRole) => {
-    switch (role) {
-      case "employee":
-        router.replace("/(dashboard)/employee/employee");
-        break;
-      case "group-admin":
-        router.replace("/(dashboard)/Group-Admin/group-admin");
-        break;
-      case "management":
-        router.replace("/(dashboard)/management/management");
-        break;
-      case "super-admin":
-        router.replace("/(dashboard)/super-admin/super-admin");
-        break;
-      default:
-        console.error("Invalid user role:", role);
-      // Stay on current screen
+  // Helper function to route user to correct dashboard or shift tracker based on app open count
+  const routeUserToDashboard = async (role: UserRole) => {
+    try {
+      // Check if we need to reset the counter for a new day (IST 12:00 AM)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+      const istTime = new Date(now.getTime() + istOffset);
+      const todayIST = istTime.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+      const lastResetDate = await AsyncStorage.getItem(
+        "appOpenCounterResetDate",
+      );
+      const appOpenCount = await AsyncStorage.getItem("appOpenCount");
+
+      let count = 0;
+
+      // Reset counter if it's a new day in IST
+      if (lastResetDate !== todayIST) {
+        console.log(
+          `New day detected (IST): ${todayIST}, resetting app open counter`,
+        );
+        await AsyncStorage.setItem("appOpenCounterResetDate", todayIST);
+        await AsyncStorage.setItem("appOpenCount", "0");
+        count = 0;
+      } else {
+        count = appOpenCount ? parseInt(appOpenCount) : 0;
+      }
+
+      const maxShiftTrackerOpens = 5; // Show shift tracker for first 5 opens each day
+
+      // Increment app open count
+      await AsyncStorage.setItem("appOpenCount", (count + 1).toString());
+
+      // For first few opens of the day, show shift tracker instead of dashboard
+      if (count < maxShiftTrackerOpens) {
+        console.log(
+          `Daily app open count: ${count + 1}/${maxShiftTrackerOpens} - Showing shift tracker (IST: ${todayIST})`,
+        );
+        router.replace("/(dashboard)/shared/shiftTracker");
+      } else {
+        // After max opens for the day, show normal dashboard
+        console.log(
+          `Daily app open count: ${count + 1} - Showing normal dashboard (IST: ${todayIST})`,
+        );
+        switch (role) {
+          case "employee":
+            router.replace("/(dashboard)/employee/employee");
+            break;
+          case "group-admin":
+            router.replace("/(dashboard)/Group-Admin/group-admin");
+            break;
+          case "management":
+            router.replace("/(dashboard)/management/management");
+            break;
+          case "super-admin":
+            router.replace("/(dashboard)/super-admin/super-admin");
+            break;
+          default:
+            console.error("Invalid user role:", role);
+          // Stay on current screen
+        }
+      }
+    } catch (error) {
+      console.error("Error in routeUserToDashboard:", error);
+      // Fallback to normal dashboard routing
+      switch (role) {
+        case "employee":
+          router.replace("/(dashboard)/employee/employee");
+          break;
+        case "group-admin":
+          router.replace("/(dashboard)/Group-Admin/group-admin");
+          break;
+        case "management":
+          router.replace("/(dashboard)/management/management");
+          break;
+        case "super-admin":
+          router.replace("/(dashboard)/super-admin/super-admin");
+          break;
+        default:
+          console.error("Invalid user role:", role);
+        // Stay on current screen
+      }
     }
   };
 
@@ -1026,7 +1090,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Navigate based on user role
-      routeUserToDashboard(userData.role);
+      await routeUserToDashboard(userData.role);
       return {};
     } catch (error: any) {
       console.error("Login error:", error);
@@ -1200,7 +1264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Navigate based on user role
-      routeUserToDashboard(userData.role);
+      await routeUserToDashboard(userData.role);
       return {};
     } catch (error: any) {
       console.error("MFA verification error:", error);

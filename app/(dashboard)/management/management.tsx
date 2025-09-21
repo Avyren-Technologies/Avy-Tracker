@@ -53,15 +53,8 @@ interface LeaveStats {
   active_leave_types: number;
 }
 
-// Add new quick actions array
+// Quick actions array (removed Regularization Approvals from here)
 const newQuickActions = [
-  {
-    title: "Regularization Approvals",
-    icon: "checkmark-circle-outline",
-    description: "Review and approve regularization requests",
-    route: "/(dashboard)/shared/AttendanceRegularization",
-    color: "#3B82F6",
-  },
   {
     title: "Group Admin",
     icon: "people-outline",
@@ -602,6 +595,58 @@ export default function ManagementDashboard() {
               ))}
             </View>
           )}
+        </View>
+
+        {/* Pending Approvals Section */}
+        <View className="px-6 py-4">
+          <Text
+            className={`text-lg font-semibold mb-4 ${
+              theme === "dark" ? "text-white" : "text-gray-800"
+            }`}
+          >
+            Pending Approvals
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            className={`p-6 rounded-xl ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            }`}
+            style={styles.approvalCard}
+          >
+            <View className="flex-row items-center">
+              <View
+                className="w-14 h-14 rounded-full items-center justify-center"
+                style={{ backgroundColor: "#3B82F620" }}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={28}
+                  color="#3B82F6"
+                />
+              </View>
+              <View className="flex-1 ml-4">
+                <Text
+                  className={`text-xl font-semibold mb-1 ${
+                    theme === "dark" ? "text-white" : "text-gray-800"
+                  }`}
+                >
+                  Regularization Approvals
+                </Text>
+                <Text
+                  className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  Review and approve attendance regularization requests
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={theme === "dark" ? "#6B7280" : "#9CA3AF"}
+              />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* New Quick Actions Section - Above Group Analytics */}
@@ -1271,5 +1316,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 4,
     marginLeft: 12,
+  },
+  approvalCard: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
 });
