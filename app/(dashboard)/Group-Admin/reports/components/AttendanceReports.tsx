@@ -73,6 +73,22 @@ interface AttendanceAnalytics {
     leaveType: string;
     isPaid: boolean;
   }[];
+  regularization?: {
+    employeeId: number;
+    employeeName: string;
+    employeeNumber: string;
+    department: string;
+    requestDate: string;
+    originalStartTime: string | null;
+    originalEndTime: string | null;
+    requestedStartTime: string;
+    requestedEndTime: string;
+    reason: string;
+    requestType: string;
+    status: string;
+    createdAt: string;
+    approvedAt: string | null;
+  }[];
 }
 
 interface FilterParams {
@@ -1069,6 +1085,121 @@ export default function AttendanceReports({
     );
   };
 
+  // Function to render regularization information
+  const renderRegularizationInfo = () => {
+    if (!analytics?.regularization || analytics.regularization.length === 0) {
+      return null;
+    }
+
+    return (
+      <View className="mb-6">
+        <Text
+          className={`text-base font-medium mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
+        >
+          Regularization Information
+        </Text>
+        <View
+          className={`rounded-lg overflow-hidden ${isDark ? "bg-gray-800" : "bg-white"}`}
+        >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View>
+              <View
+                className={`flex-row py-2 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
+              >
+                <Text
+                  className={`w-32 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Employee
+                </Text>
+                <Text
+                  className={`w-24 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Request Date
+                </Text>
+                <Text
+                  className={`w-28 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Request Type
+                </Text>
+                <Text
+                  className={`w-24 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Original Time
+                </Text>
+                <Text
+                  className={`w-24 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Requested Time
+                </Text>
+                <Text
+                  className={`w-32 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Reason
+                </Text>
+                <Text
+                  className={`w-24 px-3 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Approved At
+                </Text>
+              </View>
+
+              {analytics.regularization.map((reg, index) => (
+                <View
+                  key={`${reg.employeeId}-${index}`}
+                  className={`flex-row py-3 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}
+                >
+                  <Text
+                    className={`w-32 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                    numberOfLines={1}
+                  >
+                    {reg.employeeName}
+                  </Text>
+                  <Text
+                    className={`w-24 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                  >
+                    {new Date(reg.requestDate).toLocaleDateString()}
+                  </Text>
+                  <Text
+                    className={`w-28 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                    numberOfLines={1}
+                  >
+                    {reg.requestType.replace('_', ' ').toUpperCase()}
+                  </Text>
+                  <Text
+                    className={`w-24 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                    numberOfLines={1}
+                  >
+                    {reg.originalStartTime 
+                      ? `${new Date(reg.originalStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${reg.originalEndTime ? new Date(reg.originalEndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}`
+                      : 'N/A'
+                    }
+                  </Text>
+                  <Text
+                    className={`w-24 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                    numberOfLines={1}
+                  >
+                    {`${new Date(reg.requestedStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(reg.requestedEndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
+                  </Text>
+                  <Text
+                    className={`w-32 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                    numberOfLines={2}
+                  >
+                    {reg.reason}
+                  </Text>
+                  <Text
+                    className={`w-24 px-3 ${isDark ? "text-white" : "text-gray-800"}`}
+                  >
+                    {reg.approvedAt ? new Date(reg.approvedAt).toLocaleDateString() : 'N/A'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View className="h-[220px] justify-center items-center">
@@ -1200,6 +1331,7 @@ export default function AttendanceReports({
               </View>
 
               {renderLeaveInfo()}
+              {renderRegularizationInfo()}
             </View>
           </ReportCard>
 

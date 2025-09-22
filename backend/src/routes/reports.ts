@@ -906,7 +906,7 @@ router.get(
 
       console.log("Employee count:", employeeCheck.rows[0]?.employee_count);
 
-      // Get daily attendance for bar chart
+      // Get daily attendance for bar chart (including regularized attendance)
       const dailyQuery = `
         WITH days AS (
           SELECT generate_series(0, 6) as day
@@ -921,30 +921,49 @@ router.get(
           WHERE start_time >= $2::date
           AND start_time <= $3::date
           ${employeeId ? employeeFilter : ""}
+        ),
+        regularized_shifts AS (
+          SELECT 
+            EXTRACT(DOW FROM arr.request_date::date)::integer as reg_day,
+            arr.employee_id as user_id,
+            'regularized' as status,
+            arr.requested_start_time as start_time
+          FROM attendance_regularization_requests arr
+          JOIN users u ON arr.employee_id = u.id
+          WHERE arr.request_date >= $2::date
+          AND arr.request_date <= $3::date
+          AND arr.status = 'approved'
+          ${employeeId ? employeeFilter.replace("user_id", "arr.employee_id") : ""}
+          ${department ? departmentFilter.replace("u.department", "u.department") : ""}
         )
         SELECT 
           days.day,
-          COALESCE(COUNT(DISTINCT s.user_id), 0) as attendance_count,
+          COALESCE(COUNT(DISTINCT COALESCE(s.user_id, rs.user_id)), 0) as attendance_count,
           COALESCE(COUNT(DISTINCT CASE 
-            WHEN s.status = 'active' AND 
-                 EXTRACT(HOUR FROM s.start_time) <= 9 
-            THEN s.user_id 
+            WHEN (s.status = 'active' AND EXTRACT(HOUR FROM s.start_time) <= 9) OR 
+                 (rs.status = 'regularized' AND EXTRACT(HOUR FROM rs.start_time) <= 9)
+            THEN COALESCE(s.user_id, rs.user_id)
           END), 0) as on_time_count
         FROM days
         LEFT JOIN shifts s ON days.day = s.shift_day
-        LEFT JOIN users u ON s.user_id = u.id 
+        LEFT JOIN regularized_shifts rs ON days.day = rs.reg_day
+        LEFT JOIN users u ON COALESCE(s.user_id, rs.user_id) = u.id 
         WHERE u.group_admin_id = $1 OR u.id IS NULL
         ${department ? departmentFilter : ""}
         GROUP BY days.day
         ORDER BY days.day`;
 
-      // Get weekly trend for line chart
+      // Get weekly trend for line chart (including regularized attendance)
       const weeklyQuery = `
         WITH filtered_shifts AS (
           SELECT 
             es.start_time,
             es.end_time,
-            es.duration,
+            CASE 
+              WHEN es.duration IS NOT NULL THEN EXTRACT(EPOCH FROM es.duration)/3600
+              WHEN es.end_time IS NOT NULL THEN EXTRACT(EPOCH FROM (es.end_time - es.start_time))/3600
+              ELSE NULL 
+            END as duration,
             es.user_id,
             es.status
           FROM employee_shifts es
@@ -954,24 +973,37 @@ router.get(
           AND es.start_time <= $3::date
           ${employeeId ? employeeFilter : ""}
           ${department ? departmentFilter : ""}
+        ),
+        regularized_attendance AS (
+          SELECT 
+            arr.requested_start_time as start_time,
+            arr.requested_end_time as end_time,
+            EXTRACT(EPOCH FROM (arr.requested_end_time - arr.requested_start_time))/3600 as duration,
+            arr.employee_id as user_id,
+            'regularized' as status
+          FROM attendance_regularization_requests arr
+          JOIN users u ON arr.employee_id = u.id
+          WHERE u.group_admin_id = $1 
+          AND arr.request_date >= $2::date
+          AND arr.request_date <= $3::date
+          AND arr.status = 'approved'
+          ${employeeId ? employeeFilter.replace("user_id", "arr.employee_id") : ""}
+          ${department ? departmentFilter.replace("u.department", "u.department") : ""}
+        ),
+        combined_attendance AS (
+          SELECT * FROM filtered_shifts
+          UNION ALL
+          SELECT * FROM regularized_attendance
         )
         SELECT 
           DATE_TRUNC('week', start_time)::date as week,
           COUNT(DISTINCT user_id) as attendance_count,
-          COALESCE(AVG(
-            CASE 
-              WHEN duration IS NOT NULL THEN 
-                EXTRACT(EPOCH FROM duration)/3600
-              WHEN end_time IS NOT NULL THEN 
-                EXTRACT(EPOCH FROM (end_time - start_time))/3600
-              ELSE NULL 
-            END
-          ), 0) as avg_hours
-        FROM filtered_shifts
+          COALESCE(AVG(duration), 0) as avg_hours
+        FROM combined_attendance
         GROUP BY DATE_TRUNC('week', start_time)::date
         ORDER BY week`;
 
-      // Get heatmap data
+      // Get heatmap data (including regularized attendance)
       const heatmapQuery = `
         WITH filtered_shifts AS (
           SELECT 
@@ -984,21 +1016,43 @@ router.get(
           AND es.start_time <= $3::date
           ${employeeId ? employeeFilter : ""}
           ${department ? departmentFilter : ""}
+        ),
+        regularized_attendance AS (
+          SELECT 
+            arr.requested_start_time as start_time,
+            arr.employee_id as user_id
+          FROM attendance_regularization_requests arr
+          JOIN users u ON arr.employee_id = u.id
+          WHERE u.group_admin_id = $1 
+          AND arr.request_date >= $2::date
+          AND arr.request_date <= $3::date
+          AND arr.status = 'approved'
+          ${employeeId ? employeeFilter.replace("user_id", "arr.employee_id") : ""}
+          ${department ? departmentFilter.replace("u.department", "u.department") : ""}
+        ),
+        combined_attendance AS (
+          SELECT * FROM filtered_shifts
+          UNION ALL
+          SELECT * FROM regularized_attendance
         )
         SELECT 
           start_time::date as date,
           COUNT(DISTINCT user_id) as count
-        FROM filtered_shifts
+        FROM combined_attendance
         GROUP BY start_time::date
         ORDER BY date`;
 
-      // Get overall metrics
+      // Get overall metrics (including regularized attendance)
       const metricsQuery = `
         WITH filtered_shifts AS (
           SELECT 
             es.user_id,
             es.status,
-            es.duration,
+            CASE 
+              WHEN es.duration IS NOT NULL THEN EXTRACT(EPOCH FROM es.duration)/3600
+              WHEN es.end_time IS NOT NULL THEN EXTRACT(EPOCH FROM (es.end_time - es.start_time))/3600
+              ELSE NULL 
+            END as duration,
             es.start_time,
             es.end_time,
             es.total_kilometers,
@@ -1011,29 +1065,44 @@ router.get(
           ${employeeId ? employeeFilter : ""}
           ${department ? departmentFilter : ""}
         ),
+        regularized_attendance AS (
+          SELECT 
+            arr.employee_id as user_id,
+            'regularized' as status,
+            EXTRACT(EPOCH FROM (arr.requested_end_time - arr.requested_start_time))/3600 as duration,
+            arr.requested_start_time as start_time,
+            arr.requested_end_time as end_time,
+            0 as total_kilometers,
+            0 as total_expenses
+          FROM attendance_regularization_requests arr
+          JOIN users u ON arr.employee_id = u.id
+          WHERE u.group_admin_id = $1 
+          AND arr.request_date >= $2::date
+          AND arr.request_date <= $3::date
+          AND arr.status = 'approved'
+          ${employeeId ? employeeFilter.replace("user_id", "arr.employee_id") : ""}
+          ${department ? departmentFilter.replace("u.department", "u.department") : ""}
+        ),
+        combined_attendance AS (
+          SELECT * FROM filtered_shifts
+          UNION ALL
+          SELECT * FROM regularized_attendance
+        ),
         metrics AS (
           SELECT 
             COUNT(DISTINCT user_id) as total_employees,
-            COALESCE(AVG(
-              CASE 
-                WHEN duration IS NOT NULL THEN 
-                  EXTRACT(EPOCH FROM duration)/3600
-                WHEN end_time IS NOT NULL THEN 
-                  EXTRACT(EPOCH FROM (end_time - start_time))/3600
-                ELSE NULL 
-              END
-            ), 0) as avg_hours,
+            COALESCE(AVG(duration), 0) as avg_hours,
             COUNT(DISTINCT CASE 
-              WHEN status = 'active' AND 
-                   EXTRACT(HOUR FROM start_time) <= 9 
+              WHEN (status = 'active' AND EXTRACT(HOUR FROM start_time) <= 9) OR
+                   (status = 'regularized' AND EXTRACT(HOUR FROM start_time) <= 9)
               THEN user_id 
             END)::float / 
             NULLIF(COUNT(DISTINCT user_id), 0) * 100 as on_time_rate,
             SUM(total_kilometers) as total_distance,
             SUM(total_expenses) as total_expenses,
             COUNT(CASE WHEN status = 'active' THEN 1 END) as active_shifts,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_shifts
-          FROM filtered_shifts
+            COUNT(CASE WHEN status = 'completed' OR status = 'regularized' THEN 1 END) as completed_shifts
+          FROM combined_attendance
         )
         SELECT 
           total_employees,
@@ -1092,6 +1161,37 @@ router.get(
         ${employeeId ? employeeFilter.replace("user_id", "lr.user_id") : ""}
         ${department ? departmentFilter : ""}
         ORDER BY lr.start_date
+      `;
+
+      // Get regularization information
+      const regularizationQuery = `
+        SELECT 
+          u.id as employee_id,
+          u.name as employee_name,
+          u.employee_number,
+          u.department,
+          arr.request_date,
+          arr.original_start_time,
+          arr.original_end_time,
+          arr.requested_start_time,
+          arr.requested_end_time,
+          arr.reason,
+          arr.request_type,
+          arr.status as regularization_status,
+          arr.created_at,
+          arr.final_approved_at,
+          arr.management_approved_at,
+          arr.group_admin_approved_at,
+          COALESCE(arr.final_approved_at, arr.management_approved_at, arr.group_admin_approved_at) as approved_at
+        FROM attendance_regularization_requests arr
+        JOIN users u ON arr.employee_id = u.id
+        WHERE u.group_admin_id = $1
+        AND arr.status = 'approved'
+        AND arr.request_date >= $2::date
+        AND arr.request_date <= $3::date
+        ${employeeId ? employeeFilter.replace("user_id", "arr.employee_id") : ""}
+        ${department ? departmentFilter.replace("u.department", "u.department") : ""}
+        ORDER BY arr.request_date DESC
       `;
 
       // Get monthly attendance report
@@ -1178,6 +1278,7 @@ router.get(
         employeesResult,
         departmentsResult,
         leaveResult,
+        regularizationResult,
       ] = await Promise.all([
         client.query(dailyQuery, baseParams),
         client.query(weeklyQuery, baseParams),
@@ -1188,6 +1289,7 @@ router.get(
         client.query(employeesQuery, [adminId]),
         client.query(departmentsQuery, [adminId]),
         client.query(leaveQuery, baseParams),
+        client.query(regularizationQuery, baseParams),
       ]);
 
       // Log the results
@@ -1199,6 +1301,7 @@ router.get(
         heatmapCount: heatmapResult.rows.length,
         hasMetrics: !!metricsResult.rows.length,
         leaveCount: leaveResult.rows.length,
+        regularizationCount: regularizationResult.rows.length,
       });
 
       const response = {
@@ -1241,6 +1344,34 @@ router.get(
           leaveType: row.leave_type,
           isPaid: row.is_paid,
         })),
+        regularization: regularizationResult.rows.map((row) => {
+          console.log("Regularization row data:", {
+            employee_name: row.employee_name,
+            request_date: row.request_date,
+            status: row.regularization_status,
+            approved_at: row.approved_at,
+            final_approved_at: row.final_approved_at,
+            management_approved_at: row.management_approved_at,
+            group_admin_approved_at: row.group_admin_approved_at
+          });
+          
+          return {
+            employeeId: row.employee_id,
+            employeeName: row.employee_name,
+            employeeNumber: row.employee_number,
+            department: row.department,
+            requestDate: new Date(row.request_date).toISOString(),
+            originalStartTime: row.original_start_time ? new Date(row.original_start_time).toISOString() : null,
+            originalEndTime: row.original_end_time ? new Date(row.original_end_time).toISOString() : null,
+            requestedStartTime: new Date(row.requested_start_time).toISOString(),
+            requestedEndTime: new Date(row.requested_end_time).toISOString(),
+            reason: row.reason,
+            requestType: row.request_type,
+            status: row.regularization_status,
+            createdAt: new Date(row.created_at).toISOString(),
+            approvedAt: row.approved_at ? new Date(row.approved_at).toISOString() : null,
+          };
+        }),
       };
 
       console.log("Sending response for attendance analytics");

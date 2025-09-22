@@ -4,14 +4,37 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 
-const caPath = path.join(__dirname, "ca.pem");
-
 dotenv.config();
+
+// Function to get CA certificate from environment variable or file
+const getCACertificate = (): string => {
+  // First, try to get from environment variable
+  if (process.env.DATABASE_CA_CERT) {
+    console.log("Using CA certificate from environment variable");
+    return process.env.DATABASE_CA_CERT;
+  }
+  
+  // Fallback to file if environment variable is not set
+  const caPath = path.join(__dirname, "ca.pem");
+  try {
+    if (fs.existsSync(caPath)) {
+      console.log("Using CA certificate from file:", caPath);
+      return fs.readFileSync(caPath).toString();
+    } else {
+      console.warn("CA certificate file not found at:", caPath);
+      console.warn("Please set DATABASE_CA_CERT environment variable or ensure ca.pem file exists");
+      throw new Error("CA certificate not found in environment variable or file");
+    }
+  } catch (error) {
+    console.error("Error reading CA certificate:", error);
+    throw error;
+  }
+};
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    ca: fs.readFileSync(caPath).toString(),
+    ca: getCACertificate(),
   },
   max: 20,
   idleTimeoutMillis: 30000,

@@ -50,6 +50,8 @@ export default function ManagementSettings() {
     });
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
   const [biometricType, setBiometricType] = React.useState<string>('');
+  const [mfaEnabled, setMfaEnabled] = React.useState(false);
+  const [mfaLoading, setMfaLoading] = React.useState(false);
   const [faceRegistrationStatus, setFaceRegistrationStatus] = React.useState<{
     registered: boolean;
     enabled: boolean;
@@ -68,6 +70,7 @@ export default function ManagementSettings() {
   React.useEffect(() => {
     checkBiometricAvailability();
     loadBiometricSettings();
+    fetchMFAStatus();
     fetchFaceRegistrationStatus();
   }, []);
 
@@ -110,6 +113,18 @@ export default function ManagementSettings() {
     }
   };
 
+  const fetchMFAStatus = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/mfa-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMfaEnabled(response.data.enabled || false);
+    } catch (error) {
+      console.error('Error fetching MFA status:', error);
+    }
+  };
+
   const fetchFaceRegistrationStatus = async () => {
     try {
       setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
@@ -148,16 +163,23 @@ export default function ManagementSettings() {
 
   const handleBiometricToggle = async (enabled: boolean) => {
     try {
+      console.log('Biometric toggle requested:', enabled);
+
       if (enabled) {
-        // Test biometric authentication before enabling
+        // Test biometric authentication before enabling (allow setup mode)
         const result = await biometricAuthService.authenticateUser(
-          'Authenticate to enable biometric login'
+          'Authenticate to enable biometric login',
+          true // allowSetup = true for initial setup
         );
+
+        console.log('Biometric authentication result:', result);
 
         if (result.success) {
           await biometricAuthService.setBiometricEnabled(true);
           setBiometricSettings((prev) => ({ ...prev, enabled: true }));
+          console.log('Biometric authentication enabled successfully');
         } else {
+          console.log('Biometric authentication failed:', result.error);
           Alert.alert(
             'Authentication Failed',
             result.error || 'Please try again'
@@ -170,6 +192,7 @@ export default function ManagementSettings() {
           enabled: false,
           required: false,
         }));
+        console.log('Biometric authentication disabled');
       }
     } catch (error) {
       console.error('Error toggling biometric:', error);
@@ -179,16 +202,26 @@ export default function ManagementSettings() {
 
   const handleBiometricRequiredToggle = async (required: boolean) => {
     try {
+      console.log('Biometric required toggle requested:', required);
+
       if (required) {
-        // Test biometric authentication before requiring it
+        // Test biometric authentication before requiring it (allow setup mode)
         const result = await biometricAuthService.authenticateUser(
-          'Authenticate to require biometric login'
+          'Authenticate to require biometric login',
+          true // allowSetup = true for setup
         );
+
+        console.log('Biometric required authentication result:', result);
 
         if (result.success) {
           await biometricAuthService.setBiometricRequired(true);
           setBiometricSettings((prev) => ({ ...prev, required: true }));
+          console.log('Biometric authentication required enabled');
         } else {
+          console.log(
+            'Biometric required authentication failed:',
+            result.error
+          );
           Alert.alert(
             'Authentication Failed',
             result.error || 'Please try again'
@@ -197,10 +230,44 @@ export default function ManagementSettings() {
       } else {
         await biometricAuthService.setBiometricRequired(false);
         setBiometricSettings((prev) => ({ ...prev, required: false }));
+        console.log('Biometric authentication required disabled');
       }
     } catch (error) {
       console.error('Error toggling biometric required:', error);
       Alert.alert('Error', 'Failed to update biometric settings');
+    }
+  };
+
+  const handleMFAToggle = async (enabled: boolean) => {
+    if (!user?.id) return;
+
+    setMfaLoading(true);
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/setup-mfa`,
+        {
+          userId: user.id,
+          enable: enabled,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.message) {
+        setMfaEnabled(enabled);
+        Alert.alert(
+          'Success',
+          `MFA ${enabled ? 'enabled' : 'disabled'} successfully`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error: any) {
+      console.error('Error updating MFA:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.error || 'Failed to update MFA settings'
+      );
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -280,6 +347,38 @@ export default function ManagementSettings() {
       ],
     },
     {
+      title: 'Security',
+      items: [
+        {
+          icon: biometricAuthService.getBiometricIconName(biometricType),
+          label:
+            biometricAuthService.getBiometricTypeName(biometricType) +
+            ' Authentication',
+          isSwitch: true,
+          switchValue: biometricSettings.enabled,
+          action: () => {},
+        },
+        ...(biometricSettings.enabled
+          ? [
+              {
+                icon: 'shield-checkmark-outline' as keyof typeof Ionicons.glyphMap,
+                label: 'Require Biometric Login',
+                isSwitch: true,
+                switchValue: biometricSettings.required,
+                action: () => {},
+              },
+            ]
+          : []),
+        {
+          icon: 'two-factor-authentication',
+          label: 'Two-Factor Authentication',
+          isSwitch: true,
+          switchValue: mfaEnabled,
+          action: () => {},
+        },
+      ],
+    },
+    {
       title: 'Notifications',
       items: [
         {
@@ -337,31 +436,6 @@ export default function ManagementSettings() {
             handleThemeToggle();
           },
         },
-      ],
-    },
-    {
-      title: 'Security',
-      items: [
-        {
-          icon: biometricAuthService.getBiometricIconName(biometricType),
-          label:
-            biometricAuthService.getBiometricTypeName(biometricType) +
-            ' Authentication',
-          isSwitch: true,
-          switchValue: biometricSettings.enabled,
-          action: () => {},
-        },
-        ...(biometricSettings.enabled
-          ? [
-              {
-                icon: 'shield-checkmark-outline' as keyof typeof Ionicons.glyphMap,
-                label: 'Require Biometric Login',
-                isSwitch: true,
-                switchValue: biometricSettings.required,
-                action: () => {},
-              },
-            ]
-          : []),
       ],
     },
   ];
@@ -477,10 +551,12 @@ export default function ManagementSettings() {
                     <Switch
                       value={item.switchValue}
                       onValueChange={(value) => {
-                        if (item.label.includes('Authentication')) {
-                          handleBiometricToggle(value);
+                        if (item.label.includes('Two-Factor Authentication')) {
+                          handleMFAToggle(value);
                         } else if (item.label.includes('Require Biometric')) {
                           handleBiometricRequiredToggle(value);
+                        } else if (item.label.includes('Authentication')) {
+                          handleBiometricToggle(value);
                         } else if (item.label.includes('Dark Mode')) {
                           item.action();
                         }

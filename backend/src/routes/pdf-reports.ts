@@ -633,6 +633,40 @@ async function getAttendanceReportData(
     params,
   );
 
+  // Get regularization information for all employees in the date range
+  const regularizationInfoResult = await client.query(
+    `
+    SELECT 
+      u.id as employee_id,
+      u.name as employee_name,
+      u.employee_number,
+      u.department,
+      arr.id as regularization_id,
+      arr.request_date,
+      arr.original_start_time,
+      arr.original_end_time,
+      arr.requested_start_time,
+      arr.requested_end_time,
+      arr.reason,
+      arr.request_type,
+      arr.status as regularization_status,
+      arr.created_at,
+      arr.final_approved_at,
+      arr.management_approved_at,
+      arr.group_admin_approved_at,
+      COALESCE(arr.final_approved_at, arr.management_approved_at, arr.group_admin_approved_at) as approved_at
+    FROM attendance_regularization_requests arr
+    JOIN users u ON arr.employee_id = u.id
+    WHERE u.group_admin_id = $1
+    AND arr.status = 'approved'
+    ${filters.employeeId ? "AND u.id = $2" : ""}
+    ${filters.department ? `AND u.department = $${filters.employeeId ? 3 : 2}` : ""}
+    AND arr.request_date >= $${dateParamIndex}::date
+    AND arr.request_date <= $${dateParamIndex + 1}::date
+    ORDER BY arr.request_date, u.name`,
+    params,
+  );
+
   // Get employee-level statistics with employee numbers
   let employeeStatsParams = [...params]; // Copy the basic params
 
@@ -807,6 +841,11 @@ async function getAttendanceReportData(
       (leave) => leave.employee_id === employeeId,
     );
 
+    // Get regularization data for this employee
+    const employeeRegularizations = regularizationInfoResult.rows.filter(
+      (reg) => reg.employee_id === employeeId,
+    );
+
     // Create a map of dates to leave status for this employee
     const employeeLeaveDates: Record<string, any> = {};
     for (const leave of employeeLeaves) {
@@ -836,6 +875,35 @@ async function getAttendanceReportData(
         }
       } catch (err) {
         console.error("Error processing leave dates", err);
+      }
+    }
+
+    // Create a map of dates to regularization status for this employee
+    const employeeRegularizationDates: Record<string, any> = {};
+    for (const reg of employeeRegularizations) {
+      try {
+        const regDate = new Date(reg.request_date);
+        if (isNaN(regDate.getTime())) {
+          console.error("Invalid regularization date", {
+            employeeId,
+            requestDate: reg.request_date,
+          });
+          continue;
+        }
+
+        const dateKey = regDate.toISOString().split("T")[0];
+        employeeRegularizationDates[dateKey] = {
+          requestType: reg.request_type,
+          originalStartTime: reg.original_start_time,
+          originalEndTime: reg.original_end_time,
+          requestedStartTime: reg.requested_start_time,
+          requestedEndTime: reg.requested_end_time,
+          reason: reg.reason,
+          status: reg.regularization_status,
+          approvedAt: reg.approved_at,
+        };
+      } catch (err) {
+        console.error("Error processing regularization dates", err);
       }
     }
 
@@ -900,6 +968,7 @@ async function getAttendanceReportData(
         const shifts = shiftsMap[dateKey] || [];
         const expenses = expensesMap[dateKey] || [];
         const leaveInfo = employeeLeaveDates[dateKey];
+        const regularizationInfo = employeeRegularizationDates[dateKey];
 
         const totalHours = shifts.reduce(
           (sum, shift) => sum + shift.duration,
@@ -914,17 +983,24 @@ async function getAttendanceReportData(
           0,
         );
 
+        // Determine status based on leave, regularization, or actual attendance
+        let status = "absent";
+        if (leaveInfo) {
+          status = "leave";
+        } else if (regularizationInfo) {
+          status = "regularized";
+        } else if (shifts.length > 0) {
+          status = "present";
+        }
+
         return {
           date: formattedDate,
           dayOfWeek,
-          status: leaveInfo
-            ? "leave"
-            : shifts.length > 0
-              ? "present"
-              : "absent",
+          status,
           shifts,
           expenses,
           leave: leaveInfo,
+          regularization: regularizationInfo,
           summary: {
             totalHours,
             totalDistance,
@@ -963,8 +1039,10 @@ async function getAttendanceReportData(
         daysAbsent:
           dateRange.length -
           parseInt(employee.days_present || "0") -
-          Object.keys(employeeLeaveDates).length,
+          Object.keys(employeeLeaveDates).length -
+          Object.keys(employeeRegularizationDates).length,
         daysOnLeave: Object.keys(employeeLeaveDates).length,
+        daysRegularized: Object.keys(employeeRegularizationDates).length,
         avgHours: parseFloat(employee.avg_hours || "0"),
         onTimePercentage: parseFloat(employee.on_time_percentage || "0"),
         totalDistance: parseFloat(employee.total_distance || "0"),
@@ -1039,6 +1117,21 @@ async function getAttendanceReportData(
       leaveType: row.leave_type,
       isPaid: row.is_paid,
       reason: row.reason,
+    })),
+    regularizationInfo: regularizationInfoResult.rows.map((row) => ({
+      employeeId: row.employee_id,
+      employeeName: row.employee_name,
+      employeeNumber: row.employee_number || "N/A",
+      requestDate: row.request_date.toISOString().split("T")[0],
+      originalStartTime: row.original_start_time ? row.original_start_time.toISOString() : null,
+      originalEndTime: row.original_end_time ? row.original_end_time.toISOString() : null,
+      requestedStartTime: row.requested_start_time.toISOString(),
+      requestedEndTime: row.requested_end_time.toISOString(),
+      reason: row.reason,
+      requestType: row.request_type,
+      status: row.regularization_status,
+      createdAt: row.created_at.toISOString(),
+      approvedAt: row.approved_at ? row.approved_at.toISOString() : null,
     })),
     // Add the comprehensive employee attendance data
     employeeAttendanceData: Object.values(employeeAttendanceData),

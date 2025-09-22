@@ -129,6 +129,21 @@ interface AttendanceData {
     isPaid: boolean;
     reason?: string;
   }[];
+  regularizationInfo?: {
+    employeeId: number;
+    employeeName: string;
+    employeeNumber: string;
+    requestDate: string;
+    originalStartTime: string | null;
+    originalEndTime: string | null;
+    requestedStartTime: string;
+    requestedEndTime: string;
+    reason: string;
+    requestType: string;
+    status: string;
+    createdAt: string;
+    approvedAt: string | null;
+  }[];
 }
 
 export const generateAttendanceReport = (
@@ -257,7 +272,12 @@ export const generateAttendanceReport = (
       </div>
 
       <div class="section">
-        <h2>5. Notes & Definitions</h2>
+        <h2>5. Regularization Information</h2>
+        ${generateRegularizationTable(data)}
+      </div>
+
+      <div class="section">
+        <h2>6. Notes & Definitions</h2>
         <ol class="notes-list">
           <li><strong>On-Time:</strong> Shift is "On-Time" if the employee's first GPS-recorded location at check-in is timestamped at or before 09:00 AM local time.</li>
           <li><strong>Shift Status:</strong>
@@ -732,4 +752,53 @@ function extractTimeHours(timeStr: string | undefined): number {
   } catch {
     return -1;
   }
+}
+
+// Generate regularization information table
+function generateRegularizationTable(data: AttendanceData): string {
+  const regularizations = data.regularizationInfo || [];
+  
+  if (regularizations.length === 0) {
+    return `
+      <div class="section">
+        <h3>Regularization Information</h3>
+        <p>No regularization requests found for the selected period.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="section">
+      <h3>Regularization Information</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Request Date</th>
+            <th>Type</th>
+            <th>Original Time</th>
+            <th>Requested Time</th>
+            <th>Reason</th>
+            <th>Approved At</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${regularizations.map(reg => `
+            <tr>
+              <td>${reg.employeeName}</td>
+              <td>${formatDateString(reg.requestDate)}</td>
+              <td>${reg.requestType.replace('_', ' ').toUpperCase()}</td>
+              <td>${reg.originalStartTime 
+                ? `${new Date(reg.originalStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${reg.originalEndTime ? new Date(reg.originalEndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}`
+                : 'N/A'
+              }</td>
+              <td>${new Date(reg.requestedStartTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(reg.requestedEndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+              <td>${reg.reason}</td>
+              <td>${reg.approvedAt ? formatDateString(reg.approvedAt) : 'N/A'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
