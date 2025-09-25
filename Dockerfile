@@ -10,9 +10,17 @@ COPY backend/tsconfig.json ./
 
 # Debug: List files to verify they were copied
 RUN ls -la
+RUN echo "Checking if package files exist:"
+RUN test -f package.json && echo "package.json found" || echo "package.json NOT found"
+RUN test -f package-lock.json && echo "package-lock.json found" || echo "package-lock.json NOT found"
 
-# Install dependencies (including dev dependencies for build)
-RUN npm ci
+# Configure npm for better network handling and install dependencies
+RUN npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-factor 2 && \
+    npm config set registry https://registry.npmjs.org/ && \
+    npm ci --verbose --no-optional --prefer-offline
 
 # Copy all the backend source code into the container
 COPY backend/ ./

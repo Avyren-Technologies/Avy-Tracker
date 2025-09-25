@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Avy Tracker",
   slug: "avy-tracker",
-  version: "1.0.5",
+  version: "1.1.2",
   orientation: "portrait",
   icon: "./assets/images/adaptive-icon.png",
   scheme: "myapp",
@@ -22,7 +22,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.avyrentechnologies.avytracker",
-    buildNumber: "5",
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         "Avy Tracker needs your location to track attendance, calculate travel distance, and provide location-based insights.",
@@ -64,6 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     "expo-router",
+    "expo-web-browser",
     [
       "expo-splash-screen",
       {

@@ -76,31 +76,31 @@ export const seedUsers = async () => {
 
     const users = [
       {
-        name: "Loginware Employee",
-        email: "employee1@loginwaresofttec.com",
+        name: "Employee",
+        email: "employee@avytrack.com",
         phone: "+919876543974",
-        hashedPassword: await bcrypt.hash("Loginware_employee1", salt),
+        hashedPassword: await bcrypt.hash("Avytrack_employee", salt),
         role: "employee",
       },
       {
-        name: "Loginware Admin",
-        email: "admin@loginwaresofttec.com",
+        name: "Avytrack Admin",
+        email: "admin@avytrack.com",
         phone: "+919876543288",
-        hashedPassword: await bcrypt.hash("Loginware_admin1", salt),
+        hashedPassword: await bcrypt.hash("Avytrack_admin", salt),
         role: "group-admin",
       },
       {
-        name: "Loginware Manager",
+        name: "Avytrack Manager",
         email: "manager@loginwaresofttec.com",
         phone: "+919876543839",
-        hashedPassword: await bcrypt.hash("Loginware_manager1", salt),
+        hashedPassword: await bcrypt.hash("Avytrack_manager", salt),
         role: "management",
       },
       {
-        name: "Loginware Super Admin",
-        email: "super@loginwaresofttec.com",
+        name: "Avytrack Super Admin",
+        email: "super@avytrack.com",
         phone: "+919876543253",
-        hashedPassword: await bcrypt.hash("Loginware_super1", salt),
+        hashedPassword: await bcrypt.hash("Avytrack_super", salt),
         role: "super-admin",
       },
     ];

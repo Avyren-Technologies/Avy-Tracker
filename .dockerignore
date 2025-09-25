@@ -132,6 +132,49 @@ app/dist/
 # Backend build output (will be created during build)
 backend/dist/
 
+# Large directories that shouldn't be in build context
+frontend/
+app/
+mobile/
+android/
+ios/
+*.apk
+*.ipa
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Cache directories
+.cache/
+backend/.cache/
+.parcel-cache/
+backend/.parcel-cache/
+
+# Build artifacts
+build/
+dist/
+out/
+backend/build/
+backend/out/
+
+# Package manager caches
+.npm/
+backend/.npm
+.yarn/
+backend/.yarn
+.pnpm-store/
+backend/.pnpm-store/
+
 # Test files
 **/*.test.js
 **/*.test.ts

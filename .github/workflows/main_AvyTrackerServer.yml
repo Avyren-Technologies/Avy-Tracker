@@ -3,7 +3,7 @@ name: CI/CD for Avy Tracker
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'backend/**'  # Trigger only if files in the backend folder change
 
@@ -28,21 +28,67 @@ jobs:
           mkdir -p backend/src/config
           echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 -d > backend/src/config/admin-service-key.json
 
-      # Step 3: Log in to Docker Hub
+      # Step 3: Set up environment variables
+      - name: Set up environment variables
+        run: |
+          mkdir -p backend/src/config
+          cat > backend/.env << EOF
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          BIOMETRIC_ENCRYPTION_KEY=${{ secrets.BIOMETRIC_ENCRYPTION_KEY }}
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+          GOOGLE_GEMINI_API_KEY=${{ secrets.GOOGLE_GEMINI_API_KEY }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          SPARROW_ENDPOINT=${{ secrets.SPARROW_ENDPOINT }}
+          GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+          TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          API_BASE_URL=${{ secrets.API_BASE_URL }}
+          NODE_ENV=production
+          PORT=8080
+          DATABASE_SSL_MODE=require
+          USE_GOOGLE_PLACES=false
+          FACE_VERIFICATION_THRESHOLD=0.85
+          FACE_LIVENESS_THRESHOLD=0.7
+          MAX_FACE_VERIFICATION_ATTEMPTS=3
+          FACE_VERIFICATION_TIMEOUT=30000
+          DEFAULT_GEOFENCE_RADIUS=100
+          GEOFENCE_ACCURACY_THRESHOLD=10
+          MAX_GEOFENCE_ZONES=50
+          BCRYPT_ROUNDS=12
+          RATE_LIMIT_WINDOW_MS=900000
+          RATE_LIMIT_MAX_REQUESTS=100
+          HELMET_ENABLED=true
+          HTTPS_ONLY=true
+          SECURE_COOKIES=true
+          ENABLE_FACE_VERIFICATION=true
+          ENABLE_OTP_VERIFICATION=true
+          ENABLE_GEOFENCE_TRACKING=true
+          ENABLE_OFFLINE_MODE=true
+          ENABLE_BIOMETRIC_STORAGE=true
+          ENABLE_ADVANCED_ANALYTICS=true
+          EOF
+
+      # Step 4: Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 4: Build and Push Docker Image
+      # Step 5: Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
           cd backend
           docker build -t chiranjeevichetan/avy-trackerapp:v${{ github.run_number }} .
           docker push chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}
 
-      # Step 5: Deploy to Azure App Service
+      # Step 6: Deploy to Azure App Service
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
