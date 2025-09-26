@@ -15,6 +15,7 @@ import {
   FlatList,
   Keyboard,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -528,20 +529,15 @@ export default function AdminAttendanceManagement() {
   ];
 
   return (
-    <ScrollView className="flex-1 mt-4">
-      <LinearGradient
-        colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
-        // className="pb-4"
-        style={[
-          styles.header,
-          // {
-          //   paddingTop:
-          //     Platform.OS === "ios"
-          //       ? StatusBar.currentHeight || 44
-          //       : StatusBar.currentHeight || 0,
-          // },
-        ]}
-      >
+    <SafeAreaView className="flex-1">
+      <ScrollView className="flex-1">
+        <LinearGradient
+          colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
+          // className="pb-4"
+          style={[
+            styles.header,
+          ]}
+        >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -878,7 +874,8 @@ export default function AdminAttendanceManagement() {
         }}
         selectedEmployeeId={selectedEmployee}
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

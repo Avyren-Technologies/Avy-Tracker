@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ThemeContext from "../../../context/ThemeContext";
@@ -221,7 +222,7 @@ export default function ChangePassword() {
   );
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
     >
@@ -263,7 +264,12 @@ export default function ChangePassword() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ScrollView className="flex-1">
+        <ScrollView 
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View className="p-4">
             <View
               className={`p-6 rounded-xl ${
@@ -539,7 +545,7 @@ export default function ChangePassword() {
         confirmText="Understood"
         fullscreen={true}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

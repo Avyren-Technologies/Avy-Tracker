@@ -12,6 +12,7 @@ import {
   RefreshControl,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import ThemeContext from "../../../context/ThemeContext";
@@ -303,7 +304,7 @@ export default function ExpenseManagement() {
   }, []);
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
     >
@@ -801,7 +802,7 @@ export default function ExpenseManagement() {
           </View>
         </Animated.View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -24,6 +24,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import ThemeContext from "./../../context/ThemeContext";
 import { useAuth } from "./../../context/AuthContext";
@@ -880,7 +881,7 @@ export default function GroupAdminNotifications() {
   }, [token, user?.id, setNotifications]);
 
   return (
-    <View className="flex-1">
+    <SafeAreaView className="flex-1">
       {/* Screen Configuration */}
       <Stack.Screen
         options={{
@@ -902,12 +903,8 @@ export default function GroupAdminNotifications() {
         {/* Header Content */}
         <View
           style={{
-            paddingTop:
-              Platform.OS === "ios"
-                ? 60
-                : StatusBar.currentHeight
-                  ? StatusBar.currentHeight + 20
-                  : 40,
+            paddingHorizontal: 20,
+            paddingBottom: 20,
           }}
         >
           <View className="px-6 mb-6">
@@ -1104,7 +1101,7 @@ export default function GroupAdminNotifications() {
         SuccessModal={SuccessModal}
       />
       <BottomNav items={groupAdminNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 

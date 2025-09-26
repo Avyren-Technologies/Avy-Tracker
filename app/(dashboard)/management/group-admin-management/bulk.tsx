@@ -7,6 +7,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -216,12 +218,19 @@ export default function BulkUpload() {
   };
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: theme === "dark" ? "#111827" : "#F3F4F6" },
-      ]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
     >
+      <ScrollView
+        style={[
+          styles.container,
+          { backgroundColor: theme === "dark" ? "#111827" : "#F3F4F6" },
+        ]}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View
         style={[
           styles.card,
@@ -347,7 +356,8 @@ export default function BulkUpload() {
           Click to select a CSV file from your device
         </Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

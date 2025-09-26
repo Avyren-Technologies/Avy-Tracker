@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -703,7 +704,7 @@ export default function TaskManagement() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#111827" : "#F3F4F6" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? "#111827" : "#F3F4F6" }}>
       <StatusBar
         backgroundColor={isDark ? "#111827" : "#F3F4F6"}
         barStyle={isDark ? "light-content" : "dark-content"}
@@ -716,7 +717,6 @@ export default function TaskManagement() {
             alignItems: "center",
             justifyContent: "space-between",
             paddingHorizontal: 16,
-            paddingTop: 12,
             paddingBottom: 16,
           }}
         >
@@ -1767,7 +1767,7 @@ export default function TaskManagement() {
         isDark={isDark}
         onTaskUpdate={handleTaskUpdate}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

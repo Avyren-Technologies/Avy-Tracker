@@ -10,6 +10,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -227,7 +228,7 @@ export default function Notifications() {
   });
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#FFFFFF" }}
     >
@@ -438,6 +439,6 @@ export default function Notifications() {
           ))
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

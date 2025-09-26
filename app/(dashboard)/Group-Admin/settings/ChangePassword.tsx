@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ThemeContext from "../../../context/ThemeContext";
@@ -20,7 +21,7 @@ export default function ChangePassword() {
   const isDark = theme === "dark";
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
     >
@@ -34,7 +35,7 @@ export default function ChangePassword() {
         className={`${isDark ? "bg-gray-800" : "bg-white"}`}
         style={styles.header}
       >
-        <View className="flex-row items-center justify-between px-4 pt-3 pb-4">
+        <View className="flex-row items-center justify-between px-4 pb-4">
           <TouchableOpacity
             onPress={() => router.back()}
             className={`p-2 rounded-full ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
@@ -64,7 +65,7 @@ export default function ChangePassword() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 

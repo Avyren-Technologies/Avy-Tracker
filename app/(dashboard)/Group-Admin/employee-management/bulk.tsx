@@ -9,6 +9,7 @@ import {
   StatusBar,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -271,7 +272,7 @@ export default function BulkUpload() {
   };
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
     >
@@ -511,7 +512,7 @@ export default function BulkUpload() {
           </View>
         </Animated.View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

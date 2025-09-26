@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ThemeContext from "../../../context/ThemeContext";
@@ -109,7 +110,7 @@ export default function EmployeeManagement() {
   }, []);
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F3F4F6" }}
     >
@@ -301,7 +302,7 @@ export default function EmployeeManagement() {
         )}
       </ScrollView>
       <BottomNav items={groupAdminNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 
