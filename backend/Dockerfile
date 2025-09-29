@@ -15,13 +15,14 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY package*.json ./
 
 # Configure npm for better network handling and install dependencies
-RUN npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000 && \
-    npm config set fetch-retries 5 && \
-    npm config set fetch-retry-factor 2 && \
-    npm config set registry https://registry.npmjs.org/ && \
-    npm ci --only=production --no-optional --prefer-offline && \
-    npm cache clean --force
+# Replace the npm ci line in your Dockerfile with:
+  RUN npm config set fetch-retry-mintimeout 20000 && \
+  npm config set fetch-retry-maxtimeout 120000 && \
+  npm config set fetch-retries 5 && \
+  npm config set fetch-retry-factor 2 && \
+  npm config set registry https://registry.npmjs.org/ && \
+  npm install --only=production --no-optional --prefer-offline && \
+  npm cache clean --force
 
 # Copy the TypeScript configuration file (tsconfig.json) to the container
 COPY tsconfig.json ./
