@@ -82,15 +82,28 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 5: Build and Push Docker Image
+      # Step 5: Verify Backend Directory
+      - name: Verify Backend Directory
+        run: |
+          echo "Verifying backend directory structure..."
+          echo "Root directory contents: $(ls -la)"
+          echo "Backend directory contents: $(ls -la backend/)"
+          echo "Backend package.json exists: $(test -f backend/package.json && echo 'YES' || echo 'NO')"
+          echo "Backend Dockerfile exists: $(test -f backend/Dockerfile && echo 'YES' || echo 'NO')"
+
+      # Step 6: Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
-          cd backend
+          echo "Building Docker image for version v${{ github.run_number }}"
+          echo "Current directory: $(pwd)"
+          echo "Contents: $(ls -la)"
           docker build -t chiranjeevichetan/avy-trackerapp:v${{ github.run_number }} .
+          echo "Pushing Docker image to registry..."
           docker push chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}
+          echo "Docker image pushed successfully!"
         working-directory: ./backend
 
-      # Step 6: Deploy to Azure App Service
+      # Step 7: Deploy to Azure App Service
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
@@ -99,7 +112,7 @@ jobs:
           images: "chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}"
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
-      # Step 7: Verify Deployment
+      # Step 8: Verify Deployment
       - name: Verify Deployment
         run: |
           echo "Deployment completed successfully!"

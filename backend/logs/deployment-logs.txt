@@ -1,0 +1,213 @@
+2025-09-29T11:20:37.4563195Z Current runner version: '2.328.0'
+2025-09-29T11:20:37.4617702Z ##[group]Runner Image Provisioner
+2025-09-29T11:20:37.4619508Z Hosted Compute Agent
+2025-09-29T11:20:37.4620718Z Version: 20250912.392
+2025-09-29T11:20:37.4622177Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-09-29T11:20:37.4623433Z Build Date: 2025-09-12T15:23:14Z
+2025-09-29T11:20:37.4624705Z ##[endgroup]
+2025-09-29T11:20:37.4625823Z ##[group]Operating System
+2025-09-29T11:20:37.4626998Z Ubuntu
+2025-09-29T11:20:37.4628168Z 24.04.3
+2025-09-29T11:20:37.4629274Z LTS
+2025-09-29T11:20:37.4630404Z ##[endgroup]
+2025-09-29T11:20:37.4631531Z ##[group]Runner Image
+2025-09-29T11:20:37.4632648Z Image: ubuntu-24.04
+2025-09-29T11:20:37.4633826Z Version: 20250922.53.1
+2025-09-29T11:20:37.4635570Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250922.53/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-29T11:20:37.4638310Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250922.53
+2025-09-29T11:20:37.4640067Z ##[endgroup]
+2025-09-29T11:20:37.4642251Z ##[group]GITHUB_TOKEN Permissions
+2025-09-29T11:20:37.4644957Z Contents: read
+2025-09-29T11:20:37.4646333Z Metadata: read
+2025-09-29T11:20:37.4648002Z Packages: read
+2025-09-29T11:20:37.4649540Z ##[endgroup]
+2025-09-29T11:20:37.4652534Z Secret source: Actions
+2025-09-29T11:20:37.4653936Z Prepare workflow directory
+2025-09-29T11:20:37.5024826Z Prepare all required actions
+2025-09-29T11:20:37.5065183Z Getting action download info
+2025-09-29T11:20:37.9112767Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-29T11:20:38.0829348Z Download action repository 'docker/login-action@v2' (SHA:465a07811f14bebb1938fbed4728c6a1ff8901fc)
+2025-09-29T11:20:38.4276523Z Download action repository 'azure/webapps-deploy@v2' (SHA:122b7ec46017e53a3f71e3a027d67550a1641f5e)
+2025-09-29T11:20:40.7180608Z Complete job name: build-and-deploy
+2025-09-29T11:20:40.7916215Z ##[group]Run actions/checkout@v4
+2025-09-29T11:20:40.7917081Z with:
+2025-09-29T11:20:40.7917889Z   repository: Avyren-Technologies/Avy-Tracker
+2025-09-29T11:20:40.7918707Z   token: ***
+2025-09-29T11:20:40.7919132Z   ssh-strict: true
+2025-09-29T11:20:40.7919552Z   ssh-user: git
+2025-09-29T11:20:40.7919984Z   persist-credentials: true
+2025-09-29T11:20:40.7920439Z   clean: true
+2025-09-29T11:20:40.7920882Z   sparse-checkout-cone-mode: true
+2025-09-29T11:20:40.7921367Z   fetch-depth: 1
+2025-09-29T11:20:40.7921798Z   fetch-tags: false
+2025-09-29T11:20:40.7922236Z   show-progress: true
+2025-09-29T11:20:40.7922663Z   lfs: false
+2025-09-29T11:20:40.7923072Z   submodules: false
+2025-09-29T11:20:40.7923506Z   set-safe-directory: true
+2025-09-29T11:20:40.7924229Z ##[endgroup]
+2025-09-29T11:20:40.9051169Z Syncing repository: Avyren-Technologies/Avy-Tracker
+2025-09-29T11:20:40.9053246Z ##[group]Getting Git version info
+2025-09-29T11:20:40.9054237Z Working directory is '/home/runner/work/Avy-Tracker/Avy-Tracker'
+2025-09-29T11:20:40.9055353Z [command]/usr/bin/git version
+2025-09-29T11:20:40.9121493Z git version 2.51.0
+2025-09-29T11:20:40.9151756Z ##[endgroup]
+2025-09-29T11:20:40.9166078Z Temporarily overriding HOME='/home/runner/work/_temp/25539912-2d69-494f-8269-7c53772b4912' before making global git config changes
+2025-09-29T11:20:40.9167593Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-29T11:20:40.9180931Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:20:40.9222336Z Deleting the contents of '/home/runner/work/Avy-Tracker/Avy-Tracker'
+2025-09-29T11:20:40.9226228Z ##[group]Initializing the repository
+2025-09-29T11:20:40.9230419Z [command]/usr/bin/git init /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:20:40.9350584Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-29T11:20:40.9351944Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-29T11:20:40.9352962Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-29T11:20:40.9354043Z hint:
+2025-09-29T11:20:40.9355034Z hint: 	git config --global init.defaultBranch <name>
+2025-09-29T11:20:40.9355767Z hint:
+2025-09-29T11:20:40.9356462Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-29T11:20:40.9357634Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-29T11:20:40.9358631Z hint:
+2025-09-29T11:20:40.9359477Z hint: 	git branch -m <name>
+2025-09-29T11:20:40.9360277Z hint:
+2025-09-29T11:20:40.9361234Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-29T11:20:40.9362414Z Initialized empty Git repository in /home/runner/work/Avy-Tracker/Avy-Tracker/.git/
+2025-09-29T11:20:40.9372911Z [command]/usr/bin/git remote add origin https://github.com/Avyren-Technologies/Avy-Tracker
+2025-09-29T11:20:40.9419964Z ##[endgroup]
+2025-09-29T11:20:40.9421502Z ##[group]Disabling automatic garbage collection
+2025-09-29T11:20:40.9426218Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-29T11:20:40.9459116Z ##[endgroup]
+2025-09-29T11:20:40.9459935Z ##[group]Setting up auth
+2025-09-29T11:20:40.9466575Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-29T11:20:40.9502026Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-29T11:20:40.9852179Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-29T11:20:40.9887996Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-29T11:20:41.0126661Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-29T11:20:41.0166621Z ##[endgroup]
+2025-09-29T11:20:41.0168186Z ##[group]Fetching the repository
+2025-09-29T11:20:41.0185525Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +665ce5e3b82125e408bfc09c83412214a5acaa4a:refs/remotes/origin/main
+2025-09-29T11:20:41.8273817Z From https://github.com/Avyren-Technologies/Avy-Tracker
+2025-09-29T11:20:41.8275418Z  * [new ref]         665ce5e3b82125e408bfc09c83412214a5acaa4a -> origin/main
+2025-09-29T11:20:41.8309952Z ##[endgroup]
+2025-09-29T11:20:41.8311295Z ##[group]Determining the checkout info
+2025-09-29T11:20:41.8312740Z ##[endgroup]
+2025-09-29T11:20:41.8318353Z [command]/usr/bin/git sparse-checkout disable
+2025-09-29T11:20:41.8363517Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-29T11:20:41.8395169Z ##[group]Checking out the ref
+2025-09-29T11:20:41.8400198Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-09-29T11:20:41.9994219Z Switched to a new branch 'main'
+2025-09-29T11:20:41.9995972Z branch 'main' set up to track 'origin/main'.
+2025-09-29T11:20:42.0304321Z ##[endgroup]
+2025-09-29T11:20:42.0352776Z [command]/usr/bin/git log -1 --format=%H
+2025-09-29T11:20:42.0380028Z 665ce5e3b82125e408bfc09c83412214a5acaa4a
+2025-09-29T11:20:42.0608446Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:20:42.0609068Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:20:42.0609705Z [36;1mprintf '%s' "***[0m
+2025-09-29T11:20:42.0610276Z [36;1m***[0m
+2025-09-29T11:20:42.0610781Z [36;1m***[0m
+2025-09-29T11:20:42.0611249Z [36;1m***[0m
+2025-09-29T11:20:42.0611715Z [36;1m***[0m
+2025-09-29T11:20:42.0612176Z [36;1m***[0m
+2025-09-29T11:20:42.0612701Z [36;1m***[0m
+2025-09-29T11:20:42.0613171Z [36;1m***[0m
+2025-09-29T11:20:42.0613622Z [36;1m***[0m
+2025-09-29T11:20:42.0614079Z [36;1m***[0m
+2025-09-29T11:20:42.0614542Z [36;1m***[0m
+2025-09-29T11:20:42.0614997Z [36;1m***[0m
+2025-09-29T11:20:42.0615456Z [36;1m***[0m
+2025-09-29T11:20:42.0638079Z [36;1m***[0m
+2025-09-29T11:20:42.0638960Z [36;1m***[0m
+2025-09-29T11:20:42.0639544Z [36;1m***[0m
+2025-09-29T11:20:42.0640026Z [36;1m***[0m
+2025-09-29T11:20:42.0640473Z [36;1m***[0m
+2025-09-29T11:20:42.0640945Z [36;1m***[0m
+2025-09-29T11:20:42.0641482Z [36;1m***[0m
+2025-09-29T11:20:42.0641948Z [36;1m***[0m
+2025-09-29T11:20:42.0642404Z [36;1m***[0m
+2025-09-29T11:20:42.0642846Z [36;1m***[0m
+2025-09-29T11:20:42.0643299Z [36;1m***[0m
+2025-09-29T11:20:42.0643612Z [36;1m***[0m
+2025-09-29T11:20:42.0644036Z [36;1m***" > backend/src/config/ca.pem[0m
+2025-09-29T11:20:42.0680197Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:20:42.0680611Z ##[endgroup]
+2025-09-29T11:20:42.0812237Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:20:42.0812793Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:20:42.0894678Z [36;1mecho "***" | base64 -d > backend/src/config/admin-service-key.json[0m
+2025-09-29T11:20:42.0927760Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:20:42.0928177Z ##[endgroup]
+2025-09-29T11:20:42.1050324Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:20:42.1050884Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:20:42.1051319Z [36;1mcat > backend/.env << EOF[0m
+2025-09-29T11:20:42.1052360Z [36;1mDATABASE_URL=***[0m
+2025-09-29T11:20:42.1053173Z [36;1mJWT_SECRET=***[0m
+2025-09-29T11:20:42.1053752Z [36;1mJWT_REFRESH_SECRET=***[0m
+2025-09-29T11:20:42.1054205Z [36;1mSESSION_SECRET=***[0m
+2025-09-29T11:20:42.1054677Z [36;1mBIOMETRIC_ENCRYPTION_KEY=***[0m
+2025-09-29T11:20:42.1055128Z [36;1mEMAIL_USER=***[0m
+2025-09-29T11:20:42.1055511Z [36;1mEMAIL_PASS=***[0m
+2025-09-29T11:20:42.1056034Z [36;1mGOOGLE_GEMINI_API_KEY=***[0m
+2025-09-29T11:20:42.1056810Z [36;1mREDIS_URL=***[0m
+2025-09-29T11:20:42.1057474Z [36;1mSPARROW_ENDPOINT=***[0m
+2025-09-29T11:20:42.1058071Z [36;1mGOOGLE_MAPS_API_KEY=***[0m
+2025-09-29T11:20:42.1058552Z [36;1mTWILIO_ACCOUNT_SID=***[0m
+2025-09-29T11:20:42.1059004Z [36;1mTWILIO_AUTH_TOKEN=***[0m
+2025-09-29T11:20:42.1059445Z [36;1mTWILIO_PHONE_NUMBER=***[0m
+2025-09-29T11:20:42.1059922Z [36;1mFRONTEND_URL=***[0m
+2025-09-29T11:20:42.1060333Z [36;1mAPI_BASE_URL=***[0m
+2025-09-29T11:20:42.1060704Z [36;1mNODE_ENV=production[0m
+2025-09-29T11:20:42.1061069Z [36;1mPORT=8080[0m
+2025-09-29T11:20:42.1061425Z [36;1mDATABASE_SSL_MODE=require[0m
+2025-09-29T11:20:42.1061825Z [36;1mUSE_GOOGLE_PLACES=false[0m
+2025-09-29T11:20:42.1062233Z [36;1mFACE_VERIFICATION_THRESHOLD=0.85[0m
+2025-09-29T11:20:42.1062666Z [36;1mFACE_LIVENESS_THRESHOLD=0.7[0m
+2025-09-29T11:20:42.1063205Z [36;1mMAX_FACE_VERIFICATION_ATTEMPTS=3[0m
+2025-09-29T11:20:42.1063643Z [36;1mFACE_VERIFICATION_TIMEOUT=30000[0m
+2025-09-29T11:20:42.1064062Z [36;1mDEFAULT_GEOFENCE_RADIUS=100[0m
+2025-09-29T11:20:42.1064476Z [36;1mGEOFENCE_ACCURACY_THRESHOLD=10[0m
+2025-09-29T11:20:42.1064884Z [36;1mMAX_GEOFENCE_ZONES=50[0m
+2025-09-29T11:20:42.1065262Z [36;1mBCRYPT_ROUNDS=12[0m
+2025-09-29T11:20:42.1065630Z [36;1mRATE_LIMIT_WINDOW_MS=900000[0m
+2025-09-29T11:20:42.1066040Z [36;1mRATE_LIMIT_MAX_REQUESTS=100[0m
+2025-09-29T11:20:42.1066446Z [36;1mHELMET_ENABLED=true[0m
+2025-09-29T11:20:42.1066813Z [36;1mHTTPS_ONLY=true[0m
+2025-09-29T11:20:42.1067172Z [36;1mSECURE_COOKIES=true[0m
+2025-09-29T11:20:42.1067810Z [36;1mENABLE_FACE_VERIFICATION=true[0m
+2025-09-29T11:20:42.1068237Z [36;1mENABLE_OTP_VERIFICATION=true[0m
+2025-09-29T11:20:42.1068654Z [36;1mENABLE_GEOFENCE_TRACKING=true[0m
+2025-09-29T11:20:42.1069063Z [36;1mENABLE_OFFLINE_MODE=true[0m
+2025-09-29T11:20:42.1069469Z [36;1mENABLE_BIOMETRIC_STORAGE=true[0m
+2025-09-29T11:20:42.1069879Z [36;1mENABLE_ADVANCED_ANALYTICS=true[0m
+2025-09-29T11:20:42.1070277Z [36;1mEOF[0m
+2025-09-29T11:20:42.1102315Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:20:42.1102712Z ##[endgroup]
+2025-09-29T11:20:42.1237702Z ##[group]Run docker/login-action@v2
+2025-09-29T11:20:42.1238158Z with:
+2025-09-29T11:20:42.1238585Z   username: ***
+2025-09-29T11:20:42.1238940Z   password: ***
+2025-09-29T11:20:42.1239268Z   ecr: auto
+2025-09-29T11:20:42.1239573Z   logout: true
+2025-09-29T11:20:42.1240127Z ##[endgroup]
+2025-09-29T11:20:42.2269035Z Logging into Docker Hub...
+2025-09-29T11:20:42.5876283Z Login Succeeded!
+2025-09-29T11:20:42.5960435Z ##[group]Run cd backend
+2025-09-29T11:20:42.5960897Z [36;1mcd backend[0m
+2025-09-29T11:20:42.5961456Z [36;1mdocker build -t ***/avy-trackerapp:v5 .[0m
+2025-09-29T11:20:42.5962009Z [36;1mdocker push ***/avy-trackerapp:v5[0m
+2025-09-29T11:20:42.5994834Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:20:42.5995240Z ##[endgroup]
+2025-09-29T11:20:42.6051389Z /home/runner/work/_temp/2dd371ce-ba40-4710-9a7e-222c4d8b6bfc.sh: line 1: cd: backend: No such file or directory
+2025-09-29T11:20:42.6065447Z ##[error]Process completed with exit code 1.
+2025-09-29T11:20:42.6154201Z Post job cleanup.
+2025-09-29T11:20:42.7210864Z [command]/usr/bin/docker logout 
+2025-09-29T11:20:42.7353138Z Removing login credentials for https://index.docker.io/v1/
+2025-09-29T11:20:42.7512282Z Post job cleanup.
+2025-09-29T11:20:42.8525498Z [command]/usr/bin/git version
+2025-09-29T11:20:42.8564531Z git version 2.51.0
+2025-09-29T11:20:42.8610520Z Temporarily overriding HOME='/home/runner/work/_temp/7dfd91b3-c952-48e6-bcfe-2e60d86fe271' before making global git config changes
+2025-09-29T11:20:42.8611739Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-29T11:20:42.8624632Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:20:42.8664362Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-29T11:20:42.8701483Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-29T11:20:42.8941982Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-29T11:20:42.8965710Z http.https://github.com/.extraheader
+2025-09-29T11:20:42.8979705Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-29T11:20:42.9012875Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-29T11:20:42.9361574Z Cleaning up orphan processes
