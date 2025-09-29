@@ -11,8 +11,8 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package.json package-lock.json ./
+# Copy package files first to leverage Docker cache
+COPY package*.json ./
 
 # Configure npm for better network handling and install dependencies
 RUN npm config set fetch-retry-mintimeout 20000 && \
