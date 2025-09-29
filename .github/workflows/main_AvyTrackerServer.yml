@@ -88,6 +88,7 @@ jobs:
           cd backend
           docker build -t chiranjeevichetan/avy-trackerapp:v${{ github.run_number }} .
           docker push chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}
+        working-directory: ./backend
 
       # Step 6: Deploy to Azure App Service
       - name: Deploy to Azure App Service
@@ -102,5 +103,5 @@ jobs:
       - name: Verify Deployment
         run: |
           echo "Deployment completed successfully!"
-          echo "App URL: https://AvyTrackerServer.azurewebsites.net"
+          echo "App URL: https://avytracker-server-202509291512.azurewebsites.net"
           echo "Docker Image: chiranjeevichetan/avy-trackerapp:v${{ github.run_number }}"
