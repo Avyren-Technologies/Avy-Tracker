@@ -1,213 +1,708 @@
-2025-09-29T11:20:37.4563195Z Current runner version: '2.328.0'
-2025-09-29T11:20:37.4617702Z ##[group]Runner Image Provisioner
-2025-09-29T11:20:37.4619508Z Hosted Compute Agent
-2025-09-29T11:20:37.4620718Z Version: 20250912.392
-2025-09-29T11:20:37.4622177Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
-2025-09-29T11:20:37.4623433Z Build Date: 2025-09-12T15:23:14Z
-2025-09-29T11:20:37.4624705Z ##[endgroup]
-2025-09-29T11:20:37.4625823Z ##[group]Operating System
-2025-09-29T11:20:37.4626998Z Ubuntu
-2025-09-29T11:20:37.4628168Z 24.04.3
-2025-09-29T11:20:37.4629274Z LTS
-2025-09-29T11:20:37.4630404Z ##[endgroup]
-2025-09-29T11:20:37.4631531Z ##[group]Runner Image
-2025-09-29T11:20:37.4632648Z Image: ubuntu-24.04
-2025-09-29T11:20:37.4633826Z Version: 20250922.53.1
-2025-09-29T11:20:37.4635570Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250922.53/images/ubuntu/Ubuntu2404-Readme.md
-2025-09-29T11:20:37.4638310Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250922.53
-2025-09-29T11:20:37.4640067Z ##[endgroup]
-2025-09-29T11:20:37.4642251Z ##[group]GITHUB_TOKEN Permissions
-2025-09-29T11:20:37.4644957Z Contents: read
-2025-09-29T11:20:37.4646333Z Metadata: read
-2025-09-29T11:20:37.4648002Z Packages: read
-2025-09-29T11:20:37.4649540Z ##[endgroup]
-2025-09-29T11:20:37.4652534Z Secret source: Actions
-2025-09-29T11:20:37.4653936Z Prepare workflow directory
-2025-09-29T11:20:37.5024826Z Prepare all required actions
-2025-09-29T11:20:37.5065183Z Getting action download info
-2025-09-29T11:20:37.9112767Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
-2025-09-29T11:20:38.0829348Z Download action repository 'docker/login-action@v2' (SHA:465a07811f14bebb1938fbed4728c6a1ff8901fc)
-2025-09-29T11:20:38.4276523Z Download action repository 'azure/webapps-deploy@v2' (SHA:122b7ec46017e53a3f71e3a027d67550a1641f5e)
-2025-09-29T11:20:40.7180608Z Complete job name: build-and-deploy
-2025-09-29T11:20:40.7916215Z ##[group]Run actions/checkout@v4
-2025-09-29T11:20:40.7917081Z with:
-2025-09-29T11:20:40.7917889Z   repository: Avyren-Technologies/Avy-Tracker
-2025-09-29T11:20:40.7918707Z   token: ***
-2025-09-29T11:20:40.7919132Z   ssh-strict: true
-2025-09-29T11:20:40.7919552Z   ssh-user: git
-2025-09-29T11:20:40.7919984Z   persist-credentials: true
-2025-09-29T11:20:40.7920439Z   clean: true
-2025-09-29T11:20:40.7920882Z   sparse-checkout-cone-mode: true
-2025-09-29T11:20:40.7921367Z   fetch-depth: 1
-2025-09-29T11:20:40.7921798Z   fetch-tags: false
-2025-09-29T11:20:40.7922236Z   show-progress: true
-2025-09-29T11:20:40.7922663Z   lfs: false
-2025-09-29T11:20:40.7923072Z   submodules: false
-2025-09-29T11:20:40.7923506Z   set-safe-directory: true
-2025-09-29T11:20:40.7924229Z ##[endgroup]
-2025-09-29T11:20:40.9051169Z Syncing repository: Avyren-Technologies/Avy-Tracker
-2025-09-29T11:20:40.9053246Z ##[group]Getting Git version info
-2025-09-29T11:20:40.9054237Z Working directory is '/home/runner/work/Avy-Tracker/Avy-Tracker'
-2025-09-29T11:20:40.9055353Z [command]/usr/bin/git version
-2025-09-29T11:20:40.9121493Z git version 2.51.0
-2025-09-29T11:20:40.9151756Z ##[endgroup]
-2025-09-29T11:20:40.9166078Z Temporarily overriding HOME='/home/runner/work/_temp/25539912-2d69-494f-8269-7c53772b4912' before making global git config changes
-2025-09-29T11:20:40.9167593Z Adding repository directory to the temporary git global config as a safe directory
-2025-09-29T11:20:40.9180931Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
-2025-09-29T11:20:40.9222336Z Deleting the contents of '/home/runner/work/Avy-Tracker/Avy-Tracker'
-2025-09-29T11:20:40.9226228Z ##[group]Initializing the repository
-2025-09-29T11:20:40.9230419Z [command]/usr/bin/git init /home/runner/work/Avy-Tracker/Avy-Tracker
-2025-09-29T11:20:40.9350584Z hint: Using 'master' as the name for the initial branch. This default branch name
-2025-09-29T11:20:40.9351944Z hint: is subject to change. To configure the initial branch name to use in all
-2025-09-29T11:20:40.9352962Z hint: of your new repositories, which will suppress this warning, call:
-2025-09-29T11:20:40.9354043Z hint:
-2025-09-29T11:20:40.9355034Z hint: 	git config --global init.defaultBranch <name>
-2025-09-29T11:20:40.9355767Z hint:
-2025-09-29T11:20:40.9356462Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2025-09-29T11:20:40.9357634Z hint: 'development'. The just-created branch can be renamed via this command:
-2025-09-29T11:20:40.9358631Z hint:
-2025-09-29T11:20:40.9359477Z hint: 	git branch -m <name>
-2025-09-29T11:20:40.9360277Z hint:
-2025-09-29T11:20:40.9361234Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2025-09-29T11:20:40.9362414Z Initialized empty Git repository in /home/runner/work/Avy-Tracker/Avy-Tracker/.git/
-2025-09-29T11:20:40.9372911Z [command]/usr/bin/git remote add origin https://github.com/Avyren-Technologies/Avy-Tracker
-2025-09-29T11:20:40.9419964Z ##[endgroup]
-2025-09-29T11:20:40.9421502Z ##[group]Disabling automatic garbage collection
-2025-09-29T11:20:40.9426218Z [command]/usr/bin/git config --local gc.auto 0
-2025-09-29T11:20:40.9459116Z ##[endgroup]
-2025-09-29T11:20:40.9459935Z ##[group]Setting up auth
-2025-09-29T11:20:40.9466575Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-09-29T11:20:40.9502026Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-09-29T11:20:40.9852179Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-09-29T11:20:40.9887996Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2025-09-29T11:20:41.0126661Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2025-09-29T11:20:41.0166621Z ##[endgroup]
-2025-09-29T11:20:41.0168186Z ##[group]Fetching the repository
-2025-09-29T11:20:41.0185525Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +665ce5e3b82125e408bfc09c83412214a5acaa4a:refs/remotes/origin/main
-2025-09-29T11:20:41.8273817Z From https://github.com/Avyren-Technologies/Avy-Tracker
-2025-09-29T11:20:41.8275418Z  * [new ref]         665ce5e3b82125e408bfc09c83412214a5acaa4a -> origin/main
-2025-09-29T11:20:41.8309952Z ##[endgroup]
-2025-09-29T11:20:41.8311295Z ##[group]Determining the checkout info
-2025-09-29T11:20:41.8312740Z ##[endgroup]
-2025-09-29T11:20:41.8318353Z [command]/usr/bin/git sparse-checkout disable
-2025-09-29T11:20:41.8363517Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
-2025-09-29T11:20:41.8395169Z ##[group]Checking out the ref
-2025-09-29T11:20:41.8400198Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
-2025-09-29T11:20:41.9994219Z Switched to a new branch 'main'
-2025-09-29T11:20:41.9995972Z branch 'main' set up to track 'origin/main'.
-2025-09-29T11:20:42.0304321Z ##[endgroup]
-2025-09-29T11:20:42.0352776Z [command]/usr/bin/git log -1 --format=%H
-2025-09-29T11:20:42.0380028Z 665ce5e3b82125e408bfc09c83412214a5acaa4a
-2025-09-29T11:20:42.0608446Z ##[group]Run mkdir -p backend/src/config
-2025-09-29T11:20:42.0609068Z [36;1mmkdir -p backend/src/config[0m
-2025-09-29T11:20:42.0609705Z [36;1mprintf '%s' "***[0m
-2025-09-29T11:20:42.0610276Z [36;1m***[0m
-2025-09-29T11:20:42.0610781Z [36;1m***[0m
-2025-09-29T11:20:42.0611249Z [36;1m***[0m
-2025-09-29T11:20:42.0611715Z [36;1m***[0m
-2025-09-29T11:20:42.0612176Z [36;1m***[0m
-2025-09-29T11:20:42.0612701Z [36;1m***[0m
-2025-09-29T11:20:42.0613171Z [36;1m***[0m
-2025-09-29T11:20:42.0613622Z [36;1m***[0m
-2025-09-29T11:20:42.0614079Z [36;1m***[0m
-2025-09-29T11:20:42.0614542Z [36;1m***[0m
-2025-09-29T11:20:42.0614997Z [36;1m***[0m
-2025-09-29T11:20:42.0615456Z [36;1m***[0m
-2025-09-29T11:20:42.0638079Z [36;1m***[0m
-2025-09-29T11:20:42.0638960Z [36;1m***[0m
-2025-09-29T11:20:42.0639544Z [36;1m***[0m
-2025-09-29T11:20:42.0640026Z [36;1m***[0m
-2025-09-29T11:20:42.0640473Z [36;1m***[0m
-2025-09-29T11:20:42.0640945Z [36;1m***[0m
-2025-09-29T11:20:42.0641482Z [36;1m***[0m
-2025-09-29T11:20:42.0641948Z [36;1m***[0m
-2025-09-29T11:20:42.0642404Z [36;1m***[0m
-2025-09-29T11:20:42.0642846Z [36;1m***[0m
-2025-09-29T11:20:42.0643299Z [36;1m***[0m
-2025-09-29T11:20:42.0643612Z [36;1m***[0m
-2025-09-29T11:20:42.0644036Z [36;1m***" > backend/src/config/ca.pem[0m
-2025-09-29T11:20:42.0680197Z shell: /usr/bin/bash -e {0}
-2025-09-29T11:20:42.0680611Z ##[endgroup]
-2025-09-29T11:20:42.0812237Z ##[group]Run mkdir -p backend/src/config
-2025-09-29T11:20:42.0812793Z [36;1mmkdir -p backend/src/config[0m
-2025-09-29T11:20:42.0894678Z [36;1mecho "***" | base64 -d > backend/src/config/admin-service-key.json[0m
-2025-09-29T11:20:42.0927760Z shell: /usr/bin/bash -e {0}
-2025-09-29T11:20:42.0928177Z ##[endgroup]
-2025-09-29T11:20:42.1050324Z ##[group]Run mkdir -p backend/src/config
-2025-09-29T11:20:42.1050884Z [36;1mmkdir -p backend/src/config[0m
-2025-09-29T11:20:42.1051319Z [36;1mcat > backend/.env << EOF[0m
-2025-09-29T11:20:42.1052360Z [36;1mDATABASE_URL=***[0m
-2025-09-29T11:20:42.1053173Z [36;1mJWT_SECRET=***[0m
-2025-09-29T11:20:42.1053752Z [36;1mJWT_REFRESH_SECRET=***[0m
-2025-09-29T11:20:42.1054205Z [36;1mSESSION_SECRET=***[0m
-2025-09-29T11:20:42.1054677Z [36;1mBIOMETRIC_ENCRYPTION_KEY=***[0m
-2025-09-29T11:20:42.1055128Z [36;1mEMAIL_USER=***[0m
-2025-09-29T11:20:42.1055511Z [36;1mEMAIL_PASS=***[0m
-2025-09-29T11:20:42.1056034Z [36;1mGOOGLE_GEMINI_API_KEY=***[0m
-2025-09-29T11:20:42.1056810Z [36;1mREDIS_URL=***[0m
-2025-09-29T11:20:42.1057474Z [36;1mSPARROW_ENDPOINT=***[0m
-2025-09-29T11:20:42.1058071Z [36;1mGOOGLE_MAPS_API_KEY=***[0m
-2025-09-29T11:20:42.1058552Z [36;1mTWILIO_ACCOUNT_SID=***[0m
-2025-09-29T11:20:42.1059004Z [36;1mTWILIO_AUTH_TOKEN=***[0m
-2025-09-29T11:20:42.1059445Z [36;1mTWILIO_PHONE_NUMBER=***[0m
-2025-09-29T11:20:42.1059922Z [36;1mFRONTEND_URL=***[0m
-2025-09-29T11:20:42.1060333Z [36;1mAPI_BASE_URL=***[0m
-2025-09-29T11:20:42.1060704Z [36;1mNODE_ENV=production[0m
-2025-09-29T11:20:42.1061069Z [36;1mPORT=8080[0m
-2025-09-29T11:20:42.1061425Z [36;1mDATABASE_SSL_MODE=require[0m
-2025-09-29T11:20:42.1061825Z [36;1mUSE_GOOGLE_PLACES=false[0m
-2025-09-29T11:20:42.1062233Z [36;1mFACE_VERIFICATION_THRESHOLD=0.85[0m
-2025-09-29T11:20:42.1062666Z [36;1mFACE_LIVENESS_THRESHOLD=0.7[0m
-2025-09-29T11:20:42.1063205Z [36;1mMAX_FACE_VERIFICATION_ATTEMPTS=3[0m
-2025-09-29T11:20:42.1063643Z [36;1mFACE_VERIFICATION_TIMEOUT=30000[0m
-2025-09-29T11:20:42.1064062Z [36;1mDEFAULT_GEOFENCE_RADIUS=100[0m
-2025-09-29T11:20:42.1064476Z [36;1mGEOFENCE_ACCURACY_THRESHOLD=10[0m
-2025-09-29T11:20:42.1064884Z [36;1mMAX_GEOFENCE_ZONES=50[0m
-2025-09-29T11:20:42.1065262Z [36;1mBCRYPT_ROUNDS=12[0m
-2025-09-29T11:20:42.1065630Z [36;1mRATE_LIMIT_WINDOW_MS=900000[0m
-2025-09-29T11:20:42.1066040Z [36;1mRATE_LIMIT_MAX_REQUESTS=100[0m
-2025-09-29T11:20:42.1066446Z [36;1mHELMET_ENABLED=true[0m
-2025-09-29T11:20:42.1066813Z [36;1mHTTPS_ONLY=true[0m
-2025-09-29T11:20:42.1067172Z [36;1mSECURE_COOKIES=true[0m
-2025-09-29T11:20:42.1067810Z [36;1mENABLE_FACE_VERIFICATION=true[0m
-2025-09-29T11:20:42.1068237Z [36;1mENABLE_OTP_VERIFICATION=true[0m
-2025-09-29T11:20:42.1068654Z [36;1mENABLE_GEOFENCE_TRACKING=true[0m
-2025-09-29T11:20:42.1069063Z [36;1mENABLE_OFFLINE_MODE=true[0m
-2025-09-29T11:20:42.1069469Z [36;1mENABLE_BIOMETRIC_STORAGE=true[0m
-2025-09-29T11:20:42.1069879Z [36;1mENABLE_ADVANCED_ANALYTICS=true[0m
-2025-09-29T11:20:42.1070277Z [36;1mEOF[0m
-2025-09-29T11:20:42.1102315Z shell: /usr/bin/bash -e {0}
-2025-09-29T11:20:42.1102712Z ##[endgroup]
-2025-09-29T11:20:42.1237702Z ##[group]Run docker/login-action@v2
-2025-09-29T11:20:42.1238158Z with:
-2025-09-29T11:20:42.1238585Z   username: ***
-2025-09-29T11:20:42.1238940Z   password: ***
-2025-09-29T11:20:42.1239268Z   ecr: auto
-2025-09-29T11:20:42.1239573Z   logout: true
-2025-09-29T11:20:42.1240127Z ##[endgroup]
-2025-09-29T11:20:42.2269035Z Logging into Docker Hub...
-2025-09-29T11:20:42.5876283Z Login Succeeded!
-2025-09-29T11:20:42.5960435Z ##[group]Run cd backend
-2025-09-29T11:20:42.5960897Z [36;1mcd backend[0m
-2025-09-29T11:20:42.5961456Z [36;1mdocker build -t ***/avy-trackerapp:v5 .[0m
-2025-09-29T11:20:42.5962009Z [36;1mdocker push ***/avy-trackerapp:v5[0m
-2025-09-29T11:20:42.5994834Z shell: /usr/bin/bash -e {0}
-2025-09-29T11:20:42.5995240Z ##[endgroup]
-2025-09-29T11:20:42.6051389Z /home/runner/work/_temp/2dd371ce-ba40-4710-9a7e-222c4d8b6bfc.sh: line 1: cd: backend: No such file or directory
-2025-09-29T11:20:42.6065447Z ##[error]Process completed with exit code 1.
-2025-09-29T11:20:42.6154201Z Post job cleanup.
-2025-09-29T11:20:42.7210864Z [command]/usr/bin/docker logout 
-2025-09-29T11:20:42.7353138Z Removing login credentials for https://index.docker.io/v1/
-2025-09-29T11:20:42.7512282Z Post job cleanup.
-2025-09-29T11:20:42.8525498Z [command]/usr/bin/git version
-2025-09-29T11:20:42.8564531Z git version 2.51.0
-2025-09-29T11:20:42.8610520Z Temporarily overriding HOME='/home/runner/work/_temp/7dfd91b3-c952-48e6-bcfe-2e60d86fe271' before making global git config changes
-2025-09-29T11:20:42.8611739Z Adding repository directory to the temporary git global config as a safe directory
-2025-09-29T11:20:42.8624632Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
-2025-09-29T11:20:42.8664362Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-09-29T11:20:42.8701483Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-09-29T11:20:42.8941982Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-09-29T11:20:42.8965710Z http.https://github.com/.extraheader
-2025-09-29T11:20:42.8979705Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2025-09-29T11:20:42.9012875Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2025-09-29T11:20:42.9361574Z Cleaning up orphan processes
+2025-09-29T11:27:16.7981364Z Current runner version: '2.328.0'
+2025-09-29T11:27:16.8051973Z ##[group]Runner Image Provisioner
+2025-09-29T11:27:16.8054316Z Hosted Compute Agent
+2025-09-29T11:27:16.8056132Z Version: 20250912.392
+2025-09-29T11:27:16.8058349Z Commit: d921fda672a98b64f4f82364647e2f10b2267d0b
+2025-09-29T11:27:16.8060476Z Build Date: 2025-09-12T15:23:14Z
+2025-09-29T11:27:16.8062363Z ##[endgroup]
+2025-09-29T11:27:16.8064029Z ##[group]Operating System
+2025-09-29T11:27:16.8065775Z Ubuntu
+2025-09-29T11:27:16.8067366Z 24.04.3
+2025-09-29T11:27:16.8069202Z LTS
+2025-09-29T11:27:16.8070793Z ##[endgroup]
+2025-09-29T11:27:16.8072446Z ##[group]Runner Image
+2025-09-29T11:27:16.8074201Z Image: ubuntu-24.04
+2025-09-29T11:27:16.8075961Z Version: 20250922.53.1
+2025-09-29T11:27:16.8078844Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250922.53/images/ubuntu/Ubuntu2404-Readme.md
+2025-09-29T11:27:16.8082516Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250922.53
+2025-09-29T11:27:16.8085061Z ##[endgroup]
+2025-09-29T11:27:16.8088370Z ##[group]GITHUB_TOKEN Permissions
+2025-09-29T11:27:16.8092167Z Contents: read
+2025-09-29T11:27:16.8093907Z Metadata: read
+2025-09-29T11:27:16.8095627Z Packages: read
+2025-09-29T11:27:16.8097375Z ##[endgroup]
+2025-09-29T11:27:16.8101275Z Secret source: Actions
+2025-09-29T11:27:16.8103205Z Prepare workflow directory
+2025-09-29T11:27:16.8561543Z Prepare all required actions
+2025-09-29T11:27:16.8616935Z Getting action download info
+2025-09-29T11:27:17.1685807Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-09-29T11:27:17.2594527Z Download action repository 'docker/login-action@v2' (SHA:465a07811f14bebb1938fbed4728c6a1ff8901fc)
+2025-09-29T11:27:17.5037074Z Download action repository 'azure/webapps-deploy@v2' (SHA:122b7ec46017e53a3f71e3a027d67550a1641f5e)
+2025-09-29T11:27:19.5167435Z Complete job name: build-and-deploy
+2025-09-29T11:27:19.5870301Z ##[group]Run actions/checkout@v4
+2025-09-29T11:27:19.5871127Z with:
+2025-09-29T11:27:19.5871615Z   repository: Avyren-Technologies/Avy-Tracker
+2025-09-29T11:27:19.5872288Z   token: ***
+2025-09-29T11:27:19.5872697Z   ssh-strict: true
+2025-09-29T11:27:19.5873106Z   ssh-user: git
+2025-09-29T11:27:19.5873525Z   persist-credentials: true
+2025-09-29T11:27:19.5873968Z   clean: true
+2025-09-29T11:27:19.5874434Z   sparse-checkout-cone-mode: true
+2025-09-29T11:27:19.5874901Z   fetch-depth: 1
+2025-09-29T11:27:19.5875312Z   fetch-tags: false
+2025-09-29T11:27:19.5875740Z   show-progress: true
+2025-09-29T11:27:19.5876164Z   lfs: false
+2025-09-29T11:27:19.5876571Z   submodules: false
+2025-09-29T11:27:19.5877008Z   set-safe-directory: true
+2025-09-29T11:27:19.5877667Z ##[endgroup]
+2025-09-29T11:27:19.6943558Z Syncing repository: Avyren-Technologies/Avy-Tracker
+2025-09-29T11:27:19.6945295Z ##[group]Getting Git version info
+2025-09-29T11:27:19.6946014Z Working directory is '/home/runner/work/Avy-Tracker/Avy-Tracker'
+2025-09-29T11:27:19.6946917Z [command]/usr/bin/git version
+2025-09-29T11:27:19.7019035Z git version 2.51.0
+2025-09-29T11:27:19.7044646Z ##[endgroup]
+2025-09-29T11:27:19.7065224Z Temporarily overriding HOME='/home/runner/work/_temp/b811bfb2-55ee-47bb-8576-bdebf2e77073' before making global git config changes
+2025-09-29T11:27:19.7066310Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-29T11:27:19.7070788Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:27:19.7106862Z Deleting the contents of '/home/runner/work/Avy-Tracker/Avy-Tracker'
+2025-09-29T11:27:19.7110751Z ##[group]Initializing the repository
+2025-09-29T11:27:19.7114343Z [command]/usr/bin/git init /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:27:19.7209646Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-09-29T11:27:19.7210643Z hint: is subject to change. To configure the initial branch name to use in all
+2025-09-29T11:27:19.7211402Z hint: of your new repositories, which will suppress this warning, call:
+2025-09-29T11:27:19.7212252Z hint:
+2025-09-29T11:27:19.7213238Z hint: 	git config --global init.defaultBranch <name>
+2025-09-29T11:27:19.7214155Z hint:
+2025-09-29T11:27:19.7214699Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-09-29T11:27:19.7215419Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-09-29T11:27:19.7216005Z hint:
+2025-09-29T11:27:19.7216412Z hint: 	git branch -m <name>
+2025-09-29T11:27:19.7216853Z hint:
+2025-09-29T11:27:19.7217391Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-09-29T11:27:19.7218440Z Initialized empty Git repository in /home/runner/work/Avy-Tracker/Avy-Tracker/.git/
+2025-09-29T11:27:19.7224521Z [command]/usr/bin/git remote add origin https://github.com/Avyren-Technologies/Avy-Tracker
+2025-09-29T11:27:19.7261525Z ##[endgroup]
+2025-09-29T11:27:19.7262805Z ##[group]Disabling automatic garbage collection
+2025-09-29T11:27:19.7266102Z [command]/usr/bin/git config --local gc.auto 0
+2025-09-29T11:27:19.7295160Z ##[endgroup]
+2025-09-29T11:27:19.7296458Z ##[group]Setting up auth
+2025-09-29T11:27:19.7302627Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-29T11:27:19.7332734Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-29T11:27:19.7657424Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-29T11:27:19.7693653Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-29T11:27:19.7934620Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-09-29T11:27:19.7975188Z ##[endgroup]
+2025-09-29T11:27:19.7976818Z ##[group]Fetching the repository
+2025-09-29T11:27:19.7993076Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +38252a5203a90369eabf0cb750624beb9b241395:refs/remotes/origin/main
+2025-09-29T11:27:20.5354976Z From https://github.com/Avyren-Technologies/Avy-Tracker
+2025-09-29T11:27:20.5357757Z  * [new ref]         38252a5203a90369eabf0cb750624beb9b241395 -> origin/main
+2025-09-29T11:27:20.5384323Z ##[endgroup]
+2025-09-29T11:27:20.5385609Z ##[group]Determining the checkout info
+2025-09-29T11:27:20.5387117Z ##[endgroup]
+2025-09-29T11:27:20.5392144Z [command]/usr/bin/git sparse-checkout disable
+2025-09-29T11:27:20.5430950Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-09-29T11:27:20.5458061Z ##[group]Checking out the ref
+2025-09-29T11:27:20.5461526Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-09-29T11:27:21.6579353Z Updating files:  97% (489/500)
+2025-09-29T11:27:21.6600120Z Updating files:  98% (490/500)
+2025-09-29T11:27:21.6602717Z Updating files:  99% (495/500)
+2025-09-29T11:27:21.6603802Z Updating files: 100% (500/500)
+2025-09-29T11:27:21.6604689Z Updating files: 100% (500/500), done.
+2025-09-29T11:27:21.6627618Z Switched to a new branch 'main'
+2025-09-29T11:27:21.6631447Z branch 'main' set up to track 'origin/main'.
+2025-09-29T11:27:21.6894741Z ##[endgroup]
+2025-09-29T11:27:21.6935704Z [command]/usr/bin/git log -1 --format=%H
+2025-09-29T11:27:21.6957960Z 38252a5203a90369eabf0cb750624beb9b241395
+2025-09-29T11:27:21.7166815Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:27:21.7167415Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:27:21.7168572Z [36;1mprintf '%s' "***[0m
+2025-09-29T11:27:21.7169406Z [36;1m***[0m
+2025-09-29T11:27:21.7170183Z [36;1m***[0m
+2025-09-29T11:27:21.7190314Z [36;1m***[0m
+2025-09-29T11:27:21.7191271Z [36;1m***[0m
+2025-09-29T11:27:21.7192217Z [36;1m***[0m
+2025-09-29T11:27:21.7193155Z [36;1m***[0m
+2025-09-29T11:27:21.7194487Z [36;1m***[0m
+2025-09-29T11:27:21.7195495Z [36;1m***[0m
+2025-09-29T11:27:21.7196377Z [36;1m***[0m
+2025-09-29T11:27:21.7197211Z [36;1m***[0m
+2025-09-29T11:27:21.7198056Z [36;1m***[0m
+2025-09-29T11:27:21.7199121Z [36;1m***[0m
+2025-09-29T11:27:21.7200018Z [36;1m***[0m
+2025-09-29T11:27:21.7200903Z [36;1m***[0m
+2025-09-29T11:27:21.7201910Z [36;1m***[0m
+2025-09-29T11:27:21.7202833Z [36;1m***[0m
+2025-09-29T11:27:21.7203437Z [36;1m***[0m
+2025-09-29T11:27:21.7203928Z [36;1m***[0m
+2025-09-29T11:27:21.7204432Z [36;1m***[0m
+2025-09-29T11:27:21.7204883Z [36;1m***[0m
+2025-09-29T11:27:21.7205377Z [36;1m***[0m
+2025-09-29T11:27:21.7205874Z [36;1m***[0m
+2025-09-29T11:27:21.7206355Z [36;1m***[0m
+2025-09-29T11:27:21.7206681Z [36;1m***[0m
+2025-09-29T11:27:21.7207107Z [36;1m***" > backend/src/config/ca.pem[0m
+2025-09-29T11:27:21.7242668Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:27:21.7243074Z ##[endgroup]
+2025-09-29T11:27:21.7363854Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:27:21.7364396Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:27:21.7446188Z [36;1mecho "***" | base64 -d > backend/src/config/admin-service-key.json[0m
+2025-09-29T11:27:21.7475721Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:27:21.7476116Z ##[endgroup]
+2025-09-29T11:27:21.7585417Z ##[group]Run mkdir -p backend/src/config
+2025-09-29T11:27:21.7585952Z [36;1mmkdir -p backend/src/config[0m
+2025-09-29T11:27:21.7586381Z [36;1mcat > backend/.env << EOF[0m
+2025-09-29T11:27:21.7587366Z [36;1mDATABASE_URL=***[0m
+2025-09-29T11:27:21.7588416Z [36;1mJWT_SECRET=***[0m
+2025-09-29T11:27:21.7589014Z [36;1mJWT_REFRESH_SECRET=***[0m
+2025-09-29T11:27:21.7589470Z [36;1mSESSION_SECRET=***[0m
+2025-09-29T11:27:21.7589941Z [36;1mBIOMETRIC_ENCRYPTION_KEY=***[0m
+2025-09-29T11:27:21.7590388Z [36;1mEMAIL_USER=***[0m
+2025-09-29T11:27:21.7590768Z [36;1mEMAIL_PASS=***[0m
+2025-09-29T11:27:21.7591231Z [36;1mGOOGLE_GEMINI_API_KEY=***[0m
+2025-09-29T11:27:21.7592003Z [36;1mREDIS_URL=***[0m
+2025-09-29T11:27:21.7592497Z [36;1mSPARROW_ENDPOINT=***[0m
+2025-09-29T11:27:21.7592985Z [36;1mGOOGLE_MAPS_API_KEY=***[0m
+2025-09-29T11:27:21.7593451Z [36;1mTWILIO_ACCOUNT_SID=***[0m
+2025-09-29T11:27:21.7593901Z [36;1mTWILIO_AUTH_TOKEN=***[0m
+2025-09-29T11:27:21.7594334Z [36;1mTWILIO_PHONE_NUMBER=***[0m
+2025-09-29T11:27:21.7594781Z [36;1mFRONTEND_URL=***[0m
+2025-09-29T11:27:21.7595194Z [36;1mAPI_BASE_URL=***[0m
+2025-09-29T11:27:21.7595561Z [36;1mNODE_ENV=production[0m
+2025-09-29T11:27:21.7595937Z [36;1mPORT=8080[0m
+2025-09-29T11:27:21.7596335Z [36;1mDATABASE_SSL_MODE=require[0m
+2025-09-29T11:27:21.7596898Z [36;1mUSE_GOOGLE_PLACES=false[0m
+2025-09-29T11:27:21.7597578Z [36;1mFACE_VERIFICATION_THRESHOLD=0.85[0m
+2025-09-29T11:27:21.7598118Z [36;1mFACE_LIVENESS_THRESHOLD=0.7[0m
+2025-09-29T11:27:21.7598943Z [36;1mMAX_FACE_VERIFICATION_ATTEMPTS=3[0m
+2025-09-29T11:27:21.7599387Z [36;1mFACE_VERIFICATION_TIMEOUT=30000[0m
+2025-09-29T11:27:21.7599805Z [36;1mDEFAULT_GEOFENCE_RADIUS=100[0m
+2025-09-29T11:27:21.7600229Z [36;1mGEOFENCE_ACCURACY_THRESHOLD=10[0m
+2025-09-29T11:27:21.7600640Z [36;1mMAX_GEOFENCE_ZONES=50[0m
+2025-09-29T11:27:21.7601018Z [36;1mBCRYPT_ROUNDS=12[0m
+2025-09-29T11:27:21.7601404Z [36;1mRATE_LIMIT_WINDOW_MS=900000[0m
+2025-09-29T11:27:21.7601807Z [36;1mRATE_LIMIT_MAX_REQUESTS=100[0m
+2025-09-29T11:27:21.7602196Z [36;1mHELMET_ENABLED=true[0m
+2025-09-29T11:27:21.7602562Z [36;1mHTTPS_ONLY=true[0m
+2025-09-29T11:27:21.7602926Z [36;1mSECURE_COOKIES=true[0m
+2025-09-29T11:27:21.7603303Z [36;1mENABLE_FACE_VERIFICATION=true[0m
+2025-09-29T11:27:21.7603715Z [36;1mENABLE_OTP_VERIFICATION=true[0m
+2025-09-29T11:27:21.7604123Z [36;1mENABLE_GEOFENCE_TRACKING=true[0m
+2025-09-29T11:27:21.7604525Z [36;1mENABLE_OFFLINE_MODE=true[0m
+2025-09-29T11:27:21.7604918Z [36;1mENABLE_BIOMETRIC_STORAGE=true[0m
+2025-09-29T11:27:21.7605322Z [36;1mENABLE_ADVANCED_ANALYTICS=true[0m
+2025-09-29T11:27:21.7605719Z [36;1mEOF[0m
+2025-09-29T11:27:21.7634512Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:27:21.7634905Z ##[endgroup]
+2025-09-29T11:27:21.7762746Z ##[group]Run docker/login-action@v2
+2025-09-29T11:27:21.7763198Z with:
+2025-09-29T11:27:21.7763618Z   username: ***
+2025-09-29T11:27:21.7763978Z   password: ***
+2025-09-29T11:27:21.7764294Z   ecr: auto
+2025-09-29T11:27:21.7764599Z   logout: true
+2025-09-29T11:27:21.7764916Z ##[endgroup]
+2025-09-29T11:27:21.8698709Z Logging into Docker Hub...
+2025-09-29T11:27:22.0320954Z Login Succeeded!
+2025-09-29T11:27:22.0392270Z ##[group]Run echo "Verifying backend directory structure..."
+2025-09-29T11:27:22.0392871Z [36;1mecho "Verifying backend directory structure..."[0m
+2025-09-29T11:27:22.0393380Z [36;1mecho "Root directory contents: $(ls -la)"[0m
+2025-09-29T11:27:22.0393900Z [36;1mecho "Backend directory contents: $(ls -la backend/)"[0m
+2025-09-29T11:27:22.0394574Z [36;1mecho "Backend package.json exists: $(test -f backend/package.json && echo 'YES' || echo 'NO')"[0m
+2025-09-29T11:27:22.0395347Z [36;1mecho "Backend Dockerfile exists: $(test -f backend/Dockerfile && echo 'YES' || echo 'NO')"[0m
+2025-09-29T11:27:22.0428849Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:27:22.0429247Z ##[endgroup]
+2025-09-29T11:27:22.0480484Z Verifying backend directory structure...
+2025-09-29T11:27:22.0509549Z Root directory contents: total 160
+2025-09-29T11:27:22.0510371Z drwxr-xr-x 13 runner runner  4096 Sep 29 11:27 .
+2025-09-29T11:27:22.0511092Z drwxr-xr-x  3 runner runner  4096 Sep 29 11:27 ..
+2025-09-29T11:27:22.0511973Z drwxr-xr-x  3 runner runner  4096 Sep 29 11:27 .docs
+2025-09-29T11:27:22.0512856Z -rw-r--r--  1 runner runner   537 Sep 29 11:27 .easignore
+2025-09-29T11:27:22.0513778Z -rw-r--r--  1 runner runner  3068 Sep 29 11:27 .env.example
+2025-09-29T11:27:22.0514607Z drwxr-xr-x  8 runner runner  4096 Sep 29 11:27 .git
+2025-09-29T11:27:22.0515419Z -rw-r--r--  1 runner runner    43 Sep 29 11:27 .gitattributes
+2025-09-29T11:27:22.0516093Z drwxr-xr-x  3 runner runner  4096 Sep 29 11:27 .github
+2025-09-29T11:27:22.0516890Z -rw-r--r--  1 runner runner   704 Sep 29 11:27 .gitignore
+2025-09-29T11:27:22.0517631Z drwxr-xr-x  3 runner runner  4096 Sep 29 11:27 .kilocode
+2025-09-29T11:27:22.0518309Z drwxr-xr-x  4 runner runner  4096 Sep 29 11:27 .kiro
+2025-09-29T11:27:22.0518933Z -rw-r--r--  1 runner runner   125 Sep 29 11:27 .prettierrc
+2025-09-29T11:27:22.0519438Z drwxr-xr-x  2 runner runner  4096 Sep 29 11:27 .vscode
+2025-09-29T11:27:22.0519951Z -rw-r--r--  1 runner runner  1403 Sep 29 11:27 Dockerfile
+2025-09-29T11:27:22.0520431Z -rw-r--r--  1 runner runner  1075 Sep 29 11:27 LICENSE
+2025-09-29T11:27:22.0520887Z -rw-r--r--  1 runner runner 31406 Sep 29 11:27 README.md
+2025-09-29T11:27:22.0521550Z drwxr-xr-x 13 runner runner  4096 Sep 29 11:27 app
+2025-09-29T11:27:22.0522349Z -rw-r--r--  1 runner runner  4604 Sep 29 11:27 app.config.ts
+2025-09-29T11:27:22.0522853Z drwxr-xr-x  4 runner runner  4096 Sep 29 11:27 assets
+2025-09-29T11:27:22.0523337Z -rw-r--r--  1 runner runner   350 Sep 29 11:27 babel.config.js
+2025-09-29T11:27:22.0523846Z drwxr-xr-x  4 runner runner  4096 Sep 29 11:27 backend
+2025-09-29T11:27:22.0524329Z drwxr-xr-x  2 runner runner  4096 Sep 29 11:27 database
+2025-09-29T11:27:22.0524838Z drwxr-xr-x  2 runner runner  4096 Sep 29 11:27 documentation
+2025-09-29T11:27:22.0525333Z -rw-r--r--  1 runner runner   921 Sep 29 11:27 eas.json
+2025-09-29T11:27:22.0525891Z -rw-r--r--  1 runner runner  4850 Sep 29 11:27 global.css
+2025-09-29T11:27:22.0526754Z -rw-r--r--  1 runner runner   524 Sep 29 11:27 metro.config.js
+2025-09-29T11:27:22.0527366Z -rw-r--r--  1 runner runner    43 Sep 29 11:27 nativewind-env.d.ts
+2025-09-29T11:27:22.0528437Z -rw-r--r--  1 runner runner  5553 Sep 29 11:27 package.json
+2025-09-29T11:27:22.0529360Z -rw-r--r--  1 runner runner  2457 Sep 29 11:27 tailwind.config.js
+2025-09-29T11:27:22.0530176Z -rw-r--r--  1 runner runner   570 Sep 29 11:27 tsconfig.json
+2025-09-29T11:27:22.0530681Z Backend directory contents: total 444
+2025-09-29T11:27:22.0531131Z drwxr-xr-x  4 runner runner   4096 Sep 29 11:27 .
+2025-09-29T11:27:22.0531597Z drwxr-xr-x 13 runner runner   4096 Sep 29 11:27 ..
+2025-09-29T11:27:22.0532280Z -rw-r--r--  1 runner runner   1625 Sep 29 11:27 .env
+2025-09-29T11:27:22.0532768Z -rw-r--r--  1 runner runner    337 Sep 29 11:27 .env.example
+2025-09-29T11:27:22.0533260Z -rw-r--r--  1 runner runner   1494 Sep 29 11:27 Dockerfile
+2025-09-29T11:27:22.0533762Z -rw-r--r--  1 runner runner    720 Sep 29 11:27 fix-mfa-otp.sql
+2025-09-29T11:27:22.0534433Z drwxr-xr-x  2 runner runner   4096 Sep 29 11:27 logs
+2025-09-29T11:27:22.0534954Z -rw-r--r--  1 runner runner 396563 Sep 29 11:27 package-lock.json
+2025-09-29T11:27:22.0535481Z -rw-r--r--  1 runner runner   2310 Sep 29 11:27 package.json
+2025-09-29T11:27:22.0535983Z -rw-r--r--  1 runner runner   1084 Sep 29 11:27 run-mfa-fix.sql
+2025-09-29T11:27:22.0536466Z -rw-r--r--  1 runner runner   6396 Sep 29 11:27 server.ts
+2025-09-29T11:27:22.0536946Z drwxr-xr-x 14 runner runner   4096 Sep 29 11:27 src
+2025-09-29T11:27:22.0537455Z -rw-r--r--  1 runner runner   2344 Sep 29 11:27 test-expo-push.js
+2025-09-29T11:27:22.0537979Z -rw-r--r--  1 runner runner    369 Sep 29 11:27 tsconfig.json
+2025-09-29T11:27:22.0538682Z Backend package.json exists: YES
+2025-09-29T11:27:22.0539086Z Backend Dockerfile exists: YES
+2025-09-29T11:27:22.0569500Z ##[group]Run echo "Building Docker image for version v6"
+2025-09-29T11:27:22.0570078Z [36;1mecho "Building Docker image for version v6"[0m
+2025-09-29T11:27:22.0570539Z [36;1mecho "Current directory: $(pwd)"[0m
+2025-09-29T11:27:22.0570973Z [36;1mecho "Contents: $(ls -la)"[0m
+2025-09-29T11:27:22.0571555Z [36;1mdocker build -t ***/avy-trackerapp:v6 .[0m
+2025-09-29T11:27:22.0572041Z [36;1mecho "Pushing Docker image to registry..."[0m
+2025-09-29T11:27:22.0572554Z [36;1mdocker push ***/avy-trackerapp:v6[0m
+2025-09-29T11:27:22.0573003Z [36;1mecho "Docker image pushed successfully!"[0m
+2025-09-29T11:27:22.0604111Z shell: /usr/bin/bash -e {0}
+2025-09-29T11:27:22.0604509Z ##[endgroup]
+2025-09-29T11:27:22.0653783Z Building Docker image for version v6
+2025-09-29T11:27:22.0658444Z Current directory: /home/runner/work/Avy-Tracker/Avy-Tracker/backend
+2025-09-29T11:27:22.0674734Z Contents: total 444
+2025-09-29T11:27:22.0675429Z drwxr-xr-x  4 runner runner   4096 Sep 29 11:27 .
+2025-09-29T11:27:22.0676190Z drwxr-xr-x 13 runner runner   4096 Sep 29 11:27 ..
+2025-09-29T11:27:22.0676691Z -rw-r--r--  1 runner runner   1625 Sep 29 11:27 .env
+2025-09-29T11:27:22.0677206Z -rw-r--r--  1 runner runner    337 Sep 29 11:27 .env.example
+2025-09-29T11:27:22.0677708Z -rw-r--r--  1 runner runner   1494 Sep 29 11:27 Dockerfile
+2025-09-29T11:27:22.0678478Z -rw-r--r--  1 runner runner    720 Sep 29 11:27 fix-mfa-otp.sql
+2025-09-29T11:27:22.0679021Z drwxr-xr-x  2 runner runner   4096 Sep 29 11:27 logs
+2025-09-29T11:27:22.0679542Z -rw-r--r--  1 runner runner 396563 Sep 29 11:27 package-lock.json
+2025-09-29T11:27:22.0680069Z -rw-r--r--  1 runner runner   2310 Sep 29 11:27 package.json
+2025-09-29T11:27:22.0680575Z -rw-r--r--  1 runner runner   1084 Sep 29 11:27 run-mfa-fix.sql
+2025-09-29T11:27:22.0681076Z -rw-r--r--  1 runner runner   6396 Sep 29 11:27 server.ts
+2025-09-29T11:27:22.0681560Z drwxr-xr-x 14 runner runner   4096 Sep 29 11:27 src
+2025-09-29T11:27:22.0682067Z -rw-r--r--  1 runner runner   2344 Sep 29 11:27 test-expo-push.js
+2025-09-29T11:27:22.0682579Z -rw-r--r--  1 runner runner    369 Sep 29 11:27 tsconfig.json
+2025-09-29T11:27:23.3943635Z #0 building with "default" instance using docker driver
+2025-09-29T11:27:23.3944075Z 
+2025-09-29T11:27:23.3944334Z #1 [internal] load build definition from Dockerfile
+2025-09-29T11:27:23.3944924Z #1 transferring dockerfile: 1.53kB done
+2025-09-29T11:27:23.3945419Z #1 DONE 0.0s
+2025-09-29T11:27:23.3945644Z 
+2025-09-29T11:27:23.3945920Z #2 [auth] library/node:pull token for registry-1.docker.io
+2025-09-29T11:27:23.3946484Z #2 DONE 0.0s
+2025-09-29T11:27:23.3946700Z 
+2025-09-29T11:27:23.3947025Z #3 [internal] load metadata for docker.io/library/node:20.5.0-alpine3.18
+2025-09-29T11:27:23.7533363Z #3 DONE 0.6s
+2025-09-29T11:27:23.8945499Z 
+2025-09-29T11:27:23.8946206Z #4 [internal] load .dockerignore
+2025-09-29T11:27:23.8947033Z #4 transferring context: 2B done
+2025-09-29T11:27:23.8947425Z #4 DONE 0.0s
+2025-09-29T11:27:23.8947610Z 
+2025-09-29T11:27:23.8947787Z #5 [internal] load build context
+2025-09-29T11:27:23.8948434Z #5 transferring context: 1.76MB 0.0s done
+2025-09-29T11:27:23.8949145Z #5 DONE 0.0s
+2025-09-29T11:27:23.8949459Z 
+2025-09-29T11:27:23.8950278Z #6 [ 1/12] FROM docker.io/library/node:20.5.0-alpine3.18@sha256:efcfc9e818c3abe166cfcced1c9602cac29e08c83b273a4f280a87d4218daf8c
+2025-09-29T11:27:23.8951703Z #6 resolve docker.io/library/node:20.5.0-alpine3.18@sha256:efcfc9e818c3abe166cfcced1c9602cac29e08c83b273a4f280a87d4218daf8c done
+2025-09-29T11:27:23.8952759Z #6 sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 0B / 49.44MB 0.1s
+2025-09-29T11:27:23.8954109Z #6 sha256:770e129e3ee433a58a422ce30acd6281193f33d6fd0adf3bbaff6a22640c40cb 0B / 2.34MB 0.1s
+2025-09-29T11:27:23.8955443Z #6 sha256:efcfc9e818c3abe166cfcced1c9602cac29e08c83b273a4f280a87d4218daf8c 1.22kB / 1.22kB done
+2025-09-29T11:27:23.8956819Z #6 sha256:a5efe2f6dbaeb81297af5aa576c4c86311da0cecaa4d88325d9a18b05a007c3a 1.16kB / 1.16kB done
+2025-09-29T11:27:23.8958077Z #6 sha256:53d2322c062782ca53741589b9b108d188917235a3986aa43060167727aa312f 6.73kB / 6.73kB done
+2025-09-29T11:27:23.8959786Z #6 sha256:7264a8db6415046d36d16ba98b79778e18accee6ffa71850405994cffa9be7de 1.05MB / 3.40MB 0.1s
+2025-09-29T11:27:24.0947098Z #6 sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 16.78MB / 49.44MB 0.3s
+2025-09-29T11:27:24.0948823Z #6 sha256:770e129e3ee433a58a422ce30acd6281193f33d6fd0adf3bbaff6a22640c40cb 2.34MB / 2.34MB 0.1s done
+2025-09-29T11:27:24.0950333Z #6 sha256:7264a8db6415046d36d16ba98b79778e18accee6ffa71850405994cffa9be7de 3.40MB / 3.40MB 0.1s done
+2025-09-29T11:27:24.0951748Z #6 extracting sha256:7264a8db6415046d36d16ba98b79778e18accee6ffa71850405994cffa9be7de 0.1s done
+2025-09-29T11:27:24.0953130Z #6 sha256:3bcd4968554f823de797b621b6a35bf166273bfb8cf23499899cc5fd0e9045f6 447B / 447B 0.2s done
+2025-09-29T11:27:24.2947956Z #6 sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 32.51MB / 49.44MB 0.5s
+2025-09-29T11:27:24.4952866Z #6 sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 46.14MB / 49.44MB 0.7s
+2025-09-29T11:27:24.6861353Z #6 sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 49.44MB / 49.44MB 0.8s done
+2025-09-29T11:27:24.6862943Z #6 extracting sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 0.1s
+2025-09-29T11:27:26.4872263Z #6 extracting sha256:e3bed09886f490914f2b1d6b2b0c3c7e5999710fa581679d4ee6aa5466cdcce0 1.8s done
+2025-09-29T11:27:26.6980162Z #6 extracting sha256:770e129e3ee433a58a422ce30acd6281193f33d6fd0adf3bbaff6a22640c40cb
+2025-09-29T11:27:26.8025397Z #6 extracting sha256:770e129e3ee433a58a422ce30acd6281193f33d6fd0adf3bbaff6a22640c40cb 0.0s done
+2025-09-29T11:27:26.8026358Z #6 extracting sha256:3bcd4968554f823de797b621b6a35bf166273bfb8cf23499899cc5fd0e9045f6 done
+2025-09-29T11:27:26.8027101Z #6 DONE 3.0s
+2025-09-29T11:27:26.8027326Z 
+2025-09-29T11:27:26.8027583Z #7 [ 2/12] WORKDIR /app
+2025-09-29T11:27:26.8028373Z #7 DONE 0.0s
+2025-09-29T11:27:26.9375426Z 
+2025-09-29T11:27:26.9375973Z #8 [ 3/12] RUN apk add --no-cache dumb-init
+2025-09-29T11:27:26.9376787Z #8 0.134 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/main/x86_64/APKINDEX.tar.gz
+2025-09-29T11:27:27.1366138Z #8 0.333 fetch https://dl-cdn.alpinelinux.org/alpine/v3.18/community/x86_64/APKINDEX.tar.gz
+2025-09-29T11:27:27.4126134Z #8 0.609 (1/1) Installing dumb-init (1.2.5-r2)
+2025-09-29T11:27:27.6271648Z #8 0.623 Executing busybox-1.36.1-r2.trigger
+2025-09-29T11:27:27.6272792Z #8 0.629 OK: 10 MiB in 18 packages
+2025-09-29T11:27:27.6273790Z #8 DONE 0.7s
+2025-09-29T11:27:27.6274134Z 
+2025-09-29T11:27:27.6274603Z #9 [ 4/12] RUN addgroup -g 1001 -S nodejs &&     adduser -S nodejs -u 1001
+2025-09-29T11:27:27.6275402Z #9 DONE 0.1s
+2025-09-29T11:27:27.7925028Z 
+2025-09-29T11:27:27.7925410Z #10 [ 5/12] COPY package*.json ./
+2025-09-29T11:27:27.7926119Z #10 DONE 0.0s
+2025-09-29T11:27:27.7926801Z 
+2025-09-29T11:27:27.7928710Z #11 [ 6/12] RUN npm config set fetch-retry-mintimeout 20000 &&     npm config set fetch-retry-maxtimeout 120000 &&     npm config set fetch-retries 5 &&     npm config set fetch-retry-factor 2 &&     npm config set registry https://registry.npmjs.org/ &&     npm ci &&     npm cache clean --force
+2025-09-29T11:27:31.0233674Z #11 3.212 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0234768Z #11 3.212 npm WARN EBADENGINE   package: '@react-native/assets-registry@0.81.4',
+2025-09-29T11:27:31.0235831Z #11 3.212 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0236795Z #11 3.212 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0237640Z #11 3.212 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0238623Z #11 3.213 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0239609Z #11 3.213 npm WARN EBADENGINE   package: '@react-native/codegen@0.81.4',
+2025-09-29T11:27:31.0240587Z #11 3.213 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0241604Z #11 3.213 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0242876Z #11 3.213 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0243646Z #11 3.214 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0244680Z #11 3.214 npm WARN EBADENGINE   package: '@react-native/community-cli-plugin@0.81.4',
+2025-09-29T11:27:31.0245770Z #11 3.214 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0246724Z #11 3.214 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0247526Z #11 3.214 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0248429Z #11 3.214 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0249423Z #11 3.214 npm WARN EBADENGINE   package: '@react-native/debugger-frontend@0.81.4',
+2025-09-29T11:27:31.0250444Z #11 3.214 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0251381Z #11 3.215 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0252249Z #11 3.215 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0252949Z #11 3.215 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0253887Z #11 3.215 npm WARN EBADENGINE   package: '@react-native/dev-middleware@0.81.4',
+2025-09-29T11:27:31.0254892Z #11 3.215 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0255846Z #11 3.215 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0256690Z #11 3.215 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0257342Z #11 3.216 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0258437Z #11 3.216 npm WARN EBADENGINE   package: '@react-native/gradle-plugin@0.81.4',
+2025-09-29T11:27:31.0259366Z #11 3.216 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0260263Z #11 3.216 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0261090Z #11 3.216 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0261794Z #11 3.216 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0262710Z #11 3.216 npm WARN EBADENGINE   package: '@react-native/js-polyfills@0.81.4',
+2025-09-29T11:27:31.0263697Z #11 3.216 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0264699Z #11 3.216 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0265538Z #11 3.217 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0266224Z #11 3.217 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0267155Z #11 3.217 npm WARN EBADENGINE   package: '@react-native/virtualized-lists@0.81.4',
+2025-09-29T11:27:31.0268470Z #11 3.217 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0269426Z #11 3.217 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0270353Z #11 3.217 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0271046Z #11 3.220 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0271845Z #11 3.220 npm WARN EBADENGINE   package: 'metro@0.83.1',
+2025-09-29T11:27:31.0272999Z #11 3.220 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0273976Z #11 3.220 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0274866Z #11 3.220 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0275562Z #11 3.220 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0276470Z #11 3.221 npm WARN EBADENGINE   package: 'metro-babel-transformer@0.83.1',
+2025-09-29T11:27:31.0277412Z #11 3.221 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0278562Z #11 3.221 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0279417Z #11 3.221 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0280125Z #11 3.221 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0280957Z #11 3.221 npm WARN EBADENGINE   package: 'metro-cache@0.83.1',
+2025-09-29T11:27:31.0281866Z #11 3.221 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0282816Z #11 3.221 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0283704Z #11 3.222 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0284628Z #11 3.222 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0285512Z #11 3.222 npm WARN EBADENGINE   package: 'metro-cache-key@0.83.1',
+2025-09-29T11:27:31.0286432Z #11 3.222 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0287374Z #11 3.222 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0288616Z #11 3.222 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0289342Z #11 3.222 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0290139Z #11 3.222 npm WARN EBADENGINE   package: 'metro-config@0.83.1',
+2025-09-29T11:27:31.0291069Z #11 3.222 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0292084Z #11 3.222 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0292946Z #11 3.222 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0293677Z #11 3.223 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0294501Z #11 3.225 npm WARN EBADENGINE   package: 'metro-core@0.83.1',
+2025-09-29T11:27:31.0295401Z #11 3.225 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0296358Z #11 3.225 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0297191Z #11 3.225 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0297883Z #11 3.225 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0298954Z #11 3.225 npm WARN EBADENGINE   package: 'metro-file-map@0.83.1',
+2025-09-29T11:27:31.0299874Z #11 3.225 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0300826Z #11 3.225 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0301675Z #11 3.225 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0302353Z #11 3.226 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0303231Z #11 3.226 npm WARN EBADENGINE   package: 'metro-minify-terser@0.83.1',
+2025-09-29T11:27:31.0304170Z #11 3.226 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0305110Z #11 3.226 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0305947Z #11 3.227 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0306636Z #11 3.227 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0307500Z #11 3.227 npm WARN EBADENGINE   package: 'metro-resolver@0.83.1',
+2025-09-29T11:27:31.0308676Z #11 3.227 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0309626Z #11 3.227 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0310478Z #11 3.227 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0311171Z #11 3.227 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0312017Z #11 3.227 npm WARN EBADENGINE   package: 'metro-runtime@0.83.1',
+2025-09-29T11:27:31.0312909Z #11 3.227 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0313848Z #11 3.227 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0314945Z #11 3.227 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0315648Z #11 3.227 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0316522Z #11 3.227 npm WARN EBADENGINE   package: 'metro-source-map@0.83.1',
+2025-09-29T11:27:31.0317444Z #11 3.227 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0318540Z #11 3.227 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0319372Z #11 3.227 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0320049Z #11 3.228 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0320991Z #11 3.228 npm WARN EBADENGINE   package: 'metro-symbolicate@0.83.1',
+2025-09-29T11:27:31.0321888Z #11 3.228 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0322773Z #11 3.228 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0323623Z #11 3.228 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0324318Z #11 3.229 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0325245Z #11 3.229 npm WARN EBADENGINE   package: 'metro-transform-plugins@0.83.1',
+2025-09-29T11:27:31.0326390Z #11 3.229 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0327334Z #11 3.229 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0328319Z #11 3.229 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0329018Z #11 3.229 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0329913Z #11 3.229 npm WARN EBADENGINE   package: 'metro-transform-worker@0.83.1',
+2025-09-29T11:27:31.0330859Z #11 3.229 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0331817Z #11 3.229 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0332632Z #11 3.229 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0333361Z #11 3.230 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0334192Z #11 3.230 npm WARN EBADENGINE   package: 'ob1@0.83.1',
+2025-09-29T11:27:31.0335102Z #11 3.230 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:31.0336036Z #11 3.230 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0336853Z #11 3.230 npm WARN EBADENGINE }
+2025-09-29T11:27:31.0337580Z #11 3.230 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:31.0338630Z #11 3.230 npm WARN EBADENGINE   package: 'react-native@0.81.4',
+2025-09-29T11:27:31.0339534Z #11 3.231 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:31.0340464Z #11 3.231 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:31.0341430Z #11 3.231 npm WARN EBADENGINE }
+2025-09-29T11:27:32.9396769Z #11 5.297 npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2025-09-29T11:27:33.2447753Z #11 5.603 npm WARN deprecated querystring@0.2.0: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
+2025-09-29T11:27:33.4314451Z #11 5.789 npm WARN deprecated multer@1.4.5-lts.2: Multer 1.x is impacted by a number of vulnerabilities, which have been patched in 2.x. You should upgrade to the latest 2.x version.
+2025-09-29T11:27:33.8779701Z #11 6.236 npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-09-29T11:27:35.3391868Z #11 7.697 npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-09-29T11:27:35.4425353Z #11 7.800 npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-09-29T11:27:35.6222840Z #11 7.829 npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-09-29T11:27:35.7366682Z #11 8.094 npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2025-09-29T11:27:41.0143883Z #11 13.37 
+2025-09-29T11:27:41.0144527Z #11 13.37 added 831 packages, and audited 832 packages in 11s
+2025-09-29T11:27:41.1667913Z #11 13.37 
+2025-09-29T11:27:41.1668770Z #11 13.37 96 packages are looking for funding
+2025-09-29T11:27:41.1669370Z #11 13.37   run `npm fund` for details
+2025-09-29T11:27:41.1669867Z #11 13.37 
+2025-09-29T11:27:41.1670269Z #11 13.37 found 0 vulnerabilities
+2025-09-29T11:27:41.1670708Z #11 13.37 npm notice 
+2025-09-29T11:27:41.1671223Z #11 13.37 npm notice New major version of npm available! 9.8.0 -> 11.6.1
+2025-09-29T11:27:41.1671964Z #11 13.37 npm notice Changelog: <https://github.com/npm/cli/releases/tag/v11.6.1>
+2025-09-29T11:27:41.1672650Z #11 13.37 npm notice Run `npm install -g npm@11.6.1` to update!
+2025-09-29T11:27:41.1673176Z #11 13.37 npm notice 
+2025-09-29T11:27:41.4559934Z #11 13.66 npm WARN using --force Recommended protections disabled.
+2025-09-29T11:27:42.5803744Z #11 DONE 14.9s
+2025-09-29T11:27:42.7725762Z 
+2025-09-29T11:27:42.7726388Z #12 [ 7/12] COPY tsconfig.json ./
+2025-09-29T11:27:42.7727107Z #12 DONE 0.0s
+2025-09-29T11:27:42.7727462Z 
+2025-09-29T11:27:42.7727712Z #13 [ 8/12] COPY . .
+2025-09-29T11:27:42.7728456Z #13 DONE 0.0s
+2025-09-29T11:27:42.7728772Z 
+2025-09-29T11:27:42.7729430Z #14 [ 9/12] RUN npm run build
+2025-09-29T11:27:43.0480801Z #14 0.426 
+2025-09-29T11:27:43.0481439Z #14 0.426 > avy-tracker-backend@1.0.0 build
+2025-09-29T11:27:43.0481927Z #14 0.426 > tsc
+2025-09-29T11:27:43.0482345Z #14 0.426 
+2025-09-29T11:27:53.6795659Z #14 DONE 11.1s
+2025-09-29T11:27:53.8270566Z 
+2025-09-29T11:27:53.8271177Z #15 [10/12] RUN npm prune --production
+2025-09-29T11:27:54.2248894Z #15 0.397 npm WARN config production Use `--omit=dev` instead.
+2025-09-29T11:27:54.8545032Z #15 1.011 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8546069Z #15 1.011 npm WARN EBADENGINE   package: '@react-native/assets-registry@0.81.4',
+2025-09-29T11:27:54.8546812Z #15 1.011 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8547723Z #15 1.012 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8548767Z #15 1.012 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8549484Z #15 1.012 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8550370Z #15 1.012 npm WARN EBADENGINE   package: '@react-native/codegen@0.81.4',
+2025-09-29T11:27:54.8551283Z #15 1.012 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8552114Z #15 1.012 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8552599Z #15 1.012 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8552996Z #15 1.013 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8553561Z #15 1.013 npm WARN EBADENGINE   package: '@react-native/community-cli-plugin@0.81.4',
+2025-09-29T11:27:54.8554171Z #15 1.013 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8554712Z #15 1.013 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8555188Z #15 1.013 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8555583Z #15 1.013 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8556120Z #15 1.013 npm WARN EBADENGINE   package: '@react-native/debugger-frontend@0.81.4',
+2025-09-29T11:27:54.8556700Z #15 1.013 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8557232Z #15 1.013 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8557699Z #15 1.014 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8558088Z #15 1.014 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8558961Z #15 1.014 npm WARN EBADENGINE   package: '@react-native/dev-middleware@0.81.4',
+2025-09-29T11:27:54.8559544Z #15 1.014 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8560075Z #15 1.014 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8560542Z #15 1.014 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8560929Z #15 1.014 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8561454Z #15 1.014 npm WARN EBADENGINE   package: '@react-native/gradle-plugin@0.81.4',
+2025-09-29T11:27:54.8562500Z #15 1.014 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8563036Z #15 1.014 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8563502Z #15 1.014 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8563886Z #15 1.015 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8564393Z #15 1.015 npm WARN EBADENGINE   package: '@react-native/js-polyfills@0.81.4',
+2025-09-29T11:27:54.8564936Z #15 1.015 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8565458Z #15 1.015 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8565917Z #15 1.015 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8566320Z #15 1.015 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8566846Z #15 1.015 npm WARN EBADENGINE   package: '@react-native/virtualized-lists@0.81.4',
+2025-09-29T11:27:54.8567418Z #15 1.016 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8567937Z #15 1.016 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8568602Z #15 1.016 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8569347Z #15 1.020 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8569820Z #15 1.020 npm WARN EBADENGINE   package: 'metro@0.83.1',
+2025-09-29T11:27:54.8570307Z #15 1.021 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8570828Z #15 1.021 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8571289Z #15 1.021 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8571675Z #15 1.021 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8572178Z #15 1.021 npm WARN EBADENGINE   package: 'metro-babel-transformer@0.83.1',
+2025-09-29T11:27:54.8572711Z #15 1.021 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8573226Z #15 1.021 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8573686Z #15 1.021 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8574071Z #15 1.021 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8574550Z #15 1.021 npm WARN EBADENGINE   package: 'metro-cache@0.83.1',
+2025-09-29T11:27:54.8575072Z #15 1.021 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8575600Z #15 1.021 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8576065Z #15 1.021 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8576461Z #15 1.022 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8576951Z #15 1.022 npm WARN EBADENGINE   package: 'metro-cache-key@0.83.1',
+2025-09-29T11:27:54.8577471Z #15 1.022 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8577991Z #15 1.022 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8578659Z #15 1.022 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8579050Z #15 1.022 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8579517Z #15 1.022 npm WARN EBADENGINE   package: 'metro-config@0.83.1',
+2025-09-29T11:27:54.8580024Z #15 1.022 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8580544Z #15 1.022 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8581016Z #15 1.022 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8581398Z #15 1.023 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8581861Z #15 1.023 npm WARN EBADENGINE   package: 'metro-core@0.83.1',
+2025-09-29T11:27:54.8582355Z #15 1.023 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8582876Z #15 1.023 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8583338Z #15 1.023 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8583719Z #15 1.023 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8584202Z #15 1.023 npm WARN EBADENGINE   package: 'metro-file-map@0.83.1',
+2025-09-29T11:27:54.8584708Z #15 1.023 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8585228Z #15 1.023 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8585826Z #15 1.023 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8586211Z #15 1.023 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8586711Z #15 1.023 npm WARN EBADENGINE   package: 'metro-minify-terser@0.83.1',
+2025-09-29T11:27:54.8587237Z #15 1.023 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8587754Z #15 1.023 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8588813Z #15 1.024 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8589236Z #15 1.024 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8589738Z #15 1.024 npm WARN EBADENGINE   package: 'metro-resolver@0.83.1',
+2025-09-29T11:27:54.8590247Z #15 1.024 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8590761Z #15 1.024 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8591221Z #15 1.024 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8591617Z #15 1.024 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8592100Z #15 1.024 npm WARN EBADENGINE   package: 'metro-runtime@0.83.1',
+2025-09-29T11:27:54.8592727Z #15 1.024 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8593249Z #15 1.024 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8593711Z #15 1.024 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8594098Z #15 1.025 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8594601Z #15 1.025 npm WARN EBADENGINE   package: 'metro-source-map@0.83.1',
+2025-09-29T11:27:54.8595123Z #15 1.025 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8595641Z #15 1.025 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8596106Z #15 1.025 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8596490Z #15 1.025 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8596982Z #15 1.025 npm WARN EBADENGINE   package: 'metro-symbolicate@0.83.1',
+2025-09-29T11:27:54.8597500Z #15 1.025 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8598022Z #15 1.025 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8598693Z #15 1.025 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8599081Z #15 1.025 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8599598Z #15 1.025 npm WARN EBADENGINE   package: 'metro-transform-plugins@0.83.1',
+2025-09-29T11:27:54.8600125Z #15 1.025 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8600648Z #15 1.025 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8601106Z #15 1.025 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8601485Z #15 1.026 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8601984Z #15 1.026 npm WARN EBADENGINE   package: 'metro-transform-worker@0.83.1',
+2025-09-29T11:27:54.8602508Z #15 1.026 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8603014Z #15 1.026 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8603478Z #15 1.026 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8603876Z #15 1.026 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8604323Z #15 1.026 npm WARN EBADENGINE   package: 'ob1@0.83.1',
+2025-09-29T11:27:54.8604803Z #15 1.026 npm WARN EBADENGINE   required: { node: '>=20.19.4' },
+2025-09-29T11:27:54.8605327Z #15 1.026 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8605788Z #15 1.027 npm WARN EBADENGINE }
+2025-09-29T11:27:54.8606165Z #15 1.027 npm WARN EBADENGINE Unsupported engine {
+2025-09-29T11:27:54.8606624Z #15 1.027 npm WARN EBADENGINE   package: 'react-native@0.81.4',
+2025-09-29T11:27:54.8607132Z #15 1.027 npm WARN EBADENGINE   required: { node: '>= 20.19.4' },
+2025-09-29T11:27:54.8607652Z #15 1.027 npm WARN EBADENGINE   current: { node: 'v20.5.0', npm: '9.8.0' }
+2025-09-29T11:27:54.8608112Z #15 1.027 npm WARN EBADENGINE }
+2025-09-29T11:27:55.8473570Z #15 2.171 
+2025-09-29T11:27:55.8474291Z #15 2.171 up to date, audited 638 packages in 2s
+2025-09-29T11:27:56.0505401Z #15 2.171 
+2025-09-29T11:27:56.0505998Z #15 2.171 62 packages are looking for funding
+2025-09-29T11:27:56.0506518Z #15 2.171   run `npm fund` for details
+2025-09-29T11:27:56.0506938Z #15 2.172 
+2025-09-29T11:27:56.0507287Z #15 2.172 found 0 vulnerabilities
+2025-09-29T11:27:56.0507682Z #15 DONE 2.2s
+2025-09-29T11:27:56.0507873Z 
+2025-09-29T11:27:56.0508056Z #16 [11/12] COPY src/config ./dist/src/config
+2025-09-29T11:27:56.0508986Z #16 DONE 0.0s
+2025-09-29T11:27:56.0509308Z 
+2025-09-29T11:27:56.0509636Z #17 [12/12] RUN chown -R nodejs:nodejs /app
+2025-09-29T11:28:17.4087972Z #17 DONE 21.5s
+2025-09-29T11:28:17.5610557Z 
+2025-09-29T11:28:17.5612083Z #18 exporting to image
+2025-09-29T11:28:17.5613762Z #18 exporting layers
+2025-09-29T11:28:25.2673440Z #18 exporting layers 7.9s done
+2025-09-29T11:28:25.2879898Z #18 writing image sha256:cf0c922c6077dbef5bfccd61fe796c4c55c9864f61c9c0b05bd40d446fccd52b done
+2025-09-29T11:28:25.2882013Z #18 naming to docker.io/***/avy-trackerapp:v6 done
+2025-09-29T11:28:25.2882651Z #18 DONE 7.9s
+2025-09-29T11:28:25.2925621Z Pushing Docker image to registry...
+2025-09-29T11:28:25.3032404Z The push refers to repository [docker.io/***/avy-trackerapp]
+2025-09-29T11:28:25.3271809Z 30f541868ab8: Preparing
+2025-09-29T11:28:25.3272460Z 27301bd9e15c: Preparing
+2025-09-29T11:28:25.3273030Z c9f99566fb31: Preparing
+2025-09-29T11:28:25.3273559Z 80adc620ba6c: Preparing
+2025-09-29T11:28:25.3273935Z 44d24c2183e9: Preparing
+2025-09-29T11:28:25.3274309Z 57de7536db6f: Preparing
+2025-09-29T11:28:25.3274679Z 1ed4e5ad30db: Preparing
+2025-09-29T11:28:25.3275038Z 7a0b55928288: Preparing
+2025-09-29T11:28:25.3275394Z 718c88dd325e: Preparing
+2025-09-29T11:28:25.3275750Z 3700c6a9e2f6: Preparing
+2025-09-29T11:28:25.3276110Z 5c37c7875f5c: Preparing
+2025-09-29T11:28:25.3276468Z 9841711cc266: Preparing
+2025-09-29T11:28:25.3276825Z b748d0576055: Preparing
+2025-09-29T11:28:25.3277187Z f866f7afbf16: Preparing
+2025-09-29T11:28:25.3277547Z 4693057ce236: Preparing
+2025-09-29T11:28:25.3277918Z 3700c6a9e2f6: Waiting
+2025-09-29T11:28:25.3278527Z 57de7536db6f: Waiting
+2025-09-29T11:28:25.3278887Z 1ed4e5ad30db: Waiting
+2025-09-29T11:28:25.3279241Z 5c37c7875f5c: Waiting
+2025-09-29T11:28:25.3279592Z 7a0b55928288: Waiting
+2025-09-29T11:28:25.3279935Z 718c88dd325e: Waiting
+2025-09-29T11:28:25.3280285Z 9841711cc266: Waiting
+2025-09-29T11:28:25.3280622Z f866f7afbf16: Waiting
+2025-09-29T11:28:25.3280940Z b748d0576055: Waiting
+2025-09-29T11:28:25.3281256Z 4693057ce236: Waiting
+2025-09-29T11:28:26.4425836Z 80adc620ba6c: Pushed
+2025-09-29T11:28:26.4612361Z 27301bd9e15c: Pushed
+2025-09-29T11:28:26.4613911Z 44d24c2183e9: Pushed
+2025-09-29T11:28:26.5352854Z c9f99566fb31: Pushed
+2025-09-29T11:28:27.5192172Z 57de7536db6f: Pushed
+2025-09-29T11:28:27.5366661Z 718c88dd325e: Pushed
+2025-09-29T11:28:27.6110560Z 7a0b55928288: Pushed
+2025-09-29T11:28:27.7184530Z 9841711cc266: Layer already exists
+2025-09-29T11:28:27.8279553Z b748d0576055: Layer already exists
+2025-09-29T11:28:27.9231448Z f866f7afbf16: Layer already exists
+2025-09-29T11:28:28.0175736Z 4693057ce236: Layer already exists
+2025-09-29T11:28:28.4410684Z 5c37c7875f5c: Pushed
+2025-09-29T11:28:28.5617765Z 3700c6a9e2f6: Pushed
+2025-09-29T11:28:39.9974855Z 30f541868ab8: Pushed
+2025-09-29T11:28:43.4132337Z 1ed4e5ad30db: Pushed
+2025-09-29T11:28:46.2766870Z v6: digest: sha256:2ee162cc805a4afa9d30618d7479a9f98c48e54dcd2b10fae1f6deaf876c0218 size: 3459
+2025-09-29T11:28:46.2792063Z Docker image pushed successfully!
+2025-09-29T11:28:46.2852117Z ##[group]Run azure/webapps-deploy@v2
+2025-09-29T11:28:46.2852537Z with:
+2025-09-29T11:28:46.2852882Z   app-name: avytracker-server-202509291512
+2025-09-29T11:28:46.2853302Z   slot-name: production
+2025-09-29T11:28:46.2853763Z   images: ***/avy-trackerapp:v6
+2025-09-29T11:28:46.2859485Z   publish-profile: ***
+2025-09-29T11:28:46.2859839Z   package: .
+2025-09-29T11:28:46.2860161Z ##[endgroup]
+2025-09-29T11:28:47.6875125Z ##[error]Deployment Failed, Error: Failed to get app runtime OS
+{}
+2025-09-29T11:28:47.6998529Z Post job cleanup.
+2025-09-29T11:28:47.7939730Z [command]/usr/bin/docker logout 
+2025-09-29T11:28:47.8057408Z Removing login credentials for https://index.docker.io/v1/
+2025-09-29T11:28:47.8185547Z Post job cleanup.
+2025-09-29T11:28:47.9104854Z [command]/usr/bin/git version
+2025-09-29T11:28:47.9144675Z git version 2.51.0
+2025-09-29T11:28:47.9187802Z Temporarily overriding HOME='/home/runner/work/_temp/59ae7221-1f2e-4c35-9bb0-526922e53d9b' before making global git config changes
+2025-09-29T11:28:47.9189572Z Adding repository directory to the temporary git global config as a safe directory
+2025-09-29T11:28:47.9194682Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Avy-Tracker/Avy-Tracker
+2025-09-29T11:28:47.9232307Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-09-29T11:28:47.9266151Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-09-29T11:28:47.9505146Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-09-29T11:28:47.9525431Z http.https://github.com/.extraheader
+2025-09-29T11:28:47.9538612Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-09-29T11:28:47.9568797Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-09-29T11:28:47.9883638Z Cleaning up orphan processes
