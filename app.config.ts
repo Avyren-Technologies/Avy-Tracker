@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Avy Tracker",
   slug: "avy-tracker",
-  version: "1.1.2",
+  version: "1.1.3",
   orientation: "portrait",
   icon: "./assets/images/adaptive-icon.png",
   scheme: "myapp",
