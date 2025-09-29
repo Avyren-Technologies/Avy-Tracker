@@ -33,9 +33,10 @@ const getCACertificate = (): string => {
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    ca: getCACertificate(),
-  },
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false, // Allow self-signed certificates in production
+    ca: process.env.DATABASE_CA_CERT || undefined,
+  } : false, // Disable SSL in development
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
