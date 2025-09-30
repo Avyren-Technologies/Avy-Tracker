@@ -17,6 +17,8 @@ import LeaveBalances from "./components/LeaveBalances";
 import LeaveCalendar from "./components/LeaveCalendar";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import BottomNav from "../../../components/BottomNav";
+import { employeeNavItems } from "../utils/navigationItems";
 
 type Tab = "requests" | "balances" | "policies" | "calendar";
 
@@ -187,6 +189,9 @@ export default function EmployeeLeaveInsights() {
           <LeavePolicies />
         )}
       </ScrollView>
+
+      {/* Bottom Navigation */}
+      <BottomNav items={employeeNavItems} />
     </View>
   );
 }

@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Platform,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import ThemeContext from "../context/ThemeContext";
@@ -44,7 +45,7 @@ const API_URL =
 
 export default function SignIn() {
   const { theme } = ThemeContext.useTheme();
-  const { login, isLoading, isOffline } = AuthContext.useAuth();
+  const { login, isLoading, isOffline, user, token } = AuthContext.useAuth();
   const router = useRouter();
 
   const [identifier, setIdentifier] = useState("");
@@ -79,7 +80,7 @@ export default function SignIn() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const inputFocusAnim = useRef(new Animated.Value(0)).current;
-  const networkStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const networkStatusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const floatingShapesAnim = useRef(new Animated.Value(0)).current;
 
   // Theme-based colors
@@ -160,6 +161,101 @@ export default function SignIn() {
       }
     };
   }, []);
+
+  // Helper function to route user to correct dashboard (matches AuthContext logic)
+  const routeUserToDashboard = async (role: string) => {
+    try {
+      // Check if we need to reset the counter for a new day (IST 12:00 AM)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+      const istTime = new Date(now.getTime() + istOffset);
+      const todayIST = istTime.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+      const lastResetDate = await AsyncStorage.getItem("appOpenCounterResetDate");
+      const appOpenCount = await AsyncStorage.getItem("appOpenCount");
+
+      let count = 0;
+
+      // Reset counter if it's a new day in IST
+      if (lastResetDate !== todayIST) {
+        console.log(`New day detected (IST): ${todayIST}, resetting app open counter`);
+        await AsyncStorage.setItem("appOpenCounterResetDate", todayIST);
+        await AsyncStorage.setItem("appOpenCount", "0");
+        count = 0;
+      } else {
+        count = appOpenCount ? parseInt(appOpenCount) : 0;
+      }
+
+      const maxShiftTrackerOpens = 5; // Show shift tracker for first 5 opens each day
+
+      // Increment app open count
+      await AsyncStorage.setItem("appOpenCount", (count + 1).toString());
+
+      // For first few opens of the day, show shift tracker instead of dashboard
+      if (count < maxShiftTrackerOpens) {
+        console.log(`Daily app open count: ${count + 1}/${maxShiftTrackerOpens} - Showing shift tracker (IST: ${todayIST})`);
+        router.replace("/(dashboard)/shared/shiftTracker");
+      } else {
+        // After max opens for the day, show normal dashboard
+        console.log(`Daily app open count: ${count + 1} - Showing normal dashboard (IST: ${todayIST})`);
+        switch (role) {
+          case "employee":
+            router.replace("/(dashboard)/employee/employee");
+            break;
+          case "group-admin":
+            router.replace("/(dashboard)/Group-Admin/group-admin");
+            break;
+          case "management":
+            router.replace("/(dashboard)/management/management");
+            break;
+          case "super-admin":
+            router.replace("/(dashboard)/super-admin/super-admin");
+            break;
+          default:
+            console.error("Invalid user role:", role);
+        }
+      }
+    } catch (error) {
+      console.error("Error in routeUserToDashboard:", error);
+      // Fallback to normal dashboard routing
+      switch (role) {
+        case "employee":
+          router.replace("/(dashboard)/employee/employee");
+          break;
+        case "group-admin":
+          router.replace("/(dashboard)/Group-Admin/group-admin");
+          break;
+        case "management":
+          router.replace("/(dashboard)/management/management");
+          break;
+        case "super-admin":
+          router.replace("/(dashboard)/super-admin/super-admin");
+          break;
+        default:
+          console.error("Invalid user role:", role);
+      }
+    }
+  };
+
+  // Check if user is already authenticated and redirect accordingly
+  useEffect(() => {
+    const checkAuthenticationAndRedirect = async () => {
+      // Wait for AuthContext to finish loading
+      if (isLoading) {
+        return;
+      }
+
+      // If user is authenticated and has a valid token, redirect to appropriate dashboard
+      if (user && token) {
+        console.log(`User ${user.name} (${user.role}) is already authenticated, redirecting to dashboard...`);
+        
+        // Use the same routing logic as AuthContext
+        await routeUserToDashboard(user.role);
+      }
+    };
+
+    checkAuthenticationAndRedirect();
+  }, [user, token, isLoading, router]);
 
   const checkNetworkStatus = async () => {
     try {
@@ -709,6 +805,38 @@ export default function SignIn() {
     outputRange: [0, 20],
   });
 
+  // Show loading screen while AuthContext is initializing
+  if (isLoading) {
+    return (
+      <>
+        <StatusBar
+          barStyle={theme === "dark" ? "light-content" : "dark-content"}
+          backgroundColor={currentColors.background}
+        />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: currentColors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color={currentColors.primary} />
+          <Text
+            style={{
+              marginTop: 16,
+              fontSize: 16,
+              color: currentColors.text,
+              fontWeight: "500",
+            }}
+          >
+            Checking authentication...
+          </Text>
+        </View>
+      </>
+    );
+  }
+
   return (
     <>
       <StatusBar
@@ -725,113 +853,121 @@ export default function SignIn() {
           onBack={handleMFABack}
         />
       ) : (
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={Keyboard.dismiss}
-          style={{
-            flex: 1,
-          }}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Main background */}
-          <View
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={Keyboard.dismiss}
             style={{
               flex: 1,
-              backgroundColor: currentColors.background,
             }}
           >
-            {/* Subtle gradient overlay */}
-            <LinearGradient
-              colors={[
-                currentColors.background,
-                theme === "dark"
-                  ? "rgba(59, 130, 246, 0.05)"
-                  : "rgba(59, 130, 246, 0.02)",
-                currentColors.background,
-              ]}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
-
-            {/* Floating geometric shapes */}
+            {/* Main background */}
             <View
-              style={{ position: "absolute", width: "100%", height: "100%" }}
+              style={{
+                flex: 1,
+                backgroundColor: currentColors.background,
+              }}
             >
-              {/* Blue circle */}
-              <Animated.View
+              {/* Subtle gradient overlay */}
+              <LinearGradient
+                colors={[
+                  currentColors.background,
+                  theme === "dark"
+                    ? "rgba(59, 130, 246, 0.05)"
+                    : "rgba(59, 130, 246, 0.02)",
+                  currentColors.background,
+                ]}
                 style={{
                   position: "absolute",
-                  top: height * 0.1,
-                  right: width * 0.1,
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: currentColors.primary,
-                  opacity: 0.15,
-                  transform: [{ translateY: floatingOffset }],
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                 }}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
               />
 
-              {/* Sky square */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  bottom: height * 0.3,
-                  left: width * 0.1,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 8,
-                  backgroundColor: currentColors.secondary,
-                  opacity: 0.2,
-                  transform: [
-                    {
-                      translateY: floatingOffset.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -15],
-                      }),
-                    },
-                  ],
-                }}
-              />
+              {/* Floating geometric shapes */}
+              <View
+                style={{ position: "absolute", width: "100%", height: "100%" }}
+              >
+                {/* Blue circle */}
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    top: height * 0.1,
+                    right: width * 0.1,
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    backgroundColor: currentColors.primary,
+                    opacity: 0.15,
+                    transform: [{ translateY: floatingOffset }],
+                  }}
+                />
 
-              {/* Indigo triangle */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: height * 0.7,
-                  right: width * 0.2,
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 20,
-                  borderRightWidth: 20,
-                  borderBottomWidth: 35,
-                  borderLeftColor: "transparent",
-                  borderRightColor: "transparent",
-                  borderBottomColor: currentColors.accent,
-                  opacity: 0.1,
-                  transform: [
-                    {
-                      translateY: floatingOffset.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 10],
-                      }),
-                    },
-                  ],
-                }}
-              />
-            </View>
+                {/* Sky square */}
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    bottom: height * 0.3,
+                    left: width * 0.1,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    backgroundColor: currentColors.secondary,
+                    opacity: 0.2,
+                    transform: [
+                      {
+                        translateY: floatingOffset.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -15],
+                        }),
+                      },
+                    ],
+                  }}
+                />
 
-            <ScrollView
-              contentContainerStyle={{ flexGrow: 1 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+                {/* Indigo triangle */}
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    top: height * 0.7,
+                    right: width * 0.2,
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: 20,
+                    borderRightWidth: 20,
+                    borderBottomWidth: 35,
+                    borderLeftColor: "transparent",
+                    borderRightColor: "transparent",
+                    borderBottomColor: currentColors.accent,
+                    opacity: 0.1,
+                    transform: [
+                      {
+                        translateY: floatingOffset.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 10],
+                        }),
+                      },
+                    ],
+                  }}
+                />
+              </View>
+
+              <ScrollView
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                scrollEventThrottle={16}
+                keyboardDismissMode="interactive"
+              >
               <Animated.View
                 style={{
                   flex: 1,
@@ -1041,6 +1177,8 @@ export default function SignIn() {
                           : "email-address"
                       }
                       autoCapitalize="none"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
                       style={{
                         backgroundColor: currentColors.inputBackground,
                         padding: 16,
@@ -1097,6 +1235,8 @@ export default function SignIn() {
                           setError(null);
                         }}
                         secureTextEntry={!showPassword}
+                        returnKeyType="done"
+                        onSubmitEditing={handleSignIn}
                         style={{
                           backgroundColor: currentColors.inputBackground,
                           padding: 16,
@@ -1322,6 +1462,7 @@ export default function SignIn() {
             </ScrollView>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       )}
     </>
   );

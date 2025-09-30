@@ -20,7 +20,7 @@ export default function GroupAdminLeaveInsights() {
   ] as const;
 
   return (
-    <View className="flex-1 p-6">
+    <View className="flex-1 p-6 mt-6">
       {/* Header */}
       <View className="flex-row items-center mb-6 gap-4">
         <TouchableOpacity

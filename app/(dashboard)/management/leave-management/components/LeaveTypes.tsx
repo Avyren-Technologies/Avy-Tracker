@@ -15,13 +15,19 @@ import axios from "axios";
 import Modal from "react-native-modal";
 
 interface LeaveType {
-  id: number;
-  name: string;
+  leave_type_id: number;
+  leave_type_name: string;
   description: string;
   requires_documentation: boolean;
   max_days: number;
   is_paid: boolean;
   is_active: boolean;
+  carry_forward_days: number;
+  gender_specific: string | null;
+  pending_days: number;
+  total_days: number;
+  used_days: number;
+  year: number;
 }
 
 export default function LeaveTypes() {
@@ -34,6 +40,7 @@ export default function LeaveTypes() {
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -49,15 +56,34 @@ export default function LeaveTypes() {
     fetchLeaveTypes();
   }, []);
 
+  // Filter leave types based on selected filter
+  const filteredLeaveTypes = leaveTypes.filter((type) => {
+    const result = (() => {
+      switch (filter) {
+        case 'active':
+          return type.is_active;
+        case 'inactive':
+          return !type.is_active;
+        case 'all':
+        default:
+          return true;
+      }
+    })();
+    
+    return result;
+  });
+
   const fetchLeaveTypes = async () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types`,
+        `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types/all`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
+      
+      
       setLeaveTypes(response.data);
     } catch (error) {
       console.error("Error fetching leave types:", error);
@@ -71,7 +97,7 @@ export default function LeaveTypes() {
     try {
       setLoading(true);
       const endpoint = editingType
-        ? `/api/leave-management/leave-types/${editingType.id}`
+        ? `/api/leave-management/leave-types/${editingType.leave_type_id}`
         : "/api/leave-management/leave-types";
 
       const method = editingType ? "put" : "post";
@@ -79,8 +105,12 @@ export default function LeaveTypes() {
       const response = await axios[method](
         `${process.env.EXPO_PUBLIC_API_URL}${endpoint}`,
         {
-          ...formData,
+          name: formData.name,
+          description: formData.description,
+          requires_documentation: formData.requires_documentation,
           max_days: parseInt(formData.max_days),
+          is_paid: formData.is_paid,
+          is_active: formData.is_active,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -115,7 +145,7 @@ export default function LeaveTypes() {
   const handleEdit = (type: LeaveType) => {
     setEditingType(type);
     setFormData({
-      name: type.name,
+      name: type.leave_type_name,
       description: type.description,
       requires_documentation: type.requires_documentation,
       max_days: type.max_days.toString(),
@@ -184,109 +214,211 @@ export default function LeaveTypes() {
         </View>
       </View>
 
+      {/* Filter Buttons */}
+      <View className="flex-row mb-4 space-x-2">
+        <TouchableOpacity
+          onPress={() => setFilter('all')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'all'
+              ? 'bg-blue-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'all'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
+            }`}
+          >
+            All ({leaveTypes.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFilter('active')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'active'
+              ? 'bg-green-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'active'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
+            }`}
+          >
+            Active ({leaveTypes.filter(t => t.is_active).length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFilter('inactive')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'inactive'
+              ? 'bg-red-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'inactive'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
+            }`}
+          >
+            Inactive ({leaveTypes.filter(t => !t.is_active).length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Leave Types List */}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
       >
-        {leaveTypes.map((type, index) => (
-          <React.Fragment key={type.id}>
-            <TouchableOpacity
-              onPress={() => handleEdit(type)}
-              className={`p-4 ${isDark ? "bg-gray-800" : "bg-white"}`}
-            >
-              <View className="flex-row justify-between items-center">
+        {filteredLeaveTypes.length === 0 ? (
+          <View className="flex-1 justify-center items-center py-8">
+            <Text className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              {leaveTypes.length === 0 
+                ? "No leave types found" 
+                : `No ${filter} leave types found`}
+            </Text>
+            <Text className={`text-sm mt-2 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              {leaveTypes.length === 0 
+                ? 'Click "Initialize Defaults" to create default leave types'
+                : 'Try changing the filter or add a new leave type'}
+            </Text>
+          </View>
+        ) : (
+          filteredLeaveTypes.map((type, index) => {
+            const isLastItem = index === filteredLeaveTypes.length - 1;
+            
+            return (
+              <View key={type.leave_type_id}>
+                <TouchableOpacity
+                  onPress={() => handleEdit(type)}
+                  className={`p-4 ${
+                    isDark 
+                      ? type.is_active ? "bg-gray-800" : "bg-gray-900" 
+                      : type.is_active ? "bg-white" : "bg-gray-100"
+                  } ${!type.is_active ? "opacity-75" : ""}`}
+                >
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-row items-center flex-1">
+                      <Text
+                        className={`text-lg font-semibold ${
+                          isDark ? "text-white" : "text-gray-900"
+                        } ${!type.is_active ? "line-through" : ""}`}
+                      >
+                        {type.leave_type_name || "Unnamed Leave Type"}
+                      </Text>
+                      {!type.is_active && (
+                        <View className="ml-2 px-2 py-1 bg-red-100 rounded">
+                          <Text className="text-red-800 text-xs font-medium">
+                            INACTIVE
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  <View
+                    className={`px-2 py-1 rounded ${
+                      type.is_active ? "bg-green-100" : "bg-red-100"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        type.is_active ? "text-green-800" : "text-red-800"
+                      }`}
+                    >
+                      {type.is_active ? "Active" : "Inactive"}
+                    </Text>
+                  </View>
+                </View>
+
                 <Text
-                  className={`text-lg font-semibold ${
-                    isDark ? "text-white" : "text-gray-900"
-                  }`}
+                  className={`mt-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}
                 >
-                  {type.name}
+                  {type.description}
                 </Text>
-                <View
-                  className={`px-2 py-1 rounded ${
-                    type.is_active ? "bg-green-100" : "bg-red-100"
-                  }`}
-                >
-                  <Text
-                    className={`text-sm ${
-                      type.is_active ? "text-green-800" : "text-red-800"
-                    }`}
-                  >
-                    {type.is_active ? "Active" : "Inactive"}
-                  </Text>
+
+                <View className="flex-row mt-4 justify-between">
+                  <View className="flex-row items-center flex-1">
+                    <Ionicons
+                      name="document-text"
+                      size={16}
+                      color={isDark ? "#9CA3AF" : "#4B5563"}
+                    />
+                    <Text
+                      className={`ml-2 ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      {type.requires_documentation
+                        ? "Docs Required"
+                        : "No Docs Required"}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center flex-1 mx-4">
+                    <Ionicons
+                      name="calendar"
+                      size={16}
+                      color={isDark ? "#9CA3AF" : "#4B5563"}
+                    />
+                    <Text
+                      className={`ml-2 ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      Max {type.max_days} days
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center flex-1">
+                    <Ionicons
+                      name="cash"
+                      size={16}
+                      color={isDark ? "#9CA3AF" : "#4B5563"}
+                    />
+                    <Text
+                      className={`ml-2 ${
+                        isDark ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      {type.is_paid ? "Paid" : "Unpaid"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
 
-              <Text
-                className={`mt-2 ${isDark ? "text-gray-300" : "text-gray-600"}`}
-              >
-                {type.description}
-              </Text>
-
-              <View className="flex-row mt-4 justify-between">
-                <View className="flex-row items-center flex-1">
-                  <Ionicons
-                    name="document-text"
-                    size={16}
-                    color={isDark ? "#9CA3AF" : "#4B5563"}
+              {/* Add separator and spacing if not the last item */}
+              {!isLastItem && (
+                <>
+                  <View
+                    className={`h-[1px] mx-4 ${
+                      isDark ? "bg-gray-700" : "bg-gray-200"
+                    }`}
                   />
-                  <Text
-                    className={`ml-2 ${
-                      isDark ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  >
-                    {type.requires_documentation
-                      ? "Docs Required"
-                      : "No Docs Required"}
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center flex-1 mx-4">
-                  <Ionicons
-                    name="calendar"
-                    size={16}
-                    color={isDark ? "#9CA3AF" : "#4B5563"}
-                  />
-                  <Text
-                    className={`ml-2 ${
-                      isDark ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  >
-                    Max {type.max_days} days
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center flex-1">
-                  <Ionicons
-                    name="cash"
-                    size={16}
-                    color={isDark ? "#9CA3AF" : "#4B5563"}
-                  />
-                  <Text
-                    className={`ml-2 ${
-                      isDark ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  >
-                    {type.is_paid ? "Paid" : "Unpaid"}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* Add separator if not the last item */}
-            {index < leaveTypes.length - 1 && (
-              <View
-                className={`h-[1px] mx-4 ${
-                  isDark ? "bg-gray-700" : "bg-gray-200"
-                }`}
-              />
-            )}
-
-            {/* Add spacing between items */}
-            {index < leaveTypes.length - 1 && <View className="h-4" />}
-          </React.Fragment>
-        ))}
+                  <View className="h-4" />
+                </>
+              )}
+            </View>
+          );
+        })
+        )}
       </ScrollView>
 
       {/* Add/Edit Modal */}
@@ -312,8 +444,8 @@ export default function LeaveTypes() {
           </Text>
 
           {/* Form Fields */}
-          <View className="space-y-4">
-            <View>
+          <View>
+            <View className="mb-4">
               <Text
                 className={`text-sm font-medium mb-2 ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -335,7 +467,7 @@ export default function LeaveTypes() {
               />
             </View>
 
-            <View>
+            <View className="mb-4">
               <Text
                 className={`text-sm font-medium mb-2 ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -360,7 +492,7 @@ export default function LeaveTypes() {
               />
             </View>
 
-            <View>
+            <View className="mb-4">
               <Text
                 className={`text-sm font-medium mb-2 ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -383,7 +515,7 @@ export default function LeaveTypes() {
               />
             </View>
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center mb-4">
               <Text
                 className={`text-sm font-medium ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -402,7 +534,7 @@ export default function LeaveTypes() {
               />
             </View>
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center mb-4">
               <Text
                 className={`text-sm font-medium ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -418,7 +550,7 @@ export default function LeaveTypes() {
               />
             </View>
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center mb-4">
               <Text
                 className={`text-sm font-medium ${
                   isDark ? "text-gray-300" : "text-gray-700"
@@ -436,7 +568,7 @@ export default function LeaveTypes() {
           </View>
 
           {/* Action Buttons */}
-          <View className="flex-row space-x-4 mt-6 gap-4">
+          <View className="flex-row mt-6 gap-4">
             <TouchableOpacity
               onPress={() => {
                 setShowAddModal(false);

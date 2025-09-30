@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar as RNStatusBar,
   Image,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
@@ -434,10 +435,21 @@ export default function AddCompany() {
         </View>
       </LinearGradient>
 
-      <ScrollView
-        className={`flex-1 ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View className="p-6">
+        <ScrollView
+          className={`flex-1 ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          scrollEventThrottle={16}
+          keyboardDismissMode="interactive"
+        >
+          <View className="p-6">
           {formFields.map((section) => (
             <View key={section.section} className="mb-8">
               <Text
@@ -624,6 +636,8 @@ export default function AddCompany() {
                             placeholder={field.placeholder}
                             keyboardType="phone-pad"
                             maxLength={10}
+                            returnKeyType="next"
+                            blurOnSubmit={false}
                           />
                         </View>
                       </View>
@@ -664,6 +678,9 @@ export default function AddCompany() {
                           keyboardType={field.keyboardType as any}
                           multiline={field.multiline}
                           numberOfLines={field.multiline ? 4 : 1}
+                          returnKeyType={field.key === "managementPassword" ? "done" : "next"}
+                          blurOnSubmit={field.key === "managementPassword" ? true : false}
+                          onSubmitEditing={field.key === "managementPassword" ? handleSubmit : undefined}
                         />
                       </View>
                     )}
@@ -689,8 +706,9 @@ export default function AddCompany() {
               {loading ? "Adding Company..." : "Add Company"}
             </Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

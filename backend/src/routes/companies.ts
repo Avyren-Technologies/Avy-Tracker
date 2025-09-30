@@ -6,6 +6,393 @@ import { CustomRequest } from "../types";
 import multer from "multer";
 import { Buffer } from "buffer";
 
+// Import the initializeDefaultLeaveTypes function from leave-management
+const initializeDefaultLeaveTypes = async (companyId: number) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Default leave types
+    const defaultLeaveTypes = [
+      {
+        name: "Privilege/Earned Leave (PL/EL)",
+        description: "Accrues monthly for planned vacations or personal time off",
+        requires_documentation: false,
+        max_days: 18,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Casual Leave (CL)",
+        description: "For urgent or unforeseen personal matters",
+        requires_documentation: false,
+        max_days: 12,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Sick Leave (SL)",
+        description: "For health-related absences",
+        requires_documentation: true,
+        max_days: 12,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Maternity Leave (ML)",
+        description: "For pre- and post-natal care",
+        requires_documentation: true,
+        max_days: 90,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Child Care Leave",
+        description: "For childcare responsibilities",
+        requires_documentation: false,
+        max_days: 15,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Child Adoption Leave",
+        description: "For adoptive parents",
+        requires_documentation: true,
+        max_days: 90,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Compensatory Off",
+        description: "Granted in lieu of extra hours worked",
+        requires_documentation: false,
+        max_days: 0,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Marriage Leave",
+        description: "For employee's own wedding",
+        requires_documentation: true,
+        max_days: 5,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Paternity Leave",
+        description: "For male employees following child birth",
+        requires_documentation: true,
+        max_days: 10,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Bereavement Leave",
+        description: "Upon death of immediate family member",
+        requires_documentation: true,
+        max_days: 5,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Leave Without Pay (LWP)",
+        description: "Unpaid leave beyond allocated quota",
+        requires_documentation: false,
+        max_days: 0,
+        is_paid: false,
+        is_active: true,
+      },
+      {
+        name: "Sabbatical Leave",
+        description: "Extended leave after long service",
+        requires_documentation: true,
+        max_days: 180,
+        is_paid: false,
+        is_active: true,
+      },
+      {
+        name: "Half Pay Leave (HPL)",
+        description: "Leave with half salary",
+        requires_documentation: false,
+        max_days: 20,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Commuted Leave",
+        description: "Conversion of half pay leave to full pay",
+        requires_documentation: true,
+        max_days: 10,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Leave Not Due (LND)",
+        description: "Advance leave against future accruals",
+        requires_documentation: true,
+        max_days: 10,
+        is_paid: true,
+        is_active: true,
+      },
+      {
+        name: "Special Casual Leave (SCL)",
+        description: "For specific purposes like blood donation, sports events",
+        requires_documentation: true,
+        max_days: 10,
+        is_paid: true,
+        is_active: true,
+      },
+    ];
+
+    // Insert leave types and store their IDs
+    const leaveTypeIds: { [key: string]: number } = {};
+    for (const type of defaultLeaveTypes) {
+      const result = await client.query(
+        `INSERT INTO leave_types 
+        (name, description, requires_documentation, max_days, is_paid, is_active, company_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (name, company_id) DO UPDATE 
+        SET description = EXCLUDED.description,
+            requires_documentation = EXCLUDED.requires_documentation,
+            max_days = EXCLUDED.max_days,
+            is_paid = EXCLUDED.is_paid,
+            is_active = EXCLUDED.is_active
+        RETURNING id`,
+        [
+          type.name,
+          type.description,
+          type.requires_documentation,
+          type.max_days,
+          type.is_paid,
+          type.is_active,
+          companyId,
+        ],
+      );
+      leaveTypeIds[type.name] = result.rows[0].id;
+    }
+
+    // Default leave policies
+    const defaultPolicies = [
+      {
+        leave_type_id: leaveTypeIds["Privilege/Earned Leave (PL/EL)"],
+        default_days: 18,
+        carry_forward_days: 30,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 15,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Casual Leave (CL)"],
+        default_days: 12,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 1,
+        max_consecutive_days: 3,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Sick Leave (SL)"],
+        default_days: 12,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 0,
+        max_consecutive_days: 5,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Maternity Leave (ML)"],
+        default_days: 90,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 30,
+        max_consecutive_days: 90,
+        gender_specific: "female",
+      },
+      {
+        leave_type_id: leaveTypeIds["Child Care Leave"],
+        default_days: 15,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 15,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Child Adoption Leave"],
+        default_days: 90,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 30,
+        max_consecutive_days: 90,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Compensatory Off"],
+        default_days: 0,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 1,
+        max_consecutive_days: 2,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Marriage Leave"],
+        default_days: 5,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 15,
+        max_consecutive_days: 5,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Paternity Leave"],
+        default_days: 10,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 15,
+        max_consecutive_days: 10,
+        gender_specific: "male",
+      },
+      {
+        leave_type_id: leaveTypeIds["Bereavement Leave"],
+        default_days: 5,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 0,
+        max_consecutive_days: 5,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Leave Without Pay (LWP)"],
+        default_days: 0,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 30,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Sabbatical Leave"],
+        default_days: 180,
+        carry_forward_days: 0,
+        min_service_days: 2555, // 7 years
+        requires_approval: true,
+        notice_period_days: 90,
+        max_consecutive_days: 180,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Half Pay Leave (HPL)"],
+        default_days: 20,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 20,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Commuted Leave"],
+        default_days: 10,
+        carry_forward_days: 0,
+        min_service_days: 180,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 10,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Leave Not Due (LND)"],
+        default_days: 10,
+        carry_forward_days: 0,
+        min_service_days: 365,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 10,
+        gender_specific: null,
+      },
+      {
+        leave_type_id: leaveTypeIds["Special Casual Leave (SCL)"],
+        default_days: 10,
+        carry_forward_days: 0,
+        min_service_days: 90,
+        requires_approval: true,
+        notice_period_days: 7,
+        max_consecutive_days: 10,
+        gender_specific: null,
+      },
+    ];
+
+    // Insert leave policies
+    for (const policy of defaultPolicies) {
+      const leaveTypeName = Object.keys(leaveTypeIds).find(
+        (key) => leaveTypeIds[key] === policy.leave_type_id,
+      );
+
+      if (!leaveTypeName || !leaveTypeIds[leaveTypeName]) {
+        console.error(
+          `Invalid leave type ID: ${policy.leave_type_id} for policy creation`,
+        );
+        continue;
+      }
+
+      await client.query(
+        `INSERT INTO leave_policies 
+         (leave_type_id, default_days, carry_forward_days, min_service_days,
+          requires_approval, notice_period_days, max_consecutive_days,
+          gender_specific, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+         ON CONFLICT (leave_type_id) DO UPDATE 
+         SET default_days = EXCLUDED.default_days,
+             carry_forward_days = EXCLUDED.carry_forward_days,
+             min_service_days = EXCLUDED.min_service_days,
+             requires_approval = EXCLUDED.requires_approval,
+             notice_period_days = EXCLUDED.notice_period_days,
+             max_consecutive_days = EXCLUDED.max_consecutive_days,
+             gender_specific = EXCLUDED.gender_specific,
+             is_active = true
+         RETURNING id`,
+        [
+          policy.leave_type_id,
+          policy.default_days,
+          policy.carry_forward_days,
+          policy.min_service_days,
+          policy.requires_approval,
+          policy.notice_period_days,
+          policy.max_consecutive_days,
+          policy.gender_specific,
+        ],
+      );
+    }
+
+    await client.query("COMMIT");
+    console.log(
+      `Successfully initialized ${Object.keys(leaveTypeIds).length} leave types and policies for company ${companyId}`,
+    );
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error(
+      "Error initializing default leave types and policies:",
+      error,
+    );
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 // Configure multer for handling file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -202,6 +589,15 @@ router.post(
       );
 
       await client.query("COMMIT");
+
+      // Initialize default leave types and policies for the new company
+      try {
+        await initializeDefaultLeaveTypes(companyId);
+        console.log(`Successfully initialized leave types for company ${companyId}`);
+      } catch (leaveInitError) {
+        // Log the error but don't fail the company creation
+        console.error(`Failed to initialize leave types for company ${companyId}:`, leaveInitError);
+      }
 
       res.status(201).json({
         message: "Company created successfully",

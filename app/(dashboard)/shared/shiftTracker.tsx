@@ -40,6 +40,12 @@ import FaceVerificationModal from "../../components/FaceVerificationModal";
 import OTPVerification from "../../components/OTPVerification";
 import VerificationOrchestrator from "../../components/VerificationOrchestrator";
 import LiveTrackingMap from "../shared/components/map/LiveTrackingMap";
+import BottomNav from "../../components/BottomNav";
+
+// Import navigation items for all roles
+import { employeeNavItems } from "../employee/utils/navigationItems";
+import { groupAdminNavItems } from "../Group-Admin/utils/navigationItems";
+import { managementNavItems } from "../management/utils/navigationItems";
 
 // Import deep link utilities
 import { promptFaceConfiguration } from "../../utils/deepLinkUtils";
@@ -129,6 +135,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -652,6 +660,20 @@ export default function EmployeeShiftTracker() {
   const router = useRouter();
   const isDark = theme === "dark";
 
+  // Role-based navigation items
+  const getNavigationItems = () => {
+    switch (user?.role) {
+      case "employee":
+        return employeeNavItems;
+      case "group-admin":
+        return groupAdminNavItems;
+      case "management":
+        return managementNavItems;
+      default:
+        return employeeNavItems; // Default fallback
+    }
+  };
+
   // Helper function to handle back navigation with fallback to role-specific dashboard
   const handleBackNavigation = () => {
     // Check if we can go back by checking the navigation state
@@ -758,7 +780,7 @@ export default function EmployeeShiftTracker() {
     useState(true);
   const [locationWatchId, setLocationWatchId] = useState<string | null>(null);
   const [locationOffTimer, setLocationOffTimer] =
-    useState<NodeJS.Timeout | null>(null);
+    useState<ReturnType<typeof setTimeout> | null>(null);
   const [inAppNotification, setInAppNotification] = useState<{
     visible: boolean;
     message: string;
@@ -769,7 +791,7 @@ export default function EmployeeShiftTracker() {
     type: "info",
   });
   const [locationCheckInterval, setLocationCheckInterval] =
-    useState<NodeJS.Timeout | null>(null);
+    useState<ReturnType<typeof setInterval> | null>(null);
   const [isAddressRefreshing, setIsAddressRefreshing] = useState(false);
 
   // Add button debouncing state and cooldown
@@ -880,7 +902,7 @@ export default function EmployeeShiftTracker() {
   }, []);
 
   // CRITICAL FIX: Add ref to prevent multiple cooldown timers
-  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const setShiftCooldown = useCallback(async () => {
     // CRITICAL FIX: Clear existing cooldown timer
@@ -1571,10 +1593,10 @@ export default function EmployeeShiftTracker() {
   });
 
   // CRITICAL FIX: Add ref to prevent timer recreation on every render
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // CRITICAL FIX: Add debouncing to prevent excessive dashboard updates
-  const dashboardUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dashboardUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDashboardUpdateRef = useRef<number>(0);
 
   const updateEmployeeDashboard = useCallback(async () => {
@@ -4092,7 +4114,7 @@ export default function EmployeeShiftTracker() {
 
   return (
     <SafeAreaView
-      className={`flex-1 pb-4 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
+      className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
     >
       <StatusBar
         backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
@@ -5169,6 +5191,9 @@ export default function EmployeeShiftTracker() {
           setInAppNotification((prev) => ({ ...prev, visible: false }))
         }
       />
+
+      {/* Role-based Bottom Navigation */}
+      <BottomNav items={getNavigationItems()} />
     </SafeAreaView>
   );
 }

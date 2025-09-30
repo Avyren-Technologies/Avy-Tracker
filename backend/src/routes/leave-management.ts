@@ -706,6 +706,17 @@ router.put(
         ],
       );
 
+      // If leave type is being set to inactive, automatically deactivate all related policies
+      if (is_active === false) {
+        await client.query(
+          `UPDATE leave_policies 
+          SET is_active = false, updated_at = CURRENT_TIMESTAMP
+          WHERE leave_type_id = $1`,
+          [id]
+        );
+        console.log(`Automatically deactivated all policies for leave type ${id} (${name})`);
+      }
+
       // Update role-based default balances
       if (role_defaults && Array.isArray(role_defaults)) {
         // Delete existing defaults
@@ -2201,51 +2212,32 @@ router.get(
       const managementId = userData.id;
       const isManagement = userData.role === "management";
 
-      // Get user IDs under this management's supervision
-      let userIdsQuery;
-      let userIdsParams;
 
-      if (isManagement) {
-        // For management users, get all users in the same company with roles 'employee' or 'group-admin'
-        userIdsQuery = `
-        SELECT array_agg(id) as user_ids
-        FROM users
-        WHERE company_id = $1
-        AND (role = 'employee' OR role = 'group-admin')
-      `;
-        userIdsParams = [companyId];
-      } else {
-        // For other users (like group-admin), get only their direct employees
-        userIdsQuery = `
-        SELECT array_agg(id) as user_ids
-        FROM users
-        WHERE group_admin_id = $1
-        AND role = 'employee'
-      `;
-        userIdsParams = [managementId];
-      }
+      // Get pending requests that need management approval
+      // 1. Escalated cases (status = 'escalated')
+      // 2. Group-admin requests (from users with role = 'group-admin' in same company)
+      // 3. Management's own requests (from the current management user)
+      const pendingRequestsResult = await client.query(
+        `SELECT COUNT(*) as pending_requests
+        FROM leave_requests lr
+        JOIN users u ON lr.user_id = u.id
+        WHERE (
+          lr.status = 'escalated' OR
+          (u.role = 'group-admin' AND u.company_id = $1) OR
+          lr.user_id = $2
+        )
+        AND lr.status IN ('pending', 'escalated')`,
+        [companyId, managementId],
+      );
 
-      const userIdsResult = await client.query(userIdsQuery, userIdsParams);
-      const userIds = userIdsResult.rows[0]?.user_ids || [];
-
-      if (userIds.length === 0) {
-        // No users under management, return zeros
-        return res.json({
-          pending_requests: 0,
-          approved_requests: 0,
-          active_leave_types: 0,
-        });
-      }
-
-      // Get pending and approved requests count for the users under management
-      const requestsResult = await client.query(
-        `SELECT 
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_requests,
-        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_requests
-      FROM leave_requests
-      WHERE user_id = ANY($1)
+      // Get approved requests count for this management user in last 30 days
+      const approvedRequestsResult = await client.query(
+        `SELECT COUNT(*) as approved_requests
+        FROM leave_requests
+        WHERE approver_id = $1
+        AND status = 'approved'
         AND created_at >= CURRENT_DATE - INTERVAL '30 days'`,
-        [userIds],
+        [managementId],
       );
 
       // Get active leave types count for the company
@@ -2257,12 +2249,13 @@ router.get(
         [companyId],
       );
 
+
       const stats = {
         pending_requests: parseInt(
-          requestsResult.rows[0]?.pending_requests || "0",
+          pendingRequestsResult.rows[0]?.pending_requests || "0",
         ),
         approved_requests: parseInt(
-          requestsResult.rows[0]?.approved_requests || "0",
+          approvedRequestsResult.rows[0]?.approved_requests || "0",
         ),
         active_leave_types: parseInt(
           leaveTypesResult.rows[0]?.active_leave_types || "0",
@@ -3089,6 +3082,68 @@ router.post(
         error: "Failed to initialize default balances",
         details: error instanceof Error ? error.message : "Unknown error",
       });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Get all leave types for management (including inactive)
+router.get(
+  "/leave-types/all",
+  authMiddleware,
+  managementMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      // Get company_id
+      const userResult = await client.query(
+        `SELECT company_id FROM users WHERE id = $1`,
+        [req.user.id],
+      );
+
+      const companyId = userResult.rows[0]?.company_id;
+      if (!companyId) {
+        return res
+          .status(400)
+          .json({ error: "User not associated with any company" });
+      }
+
+      // Get all leave types for the company (including inactive)
+      const result = await client.query(
+        `SELECT 
+          id as leave_type_id,
+          name as leave_type_name,
+          description,
+          requires_documentation,
+          max_days,
+          is_paid,
+          is_active,
+          created_at,
+          updated_at
+        FROM leave_types 
+        WHERE company_id = $1
+        ORDER BY name ASC`,
+        [companyId],
+      );
+
+      console.log("Management leave types query result:", {
+        companyId,
+        rowCount: result.rows.length,
+        leaveTypes: result.rows.map((row) => ({
+          name: row.leave_type_name,
+          is_active: row.is_active,
+        })),
+      });
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching all leave types:", error);
+      res.status(500).json({ error: "Failed to fetch leave types" });
     } finally {
       client.release();
     }

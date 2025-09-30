@@ -28,6 +28,8 @@ import {
   useNotifications,
   Notification,
 } from "../../context/NotificationContext";
+import BottomNav from "../../components/BottomNav";
+import { employeeNavItems } from "./utils/navigationItems";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
@@ -446,6 +448,9 @@ export default function EmployeeNotifications() {
           )}
         </Animated.View>
       </View>
+
+      {/* Bottom Navigation */}
+      <BottomNav items={employeeNavItems} />
     </View>
   );
 }

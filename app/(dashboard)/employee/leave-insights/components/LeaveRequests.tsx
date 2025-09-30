@@ -89,6 +89,7 @@ export default function LeaveRequests() {
     title: string;
     message: string;
     type: "success" | "error" | "warning";
+    onRetry?: () => void;
   }>({
     visible: false,
     title: "",
@@ -151,12 +152,15 @@ export default function LeaveRequests() {
         await Promise.all([
           axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/leave/requests`, {
             headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000, // 10 second timeout
           }),
           axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/leave/balance`, {
             headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000, // 10 second timeout
           }),
           axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/leave/types`, {
             headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000, // 10 second timeout
           }),
         ]);
 
@@ -172,19 +176,39 @@ export default function LeaveRequests() {
       setRequests(requestsResponse.data);
       setBalances(balanceResponse.data);
       setLeaveTypes(typesResponse.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching data:", error);
+      console.error("Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+      
       // If cache exists, use it as fallback during error
       if (dataCache.current.requests.length > 0) {
         setRequests(dataCache.current.requests);
         setBalances(dataCache.current.balances);
         setLeaveTypes(dataCache.current.leaveTypes);
       } else {
+        const errorMessage = error.response?.status === 404 
+          ? "Leave management features are not available. Please contact your administrator."
+          : error.response?.status === 401
+          ? "Your session has expired. Please log in again."
+          : error.response?.status >= 500
+          ? "Server error. Please try again later."
+          : "Failed to fetch data. Please check your internet connection and try again.";
+          
         setErrorModal({
           visible: true,
           title: "Error",
-          message: "Failed to fetch data. Please try again.",
+          message: errorMessage,
           type: "error",
+          onRetry: error.response?.status !== 404 && error.response?.status !== 401 ? () => {
+            setErrorModal({ visible: false, title: "", message: "", type: "error" });
+            fetchData(false);
+          } : undefined,
         });
       }
     } finally {
@@ -318,11 +342,11 @@ export default function LeaveRequests() {
       );
       const fetchedDocument = response.data;
 
-      const fileUri = `${FileSystem.cacheDirectory}${fetchedDocument.file_name}`;
+      const fileUri = `${FileSystem.cacheDirectory || '/tmp/'}${fetchedDocument.file_name}`;
       const base64Content = fetchedDocument.file_data;
 
       await FileSystem.writeAsStringAsync(fileUri, base64Content, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       });
 
       const contentUri = await FileSystem.getContentUriAsync(fileUri);
@@ -789,16 +813,28 @@ export default function LeaveRequests() {
             >
               {errorModal.message}
             </Text>
-            <TouchableOpacity
-              onPress={() =>
-                setErrorModal((prev) => ({ ...prev, visible: false }))
-              }
-              className={`py-3 rounded-lg ${
-                errorModal.type === "success" ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              <Text className="text-white text-center font-medium">OK</Text>
-            </TouchableOpacity>
+            <View className="flex-row space-x-3">
+              {errorModal.onRetry && (
+                <TouchableOpacity
+                  onPress={errorModal.onRetry}
+                  className="flex-1 py-3 rounded-lg bg-blue-500"
+                >
+                  <Text className="text-white text-center font-medium">Retry</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() =>
+                  setErrorModal((prev) => ({ ...prev, visible: false }))
+                }
+                className={`${errorModal.onRetry ? "flex-1" : "w-full"} py-3 rounded-lg ${
+                  errorModal.type === "success" ? "bg-green-500" : "bg-red-500"
+                }`}
+              >
+                <Text className="text-white text-center font-medium">
+                  {errorModal.onRetry ? "Cancel" : "OK"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

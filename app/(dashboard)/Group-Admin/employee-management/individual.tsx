@@ -9,6 +9,8 @@ import {
   Alert,
   StatusBar,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
@@ -236,7 +238,20 @@ export default function CreateEmployee() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 p-4">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          className="flex-1 p-4"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          scrollEventThrottle={16}
+          keyboardDismissMode="interactive"
+        >
         {apiError && (
           <View className="mb-4 p-4 bg-red-100 border border-red-400 rounded-lg">
             <Text className="text-red-800">{apiError}</Text>
@@ -345,6 +360,8 @@ export default function CreateEmployee() {
                     className={`flex-1 p-4 ${isDark ? "text-white" : "text-gray-900"}`}
                     keyboardType="phone-pad"
                     maxLength={10}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
                   />
                 </View>
               ) : field.isDropdown ? (
@@ -432,6 +449,9 @@ export default function CreateEmployee() {
                   secureTextEntry={field.secure}
                   keyboardType={(field.keyboardType as any) || "default"}
                   autoCapitalize={field.key === "email" ? "none" : "words"}
+                  returnKeyType={field.key === "password" ? "done" : "next"}
+                  onSubmitEditing={field.key === "password" ? handleSubmit : undefined}
+                  blurOnSubmit={field.key !== "password"}
                 />
               )}
               {validationErrors[field.key] && (
@@ -482,7 +502,8 @@ export default function CreateEmployee() {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Success Modal */}
       {showSuccess && (

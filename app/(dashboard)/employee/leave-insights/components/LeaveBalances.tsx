@@ -46,9 +46,24 @@ export default function LeaveBalances({ className }: { className?: string }) {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       setBalances(response.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching balances:", error);
-      setError("Failed to fetch leave balances");
+      console.error("Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+      });
+      
+      const errorMessage = error.response?.status === 404 
+        ? "Leave balance information is not available. Please contact your administrator."
+        : error.response?.status === 401
+        ? "Your session has expired. Please log in again."
+        : error.response?.status >= 500
+        ? "Server error. Please try again later."
+        : "Failed to fetch leave balances. Please check your internet connection.";
+        
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

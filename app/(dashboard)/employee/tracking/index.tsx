@@ -47,6 +47,8 @@ import {
 import LiveTrackingMap from "../../shared/components/map/LiveTrackingMap";
 import StatusIndicator from "../../shared/components/StatusIndicator";
 import BatteryLevelIndicator from "../../shared/components/BatteryLevelIndicator";
+import BottomNav from "../../../components/BottomNav";
+import { employeeNavItems } from "../utils/navigationItems";
 import {
   isBackgroundLocationTrackingActive,
   startBackgroundLocationTracking,
@@ -3008,6 +3010,9 @@ export default function EmployeeTrackingScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Bottom Navigation */}
+      <BottomNav items={employeeNavItems} />
     </View>
   );
 }

@@ -17,8 +17,13 @@ import Modal from "react-native-modal";
 import { Picker } from "@react-native-picker/picker";
 
 interface LeaveType {
-  id: number;
-  name: string;
+  leave_type_id: number;
+  leave_type_name: string;
+  description: string;
+  requires_documentation: boolean;
+  max_days: number;
+  is_paid: boolean;
+  is_active: boolean;
 }
 
 interface LeavePolicy {
@@ -58,6 +63,7 @@ export default function LeavePolicies() {
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Form state with proper typing
   const [formData, setFormData] = useState<FormData>({
@@ -76,6 +82,19 @@ export default function LeavePolicies() {
     fetchData();
   }, []);
 
+  // Filter policies based on selected filter
+  const filteredPolicies = policies.filter((policy) => {
+    switch (filter) {
+      case 'active':
+        return policy.is_active;
+      case 'inactive':
+        return !policy.is_active;
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -85,7 +104,7 @@ export default function LeavePolicies() {
           { headers: { Authorization: `Bearer ${token}` } },
         ),
         axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types`,
+          `${process.env.EXPO_PUBLIC_API_URL}/api/leave-management/leave-types/all`,
           { headers: { Authorization: `Bearer ${token}` } },
         ),
       ]);
@@ -213,15 +232,15 @@ export default function LeavePolicies() {
   const handleEdit = (policy: LeavePolicy) => {
     setEditingPolicy(policy);
     setFormData({
-      leave_type_id: policy.leave_type_id.toString(),
-      default_days: policy.default_days.toString(),
-      carry_forward_days: policy.carry_forward_days.toString(),
-      min_service_days: policy.min_service_days.toString(),
-      requires_approval: policy.requires_approval,
-      notice_period_days: policy.notice_period_days.toString(),
-      max_consecutive_days: policy.max_consecutive_days.toString(),
+      leave_type_id: String(policy.leave_type_id || ""),
+      default_days: String(policy.default_days || ""),
+      carry_forward_days: String(policy.carry_forward_days || ""),
+      min_service_days: String(policy.min_service_days || ""),
+      requires_approval: policy.requires_approval || false,
+      notice_period_days: String(policy.notice_period_days || ""),
+      max_consecutive_days: String(policy.max_consecutive_days || ""),
       gender_specific: policy.gender_specific || "",
-      is_active: policy.is_active,
+      is_active: policy.is_active || true,
     });
     setShowAddModal(true);
   };
@@ -292,24 +311,119 @@ export default function LeavePolicies() {
         </TouchableOpacity>
       </View>
 
-      {/* Policies List */}
-      <ScrollView className="flex-1">
-        {policies.map((policy) => (
-          <TouchableOpacity
-            key={policy.id}
-            onPress={() => handleEdit(policy)}
-            className={`mb-4 p-4 rounded-lg ${
-              isDark ? "bg-gray-800" : "bg-white"
+      {/* Filter Buttons */}
+      <View className="flex-row mb-4 space-x-2">
+        <TouchableOpacity
+          onPress={() => setFilter('all')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'all'
+              ? 'bg-blue-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'all'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
             }`}
           >
+            All ({policies.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFilter('active')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'active'
+              ? 'bg-green-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'active'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
+            }`}
+          >
+            Active ({policies.filter(p => p.is_active).length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFilter('inactive')}
+          className={`px-4 py-2 rounded-lg flex-1 ${
+            filter === 'inactive'
+              ? 'bg-red-500'
+              : isDark
+              ? 'bg-gray-700'
+              : 'bg-gray-200'
+          }`}
+        >
+          <Text
+            className={`text-center font-medium ${
+              filter === 'inactive'
+                ? 'text-white'
+                : isDark
+                ? 'text-gray-300'
+                : 'text-gray-700'
+            }`}
+          >
+            Inactive ({policies.filter(p => !p.is_active).length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Policies List */}
+      <ScrollView className="flex-1">
+        {filteredPolicies.length === 0 ? (
+          <View className="flex-1 justify-center items-center py-8">
+            <Text className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+              {policies.length === 0 
+                ? "No leave policies found" 
+                : `No ${filter} leave policies found`}
+            </Text>
+            <Text className={`text-sm mt-2 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+              {policies.length === 0 
+                ? 'Click "Add Policy" to create a new leave policy'
+                : 'Try changing the filter or add a new leave policy'}
+            </Text>
+          </View>
+        ) : (
+          filteredPolicies.map((policy) => (
+            <TouchableOpacity
+              key={policy.id}
+              onPress={() => handleEdit(policy)}
+              className={`mb-4 p-4 rounded-lg ${
+                isDark 
+                  ? policy.is_active ? "bg-gray-800" : "bg-gray-900" 
+                  : policy.is_active ? "bg-white" : "bg-gray-100"
+              } ${!policy.is_active ? "opacity-75" : ""}`}
+            >
             <View className="flex-row justify-between items-center">
-              <Text
-                className={`text-lg font-semibold ${
-                  isDark ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {policy.leave_type_name}
-              </Text>
+              <View className="flex-row items-center flex-1">
+                <Text
+                  className={`text-lg font-semibold ${
+                    isDark ? "text-white" : "text-gray-900"
+                  } ${!policy.is_active ? "line-through" : ""}`}
+                >
+                  {policy.leave_type_name}
+                </Text>
+                {!policy.is_active && (
+                  <View className="ml-2 px-2 py-1 bg-red-100 rounded">
+                    <Text className="text-red-800 text-xs font-medium">
+                      INACTIVE
+                    </Text>
+                  </View>
+                )}
+              </View>
               <TouchableOpacity
                 onPress={() => handleToggleActive(policy)}
                 className={`px-3 py-1.5 rounded-full ${
@@ -387,7 +501,8 @@ export default function LeavePolicies() {
               )}
             </View>
           </TouchableOpacity>
-        ))}
+        ))
+        )}
       </ScrollView>
 
       {/* Add/Edit Modal */}
@@ -438,9 +553,9 @@ export default function LeavePolicies() {
                   <Picker.Item label="Select Leave Type" value="" />
                   {leaveTypes.map((type) => (
                     <Picker.Item
-                      key={type.id}
-                      label={type.name}
-                      value={type.id.toString()}
+                      key={type.leave_type_id}
+                      label={type.leave_type_name}
+                      value={String(type.leave_type_id || "")}
                     />
                   ))}
                 </Picker>
@@ -467,9 +582,9 @@ export default function LeavePolicies() {
                   {field.label}
                 </Text>
                 <TextInput
-                  value={formData[
+                  value={String(formData[
                     field.key as keyof typeof formData
-                  ].toString()}
+                  ] || "")}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, [field.key]: text }))
                   }

@@ -234,13 +234,14 @@ export default function ManagementDashboard() {
       );
 
       if (response.data) {
-        // Validate response data
+        // Validate response data structure
         const validStats = {
-          pending_requests: parseInt(response.data.pending_requests) || 0,
-          approved_requests: parseInt(response.data.approved_requests) || 0,
-          active_leave_types: parseInt(response.data.active_leave_types) || 0,
+          pending_requests: parseInt(String(response.data.pending_requests || 0)) || 0,
+          approved_requests: parseInt(String(response.data.approved_requests || 0)) || 0,
+          active_leave_types: parseInt(String(response.data.active_leave_types || 0)) || 0,
         };
 
+        console.log("Leave stats fetched:", validStats);
         setLeaveStats(validStats);
 
         // Update cache only if useCache is true
@@ -260,8 +261,22 @@ export default function ManagementDashboard() {
       }
     } catch (error) {
       console.error("Error fetching leave stats:", error);
+      console.error("Error details:", {
+        message: (error as Error).message,
+        response: (error as any).response?.data,
+        status: (error as any).response?.status,
+        url: (error as any).config?.url,
+      });
+      
       // Clear cache on error
       await AsyncStorage.removeItem(cacheKey);
+      
+      // Set default values on error
+      setLeaveStats({
+        pending_requests: 0,
+        approved_requests: 0,
+        active_leave_types: 0,
+      });
     } finally {
       setStatsLoading(false);
     }
@@ -280,6 +295,11 @@ export default function ManagementDashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    // Clear all caches before fetching fresh data
+    await Promise.all([
+      AsyncStorage.removeItem(CACHE_KEY),
+      clearStatsCache(),
+    ]);
     await Promise.all([fetchDashboardData(false), fetchLeaveStats(false)]);
     setRefreshing(false);
   };
@@ -327,7 +347,7 @@ export default function ManagementDashboard() {
   }, [theme]);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval>;
 
     const updateShiftStatus = async () => {
       try {

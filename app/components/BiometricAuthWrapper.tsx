@@ -10,9 +10,9 @@ import {
   StatusBar,
   AppState,
   Platform,
+  PanResponder,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import ThemeContext from '../context/ThemeContext';
 import biometricAuthService, {
   BiometricSettings,
@@ -47,18 +47,22 @@ export default function BiometricAuthWrapper({
   const [hasAuthenticated, setHasAuthenticated] = useState(false);
 
   // Animation values
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(30)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+  // const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  // const slideAnim = React.useRef(new Animated.Value(30)).current;
+  // const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  
+  // Bottom sheet animation values
+  const bottomSheetAnim = React.useRef(new Animated.Value(height)).current;
+  const backdropAnim = React.useRef(new Animated.Value(0)).current;
 
   // App state management
   const appStateRef = useRef(AppState.currentState);
   const lastAuthTimeRef = useRef<number>(0);
-  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Constants
-  const SESSION_TIMEOUT = 1 * 60 * 1000; // 1 minute in milliseconds
+  // const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds (increased from 1 minute)
   const BIOMETRIC_AUTH_KEY = 'biometric_last_auth_time';
 
   // Theme-based colors
@@ -88,6 +92,51 @@ export default function BiometricAuthWrapper({
   };
 
   const currentColors = colors[theme];
+
+  // Pan responder for bottom sheet gestures
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 0 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          bottomSheetAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          // Dismiss bottom sheet
+          dismissBottomSheet();
+        } else {
+          // Snap back to original position
+          Animated.spring(bottomSheetAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 8,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const dismissBottomSheet = () => {
+    Animated.parallel([
+      Animated.timing(bottomSheetAnim, {
+        toValue: height,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowBiometricModal(false);
+    });
+  };
 
   useEffect(() => {
     checkBiometricRequirements();
@@ -124,22 +173,17 @@ export default function BiometricAuthWrapper({
     return () => subscription?.remove();
   };
 
-  // Handle app coming to foreground
+  // Handle app coming to foreground (WhatsApp-like behavior)
   const handleAppForeground = async () => {
     if (!biometricSettings.enabled || !biometricSettings.required) {
       return;
     }
 
-    const now = Date.now();
-    const timeSinceLastAuth = now - lastAuthTimeRef.current;
-    
-    // If more than 5 minutes have passed or this is the first time, require biometric
-    if (timeSinceLastAuth > SESSION_TIMEOUT || lastAuthTimeRef.current === 0) {
-      console.log('Session expired or first time - requiring biometric authentication');
-      setIsAppLocked(true);
-      setShowBiometricModal(true);
-      setHasAuthenticated(false);
-    }
+    // Always require biometric when app comes to foreground from background (like WhatsApp)
+    console.log('App came to foreground - requiring biometric authentication');
+    setIsAppLocked(true);
+    setShowBiometricModal(true);
+    setHasAuthenticated(false);
   };
 
   // Start session timeout when app goes to background
@@ -148,11 +192,9 @@ export default function BiometricAuthWrapper({
       clearTimeout(sessionTimeoutRef.current);
     }
     
-    sessionTimeoutRef.current = setTimeout(() => {
-      console.log('Session timeout reached - app will require biometric on next open');
-      setIsAppLocked(true);
-      setHasAuthenticated(false);
-    }, SESSION_TIMEOUT);
+    // Don't set a timeout that will force close the app
+    // Just mark that we need to check authentication when app comes back to foreground
+    console.log('App went to background - will require biometric on next foreground');
   };
 
   // Check last authentication time from storage
@@ -161,51 +203,51 @@ export default function BiometricAuthWrapper({
       const lastAuthTime = await AsyncStorage.getItem(BIOMETRIC_AUTH_KEY);
       if (lastAuthTime) {
         lastAuthTimeRef.current = parseInt(lastAuthTime);
+        // On app start, don't require biometric unless it's been a very long time (24 hours)
         const now = Date.now();
         const timeSinceLastAuth = now - lastAuthTimeRef.current;
+        const maxSessionTime = 24 * 60 * 60 * 1000; // 24 hours
         
-        // If session is still valid, mark as authenticated
-        if (timeSinceLastAuth <= SESSION_TIMEOUT) {
+        if (timeSinceLastAuth <= maxSessionTime) {
+          // App just started, allow access without biometric
           setHasAuthenticated(true);
           setIsAppLocked(false);
         } else {
-          // Session expired, require biometric
+          // Been too long, require biometric
           setIsAppLocked(true);
           setHasAuthenticated(false);
         }
       } else {
-        // First time or no previous auth, require biometric
-        setIsAppLocked(true);
-        setHasAuthenticated(false);
+        // First time, allow access without biometric
+        setHasAuthenticated(true);
+        setIsAppLocked(false);
       }
     } catch (error) {
       console.error('Error checking last auth time:', error);
-      setIsAppLocked(true);
-      setHasAuthenticated(false);
+      // On error, allow access
+      setHasAuthenticated(true);
+      setIsAppLocked(false);
     }
   };
 
   useEffect(() => {
     if (showBiometricModal) {
+      // Show bottom sheet with spring animation
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
+        Animated.spring(bottomSheetAnim, {
           toValue: 0,
-          duration: 300,
           useNativeDriver: true,
+          tension: 100,
+          friction: 8,
         }),
-        Animated.timing(scaleAnim, {
+        Animated.timing(backdropAnim, {
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
 
-      // Start pulse animation
+      // Start pulse animation for biometric icon
       const pulseAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -222,20 +264,16 @@ export default function BiometricAuthWrapper({
       );
       pulseAnimation.start();
     } else {
+      // Hide bottom sheet
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.timing(bottomSheetAnim, {
+          toValue: height,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
           toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 30,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.8,
-          duration: 200,
+          duration: 300,
           useNativeDriver: true,
         }),
       ]).start();
@@ -291,13 +329,15 @@ export default function BiometricAuthWrapper({
         // Update state
         setHasAuthenticated(true);
         setIsAppLocked(false);
-        setShowBiometricModal(false);
         
         // Clear any pending session timeout
         if (sessionTimeoutRef.current) {
           clearTimeout(sessionTimeoutRef.current);
           sessionTimeoutRef.current = null;
         }
+        
+        // Dismiss bottom sheet with animation
+        dismissBottomSheet();
         
         onAuthenticationSuccess();
       } else {
@@ -318,7 +358,7 @@ export default function BiometricAuthWrapper({
         onAuthenticationFailure();
       } else {
         // Default behavior: proceed without authentication
-        setShowBiometricModal(false);
+        dismissBottomSheet();
         onAuthenticationSuccess();
       }
     }
@@ -330,7 +370,7 @@ export default function BiometricAuthWrapper({
     return <>{children}</>;
   }
 
-  // If app is locked or not authenticated, show biometric modal and block access
+  // If app is locked or not authenticated, show biometric bottom sheet and block access
   if (isAppLocked || !hasAuthenticated) {
     return (
       <>
@@ -347,42 +387,47 @@ export default function BiometricAuthWrapper({
         >
           <StatusBar
             barStyle={isDark ? 'light-content' : 'dark-content'}
-            backgroundColor={currentColors.background}
+            backgroundColor="transparent"
+            translucent
           />
 
-          <View
+          {/* Backdrop */}
+          <Animated.View
             style={[
-              styles.container,
-              { backgroundColor: currentColors.background },
+              styles.backdrop,
+              {
+                opacity: backdropAnim,
+              },
             ]}
           >
-            {/* Background gradient */}
-            <LinearGradient
-              colors={[
-                currentColors.primary,
-                currentColors.secondary,
-                currentColors.accent,
-              ]}
-              style={styles.backgroundGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <TouchableOpacity
+              style={styles.backdropTouchable}
+              activeOpacity={1}
+              onPress={() => {
+                if (!biometricSettings.required) {
+                  dismissBottomSheet();
+                }
+              }}
             />
+          </Animated.View>
 
-            <Animated.View
-              style={[
-                styles.modalContent,
-                {
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: slideAnim },
-                    { scale: scaleAnim }
-                  ],
-                  backgroundColor: currentColors.surface,
-                  borderColor: currentColors.border,
-                },
-              ]}
-            >
-              {/* Enhanced Biometric Icon with pulse animation */}
+          {/* Bottom Sheet */}
+          <Animated.View
+            style={[
+              styles.bottomSheet,
+              {
+                transform: [{ translateY: bottomSheetAnim }],
+                backgroundColor: currentColors.surface,
+              },
+            ]}
+            {...panResponder.panHandlers}
+          >
+            {/* Handle bar */}
+            <View style={[styles.handleBar, { backgroundColor: currentColors.border }]} />
+
+            {/* Content */}
+            <View style={styles.bottomSheetContent}>
+              {/* Biometric Icon with pulse animation */}
               <Animated.View
                 style={[
                   styles.iconContainer,
@@ -402,14 +447,14 @@ export default function BiometricAuthWrapper({
                 />
               </Animated.View>
 
-              {/* Enhanced Title */}
+              {/* Title */}
               <Text style={[styles.title, { color: currentColors.text }]}>
                 {biometricSettings.required
                   ? 'Unlock Avy Tracker'
                   : 'Biometric Authentication Available'}
               </Text>
 
-              {/* Enhanced Description */}
+              {/* Description */}
               <Text
                 style={[
                   styles.description,
@@ -425,7 +470,7 @@ export default function BiometricAuthWrapper({
                       .toLowerCase()} to access Avy Tracker.`}
               </Text>
 
-              {/* Enhanced Action Buttons */}
+              {/* Action Buttons */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[
@@ -474,7 +519,7 @@ export default function BiometricAuthWrapper({
                 )}
               </View>
 
-              {/* Enhanced Security Notice */}
+              {/* Security Notice */}
               <View
                 style={[
                   styles.securityNotice,
@@ -501,8 +546,8 @@ export default function BiometricAuthWrapper({
                   Your data is protected with enterprise-grade security.
                 </Text>
               </View>
-            </Animated.View>
-          </View>
+            </View>
+          </Animated.View>
         </Modal>
 
         {/* Block access to children when app is locked */}
@@ -518,35 +563,48 @@ export default function BiometricAuthWrapper({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  backdropTouchable: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 16,
+    maxHeight: height * 0.7,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  bottomSheetContent: {
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24, // Safe area for iOS
     alignItems: 'center',
   },
   blockedContent: {
     flex: 1,
     opacity: 0.3,
     pointerEvents: 'none',
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.1,
-  },
-  modalContent: {
-    width: width * 0.85,
-    padding: 32,
-    borderRadius: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
   },
   iconContainer: {
     width: 80,

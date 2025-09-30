@@ -92,7 +92,7 @@ export const seedUsers = async () => {
       },
       {
         name: "Avytrack Manager",
-        email: "manager@loginwaresofttec.com",
+        email: "manager@avytrack.com",
         phone: "+919876543839",
         hashedPassword: await bcrypt.hash("Avytrack_manager", salt),
         role: "management",
