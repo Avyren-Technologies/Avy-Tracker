@@ -77,7 +77,7 @@ export const useVerificationFlow = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [summary, setSummary] = useState<VerificationFlowSummary | null>(null);
 
-  const performanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const performanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastStepIndexRef = useRef(-1);
 
   // Cleanup old sessions on mount

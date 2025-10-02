@@ -125,7 +125,7 @@ export default function GroupAdminDashboard() {
   };
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval>;
 
     const updateShiftStatus = async () => {
       try {
@@ -169,7 +169,7 @@ export default function GroupAdminDashboard() {
     updateShiftStatus();
 
     // Set up interval for real-time updates
-    intervalId = setInterval(updateShiftStatus, 1000);
+    intervalId = setInterval(updateShiftStatus, 1000) as ReturnType<typeof setInterval>;
 
     return () => {
       clearInterval(intervalId);

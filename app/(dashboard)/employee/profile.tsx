@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -312,20 +313,12 @@ export default function Profile() {
   }, []);
 
   return (
-    <View className="flex-1">
+    <SafeAreaView className="flex-1">
       {/* Header */}
       <LinearGradient
         colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
         className="pb-4"
-        style={[
-          styles.header,
-          {
-            paddingTop:
-              Platform.OS === "ios"
-                ? StatusBar.currentHeight || 44
-                : StatusBar.currentHeight || 0,
-          },
-        ]}
+        style={styles.header}
       >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
@@ -698,7 +691,7 @@ export default function Profile() {
       </ScrollView>
 
       <BottomNav items={employeeNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 

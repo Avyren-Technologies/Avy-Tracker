@@ -15,6 +15,7 @@ import {
   Dimensions,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -1193,7 +1194,7 @@ export default function EmployeeExpenses() {
   });
 
   return (
-    <>
+    <SafeAreaView style={[styles.container, { backgroundColor: currentColors.background }]}>
       <StatusBar
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
         backgroundColor={currentColors.background}
@@ -1203,10 +1204,7 @@ export default function EmployeeExpenses() {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[
-          styles.container,
-          { backgroundColor: currentColors.background },
-        ]}
+        style={{ flex: 1 }}
       >
         {/* Main background */}
         <View
@@ -1325,10 +1323,6 @@ export default function EmployeeExpenses() {
               shadowOpacity: 0.1,
               shadowRadius: 8,
               elevation: 5,
-              paddingTop:
-                Platform.OS === "ios"
-                  ? StatusBar.currentHeight || 44
-                  : StatusBar.currentHeight || 0,
             },
           ]}
         >
@@ -2539,7 +2533,7 @@ export default function EmployeeExpenses() {
           </View>
         </Modal>
       </KeyboardAvoidingView>
-    </>
+    </SafeAreaView>
   );
 }
 
@@ -2555,6 +2549,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+    paddingTop: 10,
   },
   headerContent: {
     flexDirection: "row",

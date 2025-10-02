@@ -278,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (currentRefreshToken) {
             await refreshTokenSilently(currentRefreshToken);
           }
-        }, refreshTime);
+        }, refreshTime) as unknown as NodeJS.Timeout;
       }
     } catch (error) {
       console.error("Error scheduling token refresh:", error);

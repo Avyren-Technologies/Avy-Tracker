@@ -305,7 +305,7 @@ export default function EmployeeDashboard() {
       updateDashboard();
 
       // Set up interval for real-time updates
-      intervalId = setInterval(updateDashboard, 1000);
+      intervalId = setInterval(updateDashboard, 1000) as unknown as NodeJS.Timeout;
     }
 
     return () => {

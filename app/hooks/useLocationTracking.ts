@@ -128,7 +128,7 @@ export function useLocationTracking({
   // Check battery level periodically
   useEffect(() => {
     let batterySubscription: { remove: () => void } | null = null;
-    let batteryCheckInterval: NodeJS.Timeout | null = null;
+    let batteryCheckInterval: ReturnType<typeof setInterval> | null = null;
 
     const checkBatteryLevel = async () => {
       try {
@@ -232,7 +232,7 @@ export function useLocationTracking({
 
   // Handle app state changes with debouncing
   useEffect(() => {
-    let debounceTimeout: NodeJS.Timeout | null = null;
+    let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       // Skip if no real change

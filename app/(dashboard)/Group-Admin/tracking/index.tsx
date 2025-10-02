@@ -1485,7 +1485,7 @@ export default function GroupAdminTrackingDashboard() {
 
         <BottomSheetFlatList
           data={filteredUsers}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: TrackingUser) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.employeeListContent}
           refreshControl={
@@ -1647,7 +1647,7 @@ const getBatteryIconName = (level: number | undefined): string => {
   if (batteryLevel <= 10) {
     return "battery-dead";
   } else if (batteryLevel <= 30) {
-    return "battery-quarter";
+    return "battery-half";
   } else if (batteryLevel <= 70) {
     return "battery-half";
   } else {

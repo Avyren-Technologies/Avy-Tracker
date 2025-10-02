@@ -323,7 +323,7 @@ const AttendanceRegularization: React.FC = () => {
         {
           text: "Yes",
           style: "destructive",
-          onPress: async (reason) => {
+          onPress: async (reason?: string) => {
             try {
               const response = await axios.put(
                 `${process.env.EXPO_PUBLIC_API_URL}/api/attendance-regularization/request/${requestId}/cancel`,

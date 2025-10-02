@@ -9,7 +9,7 @@ export class RedisManager extends EventEmitter {
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private readonly maxReconnectAttempts: number = 10;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly baseReconnectDelay: number = 1000; // 1 second
   private readonly maxReconnectDelay: number = 30000; // 30 seconds
   private localCache: Map<string, { value: string; expiry: number }> =

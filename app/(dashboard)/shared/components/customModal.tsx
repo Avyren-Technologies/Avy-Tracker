@@ -180,7 +180,7 @@ export default function CustomModal({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Auto close timer
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get modal configuration based on type
   const modalConfig = MODAL_TYPES[type];
@@ -239,7 +239,7 @@ export default function CustomModal({
       if (autoClose && autoClose > 0) {
         timerRef.current = setTimeout(() => {
           handleClose();
-        }, autoClose);
+        }, autoClose) as ReturnType<typeof setTimeout>;
       }
     } else {
       // Reset animations when modal is hidden

@@ -84,7 +84,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
 
   // Refs
   const otpInputRefs = useRef<(TextInput | null)[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
 
   // Initialize component
@@ -492,7 +492,9 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
         {Array.from({ length: 6 }, (_, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (otpInputRefs.current[index] = ref)}
+            ref={(ref) => {
+              otpInputRefs.current[index] = ref;
+            }}
             style={[
               styles.otpInput,
               {

@@ -22,7 +22,7 @@ const TypingDot = ({ delay, isDark }: { delay: number; isDark: boolean }) => {
   const [opacity, setOpacity] = React.useState(0.3);
 
   React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const animate = () => {
       timeoutId = setTimeout(() => {
         setOpacity((prev) => (prev === 0.3 ? 1 : 0.3));

@@ -375,7 +375,7 @@ const EmbeddedMap: React.FC<EmbeddedMapProps> = ({
 
   // Render map content
   const renderMapContent = useCallback(
-    (mapRef: React.RefObject<MapView>, isFullscreenMap = false) => (
+    (mapRef: React.RefObject<MapView | null>, isFullscreenMap = false) => (
       <>
         {/* Geofence circles */}
         {showGeofences &&

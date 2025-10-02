@@ -9,6 +9,7 @@ import {
   StatusBar as RNStatusBar,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import ThemeContext from "../../../context/ThemeContext";
 import LeaveRequests from "./components/LeaveRequests";
@@ -68,7 +69,7 @@ export default function EmployeeLeaveInsights() {
   ];
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111827" : "#F9FAFB" }}
     >
@@ -81,15 +82,7 @@ export default function EmployeeLeaveInsights() {
       {/* Header with proper status bar spacing */}
       <LinearGradient
         colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
-        style={[
-          styles.header,
-          {
-            paddingTop:
-              Platform.OS === "ios"
-                ? RNStatusBar.currentHeight || 44
-                : RNStatusBar.currentHeight || 0,
-          },
-        ]}
+        style={styles.header}
       >
         <View className="flex-row items-center justify-between px-6 py-4">
           <TouchableOpacity
@@ -192,7 +185,7 @@ export default function EmployeeLeaveInsights() {
 
       {/* Bottom Navigation */}
       <BottomNav items={employeeNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 

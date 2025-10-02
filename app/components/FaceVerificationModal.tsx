@@ -276,9 +276,9 @@ export default function FaceVerificationModal({
 
   // Refs for cleanup and accessibility
   const isMountedRef = useRef(true);
-  const verificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const verificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraRef = useRef<Camera>(null);
 
   // Face detection and liveness hooks
@@ -1412,8 +1412,8 @@ export default function FaceVerificationModal({
   }, [device, setCameraRef]); // Keep minimal dependencies
 
   // CRITICAL FIX: Add refs to prevent cascading updates in face detection
-  const faceDetectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const qualityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const faceDetectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qualityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTransitioningRef = useRef(false);
 
   // Effect to handle face detection state changes

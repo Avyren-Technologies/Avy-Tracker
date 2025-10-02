@@ -29,7 +29,7 @@ const SOCKET_RECONNECT_INTERVAL = 60000; // 1 minute
 
 // Socket instance for background tracking
 let socketInstance: any = null;
-let socketReconnectInterval: NodeJS.Timeout | null = null;
+let socketReconnectInterval: ReturnType<typeof setInterval> | null = null;
 
 // Maximum retries for starting the service if app is temporarily inactive
 const MAX_START_RETRIES = 2;
@@ -42,7 +42,7 @@ const HEALTH_CHECK_THRESHOLD = 30 * 60 * 1000; // 30 minutes - if no updates for
 const TRACKING_RESTART_ATTEMPTS_KEY = "tracking_restart_attempts";
 const MAX_RESTART_ATTEMPTS = 3; // Maximum number of auto-restart attempts within RESTART_PERIOD
 const RESTART_PERIOD = 24 * 60 * 60 * 1000; // 24 hours - reset restart counter after this period
-let healthCheckTimer: NodeJS.Timeout | null = null;
+let healthCheckTimer: ReturnType<typeof setInterval> | null = null;
 
 // Add these additional constants for adaptive tracking
 const BATTERY_ADAPTIVE_TRACKING_KEY = "battery_adaptive_tracking";
@@ -78,7 +78,7 @@ const LAST_SIGNIFICANT_MOVEMENT_KEY = "last_significant_movement";
 const MEMORY_CHECK_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const LOCATION_CACHE_SIZE = 100; // Maximum number of locations to store in memory
 const LOCATION_HISTORY_KEY = "location_history";
-let memoryCheckTimer: NodeJS.Timeout | null = null;
+let memoryCheckTimer: ReturnType<typeof setInterval> | null = null;
 let locationCache: any[] = [];
 
 /**

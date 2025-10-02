@@ -80,7 +80,7 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
   const isInitializedRef = useRef(false);
   const processingRef = useRef(false);
   const completedRef = useRef(false);
-  const stepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
 
   // Initialize flow when modal becomes visible - SIMPLE AND STABLE

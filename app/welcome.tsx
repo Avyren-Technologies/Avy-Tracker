@@ -40,9 +40,9 @@ export default function Welcome() {
   const buttonScaleAnim = useRef(new Animated.Value(1)).current;
   const floatingShapesAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isUserInteracting = useRef(false);
-  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Theme-based colors
   const colors = {

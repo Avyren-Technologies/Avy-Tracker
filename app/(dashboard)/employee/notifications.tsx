@@ -19,6 +19,7 @@ import {
   Alert,
   TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import ThemeContext from "../../context/ThemeContext";
 import PushNotificationsList from "./../../components/PushNotificationsList";
@@ -296,7 +297,7 @@ export default function EmployeeNotifications() {
   );
 
   return (
-    <View className="flex-1">
+    <SafeAreaView className="flex-1">
       <Stack.Screen
         options={{
           headerShown: false,
@@ -315,16 +316,7 @@ export default function EmployeeNotifications() {
         />
 
         {/* Header Content with adjusted spacing */}
-        <View
-          style={{
-            paddingTop:
-              Platform.OS === "ios"
-                ? 60
-                : StatusBar.currentHeight
-                  ? StatusBar.currentHeight + 20
-                  : 40,
-          }}
-        >
+        <View style={{ paddingTop: 20 }}>
           <View className="px-6 mb-6">
             <View className="flex-row items-center">
               <TouchableOpacity
@@ -451,7 +443,7 @@ export default function EmployeeNotifications() {
 
       {/* Bottom Navigation */}
       <BottomNav items={employeeNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 

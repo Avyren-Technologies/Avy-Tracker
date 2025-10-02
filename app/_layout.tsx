@@ -86,7 +86,7 @@ function NotificationSetup() {
     } else {
       console.log("[NotificationSetup] Skipping notification setup - user:", !!user, "loading:", isLoading, "context:", !!incrementUnreadCount);
     }
-  }, [user, isLoading, incrementUnreadCount]);
+  }, [user, isLoading]); // Removed incrementUnreadCount from dependencies to prevent re-setup
 
   return null;
 }

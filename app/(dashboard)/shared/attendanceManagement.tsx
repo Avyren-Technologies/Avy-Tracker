@@ -528,7 +528,6 @@ export default function AttendanceManagement() {
               textDisabledColor: isDark ? "#4B5563" : "#D1D5DB",
               monthTextColor: isDark ? "#FFFFFF" : "#111827",
               arrowColor: isDark ? "#FFFFFF" : "#111827",
-              disabledTextColor: isDark ? "#4B5563" : "#D1D5DB",
             }}
             markedDates={getMarkedDates()}
             onDayPress={handleDateSelect}

@@ -38,7 +38,7 @@ export function useSocket({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(globalSocket);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const disconnectTimeRef = useRef<number | null>(null);
   const connectionAttempts = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);

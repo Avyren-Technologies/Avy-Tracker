@@ -74,8 +74,8 @@ export function useFaceDetection(
   const cameraRef = useRef<Camera>(null);
   const processingTimeRef = useRef<number[]>([]);
   const lastDetectionTimeRef = useRef<number>(0);
-  const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const detectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const detectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Simplified camera reference management
   const persistentCameraRef = useRef<any>(null);

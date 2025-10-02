@@ -22,6 +22,7 @@ import {
   Platform,
   Linking,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
@@ -221,7 +222,7 @@ const debounce = <T extends (...args: any[]) => any>(
     if (timeout) {
       clearTimeout(timeout);
     }
-    timeout = setTimeout(later, wait);
+    timeout = setTimeout(later, wait) as unknown as NodeJS.Timeout;
   };
 };
 
@@ -1296,7 +1297,7 @@ export default function EmployeeTrackingScreen() {
         if (isMountedRef.current) {
           sendPeriodicUpdate();
         }
-      }, 15000); // 15-second interval (reduced from 20s)
+      }, 15000) as unknown as NodeJS.Timeout; // 15-second interval (reduced from 20s)
 
       // Store the interval in ref for cleanup
       periodicUpdateIntervalRef.current = updateInterval;
@@ -1805,7 +1806,7 @@ export default function EmployeeTrackingScreen() {
       periodicUpdateIntervalRef.current = setInterval(
         sendPeriodicUpdate,
         UPDATE_INTERVAL_MS,
-      );
+      ) as unknown as NodeJS.Timeout;
 
       console.log(
         `Foreground tracking started with interval: ${UPDATE_INTERVAL_MS}ms`,
@@ -2575,7 +2576,7 @@ export default function EmployeeTrackingScreen() {
           if (socket && !socket.connected) {
             socket.connect();
           }
-        }, 5000);
+        }, 5000) as unknown as NodeJS.Timeout;
       }
 
       // Only show error if tracking is active
@@ -2796,7 +2797,7 @@ export default function EmployeeTrackingScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <Stack.Screen
         options={{
           title: "Live Location",
@@ -3013,7 +3014,7 @@ export default function EmployeeTrackingScreen() {
 
       {/* Bottom Navigation */}
       <BottomNav items={employeeNavItems} />
-    </View>
+    </SafeAreaView>
   );
 }
 

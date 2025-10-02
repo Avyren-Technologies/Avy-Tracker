@@ -960,13 +960,20 @@ export default function FaceRegistration() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Progress Indicator */}
-      {renderProgressIndicator()}
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Progress Indicator */}
+        {renderProgressIndicator()}
 
-      {/* Content */}
-      {currentStep === 0 && renderConsentStep()}
-      {currentStep === 1 && renderRegistrationStep()}
-      {currentStep === 2 && renderTestStep()}
+        {/* Content */}
+        {currentStep === 0 && renderConsentStep()}
+        {currentStep === 1 && renderRegistrationStep()}
+        {currentStep === 2 && renderTestStep()}
+      </ScrollView>
 
       {/* Face Verification Modal */}
       <FaceVerificationModal

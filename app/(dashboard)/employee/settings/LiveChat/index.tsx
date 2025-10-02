@@ -13,6 +13,7 @@ import {
   ScrollView,
   Pressable,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
@@ -295,7 +296,7 @@ export default function LiveChat() {
   };
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1 }}>
       <Stack.Screen
         options={{
           headerShown: false,
@@ -589,7 +590,7 @@ export default function LiveChat() {
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
-    </>
+    </SafeAreaView>
   );
 }
 

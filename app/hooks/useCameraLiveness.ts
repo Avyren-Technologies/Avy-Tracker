@@ -42,7 +42,7 @@ export function useCameraLiveness(
   const isMountedRef = useRef(true);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const livenessIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const eyeStateHistoryRef = useRef<
     { left: number; right: number; timestamp: number }[]
   >([]);

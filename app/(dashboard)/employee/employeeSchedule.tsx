@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
@@ -406,7 +407,7 @@ export default function EmployeeSchedule() {
   }, [schedule, selectedDate]);
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       <StatusBar
         backgroundColor={isDark ? "#1F2937" : "#FFFFFF"}
         barStyle={isDark ? "light-content" : "dark-content"}
@@ -416,15 +417,7 @@ export default function EmployeeSchedule() {
       <LinearGradient
         colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
         className="pb-4"
-        style={[
-          styles.header,
-          {
-            paddingTop:
-              Platform.OS === "ios"
-                ? StatusBar.currentHeight || 44
-                : StatusBar.currentHeight || 0,
-          },
-        ]}
+        style={styles.header}
       >
         <View className="flex-row items-center justify-between px-6">
           <TouchableOpacity
@@ -476,7 +469,11 @@ export default function EmployeeSchedule() {
               textDisabledColor: isDark ? "#4B5563" : "#D1D5DB",
               monthTextColor: isDark ? "#FFFFFF" : "#111827",
               arrowColor: "#3B82F6",
-              ...calendarTheme,
+              textDayFontSize: 16,
+              textDayFontWeight: "400" as any,
+              textMonthFontSize: 18,
+              textMonthFontWeight: "600" as any,
+              textDayHeaderFontSize: 14,
             }}
           />
         </View>
@@ -704,7 +701,7 @@ export default function EmployeeSchedule() {
         schedule={selectedEvent}
         isDark={isDark}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

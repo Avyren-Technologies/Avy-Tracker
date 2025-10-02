@@ -40,7 +40,7 @@ const BackgroundTrackingNotification: React.FC<
 
   // Check if background tracking is active
   useEffect(() => {
-    let checkInterval: NodeJS.Timeout;
+    let checkInterval: ReturnType<typeof setInterval>;
 
     const checkBackgroundTracking = async () => {
       const isActive = await isBackgroundLocationTrackingActive();
@@ -66,7 +66,7 @@ const BackgroundTrackingNotification: React.FC<
     };
 
     checkBackgroundTracking();
-    checkInterval = setInterval(checkBackgroundTracking, 10000);
+    checkInterval = setInterval(checkBackgroundTracking, 10000) as ReturnType<typeof setInterval>;
 
     return () => {
       clearInterval(checkInterval);
@@ -75,7 +75,7 @@ const BackgroundTrackingNotification: React.FC<
 
   // Update elapsed time
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
 
     if (startTime && isVisible) {
       timer = setInterval(() => {
@@ -97,7 +97,7 @@ const BackgroundTrackingNotification: React.FC<
 
   // Auto hide after specified time
   useEffect(() => {
-    let hideTimer: NodeJS.Timeout;
+    let hideTimer: ReturnType<typeof setTimeout>;
 
     if (autoHide && isVisible) {
       hideTimer = setTimeout(() => {

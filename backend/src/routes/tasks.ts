@@ -4,7 +4,7 @@ import { verifyToken, adminMiddleware } from "../middleware/auth";
 import { CustomRequest } from "../types";
 import axios from "axios";
 import { CustomerNotificationService } from "../services/CustomerNotificationService";
-import { TaskNotificationService } from "../services/TaskNotificationService";
+// import { TaskNotificationService } from "../services/TaskNotificationService";
 
 const router = express.Router();
 
@@ -133,21 +133,6 @@ router.post(
         });
       }
 
-      // Send task assignment notification to employee (after transaction is committed)
-      const taskNotificationService = TaskNotificationService.getInstance();
-      await taskNotificationService.sendTaskAssignmentNotification(
-        task.id,
-        assignedTo,
-        {
-          taskId: task.id,
-          taskTitle: title,
-          taskStatus: 'assigned',
-          taskPriority: priority,
-          assignedToName: employee?.name,
-          assignedByName: req.user?.name,
-          dueDate: formattedDueDate || undefined,
-        }
-      );
 
       console.log("Created task:", task);
       res.json(task);
@@ -231,20 +216,20 @@ router.patch(
       }
 
       // Send task status update notification
-      const taskNotificationService = TaskNotificationService.getInstance();
-      await taskNotificationService.sendTaskStatusUpdateNotification(
-        parseInt(taskId),
-        task.assigned_to,
-        task.assigned_by,
-        {
-          taskId: parseInt(taskId),
-          taskTitle: task.title,
-          taskStatus: status,
-          taskPriority: task.priority,
-          assignedToName: task.assigned_to_name,
-          assignedByName: task.assigned_by_name,
-        }
-      );
+      // const taskNotificationService = TaskNotificationService.getInstance();
+      // await taskNotificationService.sendTaskStatusUpdateNotification(
+      //   parseInt(taskId),
+      //   task.assigned_to,
+      //   task.assigned_by,
+      //   {
+      //     taskId: parseInt(taskId),
+      //     taskTitle: task.title,
+      //     taskStatus: status,
+      //     taskPriority: task.priority,
+      //     assignedToName: task.assigned_to_name,
+      //     assignedByName: task.assigned_by_name,
+      //   }
+      // );
 
       res.json(result.rows[0]);
     } catch (error) {

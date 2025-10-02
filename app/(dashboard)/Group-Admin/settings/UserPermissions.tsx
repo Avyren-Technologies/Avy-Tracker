@@ -286,7 +286,7 @@ export default function UserPermissions() {
   };
 
   const renderHeader = () => (
-    <SafeAreaView edges={['top']} style={{ backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" }}>
+    <SafeAreaView style={{ backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" }}>
       <LinearGradient
         colors={
           theme === "dark" ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]

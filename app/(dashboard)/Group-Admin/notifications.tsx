@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useEffect,
   memo,
-} from "react";
+} from 'react';
 import {
   View,
   Text,
@@ -23,24 +23,24 @@ import {
   TouchableOpacity,
   Keyboard,
   KeyboardAvoidingView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack, useRouter } from "expo-router";
-import ThemeContext from "./../../context/ThemeContext";
-import { useAuth } from "./../../context/AuthContext";
-import PushNotificationsList from "./../../components/PushNotificationsList";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomNav from "../../components/BottomNav";
-import { groupAdminNavItems } from "./utils/navigationItems";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import ThemeContext from './../../context/ThemeContext';
+import { useAuth } from './../../context/AuthContext';
+import PushNotificationsList from './../../components/PushNotificationsList';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
+import BottomNav from '../../components/BottomNav';
+import { groupAdminNavItems } from './utils/navigationItems';
 import {
   useNotifications,
   Notification,
-} from "./../../context/NotificationContext";
-import { Picker } from "@react-native-picker/picker";
+} from './../../context/NotificationContext';
+import { Picker } from '@react-native-picker/picker';
 
-type NotificationType = "all" | "group" | "general" | "announcement";
+type NotificationType = 'all' | 'group' | 'general' | 'announcement';
 
 interface User {
   id: string;
@@ -53,8 +53,8 @@ interface User {
 interface NotificationData {
   title: string;
   message: string;
-  type: "all" | "user";
-  priority: "default" | "high" | "low";
+  type: 'all' | 'user';
+  priority: 'default' | 'high' | 'low';
   selectedUsers: string[];
 }
 
@@ -67,10 +67,10 @@ interface SendNotificationModalProps {
   onTitleChange: (text: string) => void;
   onMessageChange: (text: string) => void;
   isDark: boolean;
-  notificationMode: "all" | "user";
-  onModeChange: (mode: "all" | "user") => void;
-  priority: "default" | "high" | "low";
-  onPriorityChange: (priority: "default" | "high" | "low") => void;
+  notificationMode: 'all' | 'user';
+  onModeChange: (mode: 'all' | 'user') => void;
+  priority: 'default' | 'high' | 'low';
+  onPriorityChange: (priority: 'default' | 'high' | 'low') => void;
   selectedUsers: string[];
   onUserSelect: (userIds: string[]) => void;
   showSuccess: boolean;
@@ -101,13 +101,13 @@ const SendNotificationModal = memo(
     const messageInputRef = useRef<TextInput>(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState<Record<string, User[]>>({});
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
     useEffect(() => {
       const fetchUsers = async () => {
-        if (notificationMode === "user") {
+        if (notificationMode === 'user') {
           setIsLoadingUsers(true);
           try {
             const response = await axios.get(
@@ -116,28 +116,28 @@ const SendNotificationModal = memo(
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
-              },
+              }
             );
 
-            if (response.data && typeof response.data === "object") {
+            if (response.data && typeof response.data === 'object') {
               setUsers(response.data);
             } else {
               console.error(
-                "[User Fetch] Invalid response format:",
-                response.data,
+                '[User Fetch] Invalid response format:',
+                response.data
               );
-              Alert.alert("Error", "Failed to load users. Please try again.");
+              Alert.alert('Error', 'Failed to load users. Please try again.');
             }
           } catch (error) {
-            console.error("[User Fetch] Error fetching users:", error);
+            console.error('[User Fetch] Error fetching users:', error);
             if (axios.isAxiosError(error)) {
               console.error(
-                "[User Fetch] Response data:",
-                error.response?.data,
+                '[User Fetch] Response data:',
+                error.response?.data
               );
-              console.error("[User Fetch] Status:", error.response?.status);
+              console.error('[User Fetch] Status:', error.response?.status);
             }
-            Alert.alert("Error", "Failed to load users. Please try again.");
+            Alert.alert('Error', 'Failed to load users. Please try again.');
           } finally {
             setIsLoadingUsers(false);
           }
@@ -151,15 +151,15 @@ const SendNotificationModal = memo(
 
     useEffect(() => {
       const keyboardWillShow = Keyboard.addListener(
-        Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-        (e) => setKeyboardHeight(e.endCoordinates.height),
+        Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+        (e) => setKeyboardHeight(e.endCoordinates.height)
       );
       const keyboardWillHide = Keyboard.addListener(
-        Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-        () => setKeyboardHeight(0),
+        Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+        () => setKeyboardHeight(0)
       );
 
-      if (visible && Platform.OS === "android") {
+      if (visible && Platform.OS === 'android') {
         setTimeout(() => {
           titleInputRef.current?.focus();
         }, 300);
@@ -207,11 +207,11 @@ const SendNotificationModal = memo(
               user.name.toLowerCase().includes(query) ||
               user.email.toLowerCase().includes(query) ||
               (user.employee_number &&
-                user.employee_number.toLowerCase().includes(query)),
+                user.employee_number.toLowerCase().includes(query))
           );
           return acc;
         },
-        {} as Record<string, User[]>,
+        {} as Record<string, User[]>
       );
     }, [users, searchQuery]);
 
@@ -223,33 +223,33 @@ const SendNotificationModal = memo(
         onRequestClose={handleClose}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
           <View
             style={{
               flex: 1,
               backgroundColor: isDark
-                ? "rgba(0,0,0,0.5)"
-                : "rgba(107,114,128,0.5)",
-              justifyContent: "flex-end",
+                ? 'rgba(0,0,0,0.5)'
+                : 'rgba(107,114,128,0.5)',
+              justifyContent: 'flex-end',
             }}
           >
             <View
               style={{
-                backgroundColor: isDark ? "#111827" : "#ffffff",
+                backgroundColor: isDark ? '#111827' : '#ffffff',
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
                 paddingTop: 20,
-                maxHeight: "95%",
-                position: "relative",
+                maxHeight: '95%',
+                position: 'relative',
               }}
             >
               <View
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginBottom: 20,
                   paddingHorizontal: 20,
                 }}
@@ -257,8 +257,8 @@ const SendNotificationModal = memo(
                 <Text
                   style={{
                     fontSize: 20,
-                    fontWeight: "600",
-                    color: isDark ? "#ffffff" : "#111827",
+                    fontWeight: '600',
+                    color: isDark ? '#ffffff' : '#111827',
                   }}
                 >
                   Send Group Notification
@@ -270,14 +270,14 @@ const SendNotificationModal = memo(
                   <MaterialCommunityIcons
                     name="close"
                     size={24}
-                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                    color={isDark ? '#9CA3AF' : '#6B7280'}
                   />
                 </Pressable>
               </View>
 
               <ScrollView
                 keyboardShouldPersistTaps="handled"
-                style={{ maxHeight: "80%" }}
+                style={{ maxHeight: '80%' }}
                 contentContainerStyle={{
                   paddingHorizontal: 20,
                 }}
@@ -285,44 +285,44 @@ const SendNotificationModal = memo(
                 {/* Notification Mode Selection */}
                 <View className="flex-row mb-4 bg-gray-100/5 p-1 rounded-lg">
                   <Pressable
-                    onPress={() => onModeChange("all")}
+                    onPress={() => onModeChange('all')}
                     className={`flex-1 py-2.5 rounded-md ${
-                      notificationMode === "all"
+                      notificationMode === 'all'
                         ? isDark
-                          ? "bg-blue-600"
-                          : "bg-blue-500"
-                        : "bg-transparent"
+                          ? 'bg-blue-600'
+                          : 'bg-blue-500'
+                        : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-center font-medium ${
-                        notificationMode === "all"
-                          ? "text-white"
+                        notificationMode === 'all'
+                          ? 'text-white'
                           : isDark
-                            ? "text-gray-300"
-                            : "text-gray-600"
+                            ? 'text-gray-300'
+                            : 'text-gray-600'
                       }`}
                     >
                       All Employees
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => onModeChange("user")}
+                    onPress={() => onModeChange('user')}
                     className={`flex-1 py-2.5 rounded-md ${
-                      notificationMode === "user"
+                      notificationMode === 'user'
                         ? isDark
-                          ? "bg-blue-600"
-                          : "bg-blue-500"
-                        : "bg-transparent"
+                          ? 'bg-blue-600'
+                          : 'bg-blue-500'
+                        : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-center font-medium ${
-                        notificationMode === "user"
-                          ? "text-white"
+                        notificationMode === 'user'
+                          ? 'text-white'
                           : isDark
-                            ? "text-gray-300"
-                            : "text-gray-600"
+                            ? 'text-gray-300'
+                            : 'text-gray-600'
                       }`}
                     >
                       Select Users
@@ -331,12 +331,12 @@ const SendNotificationModal = memo(
                 </View>
 
                 {/* User Selection */}
-                {notificationMode === "user" && (
+                {notificationMode === 'user' && (
                   <View className="mb-4">
                     <View className="flex-row justify-between items-center mb-2">
                       <Text
                         className={`text-sm font-medium ${
-                          isDark ? "text-gray-300" : "text-gray-700"
+                          isDark ? 'text-gray-300' : 'text-gray-700'
                         }`}
                       >
                         Select Employees
@@ -344,12 +344,12 @@ const SendNotificationModal = memo(
                       {selectedUsers.length > 0 && (
                         <View
                           className={`px-2 py-1 rounded-full ${
-                            isDark ? "bg-blue-600/20" : "bg-blue-100"
+                            isDark ? 'bg-blue-600/20' : 'bg-blue-100'
                           }`}
                         >
                           <Text
                             className={`text-xs font-medium ${
-                              isDark ? "text-blue-400" : "text-blue-600"
+                              isDark ? 'text-blue-400' : 'text-blue-600'
                             }`}
                           >
                             {selectedUsers.length} selected
@@ -363,17 +363,17 @@ const SendNotificationModal = memo(
                       onChangeText={setSearchQuery}
                       className={`rounded-lg p-3 mb-3 ${
                         isDark
-                          ? "bg-gray-800 text-white"
-                          : "bg-gray-100 text-gray-900"
+                          ? 'bg-gray-800 text-white'
+                          : 'bg-gray-100 text-gray-900'
                       }`}
                     />
                     {isLoadingUsers ? (
                       <View className="items-center py-4">
                         <ActivityIndicator
-                          color={isDark ? "#60A5FA" : "#3B82F6"}
+                          color={isDark ? '#60A5FA' : '#3B82F6'}
                         />
                         <Text
-                          className={`mt-2 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                          className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                         >
                           Loading employees...
                         </Text>
@@ -383,14 +383,14 @@ const SendNotificationModal = memo(
                         <MaterialCommunityIcons
                           name="account-search"
                           size={40}
-                          color={isDark ? "#6B7280" : "#9CA3AF"}
+                          color={isDark ? '#6B7280' : '#9CA3AF'}
                         />
                         <Text
-                          className={`mt-2 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                          className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                         >
                           {searchQuery
-                            ? "No employees found"
-                            : "No employees available"}
+                            ? 'No employees found'
+                            : 'No employees available'}
                         </Text>
                       </View>
                     ) : (
@@ -406,7 +406,7 @@ const SendNotificationModal = memo(
                                 <View key={role} className="mb-4">
                                   <View className="flex-row justify-between items-center mb-2">
                                     <Text
-                                      className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                                      className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}
                                     >
                                       {roleUsers.length} employees
                                     </Text>
@@ -418,27 +418,27 @@ const SendNotificationModal = memo(
                                         onUserSelect(
                                           selectedUsers.includes(user.id)
                                             ? selectedUsers.filter(
-                                                (id) => id !== user.id,
+                                                (id) => id !== user.id
                                               )
-                                            : [...selectedUsers, user.id],
+                                            : [...selectedUsers, user.id]
                                         )
                                       }
                                       className={`flex-row items-center p-3 rounded-lg mb-1 ${
                                         selectedUsers.includes(user.id)
                                           ? isDark
-                                            ? "bg-blue-600/20"
-                                            : "bg-blue-100"
+                                            ? 'bg-blue-600/20'
+                                            : 'bg-blue-100'
                                           : isDark
-                                            ? "bg-gray-800"
-                                            : "bg-gray-100"
+                                            ? 'bg-gray-800'
+                                            : 'bg-gray-100'
                                       }`}
                                     >
                                       <View className="flex-1">
                                         <Text
                                           className={`font-medium ${
                                             isDark
-                                              ? "text-white"
-                                              : "text-gray-900"
+                                              ? 'text-white'
+                                              : 'text-gray-900'
                                           }`}
                                           numberOfLines={1}
                                         >
@@ -447,8 +447,8 @@ const SendNotificationModal = memo(
                                         <Text
                                           className={`text-sm ${
                                             isDark
-                                              ? "text-gray-400"
-                                              : "text-gray-600"
+                                              ? 'text-gray-400'
+                                              : 'text-gray-600'
                                           }`}
                                           numberOfLines={1}
                                         >
@@ -458,24 +458,24 @@ const SendNotificationModal = memo(
                                       <MaterialCommunityIcons
                                         name={
                                           selectedUsers.includes(user.id)
-                                            ? "checkbox-marked"
-                                            : "checkbox-blank-outline"
+                                            ? 'checkbox-marked'
+                                            : 'checkbox-blank-outline'
                                         }
                                         size={24}
                                         color={
                                           selectedUsers.includes(user.id)
                                             ? isDark
-                                              ? "#60A5FA"
-                                              : "#3B82F6"
+                                              ? '#60A5FA'
+                                              : '#3B82F6'
                                             : isDark
-                                              ? "#6B7280"
-                                              : "#9CA3AF"
+                                              ? '#6B7280'
+                                              : '#9CA3AF'
                                         }
                                       />
                                     </Pressable>
                                   ))}
                                 </View>
-                              ),
+                              )
                           )}
                         </ScrollView>
                       </View>
@@ -487,9 +487,9 @@ const SendNotificationModal = memo(
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: "500",
+                    fontWeight: '500',
                     marginBottom: 8,
-                    color: isDark ? "#D1D5DB" : "#374151",
+                    color: isDark ? '#D1D5DB' : '#374151',
                   }}
                 >
                   Title
@@ -499,13 +499,13 @@ const SendNotificationModal = memo(
                   value={title}
                   onChangeText={onTitleChange}
                   placeholder="Notification title"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                   style={{
-                    backgroundColor: isDark ? "#1F2937" : "#F3F4F6",
+                    backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
                     borderRadius: 8,
                     padding: 12,
                     marginBottom: 16,
-                    color: isDark ? "#ffffff" : "#111827",
+                    color: isDark ? '#ffffff' : '#111827',
                     fontSize: 16,
                   }}
                   returnKeyType="next"
@@ -516,9 +516,9 @@ const SendNotificationModal = memo(
                 <Text
                   style={{
                     fontSize: 14,
-                    fontWeight: "500",
+                    fontWeight: '500',
                     marginBottom: 8,
-                    color: isDark ? "#D1D5DB" : "#374151",
+                    color: isDark ? '#D1D5DB' : '#374151',
                   }}
                 >
                   Message
@@ -528,18 +528,18 @@ const SendNotificationModal = memo(
                   value={message}
                   onChangeText={onMessageChange}
                   placeholder="Notification message"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                   multiline
                   numberOfLines={4}
                   style={{
-                    backgroundColor: isDark ? "#1F2937" : "#F3F4F6",
+                    backgroundColor: isDark ? '#1F2937' : '#F3F4F6',
                     borderRadius: 8,
                     padding: 12,
                     marginBottom: 20,
-                    color: isDark ? "#ffffff" : "#111827",
+                    color: isDark ? '#ffffff' : '#111827',
                     fontSize: 16,
                     minHeight: 100,
-                    textAlignVertical: "top",
+                    textAlignVertical: 'top',
                   }}
                 />
 
@@ -547,22 +547,22 @@ const SendNotificationModal = memo(
                 <View className="mb-6">
                   <Text
                     className={`text-sm font-medium mb-2 ${
-                      isDark ? "text-gray-300" : "text-gray-700"
+                      isDark ? 'text-gray-300' : 'text-gray-700'
                     }`}
                   >
                     Priority
                   </Text>
                   <View
                     className={`rounded-lg overflow-hidden ${
-                      isDark ? "bg-gray-800" : "bg-gray-100"
+                      isDark ? 'bg-gray-800' : 'bg-gray-100'
                     }`}
                   >
-                    <Picker<"default" | "high" | "low">
+                    <Picker<'default' | 'high' | 'low'>
                       selectedValue={priority}
                       onValueChange={onPriorityChange}
-                      dropdownIconColor={isDark ? "#FFFFFF" : "#000000"}
+                      dropdownIconColor={isDark ? '#FFFFFF' : '#000000'}
                       style={{
-                        color: isDark ? "#FFFFFF" : "#000000",
+                        color: isDark ? '#FFFFFF' : '#000000',
                         height: 50,
                       }}
                     >
@@ -580,16 +580,16 @@ const SendNotificationModal = memo(
                   onPress={handleSend}
                   disabled={
                     isLoading ||
-                    (notificationMode === "user" && selectedUsers.length === 0)
+                    (notificationMode === 'user' && selectedUsers.length === 0)
                   }
                   className={`flex-1 p-4 rounded-lg flex-row justify-center items-center ${
                     isDark
                       ? isLoading
-                        ? "bg-blue-600/70"
-                        : "bg-blue-600"
+                        ? 'bg-blue-600/70'
+                        : 'bg-blue-600'
                       : isLoading
-                        ? "bg-blue-500/70"
-                        : "bg-blue-500"
+                        ? 'bg-blue-500/70'
+                        : 'bg-blue-500'
                   }`}
                 >
                   {isLoading ? (
@@ -606,7 +606,7 @@ const SendNotificationModal = memo(
                     />
                   )}
                   <Text className="text-white font-medium">
-                    {isLoading ? "Sending..." : "Send Notification"}
+                    {isLoading ? 'Sending...' : 'Send Notification'}
                   </Text>
                 </Pressable>
               </View>
@@ -618,21 +618,21 @@ const SendNotificationModal = memo(
         </KeyboardAvoidingView>
       </Modal>
     );
-  },
+  }
 );
 
 export default function GroupAdminNotifications() {
   const { theme } = ThemeContext.useTheme();
   const { user, token } = useAuth();
-  const isDark = theme === "dark";
+  const isDark = theme === 'dark';
   const [isLoading, setIsLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const successScale = useRef(new Animated.Value(0)).current;
   const [notificationData, setNotificationData] = useState<NotificationData>({
-    title: "",
-    message: "",
-    type: "all",
-    priority: "default",
+    title: '',
+    message: '',
+    type: 'all',
+    priority: 'default',
     selectedUsers: [],
   });
   const { unreadCount, notifications, setNotifications } = useNotifications();
@@ -666,35 +666,35 @@ export default function GroupAdminNotifications() {
   const SuccessModal = useCallback(
     () => (
       <Animated.View
-        className={`absolute inset-0 items-center justify-center ${isDark ? "bg-gray-900/95" : "bg-white/95"}`}
+        className={`absolute inset-0 items-center justify-center ${isDark ? 'bg-gray-900/95' : 'bg-white/95'}`}
         style={{
           transform: [{ scale: successScale }],
         }}
       >
         <View className="items-center px-6">
           <View
-            className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${isDark ? "bg-green-500/20" : "bg-green-100"}`}
+            className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${isDark ? 'bg-green-500/20' : 'bg-green-100'}`}
           >
             <MaterialCommunityIcons
               name="check-circle"
               size={40}
-              color={isDark ? "#4ADE80" : "#22C55E"}
+              color={isDark ? '#4ADE80' : '#22C55E'}
             />
           </View>
           <Text
-            className={`text-xl font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
+            className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
           >
             Success!
           </Text>
           <Text
-            className={`text-base text-center ${isDark ? "text-gray-300" : "text-gray-600"}`}
+            className={`text-base text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}
           >
             Your notification has been sent successfully
           </Text>
         </View>
       </Animated.View>
     ),
-    [isDark, successScale],
+    [isDark, successScale]
   );
 
   useEffect(() => {
@@ -724,7 +724,7 @@ export default function GroupAdminNotifications() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         );
 
         if (
@@ -737,7 +737,7 @@ export default function GroupAdminNotifications() {
           setIsEndReached(true);
         }
       } catch (error) {
-        console.error("Error fetching more notifications:", error);
+        console.error('Error fetching more notifications:', error);
       } finally {
         if (isMounted.current) {
           setIsFetchingMore(false);
@@ -757,17 +757,17 @@ export default function GroupAdminNotifications() {
     try {
       setIsLoading(true);
       const endpoint =
-        notificationData.type === "all"
-          ? "/api/group-admin-notifications/send-group"
-          : "/api/group-admin-notifications/send-users";
+        notificationData.type === 'all'
+          ? '/api/group-admin-notifications/send-group'
+          : '/api/group-admin-notifications/send-users';
 
       const payload = {
         title: notificationData.title,
         message: notificationData.message,
-        type: "group",
+        type: 'group',
         priority: notificationData.priority,
         groupAdminId: user?.id,
-        ...(notificationData.type === "user" && {
+        ...(notificationData.type === 'user' && {
           userIds: notificationData.selectedUsers,
         }),
       };
@@ -779,7 +779,7 @@ export default function GroupAdminNotifications() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
 
       if (response.status === 200) {
@@ -789,10 +789,10 @@ export default function GroupAdminNotifications() {
         // Reset form after a delay
         setTimeout(() => {
           setNotificationData({
-            title: "",
-            message: "",
-            type: "all",
-            priority: "default",
+            title: '',
+            message: '',
+            type: 'all',
+            priority: 'default',
             selectedUsers: [],
           });
           setShowSuccess(false); // Reset success state
@@ -800,8 +800,8 @@ export default function GroupAdminNotifications() {
         }, 2000);
       }
     } catch (error) {
-      console.error("Error sending notification:", error);
-      Alert.alert("Error", "Failed to send notification. Please try again.");
+      console.error('Error sending notification:', error);
+      Alert.alert('Error', 'Failed to send notification. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -822,7 +822,7 @@ export default function GroupAdminNotifications() {
           {
             params: { limit: 15, offset: 0 },
             headers: { Authorization: `Bearer ${token}` },
-          },
+          }
         );
 
         if (isMounted.current) {
@@ -835,7 +835,7 @@ export default function GroupAdminNotifications() {
               notificationsMap.set(`push_${notification.id}`, {
                 ...notification,
                 uniqueId: `push_${notification.id}`,
-                source: "push",
+                source: 'push',
               });
             });
 
@@ -845,14 +845,14 @@ export default function GroupAdminNotifications() {
                 notificationsMap.set(`inapp_${notification.id}`, {
                   ...notification,
                   uniqueId: `inapp_${notification.id}`,
-                  source: "inapp",
+                  source: 'inapp',
                 });
-              },
+              }
             );
 
             // Convert to array and set to context
             const allNotifications = Array.from(
-              notificationsMap.values(),
+              notificationsMap.values()
             ) as Notification[];
             setNotifications(allNotifications);
           } else {
@@ -863,8 +863,8 @@ export default function GroupAdminNotifications() {
         }
       } catch (error) {
         console.error(
-          "[Group Admin Notifications] Error loading initial data:",
-          error,
+          '[Group Admin Notifications] Error loading initial data:',
+          error
         );
         if (isMounted.current) {
           setIsLoading(false);
@@ -891,11 +891,11 @@ export default function GroupAdminNotifications() {
 
       {/* Enhanced Header with status bar integration */}
       <LinearGradient
-        colors={isDark ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]}
+        colors={isDark ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
         style={styles.header}
       >
         <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
+          barStyle={isDark ? 'light-content' : 'dark-content'}
           backgroundColor="transparent"
           translucent
         />
@@ -903,38 +903,38 @@ export default function GroupAdminNotifications() {
         {/* Header Content */}
         <View
           style={{
-            paddingHorizontal: 20,
-            paddingBottom: 20,
+            paddingTop: 20,
+            // paddingBottom: 20,
           }}
         >
-          <View className="px-6 mb-6">
-            <View className="flex-row items-center mb-1">
+          <View className="px-4 pb-6">
+            <View className="flex-row items-center pr-2 mb-1">
               <TouchableOpacity
                 onPress={() => router.back()}
-                className={`w-12 h-12 rounded-full items-center justify-center ${isDark ? "bg-gray-800/80" : "bg-gray-100"}`}
+                className={`w-12 h-12 mr-2 rounded-full items-center justify-center ${isDark ? 'bg-gray-800/80' : 'bg-gray-100'}`}
               >
                 <MaterialCommunityIcons
                   name="arrow-left"
                   size={28}
-                  color={isDark ? "#E5E7EB" : "#374151"}
+                  color={isDark ? '#E5E7EB' : '#374151'}
                 />
               </TouchableOpacity>
               <View className="flex-1 flex-row justify-between items-center">
                 <View>
                   <Text
-                    className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+                    className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}
                   >
-                    Notifications{" "}
+                    Notifications{' '}
                     {unreadCount > 0 && (
                       <Text
-                        className={`text-sm ${isDark ? "text-blue-400" : "text-blue-500"}`}
+                        className={`text-sm ${isDark ? 'text-blue-400' : 'text-blue-500'}`}
                       >
                         ({unreadCount})
                       </Text>
                     )}
                   </Text>
                   <Text
-                    className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
                   >
                     Stay updated with your activities
                   </Text>
@@ -944,28 +944,28 @@ export default function GroupAdminNotifications() {
                     onPress={() => {
                       if (unreadCount > 0) {
                         Alert.alert(
-                          "Mark All as Read",
-                          "Are you sure you want to mark all notifications as read?",
+                          'Mark All as Read',
+                          'Are you sure you want to mark all notifications as read?',
                           [
-                            { text: "Cancel", style: "cancel" },
+                            { text: 'Cancel', style: 'cancel' },
                             {
-                              text: "Mark All",
+                              text: 'Mark All',
                               onPress: () => {
                                 if (listRef.current) {
                                   listRef.current.markAllAsRead();
                                 }
                               },
                             },
-                          ],
+                          ]
                         );
                       }
                     }}
                     className={`py-2 px-4 rounded-lg ${
-                      isDark ? "bg-blue-600" : "bg-blue-500"
+                      isDark ? 'bg-blue-600' : 'bg-blue-500'
                     }`}
                     style={[
                       styles.markAllButton,
-                      { position: "absolute", right: 0 },
+                      { position: 'absolute', right: 0 },
                     ]}
                   >
                     <Text className="text-white font-medium text-sm">
@@ -979,17 +979,17 @@ export default function GroupAdminNotifications() {
         </View>
       </LinearGradient>
 
-      <View className={`flex-1 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+      <View className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Loading State and Content */}
         <View className="flex-1 pt-3">
           {isLoading ? (
             <View className="flex-1 justify-center items-center">
               <ActivityIndicator
                 size="large"
-                color={isDark ? "#60A5FA" : "#3B82F6"}
+                color={isDark ? '#60A5FA' : '#3B82F6'}
               />
               <Text
-                className={`mt-4 text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                className={`mt-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}
               >
                 Loading notifications...
               </Text>
@@ -1014,7 +1014,7 @@ export default function GroupAdminNotifications() {
                       {
                         params: { limit: PAGE_SIZE, page: 1 },
                         headers: { Authorization: `Bearer ${token}` },
-                      },
+                      }
                     );
 
                     if (
@@ -1028,10 +1028,10 @@ export default function GroupAdminNotifications() {
                           notificationsMap.set(`push_${notification.id}`, {
                             ...notification,
                             uniqueId: `push_${notification.id}`,
-                            source: "push",
+                            source: 'push',
                             read: true,
                           });
-                        },
+                        }
                       );
 
                       (response.data.inApp || []).forEach(
@@ -1039,19 +1039,19 @@ export default function GroupAdminNotifications() {
                           notificationsMap.set(`inapp_${notification.id}`, {
                             ...notification,
                             uniqueId: `inapp_${notification.id}`,
-                            source: "inapp",
+                            source: 'inapp',
                             read: true,
                           });
-                        },
+                        }
                       );
 
                       const allNotifications = Array.from(
-                        notificationsMap.values(),
+                        notificationsMap.values()
                       ) as Notification[];
                       setNotifications(allNotifications);
                     }
                   } catch (error) {
-                    console.error("Error refreshing notifications:", error);
+                    console.error('Error refreshing notifications:', error);
                   } finally {
                     setIsLoading(false);
                   }
@@ -1090,7 +1090,7 @@ export default function GroupAdminNotifications() {
           setNotificationData((prev) => ({ ...prev, type: mode }))
         }
         priority={notificationData.priority}
-        onPriorityChange={(priority: "default" | "high" | "low") =>
+        onPriorityChange={(priority: 'default' | 'high' | 'low') =>
           setNotificationData((prev) => ({ ...prev, priority }))
         }
         selectedUsers={notificationData.selectedUsers}
@@ -1107,19 +1107,19 @@ export default function GroupAdminNotifications() {
 
 const styles = StyleSheet.create({
   header: {
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
   markAllButton: {
-    shadowColor: "#3B82F6",
+    shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
     elevation: 2,
-    marginLeft: "auto",
+    marginLeft: 'auto',
     zIndex: 10,
   },
 });

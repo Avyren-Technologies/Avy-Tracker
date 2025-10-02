@@ -25,7 +25,6 @@ Notifications.setNotificationHandler({
     
     // Always show alert, play sound, and set badge for both foreground and background
     return {
-      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
       shouldShowBanner: true,
@@ -447,21 +446,27 @@ class PushNotificationService {
 
   private async showForegroundNotificationPopup(notification: Notifications.Notification) {
     try {
-      // Schedule a local notification to ensure it shows as a popup in foreground
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.request.content.title,
-          body: notification.request.content.body,
-          data: notification.request.content.data,
-          sound: "default",
-          priority: "high",
-          autoDismiss: true,
-          badge: 1,
-          categoryIdentifier: "foreground", // Use the foreground channel
-        },
-        trigger: null, // Show immediately
-      });
-      console.log("[PushService] Foreground notification popup scheduled");
+      // Only show local notification popup if the original notification doesn't have _displayInForeground flag
+      // This prevents duplicate notifications
+      if (!notification.request.content.data?._displayInForeground) {
+        // Schedule a local notification to ensure it shows as a popup in foreground
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notification.request.content.title,
+            body: notification.request.content.body,
+            data: notification.request.content.data,
+            sound: "default",
+            priority: "high",
+            autoDismiss: true,
+            badge: 1,
+            categoryIdentifier: "foreground", // Use the foreground channel
+          },
+          trigger: null, // Show immediately
+        });
+        console.log("[PushService] Foreground notification popup scheduled");
+      } else {
+        console.log("[PushService] Skipping local popup - notification already configured for foreground display");
+      }
     } catch (error) {
       console.error("[PushService] Error showing foreground notification popup:", error);
     }

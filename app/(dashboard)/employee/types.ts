@@ -10,9 +10,9 @@ export interface ScheduleEvent {
 
 export interface CalendarTheme {
   textDayFontSize: number;
-  textDayFontWeight: string;
+  textDayFontWeight: "400" | "600" | "light" | "normal" | "bold" | "100" | "200" | "300" | "500" | "700" | "800" | "900";
   textMonthFontSize: number;
-  textMonthFontWeight: string;
+  textMonthFontWeight: "400" | "600" | "light" | "normal" | "bold" | "100" | "200" | "300" | "500" | "700" | "800" | "900";
   textDayHeaderFontSize: number;
   "stylesheet.calendar.header": {
     header: {

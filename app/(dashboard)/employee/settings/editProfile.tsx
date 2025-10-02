@@ -267,6 +267,7 @@ export default function EditProfile() {
             </Text>
             <TextInput
               value={formData.name}
+              editable={false}
               onChangeText={(text) => {
                 setFormData((prev) => ({ ...prev, name: text }));
                 if (errors.name) {
@@ -292,6 +293,7 @@ export default function EditProfile() {
             </Text>
             <TextInput
               value={formData.phone}
+              editable={false}
               onChangeText={(text) => {
                 setFormData((prev) => ({ ...prev, phone: text }));
                 if (errors.phone) {

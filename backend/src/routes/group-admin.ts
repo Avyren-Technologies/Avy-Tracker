@@ -43,7 +43,7 @@ router.get(
         u.employee_number,
         u.department,
         u.designation,
-r        u.gender,
+        u.gender,
         u.created_at,
         u.can_submit_expenses_anytime,
         u.shift_status
