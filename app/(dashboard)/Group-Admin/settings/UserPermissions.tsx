@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  StatusBar,
   StyleSheet,
   TextInput,
   Alert,
@@ -15,11 +14,14 @@ import {
   Animated,
   RefreshControl,
   FlatList,
+  KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import ThemeContext from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
@@ -284,80 +286,74 @@ export default function UserPermissions() {
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={
-        theme === "dark" ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]
-      }
-      style={[
-        styles.header,
-        {
-          paddingTop:
-            Platform.OS === "ios"
-              ? StatusBar.currentHeight || 44
-              : StatusBar.currentHeight || 10,
-        },
-      ]}
-    >
-      <View className="px-6">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="mr-4 p-2 rounded-full"
-            style={[
-              styles.backButton,
-              { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
-            ]}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={theme === "dark" ? "#FFFFFF" : "#000000"}
-            />
-          </TouchableOpacity>
-          <View>
-            <Text
-              className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+    <SafeAreaView edges={['top']} style={{ backgroundColor: theme === "dark" ? "#1F2937" : "#FFFFFF" }}>
+      <LinearGradient
+        colors={
+          theme === "dark" ? ["#1F2937", "#111827"] : ["#FFFFFF", "#F3F4F6"]
+        }
+        style={styles.header}
+      >
+        <View className="px-6">
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="mr-4 p-2 rounded-full"
+              style={[
+                styles.backButton,
+                { backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6" },
+              ]}
             >
-              User Permissions
-            </Text>
-            <Text
-              className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
-            >
-              Manage roles and permissions
-            </Text>
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={theme === "dark" ? "#FFFFFF" : "#000000"}
+              />
+            </TouchableOpacity>
+            <View>
+              <Text
+                className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+              >
+                User Permissions
+              </Text>
+              <Text
+                className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
+              >
+                Manage roles and permissions
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Tab Navigation */}
-      <View className="flex-row px-6 mt-4">
-        {(["roles", "tracking"] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            className={`mr-4 pb-2 ${
-              activeTab === tab ? "border-b-2 border-blue-500" : ""
-            }`}
-          >
-            <Text
-              className={`${
-                activeTab === tab
-                  ? theme === "dark"
-                    ? "text-blue-400"
-                    : "text-blue-600"
-                  : theme === "dark"
-                    ? "text-gray-400"
-                    : "text-gray-600"
-              } font-medium`}
+        {/* Tab Navigation */}
+        <View className="flex-row px-6 mt-4">
+          {(["roles", "tracking"] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className={`mr-4 pb-2 ${
+                activeTab === tab ? "border-b-2 border-blue-500" : ""
+              }`}
             >
-              {tab === "tracking"
-                ? "Tracking"
-                : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </LinearGradient>
+              <Text
+                className={`${
+                  activeTab === tab
+                    ? theme === "dark"
+                      ? "text-blue-400"
+                      : "text-blue-600"
+                    : theme === "dark"
+                      ? "text-gray-400"
+                      : "text-gray-600"
+                } font-medium`}
+              >
+                {tab === "tracking"
+                  ? "Tracking"
+                  : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 
   const renderRolesTab = () => (
@@ -513,38 +509,45 @@ export default function UserPermissions() {
 
   // Enhanced tracking tab render function with modern UI
   const renderTrackingTab = () => (
-    <View className="px-4 py-2 pb-20">
-      {/* Enhanced search bar */}
-      <View
-        className={`flex-row items-center px-4 py-3 rounded-xl shadow-sm mb-4 ${
-          theme === "dark" ? "bg-gray-800" : "bg-white"
-        }`}
-        style={styles.searchBarEnhanced}
-      >
-        <Ionicons
-          name="search-outline"
-          size={20}
-          color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-        />
-        <TextInput
-          placeholder="Search by name or employee number..."
-          placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          className={`ml-2 flex-1 ${
-            theme === "dark" ? "text-white" : "text-gray-900"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <View className="px-4 py-2 pb-20">
+        {/* Enhanced search bar */}
+        <View
+          className={`flex-row items-center px-4 py-3 rounded-xl shadow-sm mb-4 ${
+            theme === "dark" ? "bg-gray-800" : "bg-white"
           }`}
-        />
-        {searchQuery && searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <Ionicons
-              name="close-circle"
-              size={20}
-              color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+          style={styles.searchBarEnhanced}
+        >
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+          />
+          <TextInput
+            placeholder="Search by name or employee number..."
+            placeholderTextColor={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            className={`ml-2 flex-1 ${
+              theme === "dark" ? "text-white" : "text-gray-900"
+            }`}
+            returnKeyType="search"
+            blurOnSubmit={false}
+          />
+          {searchQuery && searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
       {storeIsLoading ? (
         <View className="items-center justify-center py-8">
@@ -862,7 +865,7 @@ export default function UserPermissions() {
               </Animated.View>
             </MotiView>
           )}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 10 }}
           refreshControl={
             <RefreshControl
               refreshing={storeIsLoading}
@@ -874,7 +877,8 @@ export default function UserPermissions() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 
   // Add role change modal
@@ -948,7 +952,12 @@ export default function UserPermissions() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
+      <StatusBar 
+        style={theme === "dark" ? "light" : "dark"} 
+        backgroundColor={theme === "dark" ? "#1F2937" : "#FFFFFF"}
+        translucent={false}
+      />
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         {renderHeader()}
 
         {isLoading && activeTab !== "tracking" ? (
@@ -979,6 +988,10 @@ export default function UserPermissions() {
           <ScrollView
             className={`flex-1 ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            keyboardDismissMode="interactive"
           >
             {renderRolesTab()}
           </ScrollView>
@@ -986,7 +999,7 @@ export default function UserPermissions() {
 
         {renderBulkActions()}
         {renderRoleModal()}
-      </View>
+      </SafeAreaView>
     </GestureHandlerRootView>
   );
 }

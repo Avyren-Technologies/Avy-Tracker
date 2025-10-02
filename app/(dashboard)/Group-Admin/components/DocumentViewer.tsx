@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
-import * as IntentLauncher from "expo-intent-launcher";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as WebBrowser from "expo-web-browser";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
@@ -23,26 +23,56 @@ interface Props {
 
 export default function DocumentViewer({ document, isDark }: Props) {
   const createTempFile = async () => {
-    const fileUri = `${FileSystem.cacheDirectory}${document.file_name}`;
-    await FileSystem.writeAsStringAsync(fileUri, document.file_data, {
-      encoding: FileSystem.EncodingType.Base64,
+    const file = new File(Paths.cache, document.file_name);
+    
+    // Check if file exists and delete it first to avoid conflicts
+    if (file.exists) {
+      file.delete();
+    }
+    
+    await file.create();
+    await FileSystem.writeAsStringAsync(file.uri, document.file_data, {
+      encoding: 'base64',
     });
-    return fileUri;
+    return file.uri;
   };
 
   const openDocument = async () => {
     try {
       const fileUri = await createTempFile();
 
-      if (Platform.OS === "ios") {
-        await WebBrowser.openBrowserAsync(`file://${fileUri}`);
+      if (Platform.OS === "android") {
+        // For Android, use sharing which handles content URIs properly
+        // This avoids FileUriExposedException and FileProvider configuration issues
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: document.file_type,
+            dialogTitle: `Open ${document.file_name}`,
+          });
+        } else {
+          Alert.alert('Error', 'Unable to open file on this device');
+        }
       } else {
-        const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-          data: contentUri,
-          flags: 1,
-          type: document.file_type,
-        });
+        // For iOS, use WebBrowser for direct opening
+        try {
+          await WebBrowser.openBrowserAsync(`file://${fileUri}`);
+        } catch (webBrowserError) {
+          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
+          // Fallback to sharing if WebBrowser fails
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(fileUri, {
+              UTI:
+                document.file_type === 'application/pdf'
+                  ? 'com.adobe.pdf'
+                  : 'public.item',
+              mimeType: document.file_type,
+            });
+          } else {
+            Alert.alert('Error', 'Unable to open file on this device');
+          }
+        }
       }
     } catch (error) {
       console.error("Error opening document:", error);
@@ -55,7 +85,10 @@ export default function DocumentViewer({ document, isDark }: Props) {
       const fileUri = await createTempFile();
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
+        await Sharing.shareAsync(fileUri, {
+          mimeType: document.file_type,
+          dialogTitle: `Share ${document.file_name}`,
+        });
       } else {
         Alert.alert("Error", "Sharing is not available on this device");
       }

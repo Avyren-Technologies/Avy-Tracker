@@ -43,6 +43,7 @@ router.get(
         u.employee_number,
         u.department,
         u.designation,
+r        u.gender,
         u.created_at,
         u.can_submit_expenses_anytime,
         u.shift_status
@@ -561,6 +562,171 @@ router.post(
   },
 );
 
+// Update employee details
+router.put(
+  "/employees/:id",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (req.user?.role !== "group-admin") {
+        return res
+          .status(403)
+          .json({ error: "Access denied. Group admin only." });
+      }
+
+      const { id } = req.params;
+      const {
+        name,
+        employeeNumber,
+        email,
+        phone,
+        department,
+        designation,
+        gender,
+        can_submit_expenses_anytime,
+        password,
+      } = req.body;
+
+      // Validate required fields
+      if (!name || !email || !employeeNumber || !department || !gender) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          errors: {
+            name: !name ? "Name is required" : null,
+            employeeNumber: !employeeNumber ? "Employee number is required" : null,
+            email: !email ? "Email is required" : null,
+            department: !department ? "Department is required" : null,
+            gender: !gender ? "Gender is required" : null,
+          },
+        });
+      }
+
+      // Validate gender value
+      const validGenders = ["male", "female", "other"];
+      if (!validGenders.includes(gender.toLowerCase())) {
+        return res.status(400).json({
+          error: "Invalid gender value",
+          errors: {
+            gender: "Gender must be male, female, or other",
+          },
+        });
+      }
+
+      // Validate password if provided
+      if (password && password.length < 6) {
+        return res.status(400).json({
+          error: "Invalid password",
+          errors: {
+            password: "Password must be at least 6 characters",
+          },
+        });
+      }
+
+      await client.query("BEGIN");
+
+      // Check if employee exists and belongs to this group admin
+      const employeeCheck = await client.query(
+        "SELECT id FROM users WHERE id = $1 AND group_admin_id = $2 AND role = 'employee'",
+        [id, req.user.id],
+      );
+
+      if (employeeCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Check if email or employee number exists for other users
+      const existingUser = await client.query(
+        "SELECT id FROM users WHERE (email = $1 OR employee_number = $2) AND id != $3",
+        [email, employeeNumber, id],
+      );
+
+      if (existingUser.rows.length > 0) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          error: "Email or Employee Number already exists",
+        });
+      }
+
+      // Update employee
+      let result;
+      
+      if (password) {
+        // Include password update
+        const hashedPassword = await bcrypt.hash(password, 10);
+        result = await client.query(
+          `UPDATE users 
+           SET 
+             name = $1,
+             employee_number = $2,
+             email = $3,
+             phone = $4,
+             department = $5,
+             designation = $6,
+             gender = $7,
+             can_submit_expenses_anytime = $8,
+             password = $9,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $10 AND group_admin_id = $11 AND role = 'employee'
+           RETURNING id, name, employee_number, email, phone, department, designation, gender, can_submit_expenses_anytime, created_at`,
+          [
+            name,
+            employeeNumber,
+            email,
+            phone || null,
+            department,
+            designation || null,
+            gender.toLowerCase(),
+            can_submit_expenses_anytime || false,
+            hashedPassword,
+            id,
+            req.user.id,
+          ],
+        );
+      } else {
+        // Don't update password
+        result = await client.query(
+          `UPDATE users 
+           SET 
+             name = $1,
+             employee_number = $2,
+             email = $3,
+             phone = $4,
+             department = $5,
+             designation = $6,
+             gender = $7,
+             can_submit_expenses_anytime = $8,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE id = $9 AND group_admin_id = $10 AND role = 'employee'
+           RETURNING id, name, employee_number, email, phone, department, designation, gender, can_submit_expenses_anytime, created_at`,
+          [
+            name,
+            employeeNumber,
+            email,
+            phone || null,
+            department,
+            designation || null,
+            gender.toLowerCase(),
+            can_submit_expenses_anytime || false,
+            id,
+            req.user.id,
+          ],
+        );
+      }
+
+      await client.query("COMMIT");
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error updating employee:", error);
+      res.status(500).json({ error: "Failed to update employee" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
 // Update employee access permission
 router.patch(
   "/employees/:id/access",
@@ -616,15 +782,64 @@ router.delete(
 
       await client.query("BEGIN");
 
+      // Check if employee exists and belongs to this group admin
+      const employeeCheck = await client.query(
+        "SELECT id FROM users WHERE id = $1 AND group_admin_id = $2 AND role = 'employee'",
+        [id, req.user.id],
+      );
+
+      if (employeeCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Delete related data first to avoid foreign key constraints
+      // Delete leave balances
+      await client.query("DELETE FROM leave_balances WHERE user_id = $1", [id]);
+      
+      // Delete leave requests
+      await client.query("DELETE FROM leave_requests WHERE user_id = $1", [id]);
+      
+      // Delete employee shifts
+      await client.query("DELETE FROM employee_shifts WHERE user_id = $1", [id]);
+      
+      // Delete expenses
+      await client.query("DELETE FROM expenses WHERE user_id = $1", [id]);
+      
+      // Delete employee tasks (both assigned to and assigned by)
+      await client.query("DELETE FROM employee_tasks WHERE assigned_to = $1 OR assigned_by = $1", [id]);
+      
+      // Delete notifications
+      await client.query("DELETE FROM notifications WHERE user_id = $1", [id]);
+      
+      // Delete expense documents (via expenses table)
+      await client.query(`
+        DELETE FROM expense_documents 
+        WHERE expense_id IN (
+          SELECT id FROM expenses WHERE user_id = $1
+        )
+      `, [id]);
+      
+      // Delete employee schedule
+      await client.query("DELETE FROM employee_schedule WHERE user_id = $1", [id]);
+      
+      // Delete user tracking permissions
+      await client.query("DELETE FROM user_tracking_permissions WHERE user_id = $1", [id]);
+      
+      // Delete additional related data
+      await client.query("DELETE FROM employee_locations WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM device_tokens WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM tracking_analytics WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM geofence_events WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM chat_messages WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM error_logs WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM support_messages WHERE user_id = $1", [id]);
+
+      // Finally delete the user
       const result = await client.query(
         "DELETE FROM users WHERE id = $1 AND group_admin_id = $2 AND role = 'employee' RETURNING id",
         [id, req.user.id],
       );
-
-      if (result.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({ error: "Employee not found" });
-      }
 
       await client.query("COMMIT");
       res.json({ message: "Employee deleted successfully" });

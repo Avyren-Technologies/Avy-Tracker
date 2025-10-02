@@ -17,6 +17,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Network from "expo-network";
 import { FaceDetectionProvider } from "@infinitered/react-native-mlkit-face-detection";
 import BiometricAuthWrapper from "./components/BiometricAuthWrapper";
+import PushNotificationService from "./utils/pushNotificationService";
+import { useNotifications } from "./context/NotificationContext";
 
 // Note: The background location task is defined in app/utils/backgroundLocationTask.ts
 // We don't define it here to avoid duplicate task definitions which can cause issues
@@ -36,6 +38,55 @@ function SplashScreenController() {
       });
     }
   }, [isLoading]);
+
+  return null;
+}
+
+// Component to handle global notification setup
+function NotificationSetup() {
+  const { user, isLoading } = AuthContext.useAuth();
+  
+  // Safely access notifications context with error handling
+  let incrementUnreadCount: (() => void) | null = null;
+  try {
+    const notificationsContext = useNotifications();
+    incrementUnreadCount = notificationsContext.incrementUnreadCount;
+  } catch (error) {
+    console.log("[NotificationSetup] Notifications context not available:", error);
+  }
+
+  useEffect(() => {
+    // Only set up listeners if user is authenticated and not loading
+    if (user && user.role !== "super-admin" && !isLoading && incrementUnreadCount) {
+      console.log("[NotificationSetup] Setting up notification listeners for user:", user.role);
+      
+      // Set up global notification listeners
+      const cleanup = PushNotificationService.setupNotificationListeners(
+        (notification) => {
+          console.log("[App] Global notification received:", notification.request.content.title);
+          // Safely increment unread count when notification is received
+          try {
+            incrementUnreadCount();
+          } catch (error) {
+            console.log("[NotificationSetup] Error incrementing unread count:", error);
+          }
+        },
+        (response) => {
+          console.log("[App] Global notification tapped:", response.notification.request.content.title);
+          // Handle navigation based on notification data
+          const data = response.notification.request.content.data;
+          if (data?.screen) {
+            // Navigation will be handled by the specific notification components
+            console.log("[App] Navigation data:", data.screen);
+          }
+        }
+      );
+
+      return cleanup;
+    } else {
+      console.log("[NotificationSetup] Skipping notification setup - user:", !!user, "loading:", isLoading, "context:", !!incrementUnreadCount);
+    }
+  }, [user, isLoading, incrementUnreadCount]);
 
   return null;
 }
@@ -141,6 +192,7 @@ function RootLayout() {
           <AuthContext.AuthProvider>
             <SplashScreenController />
             <NotificationProvider>
+              <NotificationSetup />
               <TrackingProvider>
                 <FaceDetectionProvider
                   options={{

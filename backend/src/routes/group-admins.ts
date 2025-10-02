@@ -24,6 +24,7 @@ router.get("/", verifyToken, async (req: CustomRequest, res: Response) => {
         u.email,
         u.phone,
         u.employee_number,
+        u.gender,
         u.created_at,
         c.name as company_name
       FROM users u
@@ -529,6 +530,597 @@ router.post(
         error: "Failed to process bulk creation",
         details: error.message || "Unknown server error",
       });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Get employees under a specific group admin (for management)
+router.get(
+  "/:id/employees",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!["management", "super-admin"].includes(req.user?.role || "")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { id } = req.params;
+
+      // Verify the group admin exists and belongs to the same company
+      const groupAdminCheck = await client.query(
+        `
+        SELECT u.id, u.name, u.email, u.phone, u.employee_number, u.created_at, c.name as company_name
+        FROM users u
+        JOIN companies c ON u.company_id = c.id
+        WHERE u.id = $1 AND u.role = 'group-admin'
+        AND (
+          $2 = 'super-admin' 
+          OR 
+          (u.company_id = (SELECT company_id FROM users WHERE id = $3))
+        )
+      `,
+        [id, req.user?.role, req.user?.id],
+      );
+
+      if (groupAdminCheck.rows.length === 0) {
+        return res.status(404).json({ error: "Group admin not found" });
+      }
+
+      const groupAdmin = groupAdminCheck.rows[0];
+
+      // Get employees under this group admin
+      const result = await client.query(
+        `
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.phone,
+          u.employee_number,
+          u.department,
+          u.designation,
+          u.gender,
+          u.created_at,
+          u.can_submit_expenses_anytime,
+          u.shift_status
+        FROM users u
+        WHERE u.group_admin_id = $1
+        AND u.role = 'employee'
+        ORDER BY u.created_at DESC
+      `,
+        [id],
+      );
+
+      res.json({
+        groupAdmin,
+        employees: result.rows,
+      });
+    } catch (error) {
+      console.error("Error fetching group admin employees:", error);
+      res.status(500).json({ error: "Failed to fetch group admin employees" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Update group admin details (for management)
+router.put(
+  "/:id",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!["management", "super-admin"].includes(req.user?.role || "")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { id } = req.params;
+      const { name, email, phone, employeeNumber, gender, password } = req.body;
+
+      // Validate required fields
+      if (!name || !email || !employeeNumber || !gender) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          errors: {
+            name: !name ? "Name is required" : null,
+            email: !email ? "Email is required" : null,
+            employeeNumber: !employeeNumber ? "Employee number is required" : null,
+            gender: !gender ? "Gender is required" : null,
+          },
+        });
+      }
+
+      // Validate password if provided
+      if (password && password.length < 6) {
+        return res.status(400).json({
+          error: "Invalid password",
+          errors: {
+            password: "Password must be at least 6 characters",
+          },
+        });
+      }
+
+      // Validate gender value
+      const validGenders = ["male", "female", "other"];
+      if (!validGenders.includes(gender.toLowerCase())) {
+        return res.status(400).json({
+          error: "Invalid gender value",
+          errors: {
+            gender: "Gender must be male, female, or other",
+          },
+        });
+      }
+
+      await client.query("BEGIN");
+
+      // Check if group admin exists and belongs to the same company
+      const groupAdminCheck = await client.query(
+        `
+        SELECT id FROM users 
+        WHERE id = $1 AND role = 'group-admin'
+        AND (
+          $2 = 'super-admin' 
+          OR 
+          (company_id = (SELECT company_id FROM users WHERE id = $3))
+        )
+      `,
+        [id, req.user?.role, req.user?.id],
+      );
+
+      if (groupAdminCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Group admin not found" });
+      }
+
+      // Check if email or employee number already exists (excluding current user)
+      const duplicateCheck = await client.query(
+        `
+        SELECT id FROM users 
+        WHERE (email = $1 OR employee_number = $2) 
+        AND id != $3
+      `,
+        [email, employeeNumber, id],
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Email or employee number already exists",
+        });
+      }
+
+      let result;
+      if (password) {
+        // Update with password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        result = await client.query(
+          `
+          UPDATE users 
+          SET 
+            name = $1,
+            email = $2,
+            phone = $3,
+            employee_number = $4,
+            gender = $5,
+            password = $6,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $7 AND role = 'group-admin'
+          RETURNING id, name, email, phone, employee_number, gender, created_at
+        `,
+          [name, email, phone || null, employeeNumber, gender.toLowerCase(), hashedPassword, id],
+        );
+      } else {
+        // Don't update password
+        result = await client.query(
+          `
+          UPDATE users 
+          SET 
+            name = $1,
+            email = $2,
+            phone = $3,
+            employee_number = $4,
+            gender = $5,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $6 AND role = 'group-admin'
+          RETURNING id, name, email, phone, employee_number, gender, created_at
+        `,
+          [name, email, phone || null, employeeNumber, gender.toLowerCase(), id],
+        );
+      }
+
+      await client.query("COMMIT");
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error updating group admin:", error);
+
+      // Handle specific errors
+      if (error instanceof Error) {
+        if (error.message.includes("users_email_key")) {
+          return res.status(400).json({
+            error: "Email already exists",
+          });
+        } else if (error.message.includes("users_employee_number_key")) {
+          return res.status(400).json({
+            error: "Employee number already exists",
+          });
+        }
+      }
+
+      res.status(500).json({ error: "Failed to update group admin" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Delete group admin (for management)
+router.delete(
+  "/:id",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!["management", "super-admin"].includes(req.user?.role || "")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { id } = req.params;
+
+      await client.query("BEGIN");
+
+      // Check if group admin exists and belongs to the same company
+      const groupAdminCheck = await client.query(
+        `
+        SELECT id FROM users 
+        WHERE id = $1 AND role = 'group-admin'
+        AND (
+          $2 = 'super-admin' 
+          OR 
+          (company_id = (SELECT company_id FROM users WHERE id = $3))
+        )
+      `,
+        [id, req.user?.role, req.user?.id],
+      );
+
+      if (groupAdminCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Group admin not found" });
+      }
+
+      // Check if group admin has employees
+      const employeeCheck = await client.query(
+        "SELECT COUNT(*) as count FROM users WHERE group_admin_id = $1 AND role = 'employee'",
+        [id],
+      );
+
+      if (parseInt(employeeCheck.rows[0].count) > 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Cannot delete group admin with existing employees. Please reassign or delete employees first.",
+        });
+      }
+
+      // Delete related data first to avoid foreign key constraints
+      // Delete notifications
+      await client.query("DELETE FROM notifications WHERE user_id = $1", [id]);
+      
+      // Delete device tokens
+      await client.query("DELETE FROM device_tokens WHERE user_id = $1", [id]);
+      
+      // Delete error logs
+      await client.query("DELETE FROM error_logs WHERE user_id = $1", [id]);
+      
+      // Delete support messages
+      await client.query("DELETE FROM support_messages WHERE user_id = $1", [id]);
+
+      // Finally delete the group admin
+      const result = await client.query(
+        "DELETE FROM users WHERE id = $1 AND role = 'group-admin' RETURNING id",
+        [id],
+      );
+
+      await client.query("COMMIT");
+      res.json({ message: "Group admin deleted successfully" });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error deleting group admin:", error);
+      res.status(500).json({ error: "Failed to delete group admin" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Update employee details (for management)
+router.put(
+  "/employees/:id",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!["management", "super-admin"].includes(req.user?.role || "")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { id } = req.params;
+      const {
+        name,
+        employeeNumber,
+        email,
+        phone,
+        department,
+        designation,
+        gender,
+        can_submit_expenses_anytime,
+        password,
+      } = req.body;
+
+      // Validate required fields
+      if (!name || !email || !employeeNumber || !department || !gender) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          errors: {
+            name: !name ? "Name is required" : null,
+            employeeNumber: !employeeNumber ? "Employee number is required" : null,
+            email: !email ? "Email is required" : null,
+            department: !department ? "Department is required" : null,
+            gender: !gender ? "Gender is required" : null,
+          },
+        });
+      }
+
+      // Validate gender value
+      const validGenders = ["male", "female", "other"];
+      if (!validGenders.includes(gender.toLowerCase())) {
+        return res.status(400).json({
+          error: "Invalid gender value",
+          errors: {
+            gender: "Gender must be male, female, or other",
+          },
+        });
+      }
+
+      // Validate password if provided
+      if (password && password.length < 6) {
+        return res.status(400).json({
+          error: "Invalid password",
+          errors: {
+            password: "Password must be at least 6 characters",
+          },
+        });
+      }
+
+      await client.query("BEGIN");
+
+      // Check if employee exists and belongs to a group admin in the same company
+      const employeeCheck = await client.query(
+        `
+        SELECT e.id, e.group_admin_id 
+        FROM users e
+        JOIN users ga ON e.group_admin_id = ga.id
+        WHERE e.id = $1 AND e.role = 'employee'
+        AND (
+          $2 = 'super-admin' 
+          OR 
+          (ga.company_id = (SELECT company_id FROM users WHERE id = $3))
+        )
+      `,
+        [id, req.user?.role, req.user?.id],
+      );
+
+      if (employeeCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Check if email or employee number already exists (excluding current user)
+      const duplicateCheck = await client.query(
+        `
+        SELECT id FROM users 
+        WHERE (email = $1 OR employee_number = $2) 
+        AND id != $3
+      `,
+        [email, employeeNumber, id],
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Email or employee number already exists",
+        });
+      }
+
+      let result;
+      if (password) {
+        // Update with password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        result = await client.query(
+          `
+          UPDATE users 
+          SET 
+            name = $1,
+            employee_number = $2,
+            email = $3,
+            phone = $4,
+            department = $5,
+            designation = $6,
+            gender = $7,
+            can_submit_expenses_anytime = $8,
+            password = $9,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $10 AND role = 'employee'
+          RETURNING id, name, employee_number, email, phone, department, designation, gender, can_submit_expenses_anytime, created_at
+        `,
+          [
+            name,
+            employeeNumber,
+            email,
+            phone || null,
+            department,
+            designation || null,
+            gender.toLowerCase(),
+            can_submit_expenses_anytime || false,
+            hashedPassword,
+            id,
+          ],
+        );
+      } else {
+        // Don't update password
+        result = await client.query(
+          `
+          UPDATE users 
+          SET 
+            name = $1,
+            employee_number = $2,
+            email = $3,
+            phone = $4,
+            department = $5,
+            designation = $6,
+            gender = $7,
+            can_submit_expenses_anytime = $8,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $9 AND role = 'employee'
+          RETURNING id, name, employee_number, email, phone, department, designation, gender, can_submit_expenses_anytime, created_at
+        `,
+          [
+            name,
+            employeeNumber,
+            email,
+            phone || null,
+            department,
+            designation || null,
+            gender.toLowerCase(),
+            can_submit_expenses_anytime || false,
+            id,
+          ],
+        );
+      }
+
+      await client.query("COMMIT");
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error updating employee:", error);
+
+      // Handle specific errors
+      if (error instanceof Error) {
+        if (error.message.includes("users_email_key")) {
+          return res.status(400).json({
+            error: "Email already exists",
+          });
+        } else if (error.message.includes("users_employee_number_key")) {
+          return res.status(400).json({
+            error: "Employee number already exists",
+          });
+        }
+      }
+
+      res.status(500).json({ error: "Failed to update employee" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+// Delete employee (for management)
+router.delete(
+  "/employees/:id",
+  verifyToken,
+  async (req: CustomRequest, res: Response) => {
+    const client = await pool.connect();
+    try {
+      if (!["management", "super-admin"].includes(req.user?.role || "")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { id } = req.params;
+
+      await client.query("BEGIN");
+
+      // Check if employee exists and belongs to a group admin in the same company
+      const employeeCheck = await client.query(
+        `
+        SELECT e.id, e.group_admin_id 
+        FROM users e
+        JOIN users ga ON e.group_admin_id = ga.id
+        WHERE e.id = $1 AND e.role = 'employee'
+        AND (
+          $2 = 'super-admin' 
+          OR 
+          (ga.company_id = (SELECT company_id FROM users WHERE id = $3))
+        )
+      `,
+        [id, req.user?.role, req.user?.id],
+      );
+
+      if (employeeCheck.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Delete related data first to avoid foreign key constraints
+      // Delete leave balances
+      await client.query("DELETE FROM leave_balances WHERE user_id = $1", [id]);
+      
+      // Delete leave requests
+      await client.query("DELETE FROM leave_requests WHERE user_id = $1", [id]);
+      
+      // Delete employee shifts
+      await client.query("DELETE FROM employee_shifts WHERE user_id = $1", [id]);
+      
+      // Delete expenses
+      await client.query("DELETE FROM expenses WHERE user_id = $1", [id]);
+      
+      // Delete employee tasks (both assigned to and assigned by)
+      await client.query("DELETE FROM employee_tasks WHERE assigned_to = $1 OR assigned_by = $1", [id]);
+      
+      // Delete notifications
+      await client.query("DELETE FROM notifications WHERE user_id = $1", [id]);
+      
+      // Delete expense documents (via expenses table)
+      await client.query(`
+        DELETE FROM expense_documents 
+        WHERE expense_id IN (
+          SELECT id FROM expenses WHERE user_id = $1
+        )
+      `, [id]);
+      
+      // Delete employee schedule
+      await client.query("DELETE FROM employee_schedule WHERE user_id = $1", [id]);
+      
+      // Delete user tracking permissions
+      await client.query("DELETE FROM user_tracking_permissions WHERE user_id = $1", [id]);
+      
+      // Delete additional related data
+      await client.query("DELETE FROM employee_locations WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM device_tokens WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM tracking_analytics WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM geofence_events WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM chat_messages WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM error_logs WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM support_messages WHERE user_id = $1", [id]);
+
+      // Finally delete the employee
+      const result = await client.query(
+        "DELETE FROM users WHERE id = $1 AND role = 'employee' RETURNING id",
+        [id],
+      );
+
+      await client.query("COMMIT");
+      res.json({ message: "Employee deleted successfully" });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error deleting employee:", error);
+      res.status(500).json({ error: "Failed to delete employee" });
     } finally {
       client.release();
     }

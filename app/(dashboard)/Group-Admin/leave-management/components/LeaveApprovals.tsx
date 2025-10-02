@@ -15,9 +15,9 @@ import { Ionicons } from "@expo/vector-icons";
 import ThemeContext from "../../../../context/ThemeContext";
 import axios from "axios";
 import AuthContext from "../../../../context/AuthContext";
-import * as IntentLauncher from "expo-intent-launcher";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as WebBrowser from "expo-web-browser";
-import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 interface LeaveRequest {
@@ -282,33 +282,49 @@ export default function LeaveApprovals() {
         },
       );
 
-      // Create a temporary file
-      const fileUri = `${FileSystem.cacheDirectory}${doc.file_name}`;
-      await FileSystem.writeAsStringAsync(fileUri, response.data, {
-        encoding: FileSystem.EncodingType.Base64,
+      const file = new File(Paths.cache, doc.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, response.data, {
+        encoding: 'base64',
       });
 
       if (Platform.OS === "android") {
-        const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-          data: contentUri,
-          flags: 1,
-          type: doc.file_type,
-        });
-      } else {
-        // For iOS, first check if we can share
+        // For Android, use sharing which handles content URIs properly
+        // This avoids FileUriExposedException and FileProvider configuration issues
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(fileUri, {
-            UTI:
-              doc.file_type === "application/pdf"
-                ? "com.adobe.pdf"
-                : "public.item",
+          await Sharing.shareAsync(file.uri, {
             mimeType: doc.file_type,
+            dialogTitle: `Open ${doc.file_name}`,
           });
         } else {
-          // Fallback to opening in browser
-          await WebBrowser.openBrowserAsync(`file://${fileUri}`);
+          Alert.alert("Error", "Unable to open file on this device");
+        }
+      } else {
+        // For iOS, use WebBrowser for direct opening
+        try {
+          await WebBrowser.openBrowserAsync(`file://${file.uri}`);
+        } catch (webBrowserError) {
+          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
+          // Fallback to sharing if WebBrowser fails
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(file.uri, {
+              UTI:
+                doc.file_type === 'application/pdf'
+                  ? 'com.adobe.pdf'
+                  : 'public.item',
+              mimeType: doc.file_type,
+            });
+          } else {
+            Alert.alert("Error", "Unable to open file on this device");
+          }
         }
       }
     } catch (error) {

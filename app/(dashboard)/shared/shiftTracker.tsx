@@ -129,16 +129,7 @@ const NOTIFICATION_CHANNELS = {
   SHIFT_LIMIT: "shift-limit",
 } as const;
 
-// Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Note: Notification handler is now configured globally in PushNotificationService
 
 // Add these warning messages array before the component
 const warningMessages: WarningMessage[] = [

@@ -587,15 +587,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem("appOpenCount", (count + 1).toString());
 
       // For first few opens of the day, show shift tracker instead of dashboard
-      if (count < maxShiftTrackerOpens) {
+      // Exception: Super-admin users always go to their dashboard
+      if (count < maxShiftTrackerOpens && role !== "super-admin") {
         console.log(
           `Daily app open count: ${count + 1}/${maxShiftTrackerOpens} - Showing shift tracker (IST: ${todayIST})`,
         );
         router.replace("/(dashboard)/shared/shiftTracker");
       } else {
-        // After max opens for the day, show normal dashboard
+        // After max opens for the day, or for super-admin users, show normal dashboard
         console.log(
-          `Daily app open count: ${count + 1} - Showing normal dashboard (IST: ${todayIST})`,
+          `Daily app open count: ${count + 1} - Showing normal dashboard (IST: ${todayIST})${role === "super-admin" ? " [Super-admin bypass]" : ""}`,
         );
         switch (role) {
           case "employee":
@@ -648,6 +649,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           {
             text: "OK",
             onPress: async () => {
+              // Clean up notification listeners first
+              PushNotificationService.cleanupAllListeners();
+              
               // Clear auth state
               setUser(null);
               setToken(null);
@@ -1300,6 +1304,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Clean up notification listeners first
+      PushNotificationService.cleanupAllListeners();
+
       // Check if we're online before unregistering the device
       const { isConnected, isReachable } = await checkNetworkConnectivity();
 

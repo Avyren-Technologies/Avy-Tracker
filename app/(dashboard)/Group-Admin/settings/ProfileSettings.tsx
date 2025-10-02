@@ -359,10 +359,11 @@ export default function ProfileSettings() {
                 </Text>
                 <TextInput
                   value={profileData.name}
+                  editable={false}
                   onChangeText={(text) =>
                     setProfileData((prev) => ({ ...prev, name: text }))
                   }
-                  className={`p-3 rounded-lg ${isDark ? "bg-gray-700 text-white" : "bg-gray-50 text-gray-900"}`}
+                  className={`p-3 rounded-lg ${isDark ? "bg-gray-700/50 text-gray-400" : "bg-gray-100 text-gray-600"}`}
                   placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                   style={styles.input}
                 />
@@ -390,11 +391,12 @@ export default function ProfileSettings() {
                 </Text>
                 <TextInput
                   value={profileData.phone}
+                  editable={false}
                   onChangeText={(text) =>
                     setProfileData((prev) => ({ ...prev, phone: text }))
                   }
                   keyboardType="phone-pad"
-                  className={`p-3 rounded-lg ${isDark ? "bg-gray-700 text-white" : "bg-gray-50 text-gray-900"}`}
+                  className={`p-3 rounded-lg ${isDark ? "bg-gray-700/50 text-gray-400" : "bg-gray-100 text-gray-600"}`}
                   placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                   style={styles.input}
                 />

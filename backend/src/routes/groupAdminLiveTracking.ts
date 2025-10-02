@@ -522,9 +522,9 @@ router.get("/employees", authenticateToken, async (req: any, res) => {
       FROM users u
       LEFT JOIN user_tracking_permissions utp ON u.id = utp.user_id
       LEFT JOIN company_tracking_settings cts ON u.company_id = cts.company_id
-      WHERE u.company_id = $1 AND u.role = 'employee'
+      WHERE u.company_id = $1 AND u.group_admin_id = $2 AND u.role = 'employee'
       ORDER BY u.name ASC`,
-      [company_id],
+      [company_id, req.user.id],
     );
 
     res.json(result.rows);

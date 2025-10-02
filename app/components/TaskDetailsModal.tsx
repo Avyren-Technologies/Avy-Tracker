@@ -15,10 +15,12 @@ import {
   ActionSheetIOS,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format, formatDistanceToNow } from 'date-fns';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -369,30 +371,47 @@ export default function TaskDetailsModal({
         }
       );
 
-      const fileUri = `${FileSystem.cacheDirectory}${attachment.file_name}`;
-      await FileSystem.writeAsStringAsync(fileUri, response.data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const file = new File(Paths.cache, attachment.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
 
       if (Platform.OS === 'android') {
-        const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-          data: contentUri,
-          flags: 1,
-          type: attachment.file_type,
-        });
-      } else {
+        // For Android, use sharing which handles content URIs properly
+        // This avoids FileUriExposedException and FileProvider configuration issues
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(fileUri, {
-            UTI:
-              attachment.file_type === 'application/pdf'
-                ? 'com.adobe.pdf'
-                : 'public.item',
+          await Sharing.shareAsync(file.uri, {
             mimeType: attachment.file_type,
+            dialogTitle: `Open ${attachment.file_name}`,
           });
         } else {
-          await WebBrowser.openBrowserAsync(`file://${fileUri}`);
+          Alert.alert('Error', 'Unable to open file on this device');
+        }
+      } else {
+        // For iOS, use WebBrowser for direct opening
+        try {
+          await WebBrowser.openBrowserAsync(`file://${file.uri}`);
+        } catch (webBrowserError) {
+          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
+          // Fallback to sharing if WebBrowser fails
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(file.uri, {
+              UTI:
+                attachment.file_type === 'application/pdf'
+                  ? 'com.adobe.pdf'
+                  : 'public.item',
+              mimeType: attachment.file_type,
+            });
+          } else {
+            Alert.alert('Error', 'Unable to open file on this device');
+          }
         }
       }
     } catch (error) {
@@ -411,12 +430,17 @@ export default function TaskDetailsModal({
         }
       );
 
-      const fileUri = `${FileSystem.documentDirectory}${attachment.file_name}`;
-      await FileSystem.writeAsStringAsync(fileUri, response.data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const file = new File(Paths.document, attachment.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
 
-      Alert.alert('Success', `File downloaded to: ${fileUri}`);
+      Alert.alert('Success', `File downloaded to: ${file.uri}`);
     } catch (error) {
       console.error('Error downloading attachment:', error);
       Alert.alert('Error', 'Failed to download attachment');
@@ -433,13 +457,21 @@ export default function TaskDetailsModal({
         }
       );
 
-      const fileUri = `${FileSystem.cacheDirectory}${attachment.file_name}`;
-      await FileSystem.writeAsStringAsync(fileUri, response.data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const file = new File(Paths.cache, attachment.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
+        await Sharing.shareAsync(file.uri, {
+          mimeType: attachment.file_type,
+          dialogTitle: `Share ${attachment.file_name}`,
+        });
       } else {
         Alert.alert('Error', 'Sharing is not available on this device');
       }
@@ -927,7 +959,7 @@ export default function TaskDetailsModal({
       presentationStyle="pageSheet"
     >
       <ExpoStatusBar style={isDark ? 'light' : 'dark'} />
-      <View style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer}>
         {/* Header */}
         <LinearGradient
           colors={isDark ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F3F4F6']}
@@ -1451,7 +1483,7 @@ export default function TaskDetailsModal({
           onActionSelect={handleAttachmentActionSelect}
           isDark={isDark}
         />
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }

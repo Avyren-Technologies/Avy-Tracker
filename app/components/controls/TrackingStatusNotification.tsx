@@ -15,14 +15,7 @@ import * as Notifications from "expo-notifications";
 import * as Battery from "expo-battery";
 import EventEmitter from "../../utils/EventEmitter";
 
-// Configure notifications for tracking status
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Note: Notification handler is now configured globally in PushNotificationService
 
 interface TrackingStatusNotificationProps {
   compact?: boolean;

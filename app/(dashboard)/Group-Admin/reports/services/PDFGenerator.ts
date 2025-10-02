@@ -1,7 +1,7 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system";
-import * as IntentLauncher from "expo-intent-launcher";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ReportSection } from "../types";
@@ -180,24 +180,16 @@ export class PDFGenerator {
             dialogTitle: section.title,
           });
         } else {
-          // On Android, use Intent to open with system PDF viewer
-          try {
-            const contentUri = await FileSystem.getContentUriAsync(uri);
-            await IntentLauncher.startActivityAsync(
-              "android.intent.action.VIEW",
-              {
-                data: contentUri,
-                flags: 1,
-                type: "application/pdf",
-              },
-            );
-          } catch (error) {
-            console.error("Error opening PDF:", error);
-            // Fallback to sharing if direct opening fails
+          // On Android, use sharing which handles content URIs properly
+          // This avoids FileUriExposedException and FileProvider configuration issues
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
             await Sharing.shareAsync(uri, {
               mimeType: "application/pdf",
-              dialogTitle: section.title,
+              dialogTitle: `Open ${section.title}`,
             });
+          } else {
+            Alert.alert("Error", "Unable to open PDF on this device");
           }
         }
       }

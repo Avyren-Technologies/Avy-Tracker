@@ -18,8 +18,8 @@ import axios from "axios";
 import Modal from "react-native-modal";
 import { format } from "date-fns";
 import Toast from "react-native-toast-message";
-import * as FileSystem from "expo-file-system";
-import * as IntentLauncher from "expo-intent-launcher";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as WebBrowser from "expo-web-browser";
 
@@ -320,26 +320,49 @@ export default function LeaveApprovals() {
         document.file_data = response.data;
       }
 
-      const fileUri = `${FileSystem.cacheDirectory}${document.file_name}`;
-
-      await FileSystem.writeAsStringAsync(fileUri, document.file_data, {
-        encoding: FileSystem.EncodingType.Base64,
+      const file = new File(Paths.cache, document.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, document.file_data, {
+        encoding: 'base64',
       });
 
       if (Platform.OS === "android") {
-        const contentUri = await FileSystem.getContentUriAsync(fileUri);
-        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-          data: contentUri,
-          flags: 1,
-          type: document.file_type,
-        });
-      } else {
-        // For iOS
+        // For Android, use sharing which handles content URIs properly
+        // This avoids FileUriExposedException and FileProvider configuration issues
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(fileUri);
+          await Sharing.shareAsync(file.uri, {
+            mimeType: document.file_type,
+            dialogTitle: `Open ${document.file_name}`,
+          });
         } else {
-          await WebBrowser.openBrowserAsync(`file://${fileUri}`);
+          Alert.alert("Error", "Unable to open file on this device");
+        }
+      } else {
+        // For iOS, use WebBrowser for direct opening
+        try {
+          await WebBrowser.openBrowserAsync(`file://${file.uri}`);
+        } catch (webBrowserError) {
+          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
+          // Fallback to sharing if WebBrowser fails
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(file.uri, {
+              UTI:
+                document.file_type === 'application/pdf'
+                  ? 'com.adobe.pdf'
+                  : 'public.item',
+              mimeType: document.file_type,
+            });
+          } else {
+            Alert.alert("Error", "Unable to open file on this device");
+          }
         }
       }
     } catch (error) {

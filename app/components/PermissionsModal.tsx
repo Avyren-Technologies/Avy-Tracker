@@ -26,15 +26,7 @@ interface PermissionsModalProps {
   userRole?: string;
 }
 
-// Configure notification behavior for foreground state
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
+// Note: Notification handler is now configured globally in PushNotificationService
 
 const PermissionsModal: React.FC<PermissionsModalProps> = ({
   visible,
@@ -105,31 +97,7 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({
             );
           }
 
-          // Set up notification listeners
-          PushNotificationService.setupNotificationListeners(
-            (notification) => {
-              console.log("Received notification in foreground:", notification);
-              // Handle foreground notification
-            },
-            (response) => {
-              const data = response.notification.request.content.data;
-
-              // Handle navigation when notification is tapped
-              const validScreens = [
-                "/(dashboard)/employee/notifications",
-                "/(dashboard)/Group-Admin/notifications",
-                "/(dashboard)/management/notifications",
-              ];
-
-              if (
-                data?.screen &&
-                typeof data.screen === "string" &&
-                validScreens.includes(data.screen)
-              ) {
-                router.push(data.screen as any);
-              }
-            },
-          );
+          // Note: Global notification listeners are now set up in _layout.tsx
         }
       } catch (error) {
         console.error("Error initializing notifications:", error);

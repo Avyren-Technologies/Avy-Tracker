@@ -312,7 +312,7 @@ export default function LeavePolicies() {
       </View>
 
       {/* Filter Buttons */}
-      <View className="flex-row mb-4 space-x-2">
+      <View className="flex-row mb-4 space-x-2 gap-2">
         <TouchableOpacity
           onPress={() => setFilter('all')}
           className={`px-4 py-2 rounded-lg flex-1 ${

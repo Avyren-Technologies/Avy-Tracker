@@ -16,7 +16,7 @@ import * as DocumentPicker from "expo-document-picker";
 import axios from "axios";
 import ThemeContext from "../../../context/ThemeContext";
 import AuthContext from "../../../context/AuthContext";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 interface UploadResponse {
   success: {

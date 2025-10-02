@@ -18,14 +18,21 @@ export interface NotificationResponse {
   error?: any;
 }
 
-// Configure default notification behavior
+// Configure default notification behavior for foreground popups
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
+  handleNotification: async (notification) => {
+    console.log("[PushService] Handling notification:", notification.request.content.title);
+    
+    // Always show alert, play sound, and set badge for both foreground and background
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    };
+  },
 });
 
 class PushNotificationService {
@@ -358,26 +365,43 @@ class PushNotificationService {
 
   private async createDefaultNotificationChannel() {
     if (Platform.OS === "android") {
-      // Create default notification channel
+      // Create default notification channel with maximum importance for foreground popups
       await Notifications.setNotificationChannelAsync("default", {
         name: "Default",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF231F7C",
-        sound: "default", // Explicitly set the sound to default
+        sound: "default",
         enableVibrate: true,
         showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true, // Bypass Do Not Disturb for important notifications
       });
 
       // Create a high priority channel for urgent notifications
       await Notifications.setNotificationChannelAsync("high_priority", {
         name: "Urgent Notifications",
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250, 250, 250],
         lightColor: "#FF231F7C",
-        sound: "default", // Explicitly set the sound to default
+        sound: "default",
         enableVibrate: true,
         showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
+      });
+
+      // Create a foreground channel specifically for foreground notifications
+      await Notifications.setNotificationChannelAsync("foreground", {
+        name: "Foreground Notifications",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500],
+        lightColor: "#FF231F7C",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
       });
     }
   }
@@ -394,12 +418,16 @@ class PushNotificationService {
     this.removeNotificationListeners();
 
     this.notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
+      async (notification) => {
         console.log("[PushService] NOTIFICATION RECEIVED:", {
           title: notification.request.content.title,
           body: notification.request.content.body,
           data: notification.request.content.data,
         });
+        
+        // For foreground notifications, show a local notification popup
+        await this.showForegroundNotificationPopup(notification);
+        
         onNotification(notification);
       },
     );
@@ -417,15 +445,37 @@ class PushNotificationService {
     return () => this.removeNotificationListeners();
   }
 
+  private async showForegroundNotificationPopup(notification: Notifications.Notification) {
+    try {
+      // Schedule a local notification to ensure it shows as a popup in foreground
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: notification.request.content.title,
+          body: notification.request.content.body,
+          data: notification.request.content.data,
+          sound: "default",
+          priority: "high",
+          autoDismiss: true,
+          badge: 1,
+          categoryIdentifier: "foreground", // Use the foreground channel
+        },
+        trigger: null, // Show immediately
+      });
+      console.log("[PushService] Foreground notification popup scheduled");
+    } catch (error) {
+      console.error("[PushService] Error showing foreground notification popup:", error);
+    }
+  }
+
   private removeNotificationListeners() {
     if (this.notificationListener) {
       console.log("[PushService] Removing existing notification listener");
-      Notifications.removeNotificationSubscription(this.notificationListener);
+      this.notificationListener.remove();
       this.notificationListener = undefined;
     }
     if (this.responseListener) {
       console.log("[PushService] Removing existing response listener");
-      Notifications.removeNotificationSubscription(this.responseListener);
+      this.responseListener.remove();
       this.responseListener = undefined;
     }
   }
@@ -467,6 +517,12 @@ class PushNotificationService {
 
   public async setBadgeCount(count: number) {
     await Notifications.setBadgeCountAsync(count);
+  }
+
+  // Method to clean up all notification listeners (useful during logout)
+  public cleanupAllListeners() {
+    console.log("[PushService] Cleaning up all notification listeners");
+    this.removeNotificationListeners();
   }
 
   // Utility function to test notifications

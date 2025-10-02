@@ -24,8 +24,10 @@ import {
   endOfYear,
 } from "date-fns";
 import { Picker } from "@react-native-picker/picker";
-import * as IntentLauncher from "expo-intent-launcher";
-import * as FileSystem from "expo-file-system";
+import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import * as WebBrowser from "expo-web-browser";
 
 interface LeaveRequest {
   id: number;
@@ -342,19 +344,51 @@ export default function LeaveRequests() {
       );
       const fetchedDocument = response.data;
 
-      const fileUri = `${FileSystem.cacheDirectory || '/tmp/'}${fetchedDocument.file_name}`;
-      const base64Content = fetchedDocument.file_data;
-
-      await FileSystem.writeAsStringAsync(fileUri, base64Content, {
-        encoding: 'base64' as any,
+      const file = new File(Paths.cache, fetchedDocument.file_name);
+      
+      // Check if file exists and delete it first to avoid conflicts
+      if (file.exists) {
+        file.delete();
+      }
+      
+      await file.create();
+      await FileSystem.writeAsStringAsync(file.uri, fetchedDocument.file_data, {
+        encoding: 'base64',
       });
 
-      const contentUri = await FileSystem.getContentUriAsync(fileUri);
-      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: contentUri,
-        flags: 1,
-        type: fetchedDocument.file_type,
-      });
+      if (Platform.OS === "android") {
+        // For Android, use sharing which handles content URIs properly
+        // This avoids FileUriExposedException and FileProvider configuration issues
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: fetchedDocument.file_type,
+            dialogTitle: `Open ${fetchedDocument.file_name}`,
+          });
+        } else {
+          showError("Error", "Unable to open file on this device", "error");
+        }
+      } else {
+        // For iOS, use WebBrowser for direct opening
+        try {
+          await WebBrowser.openBrowserAsync(`file://${file.uri}`);
+        } catch (webBrowserError) {
+          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
+          // Fallback to sharing if WebBrowser fails
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(file.uri, {
+              UTI:
+                fetchedDocument.file_type === 'application/pdf'
+                  ? 'com.adobe.pdf'
+                  : 'public.item',
+              mimeType: fetchedDocument.file_type,
+            });
+          } else {
+            showError("Error", "Unable to open file on this device", "error");
+          }
+        }
+      }
     } catch (error) {
       console.error("Error fetching or opening document:", error);
       showError("Error", "Failed to open document. Please try again.", "error");
