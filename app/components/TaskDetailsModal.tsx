@@ -19,7 +19,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format, formatDistanceToNow } from 'date-fns';
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
@@ -134,6 +133,7 @@ export default function TaskDetailsModal({
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+  const [attachmentActionLoading, setAttachmentActionLoading] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const colors = themeColors[isDark ? 'dark' : 'light'];
@@ -335,6 +335,7 @@ export default function TaskDetailsModal({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+
   const handleAttachmentAction = async (attachment: any) => {
     if (!token) return;
     setSelectedAttachment(attachment);
@@ -345,73 +346,96 @@ export default function TaskDetailsModal({
     if (!selectedAttachment) return;
     
     setShowAttachmentModal(false);
+    setAttachmentActionLoading(true);
     
-    switch (action) {
-      case 'open':
-        await openAttachment(selectedAttachment);
-        break;
-      case 'download':
-        await downloadAttachment(selectedAttachment);
-        break;
-      case 'share':
-        await shareAttachment(selectedAttachment);
-        break;
+    try {
+      switch (action) {
+        case 'open':
+          await openAttachment(selectedAttachment);
+          break;
+        case 'download':
+          await downloadAttachment(selectedAttachment);
+          break;
+        case 'share':
+          await shareAttachment(selectedAttachment);
+          break;
+      }
+    } finally {
+      setAttachmentActionLoading(false);
+      setSelectedAttachment(null);
     }
-    
-    setSelectedAttachment(null);
   };
 
   const openAttachment = async (attachment: any) => {
     try {
+      // Download the file data from server
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'text',
+          responseType: 'json', // Server returns JSON with base64 data
         }
       );
 
-      const file = new File(Paths.cache, attachment.file_name);
+      // Server returns: { fileName, fileType, fileSize, fileData }
+      const { fileData, fileName: serverFileName, fileType } = response.data;
       
-      // Check if file exists and delete it first to avoid conflicts
-      if (file.exists) {
-        file.delete();
+      if (!fileData) {
+        throw new Error('No file data received from server');
       }
-      
-      await file.create();
-      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
 
-      if (Platform.OS === 'android') {
-        // For Android, use sharing which handles content URIs properly
-        // This avoids FileUriExposedException and FileProvider configuration issues
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(file.uri, {
-            mimeType: attachment.file_type,
+      // Create a unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = attachment.file_name.split('.').pop() || '';
+      const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
+      
+      // Use cache directory for temporary files
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      // Write the base64 data directly (server already provides base64)
+      await FileSystem.writeAsStringAsync(fileUri, fileData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Check if sharing is available
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        try {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: fileType || attachment.file_type,
             dialogTitle: `Open ${attachment.file_name}`,
           });
-        } else {
-          Alert.alert('Error', 'Unable to open file on this device');
+        } catch (sharingError) {
+          console.log('Sharing failed, trying WebBrowser:', sharingError);
+          // Fallback to WebBrowser for certain file types
+          const mimeType = fileType || attachment.file_type;
+          if (mimeType === 'application/pdf' || 
+              mimeType.startsWith('text/') ||
+              mimeType.startsWith('image/')) {
+            try {
+              await WebBrowser.openBrowserAsync(fileUri);
+            } catch (webBrowserError) {
+              console.log('WebBrowser failed:', webBrowserError);
+              Alert.alert('Error', 'Unable to open file. Please install a compatible app.');
+            }
+          } else {
+            Alert.alert('Error', 'Unable to open file. Please install a compatible app.');
+          }
         }
       } else {
-        // For iOS, use WebBrowser for direct opening
-        try {
-          await WebBrowser.openBrowserAsync(`file://${file.uri}`);
-        } catch (webBrowserError) {
-          console.log('WebBrowser failed, falling back to sharing:', webBrowserError);
-          // Fallback to sharing if WebBrowser fails
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) {
-            await Sharing.shareAsync(file.uri, {
-              UTI:
-                attachment.file_type === 'application/pdf'
-                  ? 'com.adobe.pdf'
-                  : 'public.item',
-              mimeType: attachment.file_type,
-            });
-          } else {
-            Alert.alert('Error', 'Unable to open file on this device');
+        // Fallback: try to open with WebBrowser for certain file types
+        const mimeType = fileType || attachment.file_type;
+        if (mimeType === 'application/pdf' || 
+            mimeType.startsWith('text/') ||
+            mimeType.startsWith('image/')) {
+          try {
+            await WebBrowser.openBrowserAsync(fileUri);
+          } catch (webBrowserError) {
+            console.log('WebBrowser failed:', webBrowserError);
+            Alert.alert('Error', 'Unable to open file. Please install a compatible app.');
           }
+        } else {
+          Alert.alert('Error', 'Unable to open file. Please install a compatible app.');
         }
       }
     } catch (error) {
@@ -422,25 +446,36 @@ export default function TaskDetailsModal({
 
   const downloadAttachment = async (attachment: any) => {
     try {
+      // Download the file data from server
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'text',
+          responseType: 'json', // Server returns JSON with base64 data
         }
       );
 
-      const file = new File(Paths.document, attachment.file_name);
+      // Server returns: { fileName, fileType, fileSize, fileData }
+      const { fileData, fileName: serverFileName, fileType } = response.data;
       
-      // Check if file exists and delete it first to avoid conflicts
-      if (file.exists) {
-        file.delete();
+      if (!fileData) {
+        throw new Error('No file data received from server');
       }
-      
-      await file.create();
-      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
 
-      Alert.alert('Success', `File downloaded to: ${file.uri}`);
+      // Create a unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = attachment.file_name.split('.').pop() || '';
+      const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
+      
+      // Use document directory for permanent storage
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      // Write the base64 data directly (server already provides base64)
+      await FileSystem.writeAsStringAsync(fileUri, fileData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      Alert.alert('Success', `File downloaded successfully!\n\nLocation: ${fileUri}\n\nYou can find it in your device's file manager.`);
     } catch (error) {
       console.error('Error downloading attachment:', error);
       Alert.alert('Error', 'Failed to download attachment');
@@ -449,27 +484,38 @@ export default function TaskDetailsModal({
 
   const shareAttachment = async (attachment: any) => {
     try {
+      // Download the file data from server
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'text',
+          responseType: 'json', // Server returns JSON with base64 data
         }
       );
 
-      const file = new File(Paths.cache, attachment.file_name);
+      // Server returns: { fileName, fileType, fileSize, fileData }
+      const { fileData, fileName: serverFileName, fileType } = response.data;
       
-      // Check if file exists and delete it first to avoid conflicts
-      if (file.exists) {
-        file.delete();
+      if (!fileData) {
+        throw new Error('No file data received from server');
       }
+
+      // Create a unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = attachment.file_name.split('.').pop() || '';
+      const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
       
-      await file.create();
-      await FileSystem.writeAsStringAsync(file.uri, response.data, { encoding: 'base64' });
+      // Use cache directory for temporary files
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      // Write the base64 data directly (server already provides base64)
+      await FileSystem.writeAsStringAsync(fileUri, fileData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, {
-          mimeType: attachment.file_type,
+        await Sharing.shareAsync(fileUri, {
+          mimeType: fileType || attachment.file_type,
           dialogTitle: `Share ${attachment.file_name}`,
         });
       } else {
@@ -946,6 +992,17 @@ export default function TaskDetailsModal({
       color: isDark ? '#9ca3af' : '#6b7280',
       textAlign: 'center',
     },
+    attachmentLinkContainer: {
+      marginTop: 8,
+      paddingVertical: 8,
+      alignItems: 'center',
+    },
+    attachmentLinkText: {
+      fontSize: 16,
+      color: '#3B82F6',
+      fontWeight: '600',
+      textDecorationLine: 'underline',
+    },
   });
 
   if (!visible || !task) {
@@ -1257,6 +1314,16 @@ export default function TaskDetailsModal({
                         </Text>
                       </TouchableOpacity>
                     )}
+
+                    {/* Attachment Link */}
+                    <TouchableOpacity
+                      style={styles.attachmentLinkContainer}
+                      onPress={() => setActiveTab('attachments')}
+                    >
+                      <Text style={styles.attachmentLinkText}>
+                        View Attachments ({attachments.length})
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </>
               )}
@@ -1482,6 +1549,7 @@ export default function TaskDetailsModal({
           attachment={selectedAttachment}
           onActionSelect={handleAttachmentActionSelect}
           isDark={isDark}
+          isLoading={attachmentActionLoading}
         />
       </SafeAreaView>
     </Modal>
@@ -1495,6 +1563,7 @@ interface AttachmentActionModalProps {
   attachment: any;
   onActionSelect: (action: string) => void;
   isDark: boolean;
+  isLoading?: boolean;
 }
 
 function AttachmentActionModal({
@@ -1503,6 +1572,7 @@ function AttachmentActionModal({
   attachment,
   onActionSelect,
   isDark,
+  isLoading = false,
 }: AttachmentActionModalProps) {
   const colors = themeColors[isDark ? 'dark' : 'light'];
 
@@ -1659,8 +1729,9 @@ function AttachmentActionModal({
             {actionOptions.map((action) => (
               <TouchableOpacity
                 key={action.id}
-                style={styles.actionButton}
+                style={[styles.actionButton, isLoading && { opacity: 0.6 }]}
                 onPress={() => onActionSelect(action.id)}
+                disabled={isLoading}
               >
                 <View
                   style={[
@@ -1668,18 +1739,24 @@ function AttachmentActionModal({
                     { backgroundColor: action.color + '20' },
                   ]}
                 >
-                  <Ionicons
-                    name={action.icon as any}
-                    size={20}
-                    color={action.color}
-                  />
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={action.color} />
+                  ) : (
+                    <Ionicons
+                      name={action.icon as any}
+                      size={20}
+                      color={action.color}
+                    />
+                  )}
                 </View>
                 <Text style={styles.actionText}>{action.label}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
+                {!isLoading && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                )}
               </TouchableOpacity>
             ))}
           </View>
