@@ -39,6 +39,7 @@ class PushNotificationService {
   private notificationListener?: Notifications.Subscription;
   private responseListener?: Notifications.Subscription;
   private currentToken: string | null = null;
+  private processedNotifications: Set<string> = new Set();
 
   private constructor() {}
 
@@ -418,10 +419,31 @@ class PushNotificationService {
 
     this.notificationListener = Notifications.addNotificationReceivedListener(
       async (notification) => {
+        // Create a unique identifier for this notification
+        const notificationId = notification.request.identifier || 
+          `${notification.request.content.title}-${notification.request.content.body}-${JSON.stringify(notification.request.content.data)}`;
+        
+        // Check if we've already processed this notification
+        if (this.processedNotifications.has(notificationId)) {
+          console.log("[PushService] DUPLICATE NOTIFICATION IGNORED:", notificationId);
+          return;
+        }
+        
+        // Mark this notification as processed
+        this.processedNotifications.add(notificationId);
+        
+        // Clean up old processed notifications (keep only last 100)
+        if (this.processedNotifications.size > 100) {
+          const notificationsArray = Array.from(this.processedNotifications);
+          this.processedNotifications.clear();
+          notificationsArray.slice(-50).forEach(id => this.processedNotifications.add(id));
+        }
+        
         console.log("[PushService] NOTIFICATION RECEIVED:", {
           title: notification.request.content.title,
           body: notification.request.content.body,
           data: notification.request.content.data,
+          id: notificationId,
         });
         
         // For foreground notifications, show a local notification popup
@@ -528,6 +550,7 @@ class PushNotificationService {
   public cleanupAllListeners() {
     console.log("[PushService] Cleaning up all notification listeners");
     this.removeNotificationListeners();
+    this.processedNotifications.clear();
   }
 
   // Utility function to test notifications

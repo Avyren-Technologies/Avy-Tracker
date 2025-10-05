@@ -72,7 +72,7 @@ export default function ManagementSettings() {
     loadBiometricSettings();
     fetchMFAStatus();
     fetchFaceRegistrationStatus();
-  }, []);
+  }, [token, user]);
 
   React.useEffect(() => {
     if (showLogoutModal) {
@@ -126,6 +126,12 @@ export default function ManagementSettings() {
   };
 
   const fetchFaceRegistrationStatus = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
     try {
       setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
       const response = await axios.get(

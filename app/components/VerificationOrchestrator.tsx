@@ -93,19 +93,40 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
       startTimeRef.current = Date.now();
       setCurrentError(null);
       setIsCompleted(false);
-      setCurrentStep("location");
-      setProgress({ current: 1, total: 2, percentage: 50 });
+      
+      // Check if location verification is required based on config
+      const requiresLocation = config?.requireLocation !== false;
+      const initialStep = requiresLocation ? "location" : "face";
+      const totalSteps = requiresLocation ? 2 : 1;
+      const initialProgress = requiresLocation ? 1 : 0;
+      const initialPercentage = requiresLocation ? 50 : 0;
+      
+      setCurrentStep(initialStep);
+      setProgress({ current: initialProgress, total: totalSteps, percentage: initialPercentage });
 
-      // Reset detailed status
-      setLocationStatus({
-        status: "checking",
-        message: "Verifying your location...",
-        details: "Checking GPS coordinates and geofence status",
-      });
-      setFaceStatus({
-        status: "pending",
-        message: "Waiting for location verification...",
-      });
+      // Reset detailed status based on requirements
+      if (requiresLocation) {
+        setLocationStatus({
+          status: "checking",
+          message: "Verifying your location...",
+          details: "Checking GPS coordinates and geofence status",
+        });
+        setFaceStatus({
+          status: "pending",
+          message: "Waiting for location verification...",
+        });
+      } else {
+        setLocationStatus({
+          status: "success",
+          message: "Location verification skipped",
+          details: "Location verification not required for your role",
+        });
+        setFaceStatus({
+          status: "preparing",
+          message: "Preparing face verification...",
+          details: "Initializing camera and face detection",
+        });
+      }
     } else if (!visible && isInitializedRef.current) {
       console.log("Resetting verification flow...");
       isInitializedRef.current = false;
@@ -145,6 +166,25 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
 
     try {
       if (currentStep === "location") {
+        // Check if location verification is actually required
+        const requiresLocation = config?.requireLocation !== false;
+        if (!requiresLocation) {
+          console.log("Location verification skipped - not required for this role");
+          setLocationStatus({
+            status: "success",
+            message: "Location verification skipped",
+            details: "Location verification not required for your role",
+          });
+          setFaceStatus({
+            status: "preparing",
+            message: "Preparing face verification...",
+            details: "Initializing camera and face detection",
+          });
+          setCurrentStep("face");
+          setProgress({ current: 1, total: 1, percentage: 100 });
+          processingRef.current = false;
+          return;
+        }
         console.log("Executing location verification...");
         setLocationStatus({
           status: "checking",
@@ -227,7 +267,7 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
     // Set new timeout to process step
     stepTimeoutRef.current = setTimeout(() => {
       processCurrentStep();
-    }, 500);
+    }, 1000); // Increased from 500ms to 1000ms for better stability
 
     return () => {
       if (stepTimeoutRef.current) {

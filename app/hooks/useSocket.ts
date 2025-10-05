@@ -411,7 +411,7 @@ export function useSocket({
 
     // Cleanup socket on unmount
     return () => {
-      console.log("[useSocket] Cleaning up socket connection");
+      // console.log("[useSocket] Cleaning up socket connection");
       isMountedRef.current = false;
 
       subscription.remove();

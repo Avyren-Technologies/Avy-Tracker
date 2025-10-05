@@ -607,7 +607,7 @@ export function useFaceDetection(
         console.log("✅ Camera is active and ready for photo capture");
 
         // Additional delay to ensure camera is fully ready
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
       } catch (cameraCheckError) {
         console.error("❌ Camera readiness check failed:", cameraCheckError);
         return;
@@ -660,7 +660,7 @@ export function useFaceDetection(
       try {
         // Wait for file to be fully written to disk
         console.log("Waiting for photo file to be fully written...");
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Increased from 500ms to 1000ms
 
         // Verify file exists and is accessible
         const fs = require("react-native-fs");
@@ -724,7 +724,7 @@ export function useFaceDetection(
 
         // Additional delay to ensure file system sync
         console.log("Additional delay for file system sync...");
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 300ms to 500ms
       } catch (processingError: any) {
         console.error("Photo processing error:", processingError);
         console.log(
@@ -1052,7 +1052,7 @@ export function useFaceDetection(
         }
         setIsDetecting(false);
         console.log("🛑 Face detection stopped due to timeout");
-      }, 10000); // 10 second timeout
+      }, 30000); // 30 second timeout (increased from 10 seconds)
 
       // Store timeout reference for cleanup
       detectionTimeoutRef.current = detectionTimeout;
@@ -1160,7 +1160,7 @@ export function useFaceDetection(
       console.log("🔍 Validating camera state before final capture...");
 
       // Wait for camera to stabilize after liveness detection
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 300ms to 500ms
 
       // Retry mechanism for camera availability
       let retryCount = 0;

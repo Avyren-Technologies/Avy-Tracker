@@ -181,6 +181,12 @@ export default function EmployeeSettings() {
   };
 
   const fetchFaceRegistrationStatus = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
     try {
       setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
       const response = await axios.get(

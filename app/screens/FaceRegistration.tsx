@@ -127,6 +127,12 @@ export default function FaceRegistration() {
   ];
 
   const checkExistingRegistration = useCallback(async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await axios.get(
@@ -247,7 +253,7 @@ export default function FaceRegistration() {
               setTimeout(() => {
                 setShowFaceModal(true);
                 setIsModalTransitioning(false);
-              }, 1000);
+              }, 2000); // Increased from 1000ms to 2000ms for better camera stability
             },
           },
         ],
@@ -266,6 +272,12 @@ export default function FaceRegistration() {
 
       // CRITICAL FIX: Check if user already has a face profile before attempting registration
       try {
+        // Don't make API call if token is null or user is not authenticated
+        if (!token || !user) {
+          setIsLoading(false);
+          return;
+        }
+
         const statusResponse = await axios.get(
           `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
           { headers: { Authorization: `Bearer ${token}` } },
@@ -442,7 +454,7 @@ export default function FaceRegistration() {
           setTimeout(() => {
             setShowFaceModal(true);
             setIsModalTransitioning(false);
-          }, 1500);
+          }, 3000); // Increased from 1500ms to 3000ms for better camera stability
         },
       },
       { text: "Start Over", onPress: resetRegistration },

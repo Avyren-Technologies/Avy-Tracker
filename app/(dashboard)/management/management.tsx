@@ -105,6 +105,12 @@ export default function ManagementDashboard() {
   const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   const fetchDashboardData = async (useCache = true) => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Check cache first if useCache is true
       if (useCache) {
@@ -184,8 +190,9 @@ export default function ManagementDashboard() {
   };
 
   const fetchLeaveStats = async (useCache = true) => {
-    if (!user?.id) {
-      console.warn("No user ID available for fetching leave stats");
+    if (!user?.id || !token) {
+      console.warn("No user ID or token available for fetching leave stats");
+      setStatsLoading(false);
       return;
     }
 
@@ -311,7 +318,7 @@ export default function ManagementDashboard() {
 
   useEffect(() => {
     fetchLeaveStats();
-  }, []);
+  }, [token, user]);
 
   // Handle location permissions for management role
   useEffect(() => {

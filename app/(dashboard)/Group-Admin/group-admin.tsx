@@ -85,7 +85,7 @@ export default function GroupAdminDashboard() {
   // Add useEffect to fetch activities
   useEffect(() => {
     fetchRecentActivities();
-  }, []);
+  }, [token, user]);
 
   // Add shift status check
   useEffect(() => {
@@ -95,6 +95,12 @@ export default function GroupAdminDashboard() {
   }, []);
 
   const fetchRecentActivities = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setLoadingActivities(false);
+      return;
+    }
+
     try {
       setLoadingActivities(true);
       const response = await axios.get(

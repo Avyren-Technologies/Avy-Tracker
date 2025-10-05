@@ -617,15 +617,8 @@ export class ShiftTrackingService {
               });
 
             // Send notification to appropriate admin/manager
-            const notificationEndpoint =
-              user.role === "employee"
-                ? "employee-notifications/notify-admin"
-                : user.role === "group-admin"
-                  ? "group-admin-notifications/notify-admin"
-                  : null;
-
-            if (notificationEndpoint) {
-              // Prepare notification message
+            if (user.role === "employee") {
+              // For employees, send notification to their specific group-admin
               let notificationMessage = `👤 ${
                 user.name
               } has completed their scheduled ${
@@ -636,9 +629,8 @@ export class ShiftTrackingService {
               )}\n🕕 End: ${format(new Date(timer.end_time), "hh:mm a")}`;
 
               await notificationService
-                .sendRoleNotification(
+                .sendEmployeeGroupAdminNotification(
                   timer.user_id,
-                  user.role === "employee" ? "group-admin" : "management",
                   {
                     title: `🔴 Shift Auto-Ended for ${user.name}`,
                     message: notificationMessage,
@@ -655,7 +647,41 @@ export class ShiftTrackingService {
                   },
                 )
                 .catch((error) => {
-                  console.error("Error sending admin notification:", error);
+                  console.error("Error sending group-admin notification:", error);
+                  // Don't throw, just log the error
+                });
+            } else if (user.role === "group-admin") {
+              // For group-admins, send notification to management
+              let notificationMessage = `👤 ${
+                user.name
+              } has completed their scheduled ${
+                timer.timer_duration_hours
+              }-hour shift\n⏱️ Duration: ${formattedDuration}\n🕒 Start: ${format(
+                startTime,
+                "hh:mm a",
+              )}\n🕕 End: ${format(new Date(timer.end_time), "hh:mm a")}`;
+
+              await notificationService
+                .sendRoleNotification(
+                  timer.user_id,
+                  "management",
+                  {
+                    title: `🔴 Shift Auto-Ended for ${user.name}`,
+                    message: notificationMessage,
+                    type: "shift-end-auto",
+                    priority: "default",
+                    data: {
+                      shiftId: timer.shift_id,
+                      userId: timer.user_id,
+                      userName: user.name,
+                      startTime: startTime.toISOString(),
+                      endTime: timer.end_time,
+                      duration: timer.timer_duration_hours,
+                    },
+                  },
+                )
+                .catch((error) => {
+                  console.error("Error sending management notification:", error);
                   // Don't throw, just log the error
                 });
             }

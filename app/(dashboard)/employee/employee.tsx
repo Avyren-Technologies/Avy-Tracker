@@ -93,6 +93,12 @@ export default function EmployeeDashboard() {
 
   // Fetch face registration status
   const fetchFaceRegistrationStatus = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setFaceRegistrationStatus((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
     try {
       setFaceRegistrationStatus((prev) => ({ ...prev, loading: true }));
       const response = await axios.get(
@@ -345,6 +351,12 @@ export default function EmployeeDashboard() {
 
   // Update the fetchTasks function
   const fetchTasks = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       console.log("Current user:", user);
@@ -386,6 +398,12 @@ export default function EmployeeDashboard() {
 
   // Move fetchTaskStats to parent component
   const fetchTaskStats = async (forceRefresh = false) => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setStatsLoading(false);
+      return;
+    }
+
     try {
       setStatsLoading(true);
 
@@ -492,7 +510,7 @@ export default function EmployeeDashboard() {
       ]);
     };
     initialFetch();
-  }, []);
+  }, [token, user]);
 
   // Handle location permissions for employee role
   useEffect(() => {

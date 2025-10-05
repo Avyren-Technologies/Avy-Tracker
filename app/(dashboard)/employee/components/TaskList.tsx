@@ -9,10 +9,17 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  Alert,
+  Platform,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
+import axios from 'axios';
 import TaskDetailsModal from "../../../components/TaskDetailsModal";
 
 interface Task {
@@ -57,6 +64,8 @@ export default function TaskList({
   const [showAttachments, setShowAttachments] = useState(false);
   const [taskAttachments, setTaskAttachments] = useState<any[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   
   // Task details modal state
   const [showTaskDetails, setShowTaskDetails] = useState(false);
@@ -105,6 +114,7 @@ export default function TaskList({
 
   const fetchTaskAttachments = async (taskId: number) => {
     setLoadingAttachments(true);
+    setCurrentTaskId(taskId); // Store the current taskId
     try {
       const token = await AsyncStorage.getItem('auth_token');
       const response = await fetch(
@@ -126,6 +136,211 @@ export default function TaskList({
     } finally {
       setLoadingAttachments(false);
     }
+  };
+
+  const downloadAttachment = async (attachment: any, taskId: number) => {
+    try {
+      setDownloadingFile(attachment.file_name);
+      
+      const token = await AsyncStorage.getItem('auth_token');
+      
+      // Download the file data from server (same approach as TaskDetailsModal)
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'json', // Server returns JSON with base64 data
+        }
+      );
+
+      // Server returns: { fileName, fileType, fileSize, fileData }
+      const { fileData, fileName: serverFileName, fileType } = response.data;
+      
+      if (!fileData) {
+        throw new Error('No file data received from server');
+      }
+
+      // Create a unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = attachment.file_name.split('.').pop() || '';
+      const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
+      
+      // Use cache directory for temporary files
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      // Write the base64 data directly (server already provides base64)
+      await FileSystem.writeAsStringAsync(fileUri, fileData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
+        // Show options to share or save
+        Alert.alert(
+          "Download Complete",
+          `File "${attachment.file_name}" has been downloaded successfully. What would you like to do?`,
+          [
+            {
+              text: "Share",
+              onPress: () => shareFile(fileUri, attachment.file_name),
+            },
+            {
+              text: "Save to Gallery",
+              onPress: () => saveToGallery(fileUri, attachment.file_name),
+              style: "default",
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Success", "File downloaded successfully!");
+      }
+    } catch (error) {
+      console.error('Error downloading attachment:', error);
+      Alert.alert(
+        "Download Failed",
+        "Failed to download the file. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
+  const shareFile = async (fileUri: string, fileName: string) => {
+    try {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: getMimeType(fileName),
+        dialogTitle: `Share ${fileName}`,
+      });
+    } catch (error) {
+      console.error('Error sharing file:', error);
+      Alert.alert("Error", "Failed to share the file.");
+    }
+  };
+
+  const saveToGallery = async (fileUri: string, fileName: string) => {
+    try {
+      // Request media library permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      
+      if (status === 'granted') {
+        // Check if it's an image or video
+        const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
+        const isVideo = /\.(mp4|mov|avi|mkv|webm)$/i.test(fileName);
+        
+        if (isImage || isVideo) {
+          const asset = await MediaLibrary.createAssetAsync(fileUri);
+          await MediaLibrary.createAlbumAsync('AvyTracker Downloads', asset, false);
+          Alert.alert("Success", "File saved to gallery successfully!");
+        } else {
+          Alert.alert("Info", "This file type cannot be saved to gallery. Use the share option instead.");
+        }
+      } else {
+        Alert.alert("Permission Denied", "Media library permission is required to save files to gallery.");
+      }
+    } catch (error) {
+      console.error('Error saving to gallery:', error);
+      Alert.alert("Error", "Failed to save file to gallery.");
+    }
+  };
+
+  const openFile = async (fileUri: string, fileName: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(fileUri);
+      if (canOpen) {
+        await Linking.openURL(fileUri);
+      } else {
+        Alert.alert("Cannot Open", "No app available to open this file type.");
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      Alert.alert("Error", "Failed to open the file.");
+    }
+  };
+
+  const downloadAndShare = async (attachment: any, taskId: number) => {
+    try {
+      setDownloadingFile(attachment.file_name);
+      
+      const token = await AsyncStorage.getItem('auth_token');
+      
+      // Download the file data from server (same approach as TaskDetailsModal)
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'json', // Server returns JSON with base64 data
+        }
+      );
+
+      // Server returns: { fileName, fileType, fileSize, fileData }
+      const { fileData, fileName: serverFileName, fileType } = response.data;
+      
+      if (!fileData) {
+        throw new Error('No file data received from server');
+      }
+
+      // Create a unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = attachment.file_name.split('.').pop() || '';
+      const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
+      
+      // Use cache directory for temporary files
+      const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      
+      // Write the base64 data directly (server already provides base64)
+      await FileSystem.writeAsStringAsync(fileUri, fileData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Directly share the file
+      await shareFile(fileUri, attachment.file_name);
+    } catch (error) {
+      console.error('Error downloading and sharing attachment:', error);
+      Alert.alert(
+        "Share Failed",
+        "Failed to download and share the file. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
+  const getMimeType = (fileName: string): string => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    const mimeTypes: { [key: string]: string } = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'txt': 'text/plain',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp',
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'avi': 'video/x-msvideo',
+      'mkv': 'video/x-matroska',
+      'webm': 'video/webm',
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed',
+    };
+    return mimeTypes[extension || ''] || 'application/octet-stream';
   };
 
   const getStatusColor = (status: string) => {
@@ -534,19 +749,53 @@ export default function TaskList({
                         {(attachment.file_size / 1024 / 1024).toFixed(2)} MB • {attachment.file_type}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => {
-                        // Here you could implement file download/viewing
-                        console.log('Download attachment:', attachment.file_name);
-                      }}
-                      style={{
-                        padding: 8,
-                        borderRadius: 6,
-                        backgroundColor: isDark ? "#3B82F620" : "#EBF4FF",
-                      }}
-                    >
-                      <Ionicons name="download-outline" size={16} color={isDark ? "#60A5FA" : "#3B82F6"} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      {/* Download Button */}
+                      <TouchableOpacity
+                        onPress={() => currentTaskId && downloadAttachment(attachment, currentTaskId)}
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          backgroundColor: isDark ? "#3B82F620" : "#EBF4FF",
+                          opacity: downloadingFile === attachment.file_name ? 0.6 : 1,
+                        }}
+                        disabled={downloadingFile === attachment.file_name}
+                      >
+                        {downloadingFile === attachment.file_name ? (
+                          <ActivityIndicator size="small" color={isDark ? "#60A5FA" : "#3B82F6"} />
+                        ) : (
+                          <Ionicons name="download-outline" size={16} color={isDark ? "#60A5FA" : "#3B82F6"} />
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Share Button */}
+                      {/* <TouchableOpacity
+                        onPress={() => {
+                          Alert.alert(
+                            "Share Attachment",
+                            `Share "${attachment.file_name}"?`,
+                            [
+                              {
+                                text: "Cancel",
+                                style: "cancel",
+                              },
+                              {
+                                text: "Share",
+                                onPress: () => currentTaskId && downloadAndShare(attachment, currentTaskId),
+                              },
+                            ]
+                          );
+                        }}
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          backgroundColor: isDark ? "#10B98120" : "#ECFDF5",
+                        }}
+                      >
+                        <Ionicons name="share-outline" size={16} color={isDark ? "#10B981" : "#059669"} />
+                      </TouchableOpacity> 
+                      */}
+                    </View>
                   </View>
                 ))}
               </ScrollView>

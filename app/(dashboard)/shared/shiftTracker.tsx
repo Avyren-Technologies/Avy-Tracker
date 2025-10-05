@@ -484,6 +484,8 @@ const getNotificationEndpoint = (role: string) => {
       return "/api/employee-notifications/notify-admin";
     case "group-admin":
       return "/api/group-admin-notifications/notify-admin";
+    case "management":
+      return "/api/management-notifications/notify-admin";
     default:
       return "/api/employee-notifications/notify-admin";
   }
@@ -739,6 +741,15 @@ export default function EmployeeShiftTracker() {
   const [currentAddress, setCurrentAddress] = useState<string>(
     "Acquiring location...",
   );
+  
+  // Global variables for notification data (updated when location changes)
+  const [notificationLocationData, setNotificationLocationData] = useState<{
+    address: string;
+    geofenceName: string;
+  }>({
+    address: "Acquiring location...",
+    geofenceName: "Unknown Area",
+  });
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState<{
     title: string;
@@ -864,6 +875,98 @@ export default function EmployeeShiftTracker() {
   const { isLocationInAnyGeofence, getCurrentGeofence, geofences } =
     useGeofencing();
 
+  // Function to update notification location data
+  const updateNotificationLocationData = useCallback(() => {
+    const currentGeofence = getCurrentGeofence();
+    const geofenceName = currentGeofence?.name || "Unknown Area";
+    
+    setNotificationLocationData({
+      address: currentAddress,
+      geofenceName: geofenceName,
+    });
+    
+    console.log("📍 Notification location data updated:", {
+      address: currentAddress,
+      geofenceName: geofenceName,
+    });
+  }, [currentAddress, getCurrentGeofence]);
+
+  // Function to force update notification data with current location
+  const forceUpdateNotificationData = useCallback(async () => {
+    try {
+      // Get current location
+      const location = await getCurrentLocation();
+      if (location && location.coords && location.coords.latitude && location.coords.longitude) {
+        // Get address from coordinates
+        const address = await getLocationAddress(location.coords.latitude, location.coords.longitude);
+        
+        // Check which geofence the current location is in by checking all geofences
+        let geofenceName = "Unknown Area";
+        if (geofences && geofences.length > 0) {
+          const currentGeofence = geofences.find((geofence) => {
+            // Check if location is within this geofence
+            if (geofence.coordinates && geofence.coordinates.type === "Point" && Array.isArray(geofence.coordinates.coordinates)) {
+              const [lng, lat] = geofence.coordinates.coordinates;
+              const radius = typeof geofence.radius === "string" ? parseFloat(geofence.radius) : geofence.radius;
+              
+              if (typeof lat === "number" && typeof lng === "number" && !isNaN(radius) && radius > 0) {
+                // Calculate distance using Haversine formula
+                const R = 6371e3; // Earth radius in meters
+                const φ1 = (location.coords.latitude * Math.PI) / 180;
+                const φ2 = (lat * Math.PI) / 180;
+                const Δφ = ((lat - location.coords.latitude) * Math.PI) / 180;
+                const Δλ = ((lng - location.coords.longitude) * Math.PI) / 180;
+
+                const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                         Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const distance = R * c;
+
+                return distance <= radius;
+              }
+            }
+            return false;
+          });
+          
+          if (currentGeofence) {
+            geofenceName = currentGeofence.name;
+          }
+        }
+        
+        // Update notification data
+        setNotificationLocationData({
+          address: address,
+          geofenceName: geofenceName,
+        });
+        
+        console.log("🔄 Force updated notification data:", {
+          address: address,
+          geofenceName: geofenceName,
+          location: {
+            lat: location.coords.latitude,
+            lng: location.coords.longitude
+          },
+          geofencesCount: geofences?.length || 0
+        });
+        
+        return { address, geofenceName };
+      }
+    } catch (error) {
+      console.error("❌ Error force updating notification data:", error);
+    }
+    
+    // Fallback to current state
+    return {
+      address: currentAddress,
+      geofenceName: getCurrentGeofence()?.name || "Unknown Area",
+    };
+  }, [getCurrentLocation, getLocationAddress, getCurrentGeofence, currentAddress, geofences]);
+
+  // Update notification location data whenever currentAddress or geofence changes
+  useEffect(() => {
+    updateNotificationLocationData();
+  }, [updateNotificationLocationData]);
+
   // Check if the user can override geofence restrictions
   const [canOverrideGeofence, setCanOverrideGeofence] = useState(false);
 
@@ -926,6 +1029,11 @@ export default function EmployeeShiftTracker() {
 
   // Face verification utility functions
   const checkFaceRegistrationStatus = useCallback(async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      return false;
+    }
+
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/face-verification/status`,
@@ -939,7 +1047,7 @@ export default function EmployeeShiftTracker() {
       console.error("Error checking face registration status:", error);
       return false;
     }
-  }, [token]);
+  }, [token, user]);
 
   const performLocationVerification =
     useCallback(async (): Promise<LocationResult> => {
@@ -1277,6 +1385,12 @@ export default function EmployeeShiftTracker() {
 
   const executeShiftStart = useCallback(
     async (verificationData: any) => {
+      // Prevent multiple shift starts
+      if (isShiftActive) {
+        console.log("Shift is already active, skipping start");
+        return;
+      }
+
       const now = new Date();
 
       // Prepare location data from verification results
@@ -1327,9 +1441,52 @@ export default function EmployeeShiftTracker() {
 
       // Set cooldown and background operations
       await setShiftCooldown();
-      InteractionManager.runAfterInteractions(async () => {
-        await scheduleFastNotifications();
-        showWarningMessages();
+      InteractionManager.runAfterInteractions(() => {
+        const backgroundPromises = [
+          scheduleFastNotifications(),
+          showWarningMessages(),
+        ];
+
+        // Send admin notification if not management
+        if (user?.role !== "management") {
+          console.log("🔔 Sending shift start notification to admin...");
+          
+          // Force update notification data with current location
+          forceUpdateNotificationData().then((locationData) => {
+            console.log("📍 Notification data:", {
+              address: locationData.address,
+              geofenceName: locationData.geofenceName,
+              userRole: user?.role,
+              endpoint: getNotificationEndpoint(user?.role || "employee"),
+            });
+            
+            backgroundPromises.push(
+              axios
+                .post(
+                  `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
+                  {
+                    title: `🟢 Shift Started, by ${user?.name}`,
+                    message: `👤 ${user?.name} has started their shift\n🕒 Start Time: ${format(now, "hh:mm a")}\n📍 Location: ${locationData.address}\n🏢 Geofence: ${locationData.geofenceName}`,
+                    type: "shift-start",
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  },
+                )
+                .then(() => {
+                  console.log("✅ Shift start notification sent successfully");
+                })
+                .catch((error) => {
+                  console.error("❌ Shift start notification failed:", error);
+                }),
+            );
+          }).catch((error) => {
+            console.error("❌ Error updating location data for notification:", error);
+          });
+        }
+
+        // Execute all background operations
+        Promise.allSettled(backgroundPromises);
       });
     },
     [apiEndpoint, token, user?.role, updateShiftState, setShiftCooldown],
@@ -1384,9 +1541,55 @@ export default function EmployeeShiftTracker() {
 
       // Set cooldown and background operations
       await setShiftCooldown();
-      InteractionManager.runAfterInteractions(async () => {
-        await cancelShiftNotifications();
-        await loadShiftHistoryFromBackend();
+      InteractionManager.runAfterInteractions(() => {
+        const backgroundPromises = [
+          cancelShiftNotifications(),
+          loadShiftHistoryFromBackend(),
+        ];
+
+        // Send admin notification if not management
+        if (user?.role !== "management") {
+          console.log("🔔 Sending shift end notification to admin...");
+          
+          // Force update notification data with current location
+          forceUpdateNotificationData().then((locationData) => {
+            console.log("📍 Notification data:", {
+              address: locationData.address,
+              geofenceName: locationData.geofenceName,
+              userRole: user?.role,
+              endpoint: getNotificationEndpoint(user?.role || "employee"),
+              duration: duration,
+            });
+            
+            backgroundPromises.push(
+              axios
+                .post(
+                  `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
+                  {
+                    title: `🔴 Shift Ended, by ${user?.name}`,
+                    message: `👤 ${user?.name} has completed their shift\n⏱️ Duration: ${duration}\n🕒 Start: ${format(shiftStart, "hh:mm a")}\n🕕 End: ${format(now, "hh:mm a")}\n📍 Location: ${locationData.address}\n🏢 Geofence: ${locationData.geofenceName}`,
+                    type: "shift-end",
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${token}` },
+                  },
+                )
+                .then(() => {
+                  console.log("✅ Shift end notification sent successfully");
+                })
+                .catch((error) => {
+                  console.error("❌ Shift end notification failed:", error);
+                }),
+            );
+          }).catch((error) => {
+            console.error("❌ Error updating location data for notification:", error);
+          });
+        } else {
+          console.log("ℹ️ Management user - skipping notification");
+        }
+
+        // Execute all background operations
+        Promise.allSettled(backgroundPromises);
       });
     },
     [
@@ -1396,6 +1599,7 @@ export default function EmployeeShiftTracker() {
       updateShiftState,
       user?.role,
       setShiftCooldown,
+      notificationLocationData,
     ],
   );
 
@@ -1800,6 +2004,16 @@ export default function EmployeeShiftTracker() {
       if (notificationId) {
         await Notifications.cancelScheduledNotificationAsync(notificationId);
       }
+      
+      // Also cancel any notifications stored in AsyncStorage
+      const storedNotificationId = await AsyncStorage.getItem(`${user?.role}-activeShiftNotificationId`);
+      if (storedNotificationId) {
+        try {
+          await Notifications.cancelScheduledNotificationAsync(storedNotificationId);
+        } catch (error) {
+          console.log("Could not cancel stored notification:", error);
+        }
+      }
 
       // Request permissions
       const { status } = await Notifications.requestPermissionsAsync();
@@ -1888,6 +2102,7 @@ export default function EmployeeShiftTracker() {
             type: "active-shift",
             startTime: shiftStart?.toISOString() || new Date().toISOString(),
             notificationId: "activeShift",
+            _displayInForeground: true, // Prevent duplicate foreground notifications
           },
         },
         trigger: null,
@@ -1898,6 +2113,9 @@ export default function EmployeeShiftTracker() {
         `${user?.role}-activeShiftNotificationId`,
         activeShiftId,
       );
+      
+      // Also set it in state for immediate access
+      setNotificationId(activeShiftId);
 
       // Calculate seconds from now until the warning should trigger
       // Based on shift start time + warning offset
@@ -1997,6 +2215,16 @@ export default function EmployeeShiftTracker() {
       if (notificationId) {
         await Notifications.cancelScheduledNotificationAsync(notificationId);
       }
+      
+      // Also cancel any notifications stored in AsyncStorage
+      const storedNotificationId = await AsyncStorage.getItem(`${user?.role}-activeShiftNotificationId`);
+      if (storedNotificationId) {
+        try {
+          await Notifications.cancelScheduledNotificationAsync(storedNotificationId);
+        } catch (error) {
+          console.log("Could not cancel stored notification:", error);
+        }
+      }
 
       // Quick permission check - use cached result if available
       const { status } = await Notifications.getPermissionsAsync();
@@ -2042,6 +2270,7 @@ export default function EmployeeShiftTracker() {
             type: "active-shift",
             startTime: shiftStart?.toISOString() || new Date().toISOString(),
             notificationId: "activeShift",
+            _displayInForeground: true, // Prevent duplicate foreground notifications
           },
         },
         trigger: null,
@@ -2052,6 +2281,9 @@ export default function EmployeeShiftTracker() {
         `${user?.role}-activeShiftNotificationId`,
         activeShiftId,
       );
+      
+      // Also set it in state for immediate access
+      setNotificationId(activeShiftId);
 
       // Schedule warning and limit notifications in background
       setTimeout(async () => {
@@ -2797,27 +3029,34 @@ export default function EmployeeShiftTracker() {
 
       // Initialize verification state
       setPendingShiftAction("start");
+      // Group-admin and management roles don't need location validation
+      const isLocationRequired = user?.role !== "group-admin" && user?.role !== "management";
+      
       setVerificationState((prev) => ({
         ...prev,
         faceVerificationRequired: true,
-        locationVerificationRequired: true,
+        locationVerificationRequired: isLocationRequired,
         verificationInProgress: true,
-        currentStep: "location",
+        currentStep: isLocationRequired ? "location" : "face",
       }));
 
-      // Step 1: Perform location verification
-      const locationResult = await performLocationVerification();
+      // Step 1: Perform location verification (skip for group-admin and management)
+      let locationResult: LocationResult = { success: true, error: undefined };
+      
+      if (isLocationRequired) {
+        locationResult = await performLocationVerification();
 
-      // Check location requirements for employees
-      if (user?.role === "employee" && !locationResult.success) {
-        setLocationErrorMessage(
-          locationResult.error ||
-            "Location verification failed. Please try again.",
-        );
-        setShowLocationError(true);
-        setIsProcessingShift(false);
-        resetVerificationState();
-        return;
+        // Check location requirements for employees
+        if (user?.role === "employee" && !locationResult.success) {
+          setLocationErrorMessage(
+            locationResult.error ||
+              "Location verification failed. Please try again.",
+          );
+          setShowLocationError(true);
+          setIsProcessingShift(false);
+          resetVerificationState();
+          return;
+        }
       }
 
       // Store location verification result
@@ -2912,8 +3151,11 @@ export default function EmployeeShiftTracker() {
         }
 
         // Configure verification requirements based on shift action and user settings
+        // Group-admin and management roles don't need location validation
+        const isLocationRequired = user?.role !== "group-admin" && user?.role !== "management";
+        
         const config = {
-          requireLocation: true,
+          requireLocation: isLocationRequired,
           requireFace: true,
           allowLocationFallback: action === "end", // Allow location fallback for shift end
           allowFaceFallback: false, // Face verification is always required
@@ -3090,14 +3332,18 @@ export default function EmployeeShiftTracker() {
 
   // Optimized confirmEndShift - fast UI updates, background processing
   const confirmEndShift = async () => {
+    console.log("🔄 confirmEndShift called");
     setIsProcessingShift(true);
 
     try {
       const now = new Date();
       if (!shiftStart) {
+        console.log("❌ No shift start time found, cannot end shift");
         setIsProcessingShift(false);
         return;
       }
+      
+      console.log("✅ Shift start time found:", shiftStart);
 
       // Quick location check for employees (non-blocking)
       let locationData: any = undefined;
@@ -3262,9 +3508,12 @@ export default function EmployeeShiftTracker() {
 
       // Set cooldown after successful shift end
       await setShiftCooldown();
+      
+      console.log("🔄 About to send shift end notification...");
 
       // Move heavy operations to background
-      InteractionManager.runAfterInteractions(async () => {
+      InteractionManager.runAfterInteractions(() => {
+        console.log("🔄 Inside InteractionManager callback for shift end");
         try {
           // Create shift data for history
           const newShiftData: ShiftData = {
@@ -3287,28 +3536,47 @@ export default function EmployeeShiftTracker() {
 
           // Send admin notification if not management
           if (user?.role !== "management") {
-            backgroundPromises.push(
-              axios
-                .post(
-                  `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
-                  {
-                    title: `🔴 Shift Ended, by ${user?.name}`,
-                    message: `👤 ${user?.name} has completed their shift\n⏱️ Duration: ${duration}\n🕒 Start: ${format(shiftStart, "hh:mm a")}\n🕕 End: ${format(now, "hh:mm a")}`,
-                    type: "shift-end",
-                  },
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                  },
-                )
-                .then(() => {})
-                .catch((error) =>
-                  console.log("Admin notification failed:", error),
-                ),
-            );
+            console.log("🔔 Sending shift end notification to admin...");
+            
+            // Force update notification data with current location
+            forceUpdateNotificationData().then((locationData) => {
+              console.log("📍 Notification data:", {
+                address: locationData.address,
+                geofenceName: locationData.geofenceName,
+                userRole: user?.role,
+                endpoint: getNotificationEndpoint(user?.role || "employee"),
+                duration: duration,
+              });
+              
+              backgroundPromises.push(
+                axios
+                  .post(
+                    `${process.env.EXPO_PUBLIC_API_URL}${getNotificationEndpoint(user?.role || "employee")}`,
+                    {
+                      title: `🔴 Shift Ended, by ${user?.name}`,
+                      message: `👤 ${user?.name} has completed their shift\n⏱️ Duration: ${duration}\n🕒 Start: ${format(shiftStart, "hh:mm a")}\n🕕 End: ${format(now, "hh:mm a")}\n📍 Location: ${locationData.address}\n🏢 Geofence: ${locationData.geofenceName}`,
+                      type: "shift-end",
+                    },
+                    {
+                      headers: { Authorization: `Bearer ${token}` },
+                    },
+                  )
+                  .then(() => {
+                    console.log("✅ Shift end notification sent successfully");
+                  })
+                  .catch((error) => {
+                    console.error("❌ Shift end notification failed:", error);
+                  }),
+              );
+            }).catch((error) => {
+              console.error("❌ Error updating location data for notification:", error);
+            });
+          } else {
+            console.log("ℹ️ Management user - skipping notification");
           }
 
           // Execute all background operations
-          await Promise.allSettled(backgroundPromises);
+          Promise.allSettled(backgroundPromises);
 
           // Update modal message to show completion
           if (!response.data.sparrowWarning) {
@@ -3653,47 +3921,63 @@ export default function EmployeeShiftTracker() {
     );
   }
 
-  // Add this near other useEffect hooks
+  // Consolidated notification listeners - only create once
   useEffect(() => {
-    // Handle notification dismissal attempts
-    const subscription = Notifications.addNotificationResponseReceivedListener(
+    // Handle notification response (dismissal, actions, etc.)
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const data = response.notification.request.content.data;
-        if (data?.type === "active-shift" && isShiftActive) {
-          // Reschedule the notification if it was dismissed and shift is still active
-          schedulePersistentNotification();
+        const { type, notificationId } = data || {};
+
+        if (type === "active-shift") {
+          if (response.actionIdentifier === "dismiss") {
+            // Cancel the notification when dismiss is pressed
+            Notifications.dismissNotificationAsync(
+              response.notification.request.identifier,
+            );
+          } else if (isShiftActive) {
+            // Reschedule the notification if it was dismissed and shift is still active
+            schedulePersistentNotification();
+          }
+        }
+      },
+    );
+
+    // Handle incoming notifications (for auto-ended shifts)
+    const receivedSubscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const data = notification.request.content.data;
+        if (data?.type === "shift-end-auto" && isShiftActive) {
+          console.log("Received auto-end notification - updating UI");
+
+          // Update the UI immediately
+          setIsShiftActive(false);
+          setShiftStart(null);
+          pulseAnim.setValue(1);
+          rotateAnim.setValue(0);
+
+          // Clear AsyncStorage
+          AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
+
+          // Cancel any scheduled warning/limit notifications
+          cancelShiftNotifications();
+
+          // Reset timer state
+          setTimerDuration(null);
+          setTimerEndTime(null);
+
+          // Refresh data
+          loadShiftHistoryFromBackend();
+          fetchRecentShifts();
         }
       },
     );
 
     return () => {
-      subscription.remove();
+      responseSubscription.remove();
+      receivedSubscription.remove();
     };
-  }, [isShiftActive]);
-
-  // Add this near your other useEffect hooks
-  useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const { type, notificationId } =
-          response.notification.request.content.data || {};
-
-        if (
-          type === "active-shift" &&
-          response.actionIdentifier === "dismiss"
-        ) {
-          // Cancel the notification when dismiss is pressed
-          Notifications.dismissNotificationAsync(
-            response.notification.request.identifier,
-          );
-        }
-      },
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+  }, []); // Only run once on mount, not on every isShiftActive change
 
   // Create a function to handle refresh
   const onRefresh = useCallback(async () => {
@@ -3833,43 +4117,6 @@ export default function EmployeeShiftTracker() {
     };
   }, [isShiftActive]);
 
-  // Add this near other useEffect hooks
-  useEffect(() => {
-    // Set up notification listeners for auto-ended shifts
-    const notificationReceivedListener =
-      Notifications.addNotificationReceivedListener((notification) => {
-        // Check if this is a shift-end-auto notification
-        const data = notification.request.content.data;
-        if (data?.type === "shift-end-auto" && isShiftActive) {
-          console.log("Received auto-end notification - updating UI");
-
-          // Update the UI immediately
-          setIsShiftActive(false);
-          setShiftStart(null);
-          pulseAnim.setValue(1);
-          rotateAnim.setValue(0);
-
-          // Clear AsyncStorage
-          AsyncStorage.removeItem(`${user?.role}-shiftStatus`);
-
-          // Cancel any scheduled warning/limit notifications
-          cancelShiftNotifications();
-
-          // Reset timer state
-          setTimerDuration(null);
-          setTimerEndTime(null);
-
-          // Refresh data
-          loadShiftHistoryFromBackend();
-          fetchRecentShifts();
-        }
-      });
-
-    // Clean up listener on unmount
-    return () => {
-      notificationReceivedListener.remove();
-    };
-  }, [isShiftActive]);
 
   // Add this effect to handle app state changes
   useEffect(() => {

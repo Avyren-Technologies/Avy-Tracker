@@ -615,6 +615,79 @@ export class NotificationService {
     }
   }
 
+  // New function to send notifications to the specific group-admin that an employee belongs to
+  async sendEmployeeGroupAdminNotification(
+    employeeId: number,
+    notification: Omit<PushNotification, "id" | "user_id">,
+  ): Promise<void> {
+    const client = await pool.connect();
+    try {
+      console.log(`[NOTIFICATION] Sending notification to group-admin for employee ${employeeId}`);
+
+      // Get the employee's group-admin
+      const employeeResult = await client.query(
+        `SELECT u.group_admin_id, u.name as employee_name, u.company_id
+         FROM users u 
+         WHERE u.id = $1 AND u.role = 'employee'`,
+        [employeeId],
+      );
+
+      if (employeeResult.rows.length === 0) {
+        console.warn(`[NOTIFICATION] Employee ${employeeId} not found or not an employee`);
+        return;
+      }
+
+      const employee = employeeResult.rows[0];
+      
+      if (!employee.group_admin_id) {
+        console.warn(`[NOTIFICATION] Employee ${employeeId} has no assigned group-admin`);
+        return;
+      }
+
+      // Get the group-admin's details and verify they have active device tokens
+      const groupAdminResult = await client.query(
+        `SELECT DISTINCT u.id, u.name, u.role
+         FROM users u 
+         LEFT JOIN device_tokens dt ON u.id = dt.user_id::integer 
+         WHERE u.id = $1 
+         AND u.role = 'group-admin'
+         AND dt.is_active = true`,
+        [employee.group_admin_id],
+      );
+
+      if (groupAdminResult.rows.length === 0) {
+        console.warn(`[NOTIFICATION] Group-admin ${employee.group_admin_id} not found or has no active device tokens`);
+        return;
+      }
+
+      const groupAdmin = groupAdminResult.rows[0];
+
+      // Send push notification to the specific group-admin
+      await this.sendPushNotification(
+        {
+          ...notification,
+          id: 0,
+          user_id: groupAdmin.id.toString(),
+        },
+        [groupAdmin.id.toString()],
+      );
+
+      // Create in-app notification for the group-admin
+      await this.createInAppNotification(
+        groupAdmin.id,
+        notification.title,
+        notification.message,
+        notification.type,
+      );
+
+      console.log(`[NOTIFICATION] Successfully sent notification to group-admin ${groupAdmin.name} (ID: ${groupAdmin.id}) for employee ${employee.employee_name} (ID: ${employeeId})`);
+    } catch (error) {
+      console.error(`[NOTIFICATION] Error in sendEmployeeGroupAdminNotification:`, error);
+    } finally {
+      client.release();
+    }
+  }
+
   async getUnreadNotificationCount(userId: number): Promise<number> {
     const client = await pool.connect();
     try {

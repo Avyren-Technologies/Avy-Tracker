@@ -58,6 +58,7 @@ interface AuthContextType {
   logout: () => void;
   refreshToken: () => Promise<string | null>;
   updateUser: (userData: Partial<User>) => void;
+  processPendingUnregistrations: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -538,9 +539,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth();
 
+    // Process any pending device unregistrations
+    processPendingUnregistrations();
+
     // Set up a network connectivity listener
     const networkCheckInterval = setInterval(() => {
       checkNetworkConnectivity();
+      // Also process pending unregistrations when network is available
+      processPendingUnregistrations();
     }, 30000); // Check every 30 seconds
 
     return () => {
@@ -1307,26 +1313,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clean up notification listeners first
       PushNotificationService.cleanupAllListeners();
 
-      // Check if we're online before unregistering the device
-      const { isConnected, isReachable } = await checkNetworkConnectivity();
+      // Store device token and user info for potential retry
+      const deviceToken = await PushNotificationService.getCurrentToken();
+      const userRole = user?.role;
+      const currentToken = token;
 
-      if (isConnected && isReachable && user?.role !== "super-admin") {
-        // Unregister device token
-        const deviceToken = await PushNotificationService.getCurrentToken();
-        if (deviceToken) {
-          try {
-            const endpoint = `${API_URL}/api/${
-              user?.role || "employee"
-            }-notifications/unregister-device`;
-            await axios.delete(endpoint, {
-              data: { token: deviceToken },
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            console.log("Device unregistered successfully");
-          } catch (error) {
-            console.error("Error unregistering device:", error);
-          }
-        }
+      // Attempt device unregistration with robust error handling
+      if (deviceToken && userRole && userRole !== "super-admin" && currentToken) {
+        await unregisterDeviceToken(deviceToken, userRole, currentToken);
       }
 
       return await clearAuthData();
@@ -1335,6 +1329,162 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Even if there's an error, still clear local auth data
       await clearAuthData();
       throw error;
+    }
+  };
+
+  // Robust device token unregistration function
+  const unregisterDeviceToken = async (
+    deviceToken: string,
+    userRole: string,
+    authToken: string,
+    retryCount: number = 0
+  ): Promise<void> => {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
+    try {
+      // Check network connectivity
+      const { isConnected, isReachable } = await checkNetworkConnectivity();
+      
+      if (!isConnected || !isReachable) {
+        // Store for retry when network is available
+        await storePendingUnregistration(deviceToken, userRole);
+        console.log("Device unregistration queued for retry (offline)");
+        return;
+      }
+
+      const endpoint = `${API_URL}/api/${userRole}-notifications/unregister-device`;
+      
+      // Make the unregistration request with timeout
+      const response = await axios.delete(endpoint, {
+        data: { token: deviceToken },
+        headers: { Authorization: `Bearer ${authToken}` },
+        timeout: 10000, // 10 second timeout
+      });
+
+      if (response.status === 200 || response.status === 204) {
+        console.log("Device unregistered successfully");
+        // Clear any pending unregistration
+        await clearPendingUnregistration(deviceToken);
+        return;
+      } else {
+        throw new Error(`Unexpected response status: ${response.status}`);
+      }
+
+    } catch (error) {
+      console.error(`Device unregistration attempt ${retryCount + 1} failed:`, error);
+      
+      // If we have retries left and it's a network/server error, retry
+      if (retryCount < maxRetries && shouldRetry(error)) {
+        console.log(`Retrying device unregistration in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return unregisterDeviceToken(deviceToken, userRole, authToken, retryCount + 1);
+      }
+      
+      // If all retries failed, store for later retry
+      await storePendingUnregistration(deviceToken, userRole);
+      console.log("Device unregistration queued for retry (all attempts failed)");
+    }
+  };
+
+  // Helper function to determine if we should retry
+  const shouldRetry = (error: any): boolean => {
+    if (!error.response) return true; // Network error
+    const status = error.response.status;
+    // Retry on server errors (5xx) and some client errors (408, 429)
+    return status >= 500 || status === 408 || status === 429;
+  };
+
+  // Store pending unregistration for retry
+  const storePendingUnregistration = async (deviceToken: string, userRole: string): Promise<void> => {
+    try {
+      const pendingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
+      const unregistrations = pendingUnregistrations ? JSON.parse(pendingUnregistrations) : [];
+      
+      // Add new unregistration (avoid duplicates)
+      const exists = unregistrations.some((item: any) => item.deviceToken === deviceToken);
+      if (!exists) {
+        unregistrations.push({
+          deviceToken,
+          userRole,
+          timestamp: Date.now(),
+        });
+        
+        await AsyncStorage.setItem('pending_device_unregistrations', JSON.stringify(unregistrations));
+      }
+    } catch (error) {
+      console.error("Error storing pending unregistration:", error);
+    }
+  };
+
+  // Clear pending unregistration
+  const clearPendingUnregistration = async (deviceToken: string): Promise<void> => {
+    try {
+      const pendingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
+      if (pendingUnregistrations) {
+        const unregistrations = JSON.parse(pendingUnregistrations);
+        const filtered = unregistrations.filter((item: any) => item.deviceToken !== deviceToken);
+        await AsyncStorage.setItem('pending_device_unregistrations', JSON.stringify(filtered));
+      }
+    } catch (error) {
+      console.error("Error clearing pending unregistration:", error);
+    }
+  };
+
+  // Process pending unregistrations (call this on app start or when network becomes available)
+  const processPendingUnregistrations = async (): Promise<void> => {
+    try {
+      const pendingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
+      if (!pendingUnregistrations) return;
+
+      const unregistrations = JSON.parse(pendingUnregistrations);
+      const now = Date.now();
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      // Filter out old unregistrations
+      const validUnregistrations = unregistrations.filter((item: any) => 
+        now - item.timestamp < maxAge
+      );
+
+      if (validUnregistrations.length === 0) {
+        await AsyncStorage.removeItem('pending_device_unregistrations');
+        return;
+      }
+
+      // Process each pending unregistration
+      for (const item of validUnregistrations) {
+        try {
+          // Note: We don't have the auth token here, so we'll use a different approach
+          // The server should handle unregistration based on device token alone
+          const endpoint = `${API_URL}/api/${item.userRole}-notifications/unregister-device`;
+          
+          const response = await axios.delete(endpoint, {
+            data: { token: item.deviceToken },
+            timeout: 10000,
+          });
+
+          if (response.status === 200 || response.status === 204) {
+            console.log("Pending device unregistration completed:", item.deviceToken);
+            await clearPendingUnregistration(item.deviceToken);
+          }
+        } catch (error) {
+          console.error("Error processing pending unregistration:", error);
+          // Keep it in the list for next time
+        }
+      }
+
+      // Update the stored list
+      const remainingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
+      if (remainingUnregistrations) {
+        const remaining = JSON.parse(remainingUnregistrations);
+        const stillValid = remaining.filter((item: any) => 
+          now - item.timestamp < maxAge
+        );
+        await AsyncStorage.setItem('pending_device_unregistrations', JSON.stringify(stillValid));
+      }
+
+    } catch (error) {
+      console.error("Error processing pending unregistrations:", error);
     }
   };
 
@@ -1371,6 +1521,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isOffline,
         updateUser,
+        processPendingUnregistrations,
       }}
     >
       {children}

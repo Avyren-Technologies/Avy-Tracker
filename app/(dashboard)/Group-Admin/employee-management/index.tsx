@@ -40,7 +40,7 @@ interface LoadingToggles {
 
 export default function EmployeeManagement() {
   const { theme } = ThemeContext.useTheme();
-  const { token } = AuthContext.useAuth();
+  const { token, user } = AuthContext.useAuth();
   const router = useRouter();
   const isDark = theme === "dark";
 
@@ -55,9 +55,15 @@ export default function EmployeeManagement() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [token, user]);
 
   const fetchEmployees = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);

@@ -263,7 +263,7 @@ const EmployeePickerModal = memo(
 
 export default function TaskManagement() {
   const { theme } = ThemeContext.useTheme();
-  const { token } = AuthContext.useAuth();
+  const { token, user } = AuthContext.useAuth();
   const router = useRouter();
   const isDark = theme === "dark";
   const successScale = useRef(new Animated.Value(0)).current;
@@ -317,6 +317,11 @@ export default function TaskManagement() {
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   const fetchEmployees = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      return;
+    }
+
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/group-admin/employees`,
@@ -335,6 +340,12 @@ export default function TaskManagement() {
   };
 
   const fetchTasks = async () => {
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await axios.get(
@@ -379,7 +390,7 @@ export default function TaskManagement() {
   useEffect(() => {
     fetchEmployees();
     fetchTasks();
-  }, []);
+  }, [token, user]);
 
   // Debug employee filter changes
   useEffect(() => {

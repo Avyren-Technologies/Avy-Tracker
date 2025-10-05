@@ -20,7 +20,7 @@ const DEFAULT_THRESHOLDS: LivenessThresholds = {
   eyeClosedThreshold: 0.98, // probability threshold for closed eye (ultra-forgiving)
   eyeOpenThreshold: 0.995, // probability threshold for open eye (ultra-forgiving)
   minLivenessScore: 0.1, // minimum score to consider live (ultra-forgiving)
-  blinkTimeoutMs: 60000, // timeout for blink detection (60 seconds)
+  blinkTimeoutMs: 120000, // timeout for blink detection (120 seconds - increased from 60 seconds)
 };
 
 export function useCameraLiveness(
@@ -420,11 +420,11 @@ export function useCameraLiveness(
     // Note: We process liveness detection directly when face data arrives
     // No need for interval-based processing
 
-    // Set much longer timeout for liveness detection (60 seconds)
+    // Set much longer timeout for liveness detection (120 seconds)
     blinkTimeoutRef.current = setTimeout(() => {
-      console.log("👁️ Liveness detection timeout after 60 seconds");
+      console.log("👁️ Liveness detection timeout after 120 seconds");
       stopLivenessDetection();
-    }, 60000); // 60 seconds instead of 15 seconds
+    }, 120000); // 120 seconds (increased from 60 seconds)
 
     console.log("👁️ Liveness detection started successfully");
   }, [config.blinkTimeoutMs]);

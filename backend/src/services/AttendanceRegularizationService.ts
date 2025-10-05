@@ -749,7 +749,7 @@ export class AttendanceRegularizationService {
             type: 'regularization',
             priority: 'high',
             data: { 
-              screen: '/(dashboard)/attendance-regularization',
+              screen: '/(dashboard)/shared/AttendanceRegularization',
               ...data 
             }
           },

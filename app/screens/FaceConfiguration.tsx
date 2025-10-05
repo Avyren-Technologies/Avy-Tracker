@@ -149,7 +149,11 @@ export default function FaceConfiguration() {
 
   // Load face profile status
   const loadFaceProfileStatus = useCallback(async () => {
-    if (!token || !user?.id) return;
+    // Don't make API call if token is null or user is not authenticated
+    if (!token || !user?.id) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       setIsLoading(true);
