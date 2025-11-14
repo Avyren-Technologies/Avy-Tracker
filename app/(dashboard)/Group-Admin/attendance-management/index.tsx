@@ -615,7 +615,7 @@ export default function AdminAttendanceManagement() {
         {/* Regularization Approvals Section */}
         <View className="px-6 py-4">
           <TouchableOpacity
-            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization" as any)}
             className={`p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
             style={styles.regularizationCard}
           >

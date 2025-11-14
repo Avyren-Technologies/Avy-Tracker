@@ -286,11 +286,11 @@ export default function GroupAdminSettings() {
   };
 
   const handleFaceRegistration = () => {
-    router.push('/(dashboard)/Group-Admin/face-registration');
+    router.push('/(dashboard)/Group-Admin/face-registration' as any);
   };
 
   const handleFaceConfiguration = () => {
-    router.push('/(dashboard)/Group-Admin/face-configuration');
+    router.push('/(dashboard)/Group-Admin/face-configuration' as any);
   };
 
   const handleFaceSetup = () => {

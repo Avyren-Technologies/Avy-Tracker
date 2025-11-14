@@ -493,7 +493,7 @@ export default function Profile() {
         {/* Regularization Requests Section */}
         <View className="mx-4 mt-3">
           <TouchableOpacity
-            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization" as any)}
             style={[styles.card]}
             className={`p-4 rounded-lg ${isDark ? "bg-gray-800" : "bg-white"}`}
           >

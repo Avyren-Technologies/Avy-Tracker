@@ -67,4 +67,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-app-example
+app-example.yarn/
+
+.yarn/

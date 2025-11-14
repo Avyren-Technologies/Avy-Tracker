@@ -9,7 +9,14 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "jest --watchAll --verbose"
+    "test": "jest --watchAll --verbose",
+    "build:ios:production": "eas build --profile production --platform ios --clear-cache --no-wait",
+    "build:ios:staging": "eas build --profile staging --platform ios --clear-cache --no-wait",
+    "build:android:production": "eas build --profile production --platform android --clear-cache --no-wait",
+    "build:android:staging": "eas build --profile staging --platform android --clear-cache --no-wait",
+    "build:web:production": "eas build --profile production --platform web --clear-cache --no-wait",
+    "build:web:staging": "eas build --profile staging --platform web --clear-cache --no-wait",
+    "type-check": "tsc --noEmit --project ."
   },
   "jest": {
     "preset": "jest-expo"
@@ -35,7 +42,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.7",
-    "expo": "54.0.12",
+    "expo": "54.0.23",
     "expo-application": "~7.0.7",
     "expo-battery": "~10.0.7",
     "expo-blur": "~15.0.7",
@@ -80,7 +87,7 @@
     "pg": "^8.13.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.4",
+    "react-native": "0.81.5",
     "react-native-aes-crypto": "^3.2.1",
     "react-native-animatable": "^1.4.0",
     "react-native-biometrics": "^3.0.1",

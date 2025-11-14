@@ -411,7 +411,7 @@ export default function ManagementDashboard() {
       return;
     }
     if (action.title === "Regularization Approvals") {
-      router.push("/(dashboard)/shared/AttendanceRegularization");
+      router.push("/(dashboard)/shared/AttendanceRegularization" as any);
       return;
     }
     router.push(action.route as any);
@@ -634,7 +634,7 @@ export default function ManagementDashboard() {
             Pending Approvals
           </Text>
           <TouchableOpacity
-            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization")}
+            onPress={() => router.push("/(dashboard)/shared/AttendanceRegularization" as any)}
             className={`p-6 rounded-xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
