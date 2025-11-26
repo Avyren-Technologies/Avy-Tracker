@@ -10,6 +10,7 @@ backend/src/config/admin-service-key.json
 backend/src/config/ca.pem
 
 backend/.env
+dependency-usage-report.json
 
 constants/
 
