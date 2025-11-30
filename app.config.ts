@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Avy Tracker",
   slug: "avy-tracker",
-  version: "1.2.0",
+  version: "1.2.9",
   orientation: "portrait",
   icon: "./assets/images/adaptive-icon.png",
   scheme: "myapp",
@@ -72,14 +72,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: "./assets/images/splash-icon-light.png",
         resizeMode: "contain",
         backgroundColor: "#FF6B35", // Updated to orange primary color
-      },
-    ],
-    [
-      "expo-media-library",
-      {
-        photosPermission: "Allow $(PRODUCT_NAME) to access your photos.",
-        savePhotosPermission: "Allow $(PRODUCT_NAME) to save photos.",
-        isAccessMediaLocationEnabled: true,
       },
     ],
     "expo-secure-store",

@@ -18,7 +18,6 @@ import { format } from "date-fns";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library';
 import axios from 'axios';
 import TaskDetailsModal from "../../../components/TaskDetailsModal";
 
@@ -66,7 +65,7 @@ export default function TaskList({
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
-  
+
   // Task details modal state
   const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -125,7 +124,7 @@ export default function TaskList({
           },
         }
       );
-      
+
       if (response.ok) {
         const attachments = await response.json();
         setTaskAttachments(attachments);
@@ -141,9 +140,9 @@ export default function TaskList({
   const downloadAttachment = async (attachment: any, taskId: number) => {
     try {
       setDownloadingFile(attachment.file_name);
-      
+
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       // Download the file data from server (same approach as TaskDetailsModal)
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
@@ -155,7 +154,7 @@ export default function TaskList({
 
       // Server returns: { fileName, fileType, fileSize, fileData }
       const { fileData, fileName: serverFileName, fileType } = response.data;
-      
+
       if (!fileData) {
         throw new Error('No file data received from server');
       }
@@ -164,10 +163,10 @@ export default function TaskList({
       const timestamp = Date.now();
       const fileExtension = attachment.file_name.split('.').pop() || '';
       const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
-      
+
       // Use cache directory for temporary files
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-      
+
       // Write the base64 data directly (server already provides base64)
       await FileSystem.writeAsStringAsync(fileUri, fileData, {
         encoding: FileSystem.EncodingType.Base64,
@@ -175,7 +174,7 @@ export default function TaskList({
 
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
-      
+
       if (isAvailable) {
         // Show options to share or save
         Alert.alert(
@@ -226,21 +225,50 @@ export default function TaskList({
 
   const saveToGallery = async (fileUri: string, fileName: string) => {
     try {
-      // Request media library permissions
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      
-      if (status === 'granted') {
-        // Check if it's an image or video
+      // Try to load expo-media-library dynamically at runtime
+      let MediaLibrary: any = null;
+      try {
+        // dynamic import; Metro won't try to statically resolve this at bundle time
+        MediaLibrary = await import('expo-media-library');
+      } catch (e) {
+        MediaLibrary = null;
+      }
+
+      if (!MediaLibrary) {
+        // If MediaLibrary isn't available, fallback to sharing (user can save/export)
+        Alert.alert(
+          "Save not available",
+          "Saving to gallery is not available on this build. You can share the file to save it.",
+          [
+            { text: "Share", onPress: () => shareFile(fileUri, fileName) },
+            { text: "OK", style: "cancel" },
+          ]
+        );
+        return;
+      }
+
+      // Request media library permissions via runtime API
+      const { status } = await MediaLibrary.requestPermissionsAsync?.() ?? { status: 'denied' };
+
+      if (status === 'granted' || status === 'limited') {
+        // Determine whether image or video
         const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
         const isVideo = /\.(mp4|mov|avi|mkv|webm)$/i.test(fileName);
-        
-        if (isImage || isVideo) {
-          const asset = await MediaLibrary.createAssetAsync(fileUri);
-          await MediaLibrary.createAlbumAsync('AvyTracker Downloads', asset, false);
-          Alert.alert("Success", "File saved to gallery successfully!");
-        } else {
+
+        if (!isImage && !isVideo) {
           Alert.alert("Info", "This file type cannot be saved to gallery. Use the share option instead.");
+          return;
         }
+
+        // create asset and album (use createAssetAsync & createAlbumAsync if available)
+        const asset = await MediaLibrary.createAssetAsync(fileUri);
+        try {
+          await MediaLibrary.createAlbumAsync('AvyTracker Downloads', asset, false);
+        } catch (err) {
+          // createAlbumAsync can fail if album exists; that's fine
+        }
+
+        Alert.alert("Success", "File saved to gallery successfully!");
       } else {
         Alert.alert("Permission Denied", "Media library permission is required to save files to gallery.");
       }
@@ -249,6 +277,7 @@ export default function TaskList({
       Alert.alert("Error", "Failed to save file to gallery.");
     }
   };
+
 
   const openFile = async (fileUri: string, fileName: string) => {
     try {
@@ -267,9 +296,9 @@ export default function TaskList({
   const downloadAndShare = async (attachment: any, taskId: number) => {
     try {
       setDownloadingFile(attachment.file_name);
-      
+
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       // Download the file data from server (same approach as TaskDetailsModal)
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/api/tasks/${taskId}/attachments/${attachment.id}`,
@@ -281,7 +310,7 @@ export default function TaskList({
 
       // Server returns: { fileName, fileType, fileSize, fileData }
       const { fileData, fileName: serverFileName, fileType } = response.data;
-      
+
       if (!fileData) {
         throw new Error('No file data received from server');
       }
@@ -290,10 +319,10 @@ export default function TaskList({
       const timestamp = Date.now();
       const fileExtension = attachment.file_name.split('.').pop() || '';
       const fileName = `${attachment.id}_${timestamp}.${fileExtension}`;
-      
+
       // Use cache directory for temporary files
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-      
+
       // Write the base64 data directly (server already provides base64)
       await FileSystem.writeAsStringAsync(fileUri, fileData, {
         encoding: FileSystem.EncodingType.Base64,
@@ -395,13 +424,12 @@ export default function TaskList({
           <TouchableOpacity
             key={type}
             onPress={() => onChangeTaskType(type)}
-            className={`mr-2 px-4 py-2 rounded-full ${
-              activeTaskType === type
-                ? "bg-blue-500"
-                : isDark
-                  ? "bg-gray-800"
-                  : "bg-gray-100"
-            }`}
+            className={`mr-2 px-4 py-2 rounded-full ${activeTaskType === type
+              ? "bg-blue-500"
+              : isDark
+                ? "bg-gray-800"
+                : "bg-gray-100"
+              }`}
           >
             <Text
               className={
@@ -431,9 +459,8 @@ export default function TaskList({
       >
         {filteredTasks.length === 0 ? (
           <View
-            className={`p-8 rounded-lg items-center justify-center ${
-              isDark ? "bg-gray-800" : "bg-white"
-            }`}
+            className={`p-8 rounded-lg items-center justify-center ${isDark ? "bg-gray-800" : "bg-white"
+              }`}
           >
             <Ionicons
               name="calendar-outline"
@@ -441,9 +468,8 @@ export default function TaskList({
               color={isDark ? "#4B5563" : "#9CA3AF"}
             />
             <Text
-              className={`mt-4 text-lg font-medium ${
-                isDark ? "text-gray-400" : "text-gray-500"
-              }`}
+              className={`mt-4 text-lg font-medium ${isDark ? "text-gray-400" : "text-gray-500"
+                }`}
             >
               No tasks available
             </Text>
@@ -462,24 +488,21 @@ export default function TaskList({
             >
               <View style={styles.taskContent}>
                 <Text
-                  className={`text-lg font-semibold mb-2 ${
-                    isDark ? "text-white" : "text-gray-900"
-                  }`}
+                  className={`text-lg font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"
+                    }`}
                 >
                   {task.title}
                 </Text>
                 <Text
-                  className={`mb-2 ${
-                    isDark ? "text-gray-400" : "text-gray-600"
-                  }`}
+                  className={`mb-2 ${isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
                 >
                   {task.description}
                 </Text>
 
                 <Text
-                  className={`text-sm mb-3 ${
-                    isDark ? "text-gray-400" : "text-gray-600"
-                  }`}
+                  className={`text-sm mb-3 ${isDark ? "text-gray-400" : "text-gray-600"
+                    }`}
                 >
                   Due:{" "}
                   {task.due_date
@@ -611,9 +634,8 @@ export default function TaskList({
 
                 <View className="flex-row justify-between items-center mt-3">
                   <Text
-                    className={`text-sm ${
-                      isDark ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"
+                      }`}
                   >
                     By: {task.assigned_by_name}
                   </Text>
@@ -803,7 +825,7 @@ export default function TaskList({
           </Pressable>
         </Pressable>
       </Modal>
-      
+
       {/* Task Details Modal */}
       <TaskDetailsModal
         visible={showTaskDetails}
