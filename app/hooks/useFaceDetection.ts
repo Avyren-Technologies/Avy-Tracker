@@ -1540,7 +1540,10 @@ export function useFaceDetection(
 
       console.log("✅ Face detection cleanup completed");
     };
-  }, [clearAllResources]);
+    // CRITICAL FIX: Empty dependency array ensures cleanup only runs on unmount
+    // clearAllResources is stable from useCleanup hook, but including it would
+    // cause the effect to re-run on every render since it's a new reference
+  }, []);
 
   // Refresh camera reference with persistence recovery
   const refreshCameraRef = useCallback(async () => {

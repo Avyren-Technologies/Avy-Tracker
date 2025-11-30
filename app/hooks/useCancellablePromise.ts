@@ -52,7 +52,10 @@ export function useCancellablePromise() {
                 "[useCancellablePromise] Prevented PromiseAlreadySettledException:",
                 error.message
               );
-              return; // Silently ignore
+              // CRITICAL FIX: Resolve the promise instead of returning early
+              // This prevents callers from hanging indefinitely
+              resolve(undefined as T);
+              return;
             }
             reject(error);
           } else {
@@ -62,6 +65,9 @@ export function useCancellablePromise() {
               "[useCancellablePromise] Promise rejected after unmount, ignoring error:",
               error.message
             );
+            // CRITICAL FIX: Resolve the promise to prevent hanging
+            // Component is unmounted, so we resolve with undefined
+            resolve(undefined as T);
           }
         });
     });
