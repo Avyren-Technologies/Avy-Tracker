@@ -8,6 +8,8 @@ import {
 } from "react-native-vision-camera";
 import { runOnJS } from "react-native-reanimated";
 import { useFaceDetection as useMLKitFaceDetection } from "@infinitered/react-native-mlkit-face-detection";
+import { useCancellablePromise } from "./useCancellablePromise";
+import { useCleanup } from "./useCleanup";
 import {
   FaceBounds,
   FaceDetectionData,
@@ -68,6 +70,10 @@ export function useFaceDetection(
     averageProcessingTime: 0,
   });
 
+  // CRITICAL FIX: Use cancellation and cleanup hooks to prevent crashes
+  const { makeCancellable, isMounted: isComponentMounted } = useCancellablePromise();
+  const { addTimer, removeTimer, clearAll: clearAllResources, isMounted: isCleanupMounted } = useCleanup();
+
   // Refs for cleanup and lifecycle management
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const isMountedRef = useRef(true);
@@ -76,6 +82,11 @@ export function useFaceDetection(
   const lastDetectionTimeRef = useRef<number>(0);
   const detectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const detectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // CRITICAL FIX: Prevent multiple simultaneous detections
+  const isDetectionInProgressRef = useRef(false);
+  const lastDetectionCallRef = useRef<number>(0);
+  const DEBOUNCE_DELAY = 500; // 500ms debounce to prevent rapid calls
 
   // Simplified camera reference management
   const persistentCameraRef = useRef<any>(null);
@@ -732,6 +743,21 @@ export function useFaceDetection(
         );
       }
 
+      // CRITICAL FIX: Check if component is still mounted and prevent multiple simultaneous calls
+      if (!isComponentMounted() || isDetectionInProgressRef.current) {
+        console.log("🛑 Skipping face detection - component unmounted or detection in progress");
+        return;
+      }
+
+      // CRITICAL FIX: Debounce rapid calls
+      const now = Date.now();
+      if (now - lastDetectionCallRef.current < DEBOUNCE_DELAY) {
+        console.log("🛑 Skipping face detection - debounce delay not met");
+        return;
+      }
+      lastDetectionCallRef.current = now;
+      isDetectionInProgressRef.current = true;
+
       // Use ML Kit to detect faces in the photo
       console.log("🤖 Sending photo to ML Kit for face detection...");
       let result;
@@ -745,7 +771,8 @@ export function useFaceDetection(
           photoPath: tempPhoto.path,
         });
 
-        result = await mlKitDetector.detectFaces(photoUri);
+        // CRITICAL FIX: Use cancellable promise to prevent PromiseAlreadySettledException
+        result = await makeCancellable(mlKitDetector.detectFaces(photoUri));
         console.log("✅ ML Kit detection completed successfully:", {
           success: !!result,
           faces: result?.faces,
@@ -766,8 +793,13 @@ export function useFaceDetection(
           console.log("🔄 Trying alternative URI format:", alternativeUri);
 
           try {
+            // CRITICAL FIX: Use cancellable promise for alternative URI detection
+            if (!isComponentMounted()) {
+              console.log("🛑 Component unmounted during alternative URI detection");
+              return;
+            }
             const alternativeResult =
-              await mlKitDetector.detectFaces(alternativeUri);
+              await makeCancellable(mlKitDetector.detectFaces(alternativeUri));
             console.log("🔄 Alternative URI result:", {
               success: !!alternativeResult,
               faces: alternativeResult?.faces,
@@ -791,7 +823,12 @@ export function useFaceDetection(
             console.log("🔄 Trying file:// URI format:", fileUri);
 
             try {
-              const fileResult = await mlKitDetector.detectFaces(fileUri);
+              // CRITICAL FIX: Use cancellable promise for file URI detection
+              if (!isComponentMounted()) {
+                console.log("🛑 Component unmounted during file URI detection");
+                return;
+              }
+              const fileResult = await makeCancellable(mlKitDetector.detectFaces(fileUri));
               console.log("🔄 File URI result:", {
                 success: !!fileResult,
                 faces: fileResult?.faces,
@@ -819,20 +856,41 @@ export function useFaceDetection(
           console.log("❌ FAILURE: No faces detected after all attempts");
         }
       } catch (mlKitError: any) {
-        console.error("❌ ML Kit detectFaces error:", mlKitError);
-        console.log("🔍 ML Kit error details:", {
-          errorType: mlKitError.constructor.name,
-          errorMessage: mlKitError.message,
-          photoUri,
-          detectorState: {
-            isInitialized: !!mlKitDetector,
-            detectorType: typeof mlKitDetector,
-            availableMethods: Object.keys(mlKitDetector || {}),
-          },
-        });
+        // CRITICAL FIX: Handle PromiseAlreadySettledException gracefully
+        if (
+          mlKitError?.message?.includes("PromiseAlreadySettled") ||
+          mlKitError?.message?.includes("already settled")
+        ) {
+          console.warn("⚠️ Prevented PromiseAlreadySettledException - component likely unmounted");
+          isDetectionInProgressRef.current = false;
+          return; // Exit early, don't process result
+        }
 
-        // Try to continue with empty result
-        result = { faces: [] };
+        // Only log error if component is still mounted
+        if (isComponentMounted()) {
+          console.error("❌ ML Kit detectFaces error:", mlKitError);
+          console.log("🔍 ML Kit error details:", {
+            errorType: mlKitError.constructor.name,
+            errorMessage: mlKitError.message,
+            photoUri,
+            detectorState: {
+              isInitialized: !!mlKitDetector,
+              detectorType: typeof mlKitDetector,
+              availableMethods: Object.keys(mlKitDetector || {}),
+            },
+          });
+        }
+
+        // Try to continue with empty result only if component is mounted
+        if (isComponentMounted()) {
+          result = { faces: [] };
+        } else {
+          isDetectionInProgressRef.current = false;
+          return;
+        }
+      } finally {
+        // CRITICAL FIX: Always reset detection flag
+        isDetectionInProgressRef.current = false;
       }
 
       // Process the detection results
@@ -1027,32 +1085,59 @@ export function useFaceDetection(
         verificationStep: "detecting",
       });
 
-      // Start the detection interval
+      // CRITICAL FIX: Use cleanup hook for interval management
       console.log("⏰ Starting detection interval...");
-      const intervalId = setInterval(async () => {
-        console.log(
-          "🔄 Detection interval triggered - calling processPeriodicFaceDetection...",
-        );
-        try {
-          await processPeriodicFaceDetection();
-        } catch (intervalError) {
-          console.error("❌ Error in detection interval:", intervalError);
-        }
-      }, 300); // Every 300ms
+      const intervalId = addTimer(
+        async () => {
+          console.log(
+            "🔄 Detection interval triggered - calling processPeriodicFaceDetection...",
+          );
+          try {
+            // Check if component is still mounted before processing
+            if (!isComponentMounted() || !isCleanupMounted()) {
+              console.log("🛑 Component unmounted, stopping detection interval");
+              if (detectionIntervalRef.current) {
+                removeTimer(detectionIntervalRef.current);
+                detectionIntervalRef.current = null;
+              }
+              return;
+            }
+            await processPeriodicFaceDetection();
+          } catch (intervalError) {
+            // CRITICAL FIX: Handle PromiseAlreadySettledException in interval
+            if (
+              (intervalError as any)?.message?.includes("PromiseAlreadySettled") ||
+              (intervalError as any)?.message?.includes("already settled")
+            ) {
+              console.warn("⚠️ Prevented PromiseAlreadySettledException in interval");
+              return;
+            }
+            console.error("❌ Error in detection interval:", intervalError);
+          }
+        },
+        300,
+        true // isInterval = true
+      ) as ReturnType<typeof setInterval>;
 
       // Store the interval ID
       detectionIntervalRef.current = intervalId;
 
-      // Set a timeout to stop detection if no face is found
-      const detectionTimeout = setTimeout(() => {
-        console.log("⏰ Face detection timeout reached - stopping detection");
-        if (detectionIntervalRef.current) {
-          clearInterval(detectionIntervalRef.current);
-          detectionIntervalRef.current = null;
-        }
-        setIsDetecting(false);
-        console.log("🛑 Face detection stopped due to timeout");
-      }, 30000); // 30 second timeout (increased from 10 seconds)
+      // CRITICAL FIX: Use cleanup hook for timeout management
+      const detectionTimeout = addTimer(
+        () => {
+          console.log("⏰ Face detection timeout reached - stopping detection");
+          if (detectionIntervalRef.current) {
+            removeTimer(detectionIntervalRef.current);
+            detectionIntervalRef.current = null;
+          }
+          if (isComponentMounted()) {
+            setIsDetecting(false);
+          }
+          console.log("🛑 Face detection stopped due to timeout");
+        },
+        30000, // 30 second timeout
+        false // isInterval = false
+      ) as ReturnType<typeof setTimeout>;
 
       // Store timeout reference for cleanup
       detectionTimeoutRef.current = detectionTimeout;
@@ -1084,22 +1169,27 @@ export function useFaceDetection(
       stack: new Error().stack?.split("\n").slice(1, 4).join("\n"),
     });
 
-    // Clear detection interval if it exists
+    // CRITICAL FIX: Use cleanup hook to clear timers
     if (detectionIntervalRef.current) {
-      clearInterval(detectionIntervalRef.current);
+      removeTimer(detectionIntervalRef.current);
       detectionIntervalRef.current = null;
       console.log("Detection interval cleared");
     }
-    // Clear timeout if it exists
     if (detectionTimeoutRef.current) {
-      clearTimeout(detectionTimeoutRef.current);
+      removeTimer(detectionTimeoutRef.current);
       detectionTimeoutRef.current = null;
       console.log("Detection timeout cleared");
     }
-    // Then update state
-    setIsDetecting(false);
+    
+    // Reset detection flag
+    isDetectionInProgressRef.current = false;
+    
+    // Then update state only if component is mounted
+    if (isComponentMounted()) {
+      setIsDetecting(false);
+    }
     console.log("🛑 Face detection stopped - isDetecting set to false");
-  }, []); // Remove isDetecting from dependencies to prevent recreation
+  }, [removeTimer, isComponentMounted]); // Add dependencies
 
   // Capture photo with face validation and enhanced camera management
   const capturePhoto = useCallback(async (): Promise<CapturedPhoto> => {
@@ -1415,21 +1505,23 @@ export function useFaceDetection(
     return () => subscription.remove();
   }, [isDetecting]);
 
-  // Cleanup on unmount with persistence cleanup
+  // CRITICAL FIX: Cleanup on unmount with proper resource management
   useEffect(() => {
     return () => {
       console.log("🧹 === CLEANING UP FACE DETECTION ON UNMOUNT ===");
       isMountedRef.current = false;
+      isDetectionInProgressRef.current = false;
 
-      // Clear detection interval
+      // CRITICAL FIX: Use cleanup hook to clear all resources
+      clearAllResources();
+
+      // Clear detection interval reference
       if (detectionIntervalRef.current) {
-        clearInterval(detectionIntervalRef.current);
         detectionIntervalRef.current = null;
       }
 
-      // Clear timeout
+      // Clear timeout reference
       if (detectionTimeoutRef.current) {
-        clearTimeout(detectionTimeoutRef.current);
         detectionTimeoutRef.current = null;
       }
 
@@ -1448,7 +1540,7 @@ export function useFaceDetection(
 
       console.log("✅ Face detection cleanup completed");
     };
-  }, []);
+  }, [clearAllResources]);
 
   // Refresh camera reference with persistence recovery
   const refreshCameraRef = useCallback(async () => {

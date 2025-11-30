@@ -2184,25 +2184,26 @@ const performOnlineVerification = async (
         `Verification attempt failed: Verification confidence (${confidence.toFixed(2)}) below threshold (${VERIFICATION_CONFIDENCE_THRESHOLD})`,
       );
 
-      // Create a more user-friendly error message based on confidence level
+      // CRITICAL FIX: Create user-friendly error messages with specific wrong face detection
       let userMessage: string;
       let errorType: FaceVerificationErrorType;
 
       if (confidence < 0.2) {
-        userMessage =
-          "Face not recognized. Please ensure you're looking directly at the camera with good lighting and your face is clearly visible.";
-        errorType = FaceVerificationErrorType.FACE_NOT_REGISTERED;
+        // Very low confidence - likely wrong face
+        userMessage = "Wrong Face Detected";
+        errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
       } else if (confidence < 0.4) {
-        userMessage =
-          "Low confidence in face recognition. Please try again with better lighting and position your face in the center of the frame.";
-        errorType = FaceVerificationErrorType.LOW_CONFIDENCE;
+        // Low confidence - face doesn't match
+        userMessage = "Face Doesn't Match";
+        errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
       } else if (confidence < 0.6) {
-        userMessage =
-          "Face verification failed. Please ensure you're looking directly at the camera and try again.";
+        // Medium-low confidence - might be wrong face or poor quality
+        userMessage = "Face Verification Failed - Face Doesn't Match";
         errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
       } else {
-        userMessage = "Face verification failed. Please try again.";
-        errorType = FaceVerificationErrorType.VERIFICATION_FAILED;
+        // Close but not enough - might be lighting/angle issue
+        userMessage = "Face Verification Failed";
+        errorType = FaceVerificationErrorType.LOW_CONFIDENCE;
       }
 
       const error = ErrorHandlingService.createError(
@@ -2215,6 +2216,11 @@ const performOnlineVerification = async (
 
       // Override the user message with a more specific one
       error.userMessage = userMessage;
+      
+      // CRITICAL FIX: Mark wrong face scenarios for UI detection
+      if (confidence < 0.6) {
+        (error as any).isWrongFace = true;
+      }
 
       throw error;
     }

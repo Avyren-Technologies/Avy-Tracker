@@ -41,7 +41,14 @@ export default function ErrorDisplay({
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
       </View>
 
-      <Text style={styles.title}>Verification Error</Text>
+      {/* CRITICAL FIX: Show specific title for wrong face scenarios */}
+      <Text style={styles.title}>
+        {(error as any).isWrongFace || 
+         error.userMessage?.includes("Wrong Face") ||
+         error.userMessage?.includes("Doesn't Match")
+          ? "Face Doesn't Match"
+          : "Verification Error"}
+      </Text>
       <Text style={styles.message}>
         {error.userMessage ||
           error.message ||

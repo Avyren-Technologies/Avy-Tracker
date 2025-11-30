@@ -945,24 +945,28 @@ export class FaceVerificationService {
 
   /**
    * Get failure reason based on verification results
+   * CRITICAL FIX: More user-friendly error messages for wrong face scenarios
    */
   private static getFailureReason(
     confidence: number,
     livenessValid: boolean,
   ): string {
     if (confidence < this.DEFAULT_CONFIDENCE_THRESHOLD) {
+      // Very low confidence (< 0.5) indicates wrong face
       if (confidence < 0.5) {
-        return "Face does not match registered profile";
+        return "FACE_MISMATCH"; // Use code for frontend to detect and show user-friendly message
+      } else if (confidence < 0.7) {
+        return "LOW_CONFIDENCE"; // Medium confidence - might be wrong face or poor quality
       } else {
-        return "Face match confidence too low";
+        return "FACE_MATCH_CONFIDENCE_TOO_LOW"; // Close but not enough
       }
     }
 
     if (!livenessValid) {
-      return "Liveness detection failed - please ensure you are looking at the camera";
+      return "LIVENESS_DETECTION_FAILED";
     }
 
-    return "Verification failed";
+    return "VERIFICATION_FAILED";
   }
 
   /**

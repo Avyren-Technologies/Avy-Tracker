@@ -65,6 +65,8 @@ export interface FaceVerificationError {
   code: string;
   details?: any;
   timestamp: Date;
+  // CRITICAL FIX: Add flag for wrong face detection
+  isWrongFace?: boolean;
 }
 
 export interface RetryConfig {
@@ -187,12 +189,13 @@ export const ERROR_MESSAGES: Record<
   [FaceVerificationErrorType.VERIFICATION_FAILED]: {
     message:
       "Face verification failed - face does not match registered profile",
-    userMessage: "Face verification unsuccessful",
+    userMessage: "Face Doesn't Match",
     suggestions: [
-      "Ensure you are the registered user",
-      "Try again with better lighting",
-      "Make sure your face is clearly visible",
-      "Contact support if you continue having issues",
+      "Ensure you are using your own account",
+      "The face detected does not match the registered profile",
+      "Only the registered user can start/stop shifts",
+      "If this is your account, try again with better lighting",
+      "Contact your supervisor if you believe this is an error",
     ],
     severity: "high",
   },

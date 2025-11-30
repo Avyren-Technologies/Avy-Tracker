@@ -258,8 +258,20 @@ export default function FaceVerificationModal({
     retryConfig: { maxAttempts: maxRetries },
     onError: (error: FaceVerificationError) => {
       setVerificationStep("error");
-      setStatusMessage(error.userMessage);
-      setGuidanceMessage(error.suggestions[0] || "Please try again");
+      
+      // CRITICAL FIX: Show user-friendly messages for wrong face scenarios
+      const isWrongFace = (error as any).isWrongFace || 
+                         error.userMessage?.includes("Wrong Face") ||
+                         error.userMessage?.includes("Doesn't Match") ||
+                         error.message?.includes("Face does not match");
+      
+      if (isWrongFace) {
+        setStatusMessage("Wrong Face Detected");
+        setGuidanceMessage("The face detected does not match the registered profile. Only the account owner can start/stop shifts.");
+      } else {
+        setStatusMessage(error.userMessage);
+        setGuidanceMessage(error.suggestions[0] || "Please try again");
+      }
     },
     onRetry: (attempt: number, error: FaceVerificationError) => {
       setVerificationStep("detecting");
@@ -427,7 +439,11 @@ export default function FaceVerificationModal({
           ? "Face profile registered successfully!"
           : "Identity verified!";
       case "error":
-        return "Verification failed";
+        // CRITICAL FIX: Show specific message for wrong face scenarios
+        if (currentError && 'isWrongFace' in currentError && currentError.isWrongFace) {
+          return "Face Doesn't Match";
+        }
+        return "Verification Failed";
       default:
         return "";
     }
@@ -609,19 +625,50 @@ export default function FaceVerificationModal({
             }
 
             if (!result || !result.success) {
-              // Create a more specific error message based on the result
-              const errorMessage =
-                (result as any)?.error ||
-                "Face verification failed. Please try again.";
-              const error = new Error(errorMessage);
-              // Preserve the original error details if available
-              if (result && typeof result === "object") {
-                (error as any).userMessage =
-                  (result as any).userMessage || errorMessage;
-                (error as any).type =
-                  (result as any).type || "VERIFICATION_FAILED";
+              // CRITICAL FIX: Detect wrong face from result confidence and show user-friendly message
+              const confidence = (result as any)?.confidence || 0;
+              const failureReason = (result as any)?.failureReason || "";
+              const errorMessage = (result as any)?.error || "";
+
+              // Check if it's a wrong face scenario (very low confidence)
+              if (
+                confidence > 0 &&
+                confidence < 0.5 &&
+                mode === "verify"
+              ) {
+                // Wrong face detected - show clear message
+                const wrongFaceError = new Error("Face Doesn't Match");
+                (wrongFaceError as any).userMessage = "Wrong Face Detected";
+                (wrongFaceError as any).type = "VERIFICATION_FAILED";
+                (wrongFaceError as any).isWrongFace = true;
+                throw wrongFaceError;
+              } else if (
+                failureReason === "FACE_MISMATCH" ||
+                failureReason?.includes("Face does not match") ||
+                errorMessage.includes("Face does not match") ||
+                errorMessage.includes("doesn't match")
+              ) {
+                // Wrong face detected from failure reason
+                const wrongFaceError = new Error("Face Doesn't Match");
+                (wrongFaceError as any).userMessage = "Wrong Face Detected";
+                (wrongFaceError as any).type = "VERIFICATION_FAILED";
+                (wrongFaceError as any).isWrongFace = true;
+                throw wrongFaceError;
+              } else {
+                // Other verification failures
+                const errorMessage =
+                  (result as any)?.error ||
+                  "Face verification failed. Please try again.";
+                const error = new Error(errorMessage);
+                // Preserve the original error details if available
+                if (result && typeof result === "object") {
+                  (error as any).userMessage =
+                    (result as any).userMessage || errorMessage;
+                  (error as any).type =
+                    (result as any).type || "VERIFICATION_FAILED";
+                }
+                throw error;
               }
-              throw error;
             }
 
             setVerificationResult(result);
@@ -654,9 +701,29 @@ export default function FaceVerificationModal({
           } catch (error: any) {
             console.error("Face verification API error:", error);
 
+            // CRITICAL FIX: Detect wrong face scenarios and show user-friendly messages
+            const failureReason = error.response?.data?.failureReason || "";
+            const confidence = error.response?.data?.confidence || 0;
+            const errorCode = error.response?.data?.code || "";
+
             // Handle specific API errors
             if (error.response?.status === 401) {
-              throw new Error("Authentication failed. Please log in again.");
+              // Check if it's a face mismatch (wrong face)
+              if (
+                failureReason === "FACE_MISMATCH" ||
+                failureReason?.includes("Face does not match") ||
+                (confidence > 0 && confidence < 0.5) ||
+                errorCode === "VERIFICATION_FAILED"
+              ) {
+                // Wrong face detected - show clear message
+                const wrongFaceError = new Error("Face Doesn't Match");
+                (wrongFaceError as any).userMessage = "Wrong Face Detected";
+                (wrongFaceError as any).type = "VERIFICATION_FAILED";
+                (wrongFaceError as any).isWrongFace = true;
+                throw wrongFaceError;
+              } else {
+                throw new Error("Authentication failed. Please log in again.");
+              }
             } else if (error.response?.status === 404) {
               throw new Error(
                 "Face profile not found. Please register your face first.",
@@ -665,8 +732,25 @@ export default function FaceVerificationModal({
               throw new Error(
                 "Too many verification attempts. Please try again later.",
               );
-            } else if (error.response?.data?.error) {
-              throw new Error(error.response.data.error);
+            } else if (error.response?.data?.error || failureReason) {
+              // Check for wrong face in error message or failure reason
+              const errorText = error.response?.data?.error || failureReason || "";
+              if (
+                failureReason === "FACE_MISMATCH" ||
+                failureReason?.includes("Face does not match") ||
+                errorText.includes("Face does not match") ||
+                errorText.includes("doesn't match") ||
+                (confidence > 0 && confidence < 0.5)
+              ) {
+                // Wrong face detected
+                const wrongFaceError = new Error("Face Doesn't Match");
+                (wrongFaceError as any).userMessage = "Wrong Face Detected";
+                (wrongFaceError as any).type = "VERIFICATION_FAILED";
+                (wrongFaceError as any).isWrongFace = true;
+                throw wrongFaceError;
+              } else {
+                throw new Error(errorText);
+              }
             } else {
               // Create a more specific error message
               const errorMessage =
@@ -874,8 +958,9 @@ export default function FaceVerificationModal({
     } catch (error: any) {
       console.error("Auto-capture error:", error);
       setVerificationStep("error");
-      setStatusMessage(`Capture failed: ${error.message}`);
-      setGuidanceMessage("Please try again");
+      // CRITICAL FIX: Better error message for capture failures
+      setStatusMessage("Photo Capture Failed");
+      setGuidanceMessage("Unable to capture photo. Please ensure your face is clearly visible and try again.");
     }
   }, [
     verificationStep,
@@ -1784,12 +1869,17 @@ export default function FaceVerificationModal({
     }
 
     if (verificationStep === "error") {
+      // CRITICAL FIX: Show specific message for wrong face scenarios
+      const isWrongFace = (currentError && 'isWrongFace' in currentError && currentError.isWrongFace) || 
+                         (currentError?.userMessage?.includes("Wrong Face")) ||
+                         (currentError?.userMessage?.includes("Doesn't Match"));
+      
       return (
         <View style={styles.feedbackContainer}>
           <FailureAnimation
             visible={showFailure}
             onComplete={() => setShowFailure(false)}
-            message="Verification Failed!"
+            message={isWrongFace ? "Wrong Face Detected!" : "Verification Failed!"}
           />
         </View>
       );

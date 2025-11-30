@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
-    backdropFilter: "blur(10px)",
+    // Note: backdropFilter is not supported in React Native - removed
   },
   inputContainer: {
     marginBottom: 16,

@@ -7,6 +7,10 @@
     "development": {
       "node": "22.14.0",
       "developmentClient": true,
+      "android": {
+        "ndk": "29.0.14206865"
+      },
+      "channel": "development",
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_VERSION": "1.2.0"
@@ -17,6 +21,10 @@
       "env": {
         "EXPO_PUBLIC_APP_VERSION": "1.2.0"
       },
+      "android": {
+        "ndk": "29.0.14206865"
+      },
+      "channel": "preview",
       "distribution": "internal"
     },
     "production": {
@@ -25,6 +33,10 @@
         "EXPO_PUBLIC_APP_VERSION": "1.2.0"
       },
       "channel": "production",
+      "distribution": "store",
+      "android": {
+        "ndk": "29.0.14206865"
+      },
       "autoIncrement": true
     },
     "staging": {
@@ -34,6 +46,9 @@
         "EXPO_PUBLIC_API_URL": "http://192.168.0.106:3000"
       },
       "channel": "staging",
+      "android": {
+        "ndk": "29.0.14206865"
+      },
       "developmentClient": false,
       "distribution": "internal"
     }

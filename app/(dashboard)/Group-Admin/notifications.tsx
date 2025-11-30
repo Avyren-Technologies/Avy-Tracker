@@ -74,7 +74,7 @@ interface SendNotificationModalProps {
   selectedUsers: string[];
   onUserSelect: (userIds: string[]) => void;
   showSuccess: boolean;
-  SuccessModal: () => JSX.Element;
+  SuccessModal: () => React.ReactElement;
 }
 
 const SendNotificationModal = memo(

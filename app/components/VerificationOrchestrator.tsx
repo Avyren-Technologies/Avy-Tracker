@@ -9,10 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import FaceVerificationModal from "./FaceVerificationModal";
-import {
-  FaceVerificationResult,
-  FaceVerificationError,
-} from "../types/faceDetection";
+import { FaceVerificationResult } from "../types/faceDetection";
+import { FaceVerificationError } from "../types/faceVerificationErrors";
 import ThemeContext from "../context/ThemeContext";
 
 const { height } = Dimensions.get("window");
@@ -316,18 +314,39 @@ const VerificationOrchestrator: React.FC<VerificationOrchestratorProps> = ({
     [onSuccess],
   );
 
-  // Handle face verification error
+  // CRITICAL FIX: Handle face verification error with better wrong face detection
   const handleFaceVerificationError = useCallback(
     (error: FaceVerificationError) => {
       console.error("Face verification error:", error);
       setShowFaceModal(false);
-      // Use user-friendly message instead of technical error message
-      const userMessage = (error as any).userMessage || error.message;
+      
+      // CRITICAL FIX: Detect wrong face scenarios and show user-friendly messages
+      const isWrongFace = (error as any).isWrongFace || 
+                         error.userMessage?.includes("Wrong Face") ||
+                         error.userMessage?.includes("Doesn't Match") ||
+                         error.message?.includes("Face does not match");
+      
+      let userMessage: string;
+      let statusMessage: string;
+      let statusDetails: string;
+      
+      if (isWrongFace) {
+        // Wrong face detected - show clear message
+        userMessage = "Wrong Face Detected";
+        statusMessage = "Face Doesn't Match";
+        statusDetails = "The face detected does not match the registered profile. Only the account owner can start/stop shifts.";
+      } else {
+        // Other verification failures
+        userMessage = (error as any).userMessage || error.message || "Face verification failed";
+        statusMessage = "Face Verification Failed";
+        statusDetails = userMessage;
+      }
+      
       setCurrentError(userMessage);
       setFaceStatus({
         status: "failed",
-        message: "Face verification failed",
-        details: userMessage,
+        message: statusMessage,
+        details: statusDetails,
       });
       onError(userMessage);
     },

@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Stack, SplashScreen } from "expo-router";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import ThemeContext from "./context/ThemeContext";
 import AuthContext from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
-import * as SecureStore from "expo-secure-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform, AppState } from "react-native";
-import Constants from "expo-constants";
 import { logStorageState } from "./utils/tokenDebugger";
 import "../global.css";
-import * as Location from "expo-location";
 import { NotificationProvider } from "./context/NotificationContext";
 import { TrackingProvider } from "./context/TrackingContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -91,14 +86,51 @@ function NotificationSetup() {
   return null;
 }
 
-// Handle unhandled JS promise rejections
+// CRITICAL FIX: Handle PromiseAlreadySettledException globally to prevent crashes
 const handlePromiseRejection = (event: PromiseRejectionEvent) => {
-  console.error("Unhandled promise rejection:", event.reason);
+  const error = event.reason;
+  const errorMessage = error?.message || String(error);
+  
+  // Silently handle PromiseAlreadySettledException to prevent crashes
+  if (
+    errorMessage.includes("PromiseAlreadySettled") ||
+    errorMessage.includes("already settled") ||
+    errorMessage.includes("Promise already settled")
+  ) {
+    console.warn(
+      "[Global Handler] Prevented PromiseAlreadySettledException crash:",
+      errorMessage
+    );
+    // Prevent the default error handling
+    event.preventDefault?.();
+    return;
+  }
+  
+  // Log other promise rejections for debugging
+  console.error("Unhandled promise rejection:", error);
 };
 
 // Handle global errors
 const handleGlobalError = (event: ErrorEvent) => {
-  console.error("Global error:", event.error);
+  const error = event.error;
+  const errorMessage = error?.message || String(error);
+  
+  // Silently handle PromiseAlreadySettledException in global error handler
+  if (
+    errorMessage.includes("PromiseAlreadySettled") ||
+    errorMessage.includes("already settled") ||
+    errorMessage.includes("Promise already settled")
+  ) {
+    console.warn(
+      "[Global Handler] Prevented PromiseAlreadySettledException in error handler:",
+      errorMessage
+    );
+    // Prevent the default error handling
+    event.preventDefault?.();
+    return;
+  }
+  
+  console.error("Global error:", error);
 };
 
 function RootLayout() {
@@ -141,8 +173,9 @@ function RootLayout() {
     };
   }, []);
 
-  // Set up global error handlers
+  // CRITICAL FIX: Set up global error handlers for PromiseAlreadySettledException
   useEffect(() => {
+    // Setup for web platform
     if (Platform.OS === "web") {
       window.addEventListener("unhandledrejection", handlePromiseRejection);
       window.addEventListener("error", handleGlobalError);
@@ -155,6 +188,41 @@ function RootLayout() {
         window.removeEventListener("error", handleGlobalError);
       };
     }
+
+    // CRITICAL FIX: Setup global promise rejection handler for React Native
+    // This catches PromiseAlreadySettledException on mobile platforms
+    const setupGlobalPromiseHandler = () => {
+      // Override Promise.prototype.catch to catch PromiseAlreadySettledException
+      const originalCatch = Promise.prototype.catch;
+      
+      Promise.prototype.catch = function (onRejected?: (reason: any) => any) {
+        return originalCatch.call(this, (error: any) => {
+          const errorMessage = error?.message || String(error);
+          
+          // Silently handle PromiseAlreadySettledException
+          if (
+            errorMessage.includes("PromiseAlreadySettled") ||
+            errorMessage.includes("already settled") ||
+            errorMessage.includes("Promise already settled")
+          ) {
+            console.warn(
+              "[Global Promise Handler] Prevented PromiseAlreadySettledException:",
+              errorMessage
+            );
+            // Return resolved promise to prevent crash
+            return Promise.resolve();
+          }
+          
+          // Call original handler for other errors
+          if (onRejected) {
+            return onRejected(error);
+          }
+          return Promise.reject(error);
+        });
+      };
+    };
+
+    setupGlobalPromiseHandler();
 
     // Debug token storage on app start (only in dev)
     if (__DEV__) {

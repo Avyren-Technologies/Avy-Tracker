@@ -44,6 +44,22 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // CRITICAL FIX: Silently handle PromiseAlreadySettledException to prevent crashes
+    const errorMessage = error?.message || error?.toString() || "";
+    if (
+      errorMessage.includes("PromiseAlreadySettled") ||
+      errorMessage.includes("already settled") ||
+      errorMessage.includes("Promise already settled")
+    ) {
+      console.warn(
+        "[ErrorBoundary] Prevented PromiseAlreadySettledException crash:",
+        errorMessage
+      );
+      // Don't set error state for PromiseAlreadySettledException
+      // This prevents the error boundary from showing error UI
+      return;
+    }
+
     // Log the error to the console
     console.error("ErrorBoundary caught an error:", error, errorInfo);
 

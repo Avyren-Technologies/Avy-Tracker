@@ -14,6 +14,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: "automatic",
   assetBundlePatterns: ["**/*"],
   newArchEnabled: true,
+  // CRITICAL FIX: Enable Hermes for better memory management and crash prevention
+  jsEngine: "hermes",
   updates: {
     url: "https://u.expo.dev/863d9167-e851-4006-9ee8-154777f31c7f",
     fallbackToCacheTimeout: 0,
