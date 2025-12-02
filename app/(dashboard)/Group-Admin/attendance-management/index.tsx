@@ -14,6 +14,7 @@ import {
   Modal,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -43,6 +44,7 @@ interface AttendanceData {
   total_distance: number;
   total_expenses: number;
   shift_count: number;
+  isAbsent?: boolean; // Optional flag to identify absent employees
 }
 
 interface CalendarDay {
@@ -285,6 +287,8 @@ export default function AdminAttendanceManagement() {
   const [refreshing, setRefreshing] = useState(false);
   const [showEmployeePicker, setShowEmployeePicker] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "present" | "absent">("all");
+  const [attendanceListSearch, setAttendanceListSearch] = useState("");
 
   useEffect(() => {
     fetchEmployees();
@@ -295,6 +299,8 @@ export default function AdminAttendanceManagement() {
       const newMonth = format(selectedDate, "yyyy-MM");
       if (newMonth !== currentMonth || selectedEmployee) {
         setCurrentMonth(newMonth);
+        setAttendanceFilter("all"); // Reset filter when date changes
+        setAttendanceListSearch(""); // Reset search when date/employee changes
         fetchAttendanceData(newMonth);
       }
     }
@@ -463,6 +469,99 @@ export default function AdminAttendanceManagement() {
       };
     });
     return marked;
+  };
+
+  // Calculate attendance summary for selected date
+  const getAttendanceSummaryForDate = (date: Date) => {
+    const dateKey = format(date, "yyyy-MM-dd");
+    const dayAttendance = attendanceData[dateKey] || [];
+
+    let totalShifts = 0;
+    let presentCount = 0;
+    let absentCount = 0;
+
+    // Count shifts for employees who have attendance records
+    dayAttendance.forEach((attendance: AttendanceData) => {
+      const shiftCount = Number(attendance.shift_count) || 0;
+      totalShifts += shiftCount;
+
+      // Consider present if they have at least one shift (completed or active)
+      // Don't count as absent if shift is ongoing
+      const hasActiveShift = attendance.shifts?.some(shift => !shift.shift_end);
+      if (shiftCount > 0 || hasActiveShift) {
+        presentCount++;
+      }
+    });
+
+    // Count absent employees (those without any shifts for this date)
+    absentCount = employees.length - dayAttendance.length;
+
+    return {
+      totalShifts,
+      presentCount,
+      absentCount,
+      totalEmployees: employees.length,
+    };
+  };
+
+  // Get filtered attendance data based on selected filter
+  const getFilteredAttendanceData = () => {
+    const dateKey = format(selectedDate, "yyyy-MM-dd");
+    const dayAttendance = attendanceData[dateKey] || [];
+
+    let filteredData;
+
+    if (attendanceFilter === "all") {
+      filteredData = dayAttendance;
+    } else if (attendanceFilter === "present") {
+      // Present: has shifts OR has active shift
+      filteredData = dayAttendance.filter((attendance: AttendanceData) => {
+        const hasActiveShift = attendance.shifts?.some(shift => !shift.shift_end);
+        const hasShifts = (attendance.shift_count || 0) > 0;
+        return hasShifts || hasActiveShift;
+      });
+    } else if (attendanceFilter === "absent") {
+      // Absent: employees who don't have any attendance records for this date
+      const presentEmployeeIds = new Set(
+        dayAttendance
+          .filter((attendance: AttendanceData) => {
+            const hasActiveShift = attendance.shifts?.some(shift => !shift.shift_end);
+            const hasShifts = (attendance.shift_count || 0) > 0;
+            return hasShifts || hasActiveShift;
+          })
+          .map((attendance: AttendanceData) => attendance.user_id)
+      );
+
+      // Return employees who are not in the present list
+      filteredData = employees
+        .filter(employee => !presentEmployeeIds.has(employee.id))
+        .map(employee => ({
+          id: employee.id,
+          user_id: employee.id,
+          employee_name: employee.name,
+          employee_number: employee.employee_number,
+          date: dateKey,
+          shifts: [],
+          total_hours: 0,
+          total_distance: 0,
+          total_expenses: 0,
+          shift_count: 0,
+          isAbsent: true, // Flag to identify absent employees
+        }));
+    } else {
+      filteredData = dayAttendance;
+    }
+
+    // Apply search filter if there's a search term
+    if (attendanceListSearch.trim()) {
+      const searchTerm = attendanceListSearch.toLowerCase().trim();
+      filteredData = filteredData.filter((attendance) =>
+        attendance.employee_name.toLowerCase().includes(searchTerm) ||
+        attendance.employee_number.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return filteredData;
   };
 
   // Add cache clearing function
@@ -749,6 +848,167 @@ export default function AdminAttendanceManagement() {
           />
         </View>
 
+        {/* Attendance Summary Cards */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text
+              className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+            >
+              {format(selectedDate, "MMMM d, yyyy")} Summary
+            </Text>
+            {attendanceFilter !== "all" && (
+              <TouchableOpacity
+                onPress={() => {
+                  setAttendanceFilter("all");
+                  setAttendanceListSearch("");
+                }}
+                className="py-1 px-3 bg-gray-500 rounded-lg"
+              >
+                <Text className="text-white text-sm font-medium">Show All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {(() => {
+            const summary = getAttendanceSummaryForDate(selectedDate);
+
+            return (
+              <View className="flex-row flex-wrap justify-between">
+                {[
+                  {
+                    title: "Total Shifts",
+                    value: summary.totalShifts.toString(),
+                    icon: "time-outline",
+                    color: "bg-blue-500",
+                    filter: "all" as const,
+                    subtitle: `${summary.totalEmployees} employees`,
+                  },
+                  {
+                    title: "Present",
+                    value: summary.presentCount.toString(),
+                    icon: "checkmark-circle-outline",
+                    color: "bg-green-500",
+                    filter: "present" as const,
+                    subtitle: "With shifts",
+                  },
+                  {
+                    title: "Absent",
+                    value: summary.absentCount.toString(),
+                    icon: "close-circle-outline",
+                    color: "bg-red-500",
+                    filter: "absent" as const,
+                    subtitle: "No attendance",
+                  },
+                ].map((card, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => {
+                      setAttendanceFilter(card.filter);
+                      setAttendanceListSearch(""); // Reset search when filter changes
+                    }}
+                    className="w-[31%] mb-3"
+                  >
+                    <View
+                      className={`p-4 rounded-xl ${
+                        isDark ? "bg-gray-800" : "bg-white"
+                      } ${
+                        attendanceFilter === card.filter
+                          ? isDark
+                            ? "border-2 border-blue-400"
+                            : "border-2 border-blue-500"
+                          : ""
+                      }`}
+                      style={styles.summaryCard}
+                    >
+                      <View
+                        className={`w-8 h-8 rounded-full items-center justify-center ${card.color} mb-2`}
+                      >
+                        <Ionicons name={card.icon as any} size={16} color="white" />
+                      </View>
+                      <Text
+                        className={`text-xl font-bold mb-1 ${
+                          isDark ? "text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {card.value}
+                      </Text>
+                      <Text
+                        className={`text-xs font-medium mb-1 ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        {card.title}
+                      </Text>
+                      <Text
+                        className={`text-xs ${
+                          isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        {card.subtitle}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })()}
+
+          {/* Search Bar for Filtered Attendance List */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "padding"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 20}
+            style={{ flex: 1 }}
+          >
+            <View className="mt-1">
+              <Text
+                className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Search Employees
+              </Text>
+              <View className="relative">
+                <View
+                  className={`flex-row items-center px-4 py-1.5 rounded-2xl ${
+                    isDark ? "bg-gray-700" : "bg-gray-100"
+                  }`}
+                >
+                  <Ionicons
+                    name="search"
+                    size={20}
+                    color={isDark ? "#9CA3AF" : "#6B7280"}
+                    style={{ marginRight: 8 }}
+                  />
+                  <TextInput
+                    value={attendanceListSearch}
+                    onChangeText={setAttendanceListSearch}
+                    placeholder={`Search ${attendanceFilter === "absent" ? "absent" : attendanceFilter === "present" ? "present" : "all"} employees by name or ID...`}
+                    placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+                    className={`flex-1 text-base ${isDark ? "text-white" : "text-gray-900"}`}
+                    style={{
+                      fontSize: 16,
+                      color: isDark ? "#FFFFFF" : "#111827",
+                    }}
+                    keyboardType="default"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {attendanceListSearch.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setAttendanceListSearch("")}
+                      className="ml-2 p-1"
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={18}
+                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+
         {/* Attendance Details */}
         {isAttendanceLoading ? (
           <View className="m-4 p-8">
@@ -757,85 +1017,136 @@ export default function AdminAttendanceManagement() {
               color={isDark ? "#60A5FA" : "#3B82F6"}
             />
           </View>
-        ) : attendanceData[format(selectedDate, "yyyy-MM-dd")]?.length > 0 ? (
-          attendanceData[format(selectedDate, "yyyy-MM-dd")].map(
-            (attendance, index) => (
-              <View
-                key={index}
-                className={`m-4 p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
-                style={styles.detailCard}
-              >
+        ) : (() => {
+          const filteredData = getFilteredAttendanceData();
+          const totalFiltered = filteredData.length;
+          return (
+            <>
+              {/* Results count */}
+              <View className="mb-1">
                 <Text
-                  className={`text-lg font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
+                  className={`text-sm ml-5 ${isDark ? "text-gray-400" : "text-gray-600"}`}
                 >
-                  {attendance.employee_name}
+                  {attendanceFilter === "all"
+                    ? `Showing ${totalFiltered} employee${totalFiltered !== 1 ? 's' : ''} with attendance records`
+                    : attendanceFilter === "present"
+                      ? `Showing ${totalFiltered} present employee${totalFiltered !== 1 ? 's' : ''}`
+                      : `Showing ${totalFiltered} absent employee${totalFiltered !== 1 ? 's' : ''}`
+                  }
+                  {attendanceListSearch.trim() && ` matching "${attendanceListSearch}"`}
                 </Text>
-                <Text
-                  className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}
-                >
-                  Employee ID: {attendance.employee_number}
-                </Text>
+              </View>
 
-                <View className="space-y-3">
-                  {[
-                    {
-                      label: "Total Shifts",
-                      value: attendance.shift_count?.toString() || "0",
-                      icon: "time-outline",
-                    },
-                    {
-                      label: "Total Hours",
-                      value: (() => {
-                        const hasActiveShift = attendance.shifts?.some(
-                          (shift) => !shift.shift_end,
-                        );
-                        const hours = Number(attendance.total_hours);
-                        if (hasActiveShift || hours < 0) {
-                          return "Ongoing";
-                        }
-                        return `${hours?.toFixed(1) || "0.0"} hrs`;
-                      })(),
-                      icon: "hourglass-outline",
-                    },
-                    {
-                      label: "Total Distance",
-                      value: `${Number(attendance.total_distance)?.toFixed(1) || "0.0"} km`,
-                      icon: "map-outline",
-                    },
-                    {
-                      label: "Total Expenses",
-                      value: `₹${Number(attendance.total_expenses)?.toFixed(2) || "0.00"}`,
-                      icon: "cash-outline",
-                    },
-                  ].map((detail, detailIndex) => (
-                    <View key={detailIndex} className="flex-row items-center">
-                      <View
-                        className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
-                      >
-                        <Ionicons
-                          name={detail.icon as any}
-                          size={16}
-                          color={isDark ? "#60A5FA" : "#3B82F6"}
-                        />
+              {filteredData.length > 0 ? (
+                filteredData.map(
+              (attendance, index) => (
+                <View
+                  key={index}
+                  className={`m-4 p-4 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
+                  style={styles.detailCard}
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text
+                      className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
+                      {attendance.employee_name}
+                    </Text>
+                    {attendance.isAbsent && (
+                      <View className="px-3 py-1 bg-red-500 rounded-full">
+                        <Text className="text-white text-xs font-medium">Absent</Text>
                       </View>
-                      <View className="ml-3 flex-1">
-                        <Text
-                          className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
-                        >
-                          {detail.label}
+                    )}
+                  </View>
+                  <Text
+                    className={`text-sm mb-4 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    Employee ID: {attendance.employee_number}
+                  </Text>
+
+                {attendance.isAbsent ? (
+                  // Absent employee details
+                  <View className="space-y-3">
+                    <View className="flex-row items-center justify-center py-6">
+                      <View className="items-center">
+                        <View className="w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-3">
+                          <Ionicons
+                            name="close-circle"
+                            size={32}
+                            color="#EF4444"
+                          />
+                        </View>
+                        <Text className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                          No attendance recorded
                         </Text>
-                        <Text
-                          className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
-                        >
-                          {detail.value}
+                        <Text className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                          {format(selectedDate, "MMMM d, yyyy")}
                         </Text>
                       </View>
                     </View>
-                  ))}
-                </View>
+                  </View>
+                ) : (
+                  // Present employee details
+                  <View className="space-y-3">
+                    {[
+                      {
+                        label: "Total Shifts",
+                        value: attendance.shift_count?.toString() || "0",
+                        icon: "time-outline",
+                      },
+                      {
+                        label: "Total Hours",
+                        value: (() => {
+                          const hasActiveShift = attendance.shifts?.some(
+                            (shift) => !shift.shift_end,
+                          );
+                          const hours = Number(attendance.total_hours);
+                          if (hasActiveShift || hours < 0) {
+                            return "Ongoing";
+                          }
+                          return `${hours?.toFixed(1) || "0.0"} hrs`;
+                        })(),
+                        icon: "hourglass-outline",
+                      },
+                      {
+                        label: "Total Distance",
+                        value: `${Number(attendance.total_distance)?.toFixed(1) || "0.0"} km`,
+                        icon: "map-outline",
+                      },
+                      {
+                        label: "Total Expenses",
+                        value: `₹${Number(attendance.total_expenses)?.toFixed(2) || "0.00"}`,
+                        icon: "cash-outline",
+                      },
+                    ].map((detail, detailIndex) => (
+                      <View key={detailIndex} className="flex-row items-center">
+                        <View
+                          className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
+                        >
+                          <Ionicons
+                            name={detail.icon as any}
+                            size={16}
+                            color={isDark ? "#60A5FA" : "#3B82F6"}
+                          />
+                        </View>
+                        <View className="ml-3 flex-1">
+                          <Text
+                            className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                          >
+                            {detail.label}
+                          </Text>
+                          <Text
+                            className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+                          >
+                            {detail.value}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
-                {/* Add Shift Details Section */}
-                {attendance.shifts && attendance.shifts.length > 0 && (
+                {/* Add Shift Details Section - Only for present employees */}
+                {!attendance.isAbsent && attendance.shifts && attendance.shifts.length > 0 && (
                   <View className="mt-4">
                     <Text
                       className={`text-md font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
@@ -918,7 +1229,7 @@ export default function AdminAttendanceManagement() {
               </View>
             ),
           )
-        ) : (
+              ) : (
           <View
             className={`m-4 p-6 rounded-xl ${isDark ? "bg-gray-800" : "bg-white"}`}
             style={styles.detailCard}
@@ -932,16 +1243,35 @@ export default function AdminAttendanceManagement() {
               <Text
                 className={`mt-4 text-center text-lg ${isDark ? "text-gray-400" : "text-gray-500"}`}
               >
-                No attendance records found
+                {attendanceListSearch.trim()
+                  ? `No employees found matching "${attendanceListSearch}"`
+                  : attendanceFilter === "all"
+                    ? "No attendance records found"
+                    : attendanceFilter === "absent"
+                      ? "All employees are present today"
+                      : `No ${attendanceFilter} employees found`}
               </Text>
               <Text
                 className={`mt-2 text-center text-sm ${isDark ? "text-gray-500" : "text-gray-400"}`}
               >
                 {format(selectedDate, "MMMM d, yyyy")}
               </Text>
+              {attendanceFilter !== "all" && (
+                <TouchableOpacity
+                  onPress={() => setAttendanceFilter("all")}
+                  className="mt-4 py-2 px-4 bg-blue-500 rounded-lg"
+                >
+                  <Text className="text-white text-sm font-medium">
+                    Show All Employees
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
-        )}
+              )}
+            </>
+          );
+        })()}
       </ScrollView>
 
       <EmployeePickerModal
@@ -953,6 +1283,8 @@ export default function AdminAttendanceManagement() {
         isDark={isDark}
         onSelectEmployee={(value) => {
           setSelectedEmployee(value.toString());
+          setAttendanceFilter("all"); // Reset filter when employee changes
+          setAttendanceListSearch(""); // Reset search when employee changes
         }}
         selectedEmployeeId={selectedEmployee}
       />
@@ -1006,5 +1338,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  summaryCard: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: "center",
   },
 });
