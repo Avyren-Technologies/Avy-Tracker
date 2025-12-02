@@ -54,6 +54,8 @@ interface AttendanceAnalytics {
     total_expenses: number;
     active_shifts: number;
     completed_shifts: number;
+    shifts_with_start_location?: number;
+    shifts_with_end_location?: number;
   };
   employees?: {
     id: number;
@@ -308,6 +310,10 @@ export default function AttendanceReports({
         };
 
         console.log("Processed attendance data:", processedData);
+        console.log("Location data counts:", {
+          shifts_with_start_location: processedData.metrics.shifts_with_start_location,
+          shifts_with_end_location: processedData.metrics.shifts_with_end_location,
+        });
         setAnalytics(processedData);
       }
     } catch (error: any) {

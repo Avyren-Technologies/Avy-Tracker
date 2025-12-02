@@ -746,13 +746,13 @@ async function getAttendanceReportData(
         es.total_expenses as expenses,
         es.ended_automatically,
         -- Convert point type to string representation that's easier to parse
-        CASE 
-          WHEN es.location_start IS NOT NULL 
+        CASE
+          WHEN es.location_start IS NOT NULL
           THEN '(' || es.location_start[0] || ',' || es.location_start[1] || ')'
           ELSE NULL
         END as location_start,
-        CASE 
-          WHEN es.location_end IS NOT NULL 
+        CASE
+          WHEN es.location_end IS NOT NULL
           THEN '(' || es.location_end[0] || ',' || es.location_end[1] || ')'
           ELSE NULL
         END as location_end

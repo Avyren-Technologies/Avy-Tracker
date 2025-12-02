@@ -1,3 +1,4 @@
+// This is the Group Admin Attendance Management component
 import React, { useState, useEffect, useRef, memo } from "react";
 import {
   View,
@@ -6,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  StatusBar,
   ActivityIndicator,
   Alert,
   RefreshControl,
@@ -833,6 +833,88 @@ export default function AdminAttendanceManagement() {
                     </View>
                   ))}
                 </View>
+
+                {/* Add Shift Details Section */}
+                {attendance.shifts && attendance.shifts.length > 0 && (
+                  <View className="mt-4">
+                    <Text
+                      className={`text-md font-semibold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
+                    >
+                      Shift Details
+                    </Text>
+                    <View className="space-y-2 gap-2">
+                      {attendance.shifts.map((shift, shiftIndex) => (
+                        <View
+                          key={shiftIndex}
+                          className={`p-3 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-100"}`}
+                        >
+                          <View className="flex-row justify-between items-center">
+                            <Text
+                              className={`text-sm ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                            >
+                              Shift {shiftIndex + 1}
+                            </Text>
+                            <View
+                              className={`px-2 py-1 rounded-full ${shift.status === 'active' ? 'bg-blue-500' : 'bg-green-500'}`}
+                            >
+                              <Text className="text-xs text-white">
+                                {shift.status === 'active' ? 'Ongoing' : 'Completed'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View className="mt-2">
+                            <View className="flex-row items-center mb-1">
+                              <Ionicons
+                                name="time-outline"
+                                size={14}
+                                color={isDark ? "#9CA3AF" : "#6B7280"}
+                                style={{ marginRight: 4 }}
+                              />
+                              <Text
+                                className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                              >
+                                Start: {shift.shift_start ? new Date(shift.shift_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              </Text>
+                            </View>
+
+                            {shift.shift_end && (
+                              <View className="flex-row items-center mb-1">
+                                <Ionicons
+                                  name="checkmark-circle-outline"
+                                  size={14}
+                                  color={isDark ? "#10B981" : "#059669"}
+                                  style={{ marginRight: 4 }}
+                                />
+                                <Text
+                                  className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                                >
+                                  End: {new Date(shift.shift_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                              </View>
+                            )}
+
+                            {shift.duration !== null && shift.duration !== undefined && (
+                              <View className="flex-row items-center">
+                                <Ionicons
+                                  name="hourglass-outline"
+                                  size={14}
+                                  color={isDark ? "#9CA3AF" : "#6B7280"}
+                                  style={{ marginRight: 4 }}
+                                />
+                                <Text
+                                  className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                                >
+                                  Duration: {shift.duration.toFixed(1)} hours
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
             ),
           )

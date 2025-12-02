@@ -32,9 +32,9 @@ export class ShiftTrackingService {
 
       // Start new shift
       const result = await pool.query(
-        `INSERT INTO employee_shifts 
-                (user_id, start_time, start_location)
-                VALUES ($1, NOW(), ST_SetSRID(ST_MakePoint($2, $3), 4326))
+        `INSERT INTO employee_shifts
+                (user_id, start_time, location_start)
+                VALUES ($1, NOW(), point($2, $3))
                 RETURNING *`,
         [userId, longitude, latitude],
       );
@@ -89,9 +89,9 @@ export class ShiftTrackingService {
 
       // End shift
       const result = await pool.query(
-        `UPDATE employee_shifts 
+        `UPDATE employee_shifts
                 SET end_time = NOW(),
-                    end_location = ST_SetSRID(ST_MakePoint($1, $2), 4326),
+                    location_end = point($1, $2),
                     total_distance_km = $3,
                     travel_time_minutes = $4
                 WHERE id = $5

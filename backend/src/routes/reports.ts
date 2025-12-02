@@ -1045,38 +1045,46 @@ router.get(
       // Get overall metrics (including regularized attendance)
       const metricsQuery = `
         WITH filtered_shifts AS (
-          SELECT 
+          SELECT
             es.user_id,
             es.status,
-            CASE 
+            CASE
               WHEN es.duration IS NOT NULL THEN EXTRACT(EPOCH FROM es.duration)/3600
               WHEN es.end_time IS NOT NULL THEN EXTRACT(EPOCH FROM (es.end_time - es.start_time))/3600
-              ELSE NULL 
+              ELSE NULL
             END as duration,
             es.start_time,
             es.end_time,
             es.total_kilometers,
-            es.total_expenses
+            es.total_expenses,
+            es.location_start[0] as start_longitude,
+            es.location_start[1] as start_latitude,
+            es.location_end[0] as end_longitude,
+            es.location_end[1] as end_latitude
           FROM employee_shifts es
           JOIN users u ON es.user_id = u.id
-          WHERE u.group_admin_id = $1 
+          WHERE u.group_admin_id = $1
           AND es.start_time >= $2::date
           AND es.start_time <= $3::date
           ${employeeId ? employeeFilter : ""}
           ${department ? departmentFilter : ""}
         ),
         regularized_attendance AS (
-          SELECT 
+          SELECT
             arr.employee_id as user_id,
             'regularized' as status,
             EXTRACT(EPOCH FROM (arr.requested_end_time - arr.requested_start_time))/3600 as duration,
             arr.requested_start_time as start_time,
             arr.requested_end_time as end_time,
             0 as total_kilometers,
-            0 as total_expenses
+            0 as total_expenses,
+            NULL as start_latitude,
+            NULL as start_longitude,
+            NULL as end_latitude,
+            NULL as end_longitude
           FROM attendance_regularization_requests arr
           JOIN users u ON arr.employee_id = u.id
-          WHERE u.group_admin_id = $1 
+          WHERE u.group_admin_id = $1
           AND arr.request_date >= $2::date
           AND arr.request_date <= $3::date
           AND arr.status = 'approved'
@@ -1089,29 +1097,34 @@ router.get(
           SELECT * FROM regularized_attendance
         ),
         metrics AS (
-          SELECT 
+          SELECT
             COUNT(DISTINCT user_id) as total_employees,
             COALESCE(AVG(duration), 0) as avg_hours,
-            COUNT(DISTINCT CASE 
+            COUNT(DISTINCT CASE
               WHEN (status = 'active' AND EXTRACT(HOUR FROM start_time) <= 9) OR
                    (status = 'regularized' AND EXTRACT(HOUR FROM start_time) <= 9)
-              THEN user_id 
-            END)::float / 
+              THEN user_id
+            END)::float /
             NULLIF(COUNT(DISTINCT user_id), 0) * 100 as on_time_rate,
             SUM(total_kilometers) as total_distance,
             SUM(total_expenses) as total_expenses,
             COUNT(CASE WHEN status = 'active' THEN 1 END) as active_shifts,
-            COUNT(CASE WHEN status = 'completed' OR status = 'regularized' THEN 1 END) as completed_shifts
+            COUNT(CASE WHEN status = 'completed' OR status = 'regularized' THEN 1 END) as completed_shifts,
+            -- Include location summary (for debugging - this could be expanded)
+            COUNT(CASE WHEN start_latitude IS NOT NULL THEN 1 END) as shifts_with_start_location,
+            COUNT(CASE WHEN end_latitude IS NOT NULL THEN 1 END) as shifts_with_end_location
           FROM combined_attendance
         )
-        SELECT 
+        SELECT
           total_employees,
           ROUND(avg_hours::numeric, 2) as avg_hours,
           ROUND(on_time_rate::numeric, 2) as on_time_rate,
           ROUND(total_distance::numeric, 2) as total_distance,
           ROUND(total_expenses::numeric, 2) as total_expenses,
           active_shifts,
-          completed_shifts
+          completed_shifts,
+          shifts_with_start_location,
+          shifts_with_end_location
         FROM metrics`;
 
       // Get employees for filtering
