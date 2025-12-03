@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Stack, SplashScreen } from "expo-router";
 import ThemeContext from "./context/ThemeContext";
 import AuthContext from "./context/AuthContext";
@@ -14,6 +14,9 @@ import { FaceDetectionProvider } from "@infinitered/react-native-mlkit-face-dete
 import BiometricAuthWrapper from "./components/BiometricAuthWrapper";
 import PushNotificationService from "./utils/pushNotificationService";
 import { useNotifications } from "./context/NotificationContext";
+import UpdateModal from "./components/UpdateModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Updates from "expo-updates";
 
 // Note: The background location task is defined in app/utils/backgroundLocationTask.ts
 // We don't define it here to avoid duplicate task definitions which can cause issues
@@ -139,6 +142,87 @@ function RootLayout() {
     isInternetReachable: true,
   });
 
+  // Update modal state
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const updateCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Function to handle update dismissal with user preference
+  const handleUpdateDismissed = async () => {
+    try {
+      // Remember that user dismissed the update (for 24 hours)
+      const dismissedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      await AsyncStorage.setItem("updateDismissedUntil", dismissedUntil);
+      setShowUpdateModal(false);
+    } catch (error) {
+      console.error("Error saving update dismissal preference:", error);
+      setShowUpdateModal(false);
+    }
+  };
+
+  // Function to check if we should show update modal
+  const shouldShowUpdateModal = async () => {
+    try {
+      const dismissedUntil = await AsyncStorage.getItem("updateDismissedUntil");
+      if (dismissedUntil) {
+        const dismissedDate = new Date(dismissedUntil);
+        const now = new Date();
+        if (now < dismissedDate) {
+          return false; // Still within dismissal period
+        } else {
+          // Clear expired dismissal
+          await AsyncStorage.removeItem("updateDismissedUntil");
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking update dismissal preference:", error);
+      return true; // Default to showing if we can't check
+    }
+  };
+
+  // useEffect(() => { if (__DEV__) setShowUpdateModal(true); }, []);
+
+  // Component to handle update checks with access to auth context
+  function UpdateChecker() {
+    const { user, isLoading } = AuthContext.useAuth();
+
+    useEffect(() => {
+      if (user && !isLoading && !__DEV__) {
+        // Clear any existing timeout
+        if (updateCheckTimeoutRef.current) {
+          clearTimeout(updateCheckTimeoutRef.current);
+        }
+
+        // Check for updates after user is authenticated and settled
+        updateCheckTimeoutRef.current = setTimeout(async () => {
+          try {
+            const networkState = await Network.getNetworkStateAsync();
+            if (networkState.isConnected && networkState.isInternetReachable) {
+              const { isAvailable } = await Updates.checkForUpdateAsync();
+              if (isAvailable) {
+                // Check if we should show the update modal (respecting user dismissal)
+                const shouldShow = await shouldShowUpdateModal();
+                if (shouldShow) {
+                  setShowUpdateModal(true);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error checking for updates after authentication:", error);
+          }
+        }, 2000); // Wait 2 seconds after authentication to check for updates
+      }
+
+      return () => {
+        if (updateCheckTimeoutRef.current) {
+          clearTimeout(updateCheckTimeoutRef.current);
+        }
+      };
+    }, [user, isLoading]);
+
+    return null; // This component doesn't render anything
+  }
+
   // Set up network monitoring
   useEffect(() => {
     const checkNetworkConnectivity = async () => {
@@ -259,6 +343,7 @@ function RootLayout() {
         <ThemeContext.ThemeProvider>
           <AuthContext.AuthProvider>
             <SplashScreenController />
+            <UpdateChecker />
             <NotificationProvider>
               <NotificationSetup />
               <TrackingProvider>
@@ -341,6 +426,13 @@ function RootLayout() {
               </TrackingProvider>
             </NotificationProvider>
           </AuthContext.AuthProvider>
+
+          {/* Update Modal - shown over all screens */}
+          <UpdateModal
+            visible={showUpdateModal}
+            onClose={() => setShowUpdateModal(false)}
+            onUpdateLater={handleUpdateDismissed}
+          />
         </ThemeContext.ThemeProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

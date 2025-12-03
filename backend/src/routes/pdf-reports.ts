@@ -47,12 +47,22 @@ async function reverseGeocode(coordinates: any): Promise<string> {
     return "N/A";
   }
 
+  // If coordinates is not a string or object, return N/A
+  if (typeof coordinates !== "string" && typeof coordinates !== "object") {
+    return "N/A";
+  }
+
   try {
     let latitude: number | undefined;
     let longitude: number | undefined;
 
     // Handle different formats of coordinates
     if (typeof coordinates === "string") {
+      // Check if it's a valid coordinate string
+      if (coordinates.trim() === '' || coordinates === 'null' || coordinates === 'NULL') {
+        return "N/A";
+      }
+
       // PostgreSQL point format: "(longitude,latitude)"
       const match = coordinates.match(
         /\(\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*\)/,
@@ -496,8 +506,8 @@ async function getAttendanceReportData(
   // Prepare filter conditions
   let employeeFilter = "";
   let departmentFilter = "";
-  let params: any[] = [adminId];
-  let paramIndex = 2; // Start with $2 since $1 is adminId
+  let params: any[] = [adminId, startDateStr, endDateStr];
+  let paramIndex = 4; // Start with $4 since $1=adminId, $2=startDate, $3=endDate
 
   if (filters.employeeId) {
     employeeFilter = `AND es.user_id = $${paramIndex++}`;
@@ -508,10 +518,6 @@ async function getAttendanceReportData(
     departmentFilter = `AND u.department = $${paramIndex++}`;
     params.push(filters.department);
   }
-
-  // Add date parameters
-  params.push(startDateStr, endDateStr);
-  const dateParamIndex = paramIndex;
 
   // Get summary data
   const summaryResult = await client.query(
@@ -535,8 +541,8 @@ async function getAttendanceReportData(
       WHERE u.group_admin_id = $1
       ${employeeFilter}
       ${departmentFilter}
-      AND DATE(es.start_time) >= $${dateParamIndex}::date 
-      AND DATE(es.start_time) <= $${dateParamIndex + 1}::date
+      AND DATE(es.start_time) >= $2::date
+      AND DATE(es.start_time) <= $3::date
     )
     SELECT 
       total_employees,
@@ -587,10 +593,10 @@ async function getAttendanceReportData(
     LEFT JOIN expenses e ON e.user_id = es.user_id 
       AND DATE(e.date) = DATE(es.start_time)
     WHERE u.group_admin_id = $1
-    ${employeeFilter}
-    ${departmentFilter}
-    AND DATE(es.start_time) >= $${dateParamIndex}::date
-    AND DATE(es.start_time) <= $${dateParamIndex + 1}::date
+      AND DATE(es.start_time) >= $2::date
+      AND DATE(es.start_time) <= $3::date
+      ${employeeFilter}
+      ${departmentFilter}
     GROUP BY DATE(es.start_time)
     ORDER BY date DESC`,
     params,
@@ -623,11 +629,11 @@ async function getAttendanceReportData(
     ${filters.employeeId ? "AND u.id = $2" : ""}
     ${filters.department ? `AND u.department = $${filters.employeeId ? 3 : 2}` : ""}
     AND (
-      (lr.start_date >= $${dateParamIndex}::date AND lr.start_date <= $${dateParamIndex + 1}::date)
+      (lr.start_date >= $2::date AND lr.start_date <= $3::date)
       OR
-      (lr.end_date >= $${dateParamIndex}::date AND lr.end_date <= $${dateParamIndex + 1}::date)
+      (lr.end_date >= $2::date AND lr.end_date <= $3::date)
       OR
-      (lr.start_date <= $${dateParamIndex}::date AND lr.end_date >= $${dateParamIndex + 1}::date)
+      (lr.start_date <= $2::date AND lr.end_date >= $3::date)
     )
     ORDER BY lr.start_date, u.name`,
     params,
@@ -661,8 +667,8 @@ async function getAttendanceReportData(
     AND arr.status = 'approved'
     ${filters.employeeId ? "AND u.id = $2" : ""}
     ${filters.department ? `AND u.department = $${filters.employeeId ? 3 : 2}` : ""}
-    AND arr.request_date >= $${dateParamIndex}::date
-    AND arr.request_date <= $${dateParamIndex + 1}::date
+    AND arr.request_date >= $2::date
+    AND arr.request_date <= $3::date
     ORDER BY arr.request_date, u.name`,
     params,
   );
@@ -692,8 +698,8 @@ async function getAttendanceReportData(
       COUNT(CASE WHEN es.status != 'completed' AND es.status != 'active' THEN 1 END) as incomplete_shifts
     FROM users u
     LEFT JOIN employee_shifts es ON u.id = es.user_id
-      AND DATE(es.start_time) >= $${dateParamIndex}::date
-      AND DATE(es.start_time) <= $${dateParamIndex + 1}::date
+      AND DATE(es.start_time) >= $2::date
+      AND DATE(es.start_time) <= $3::date
     LEFT JOIN expenses e ON e.user_id = u.id 
       AND DATE(e.date) = DATE(es.start_time)
     WHERE u.group_admin_id = $1
@@ -719,122 +725,92 @@ async function getAttendanceReportData(
   // Structure for storing comprehensive employee attendance data
   const employeeAttendanceData: Record<string, any> = {};
 
-  // Process each employee
+  // Get all shift data for all employees at once (much more efficient)
+  const allShiftsResult = await client.query(
+    `
+    SELECT
+      u.id as employee_id,
+      u.name as employee_name,
+      u.employee_number,
+      u.department,
+      u.designation,
+      DATE(es.start_time) as date,
+      to_char(es.start_time, 'HH12:MI AM') as start_time,
+      to_char(es.end_time, 'HH12:MI AM') as end_time,
+      CASE
+        WHEN es.end_time IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (es.end_time - es.start_time))/3600
+        ELSE 0
+      END as duration,
+      es.status,
+      es.id as shift_id,
+      es.total_kilometers as distance,
+      es.total_expenses as expenses,
+      es.ended_automatically
+    FROM employee_shifts es
+    JOIN users u ON es.user_id = u.id
+    WHERE u.group_admin_id = $1
+    AND DATE(es.start_time) >= $2::date
+    AND DATE(es.start_time) <= $3::date
+    ${filters.employeeId ? `AND es.user_id = $4` : ""}
+    ${filters.department ? `AND u.department = $${filters.employeeId ? 5 : 4}` : ""}
+    ORDER BY u.id, es.start_time`,
+    params,
+  );
+
+  // Get all expense data for all employees at once
+  const allExpensesResult = await client.query(
+    `
+    SELECT
+      e.user_id,
+      e.id,
+      DATE(e.date) as date,
+      e.total_amount,
+      e.total_kilometers,
+      e.lodging_expenses,
+      e.daily_allowance,
+      e.diesel,
+      e.toll_charges,
+      e.other_expenses,
+      e.status,
+      e.comments
+    FROM expenses e
+    WHERE e.group_admin_id = $1
+    AND DATE(e.date) >= $2::date
+    AND DATE(e.date) <= $3::date
+    ${filters.employeeId ? `AND e.user_id = $4` : ""}
+    ${filters.department ? `AND e.user_id IN (SELECT id FROM users WHERE department = $${filters.employeeId ? 5 : 4})` : ""}
+    ORDER BY e.user_id, e.date`,
+    params,
+  );
+
+  // Group shifts and expenses by employee ID
+  const shiftsByEmployee: Record<string, any[]> = {};
+  const expensesByEmployee: Record<string, any[]> = {};
+
+  for (const shift of allShiftsResult.rows) {
+    const empId = shift.employee_id;
+    if (!shiftsByEmployee[empId]) {
+      shiftsByEmployee[empId] = [];
+    }
+    shiftsByEmployee[empId].push({
+      ...shift,
+      start_location: "N/A",
+      end_location: "N/A",
+    });
+  }
+
+  for (const expense of allExpensesResult.rows) {
+    const empId = expense.user_id;
+    if (!expensesByEmployee[empId]) {
+      expensesByEmployee[empId] = [];
+    }
+    expensesByEmployee[empId].push(expense);
+  }
+
+  // Process each employee using the grouped data
   for (const employee of employeesToProcess) {
     const employeeId = employee.id;
-
-    // Get detailed shift data for this specific employee
-    const shiftDetailsResult = await client.query(
-      `
-      SELECT 
-        u.id as employee_id,
-        u.name as employee_name,
-        u.employee_number,
-        u.department,
-        u.designation,
-        DATE(es.start_time) as date,
-        to_char(es.start_time, 'HH12:MI AM') as start_time,
-        to_char(es.end_time, 'HH12:MI AM') as end_time,
-        CASE 
-          WHEN es.end_time IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (es.end_time - es.start_time))/3600 
-          ELSE 0 
-        END as duration,
-        es.status,
-        es.id as shift_id,
-        es.total_kilometers as distance,
-        es.total_expenses as expenses,
-        es.ended_automatically,
-        -- Convert point type to string representation that's easier to parse
-        CASE
-          WHEN es.location_start IS NOT NULL
-          THEN '(' || es.location_start[0] || ',' || es.location_start[1] || ')'
-          ELSE NULL
-        END as location_start,
-        CASE
-          WHEN es.location_end IS NOT NULL
-          THEN '(' || es.location_end[0] || ',' || es.location_end[1] || ')'
-          ELSE NULL
-        END as location_end
-      FROM employee_shifts es
-      JOIN users u ON es.user_id = u.id
-      WHERE es.user_id = $1
-      AND DATE(es.start_time) >= $2::date
-      AND DATE(es.start_time) <= $3::date
-      ORDER BY es.start_time`,
-      [employeeId, startDateStr, endDateStr],
-    );
-
-    // Process the shift details to include geocoded addresses
-    console.log("Processing shift details with locations");
-    const processedShiftDetails = [];
-    for (const shift of shiftDetailsResult.rows) {
-      try {
-        // Debug logging to see what's coming from the database
-        if (shift.id === shiftDetailsResult.rows[0]?.id) {
-          console.log("Sample location data format:", {
-            location_start: shift.location_start,
-            location_end: shift.location_end,
-            type_start: typeof shift.location_start,
-            type_end: typeof shift.location_end,
-          });
-        }
-
-        // Handle null/undefined values with fallbacks
-        let startLocation = "N/A";
-        let endLocation = "N/A";
-
-        // Only try to geocode if we have data
-        if (shift.location_start) {
-          startLocation = await reverseGeocode(shift.location_start);
-        }
-
-        if (shift.location_end) {
-          endLocation = await reverseGeocode(shift.location_end);
-        }
-
-        processedShiftDetails.push({
-          ...shift,
-          start_location: startLocation,
-          end_location: endLocation,
-        });
-      } catch (error) {
-        console.error(
-          "Error processing location for shift:",
-          shift.shift_id,
-          error,
-        );
-        // Add the shift with default N/A locations to avoid losing data
-        processedShiftDetails.push({
-          ...shift,
-          start_location: "N/A",
-          end_location: "N/A",
-        });
-      }
-    }
-
-    // Get expense data for this employee in the period
-    const expenseDetailsResult = await client.query(
-      `
-      SELECT 
-        e.id,
-        DATE(e.date) as date,
-        e.total_amount,
-        e.total_kilometers,
-        e.lodging_expenses,
-        e.daily_allowance,
-        e.diesel,
-        e.toll_charges,
-        e.other_expenses,
-        e.status,
-        e.comments
-      FROM expenses e
-      WHERE e.user_id = $1
-      AND DATE(e.date) >= $2::date
-      AND DATE(e.date) <= $3::date
-      ORDER BY e.date`,
-      [employeeId, startDateStr, endDateStr],
-    );
 
     // Get leave data for this employee
     const employeeLeaves = leaveInfoResult.rows.filter(
@@ -907,9 +883,10 @@ async function getAttendanceReportData(
       }
     }
 
-    // Map shifts and expenses to dates
+    // Use the pre-grouped shifts and expenses data
     const shiftsMap: Record<string, any[]> = {};
-    for (const shift of processedShiftDetails) {
+    const employeeShifts = shiftsByEmployee[employeeId] || [];
+    for (const shift of employeeShifts) {
       try {
         const dateKey = new Date(shift.date).toISOString().split("T")[0];
         if (!shiftsMap[dateKey]) {
@@ -933,7 +910,8 @@ async function getAttendanceReportData(
     }
 
     const expensesMap: Record<string, any[]> = {};
-    for (const expense of expenseDetailsResult.rows) {
+    const employeeExpenses = expensesByEmployee[employeeId] || [];
+    for (const expense of employeeExpenses) {
       try {
         const dateKey = new Date(expense.date).toISOString().split("T")[0];
         if (!expensesMap[dateKey]) {

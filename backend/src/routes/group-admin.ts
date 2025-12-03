@@ -1008,36 +1008,36 @@ router.get(
         `
       (
         -- Employee activities
-        SELECT 
+        SELECT
           'Employee Added' as type,
           name,
-          created_at as time
-        FROM users 
-        WHERE group_admin_id = $1 
+          created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as time
+        FROM users
+        WHERE group_admin_id = $1
         AND role = 'employee'
-        
+
         UNION ALL
-        
+
         -- Task activities
-        SELECT 
+        SELECT
           'Task Created' as type,
           title as name,
-          created_at as time
-        FROM employee_tasks 
+          created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as time
+        FROM employee_tasks
         WHERE assigned_by = $1
-        
+
         UNION ALL
-        
+
         -- Expense activities
-        SELECT 
-          'Expense ' || CASE 
+        SELECT
+          'Expense ' || CASE
             WHEN status = 'approved' THEN 'Approved'
             WHEN status = 'rejected' THEN 'Rejected'
             ELSE 'Updated'
           END as type,
           employee_name as name,
-          updated_at as time
-        FROM expenses 
+          updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata' as time
+        FROM expenses
         WHERE group_admin_id = $1
       )
       ORDER BY time DESC
@@ -1064,9 +1064,15 @@ router.get(
 );
 
 // Helper function to format time
-function formatActivityTime(timestamp: Date): string {
+function formatActivityTime(timestamp: string | Date): string {
   const now = new Date();
   const activityTime = new Date(timestamp);
+
+  // Ensure the timestamp is valid
+  if (isNaN(activityTime.getTime())) {
+    return "Invalid date";
+  }
+
   const diffInHours = Math.floor(
     (now.getTime() - activityTime.getTime()) / (1000 * 60 * 60),
   );

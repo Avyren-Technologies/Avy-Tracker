@@ -1076,12 +1076,12 @@ router.get(
             EXTRACT(EPOCH FROM (arr.requested_end_time - arr.requested_start_time))/3600 as duration,
             arr.requested_start_time as start_time,
             arr.requested_end_time as end_time,
-            0 as total_kilometers,
-            0 as total_expenses,
-            NULL as start_latitude,
-            NULL as start_longitude,
-            NULL as end_latitude,
-            NULL as end_longitude
+            0.0 as total_kilometers,
+            0.0 as total_expenses,
+            0.0 as start_latitude,
+            0.0 as start_longitude,
+            0.0 as end_latitude,
+            0.0 as end_longitude
           FROM attendance_regularization_requests arr
           JOIN users u ON arr.employee_id = u.id
           WHERE u.group_admin_id = $1

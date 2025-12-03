@@ -637,7 +637,7 @@ export default function AdminAttendanceManagement() {
             styles.header,
           ]}
         >
-        <View className="flex-row items-center justify-between px-6">
+        <View className="flex-row items-center justify-between px-6 mt-4">
           <TouchableOpacity
             onPress={() => router.back()}
             className="mr-4 p-2 rounded-full"

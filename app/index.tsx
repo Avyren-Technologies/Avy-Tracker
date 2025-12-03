@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./../app/utils/backgroundLocationTask";
 import {
   View,
@@ -27,6 +27,11 @@ export default function SplashScreen() {
   const router = useRouter();
   const { theme } = ThemeContext.useTheme();
   const { isLoading, user, isOffline } = AuthContext.useAuth();
+
+
+  // Development testing: Add this to trigger update modal manually
+  // Uncomment the next line to test the modal in development
+
 
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -72,35 +77,6 @@ export default function SplashScreen() {
   };
 
   const currentColors = colors[theme];
-
-  // Check for updates when app comes to foreground (production only)
-  useEffect(() => {
-    // Only run in production environment
-    if (!__DEV__) {
-      let current = AppState.currentState;
-      const sub = AppState.addEventListener("change", async (next) => {
-        if (current.match(/inactive|background/) && next === "active") {
-          try {
-            // Check network connectivity before attempting update check
-            const networkState = await Network.getNetworkStateAsync();
-            if (networkState.isConnected && networkState.isInternetReachable) {
-              const { isAvailable } = await Updates.checkForUpdateAsync();
-              if (isAvailable) {
-                await Updates.fetchUpdateAsync();
-                await Updates.reloadAsync();
-              }
-            } else {
-              console.log("Offline mode: Skipping update check");
-            }
-          } catch (error) {
-            console.error("Error checking for updates:", error);
-          }
-        }
-        current = next;
-      });
-      return () => sub.remove();
-    }
-  }, []);
 
   // Animation and navigation logic
   useEffect(() => {
@@ -183,6 +159,7 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }).start();
       }
+
 
       // Navigate based on auth state and app open count
       const timer = setTimeout(async () => {

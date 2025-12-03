@@ -1260,12 +1260,34 @@ export default function SignIn() {
                           position: "absolute",
                           right: 16,
                           top: 16,
+                          backgroundColor:
+                            theme === "dark"
+                              ? "rgba(40,40,48,0.85)"
+                              : "rgba(255,255,255,0.85)",
+                          borderRadius: 16,
+                          padding: 4,
+                          shadowColor: theme === "dark" ? "#000" : "#444",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.18,
+                          shadowRadius: 2,
+                          elevation: 3,
                         }}
+                        accessible
+                        accessibilityLabel={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        accessibilityRole="button"
+                        testID="toggle-password-visibility"
                       >
                         <Ionicons
                           name={showPassword ? "eye-off" : "eye"}
-                          size={24}
-                          color={currentColors.textSecondary}
+                          size={22}
+                          color={
+                            theme === "dark"
+                              ? "#FFFFFF"
+                              : "#22223A"
+                          }
+                          style={{ opacity: 0.92 }}
                         />
                       </TouchableOpacity>
                     </View>
