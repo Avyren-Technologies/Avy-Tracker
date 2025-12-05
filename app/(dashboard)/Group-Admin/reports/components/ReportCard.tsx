@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ReportSection } from "../types";
 import { PDFGenerator } from "../services/PDFGenerator";
+import { ExcelGenerator } from "../services/ExcelGenerator";
 
 interface FilterParams {
   startDate?: Date;
@@ -35,14 +36,26 @@ export default function ReportCard({
 }: ReportCardProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "excel" | null>(
+    null,
+  );
 
-  const handleExportAction = async (action: "open" | "share") => {
+  const handleExportAction = async (
+    action: "open" | "share",
+    format: "pdf" | "excel",
+  ) => {
     try {
       setIsExporting(true);
       setShowActionMenu(false);
-      await PDFGenerator.generateAndHandlePDF(section, action, filters);
+      setSelectedFormat(null);
+
+      if (format === "pdf") {
+        await PDFGenerator.generateAndHandlePDF(section, action, filters);
+      } else {
+        await ExcelGenerator.generateAndHandleExcel(section, action, filters);
+      }
     } catch (error) {
-      console.error("Error handling PDF:", error);
+      console.error("Error handling export:", error);
     } finally {
       setIsExporting(false);
     }
@@ -115,7 +128,7 @@ export default function ReportCard({
                   fontWeight: "500",
                 }}
               >
-                Export PDF
+                Export Report
               </Text>
             </>
           )}
@@ -124,16 +137,22 @@ export default function ReportCard({
 
       {children}
 
-      {/* Updated Modal Design */}
+      {/* Updated Modal Design with Format Selection */}
       <Modal
         visible={showActionMenu}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowActionMenu(false)}
+        onRequestClose={() => {
+          setShowActionMenu(false);
+          setSelectedFormat(null);
+        }}
       >
         <Pressable
           style={styles.modalOverlay}
-          onPress={() => setShowActionMenu(false)}
+          onPress={() => {
+            setShowActionMenu(false);
+            setSelectedFormat(null);
+          }}
         >
           <Pressable
             style={[
@@ -144,6 +163,20 @@ export default function ReportCard({
             ]}
             onPress={(e) => e.stopPropagation()}
           >
+            {/* Back button if format is selected */}
+            {selectedFormat && (
+              <TouchableOpacity
+                onPress={() => setSelectedFormat(null)}
+                style={{ position: "absolute", top: 20, left: 20, zIndex: 10 }}
+              >
+                <Ionicons
+                  name="arrow-back"
+                  size={24}
+                  color={isDark ? "#FFFFFF" : "#111827"}
+                />
+              </TouchableOpacity>
+            )}
+
             <Text
               style={{
                 fontSize: 18,
@@ -153,7 +186,9 @@ export default function ReportCard({
                 textAlign: "center",
               }}
             >
-              Export Options
+              {selectedFormat
+                ? `Export ${selectedFormat.toUpperCase()}`
+                : "Select Format"}
             </Text>
 
             {/* Filter info message */}
@@ -173,32 +208,75 @@ export default function ReportCard({
                 </Text>
               )}
 
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: "#3B82F6",
-                  marginBottom: 12,
-                },
-              ]}
-              onPress={() => handleExportAction("open")}
-            >
-              <Ionicons name="open-outline" size={22} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Open PDF</Text>
-            </TouchableOpacity>
+            {!selectedFormat ? (
+              // Format Selection
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: "#DC2626",
+                      marginBottom: 12,
+                    },
+                  ]}
+                  onPress={() => setSelectedFormat("pdf")}
+                >
+                  <Ionicons name="document-text" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>PDF Format</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: "#3B82F6",
-                },
-              ]}
-              onPress={() => handleExportAction("share")}
-            >
-              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Share PDF</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: "#059669",
+                    },
+                  ]}
+                  onPress={() => setSelectedFormat("excel")}
+                >
+                  <Ionicons name="grid" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>Excel Format</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Action Selection (Open/Share)
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: "#3B82F6",
+                      marginBottom: 12,
+                    },
+                  ]}
+                  onPress={() =>
+                    handleExportAction("open", selectedFormat)
+                  }
+                >
+                  <Ionicons name="open-outline" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>
+                    Open {selectedFormat.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    {
+                      backgroundColor: "#3B82F6",
+                    },
+                  ]}
+                  onPress={() =>
+                    handleExportAction("share", selectedFormat)
+                  }
+                >
+                  <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>
+                    Share {selectedFormat.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

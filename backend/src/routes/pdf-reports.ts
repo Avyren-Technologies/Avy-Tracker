@@ -250,10 +250,10 @@ router.get("/:type", verifyToken, async (req: CustomRequest, res: Response) => {
         details:
           process.env.NODE_ENV === "development"
             ? {
-                message: error.message,
-                code: error.code,
-                hint: error.hint,
-              }
+              message: error.message,
+              code: error.code,
+              hint: error.hint,
+            }
             : undefined,
       });
     }
@@ -1620,7 +1620,7 @@ async function getPerformanceReportData(
     task_metrics AS (
       SELECT 
         ROUND(
-          (COUNT(CASE WHEN status = 'completed' THEN 1 END)::float * 100 / 
+          (COUNT(CASE WHEN employee_tasks.status = 'completed' THEN 1 END)::float * 100 / 
           NULLIF(COUNT(*), 0))::numeric, 
           1
         ) as task_completion_rate
@@ -1629,13 +1629,13 @@ async function getPerformanceReportData(
       WHERE assigned_by = $1
       ${departmentFilter}
       ${employeeFilter}
-      AND created_at >= $${dateParamIndex}::date
-      AND created_at <= $${dateParamIndex + 1}::date
+      AND employee_tasks.created_at >= $${dateParamIndex}::date
+      AND employee_tasks.created_at <= $${dateParamIndex + 1}::date
     ),
     expense_metrics AS (
       SELECT 
         ROUND(
-          (COUNT(CASE WHEN status = 'approved' THEN 1 END)::float * 100 / 
+          (COUNT(CASE WHEN e.status = 'approved' THEN 1 END)::float * 100 / 
           NULLIF(COUNT(*), 0))::numeric, 
           1
         ) as expense_approval_rate
