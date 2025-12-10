@@ -44,11 +44,11 @@ interface AuthContextType {
   ) => Promise<
     | { error?: string; errorType?: string; sessionId?: string; email?: string }
     | {
-        error: "MFA_REQUIRED";
-        errorType: "MFA_REQUIRED";
-        sessionId: string;
-        email: string;
-      }
+      error: "MFA_REQUIRED";
+      errorType: "MFA_REQUIRED";
+      sessionId: string;
+      email: string;
+    }
   >;
   verifyMFA: (
     email: string,
@@ -500,8 +500,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await AsyncStorage.setItem(OFFLINE_MODE_KEY, "true");
                 setPendingSync(true);
 
-              // Navigate based on cached user role
-              await routeUserToDashboard(userData.role);
+                // Navigate based on cached user role
+                await routeUserToDashboard(userData.role);
               } else {
                 console.log("Offline login expired or not allowed");
                 await clearAuthData();
@@ -657,7 +657,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             onPress: async () => {
               // Clean up notification listeners first
               PushNotificationService.cleanupAllListeners();
-              
+
               // Clear auth state
               setUser(null);
               setToken(null);
@@ -672,9 +672,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   // Deactivate the device token
                   try {
                     const baseUrl = process.env.EXPO_PUBLIC_API_URL;
-                    const endpoint = `${baseUrl}/api/${
-                      user?.role || "employee"
-                    }-notifications/unregister-device`;
+                    const endpoint = `${baseUrl}/api/${user?.role || "employee"
+                      }-notifications/unregister-device`;
 
                     await axios.delete(endpoint, {
                       data: { token: deviceToken },
@@ -703,26 +702,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Add request interceptor to automatically add authorization header
+  // IMPROVED: Axios Request Interceptor - Automatically add auth header to all requests
   useEffect(() => {
     const requestInterceptor = axios.interceptors.request.use(
       async (config) => {
-        // Skip adding auth header for auth-related endpoints
-        const isAuthRequest =
-          config.url?.includes("/auth/login") ||
-          config.url?.includes("/auth/forgot-password") ||
-          config.url?.includes("/auth/verify-otp") ||
-          config.url?.includes("/auth/reset-password") ||
-          config.url?.includes("/auth/refresh");
+        // List of endpoints that don't need authentication
+        const authEndpoints = [
+          "/auth/login",
+          "/auth/forgot-password",
+          "/auth/verify-otp",
+          "/auth/reset-password",
+          "/auth/refresh",
+          "/auth/verify-mfa-login",
+          "/auth/resend-mfa-otp",
+        ];
 
-        if (!isAuthRequest && token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const isAuthEndpoint = authEndpoints.some((endpoint) =>
+          config.url?.includes(endpoint)
+        );
+
+        // Only add auth header if we have a token and it's not an auth endpoint
+        if (!isAuthEndpoint) {
+          // Get token from state or storage
+          let authToken = token;
+          if (!authToken) {
+            authToken =
+              (await AsyncStorage.getItem(AUTH_TOKEN_KEY)) ||
+              (await SecureStore.getItemAsync(AUTH_TOKEN_KEY));
+          }
+
+          if (authToken) {
+            config.headers.Authorization = `Bearer ${authToken}`;
+          }
         }
+
         return config;
       },
       (error) => {
         return Promise.reject(error);
-      },
+      }
     );
 
     return () => {
@@ -730,83 +748,101 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [token]);
 
-  // Update the axios interceptor to properly handle token refresh
+  // IMPROVED: Axios Response Interceptor - Handle 401 errors and automatically refresh token
   useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
+    const responseInterceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // Skip token refresh for auth-related endpoints
-        const isAuthRequest =
-          originalRequest.url?.includes("/auth/login") ||
-          originalRequest.url?.includes("/auth/forgot-password") ||
-          originalRequest.url?.includes("/auth/verify-otp") ||
-          originalRequest.url?.includes("/auth/reset-password") ||
-          originalRequest.url?.includes("/auth/refresh");
+        // List of auth endpoints that should not trigger token refresh
+        const authEndpoints = [
+          "/auth/login",
+          "/auth/forgot-password",
+          "/auth/verify-otp",
+          "/auth/reset-password",
+          "/auth/refresh",
+          "/auth/verify-mfa-login",
+          "/auth/resend-mfa-otp",
+        ];
 
-        // If the error is 403, don't try to refresh the token
+        const isAuthEndpoint = authEndpoints.some((endpoint) =>
+          originalRequest.url?.includes(endpoint)
+        );
+
+        // Don't retry auth endpoints or if already retried
+        if (isAuthEndpoint || originalRequest._retry) {
+          return Promise.reject(error);
+        }
+
+        // Handle 403 errors (company disabled, access denied, etc.)
         if (error.response?.status === 403) {
+          // Check if it's a company disabled error
+          if (error.response?.data?.code === "COMPANY_DISABLED") {
+            // Clear auth and redirect to login
+            await clearAuthData();
+            router.replace("/(auth)/signin");
+          }
           return Promise.reject(error);
         }
 
-        // If network is unavailable, mark the request for retry when back online
-        if (
-          !networkStateRef.current.isConnected ||
-          !networkStateRef.current.isInternetReachable
-        ) {
-          console.log("Network unavailable, queuing request for later");
-          setPendingSync(true);
-
-          // For offline mode, provide a specific error code that UI can handle
-          error.isOfflineError = true;
+        // Handle network errors
+        if (!error.response) {
+          // Check network connectivity
+          const { isConnected, isReachable } = await checkNetworkConnectivity();
+          if (!isConnected || !isReachable) {
+            console.log("Network unavailable, request failed");
+            setPendingSync(true);
+            error.isOfflineError = true;
+          }
           return Promise.reject(error);
         }
 
-        // If the error is 401 and we haven't tried to refresh yet and it's not an auth request
-        if (
-          error.response?.status === 401 &&
-          !originalRequest._retry &&
-          !isAuthRequest
-        ) {
+        // Handle 401 errors by attempting token refresh
+        if (error.response?.status === 401) {
           originalRequest._retry = true;
 
           try {
-            console.log("Attempting token refresh due to 401 error...");
+            console.log("401 error detected, attempting token refresh...");
 
             // Get refresh token from storage
-            let refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-            if (!refreshToken) {
-              refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+            let storedRefreshToken = await AsyncStorage.getItem(
+              REFRESH_TOKEN_KEY
+            );
+            if (!storedRefreshToken) {
+              storedRefreshToken = await SecureStore.getItemAsync(
+                REFRESH_TOKEN_KEY
+              );
             }
 
-            if (!refreshToken) {
-              console.log("No refresh token available, clearing auth data");
+            if (!storedRefreshToken) {
+              console.log("No refresh token found, redirecting to login");
               await clearAuthData();
               router.replace("/(auth)/signin");
               return Promise.reject(error);
             }
 
             // Attempt to refresh the token
-            const newToken = await refreshTokenSilently(refreshToken);
-            if (!newToken) {
-              console.log("Token refresh failed, clearing auth data");
+            const newAccessToken = await refreshTokenSilently(
+              storedRefreshToken
+            );
+
+            if (!newAccessToken) {
+              console.log("Token refresh failed, redirecting to login");
               await clearAuthData();
               router.replace("/(auth)/signin");
               return Promise.reject(error);
             }
 
-            console.log("Token refresh successful, retrying original request");
+            console.log("Token refreshed successfully, retrying original request");
 
             // Update the authorization header with new token
-            originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-            // Retry the original request with new token
+            // Retry the original request
             return axios(originalRequest);
           } catch (refreshError) {
             console.error("Error during token refresh:", refreshError);
-
-            // If refresh fails, clear auth and redirect to login
             await clearAuthData();
             router.replace("/(auth)/signin");
             return Promise.reject(error);
@@ -814,11 +850,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         return Promise.reject(error);
-      },
+      }
     );
 
     return () => {
-      axios.interceptors.response.eject(interceptor);
+      axios.interceptors.response.eject(responseInterceptor);
     };
   }, []);
 
@@ -872,13 +908,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             },
           );
 
+          // UPDATED: Handle response with 'token' field (matching backend)
           const {
-            accessToken,
+            token: newAccessToken,
             refreshToken: newRefreshToken,
             user: userData,
           } = response.data;
 
-          if (!accessToken || !newRefreshToken || !userData) {
+          if (!newAccessToken || !newRefreshToken || !userData) {
             throw new Error("Invalid refresh response from server");
           }
 
@@ -887,31 +924,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Update storage in both systems
           await Promise.all([
             // AsyncStorage
-            AsyncStorage.setItem(AUTH_TOKEN_KEY, accessToken),
+            AsyncStorage.setItem(AUTH_TOKEN_KEY, newAccessToken),
             AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken),
             AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData)),
             AsyncStorage.setItem(LAST_ONLINE_LOGIN_KEY, Date.now().toString()),
             AsyncStorage.removeItem(OFFLINE_MODE_KEY),
             // SecureStore
-            SecureStore.setItemAsync(AUTH_TOKEN_KEY, accessToken),
+            SecureStore.setItemAsync(AUTH_TOKEN_KEY, newAccessToken),
             SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken),
             SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData)),
           ]);
 
           // Update state
-          setToken(accessToken);
+          setToken(newAccessToken);
           setUser(userData);
           setPendingSync(false);
 
           // Update axios default header with new access token
           axios.defaults.headers.common["Authorization"] =
-            `Bearer ${accessToken}`;
+            `Bearer ${newAccessToken}`;
 
           // Schedule next proactive refresh
-          scheduleTokenRefresh(accessToken);
+          scheduleTokenRefresh(newAccessToken);
 
           console.log("Token refresh completed successfully");
-          return accessToken;
+          return newAccessToken;
         } catch (refreshError: any) {
           // Restore original auth header if refresh failed
           if (originalAuthHeader) {
@@ -976,11 +1013,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ): Promise<
     | { error?: string; errorType?: string; sessionId?: string; email?: string }
     | {
-        error: "MFA_REQUIRED";
-        errorType: "MFA_REQUIRED";
-        sessionId: string;
-        email: string;
-      }
+      error: "MFA_REQUIRED";
+      errorType: "MFA_REQUIRED";
+      sessionId: string;
+      email: string;
+    }
   > => {
     setIsLoading(true);
 
@@ -1345,7 +1382,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Check network connectivity
       const { isConnected, isReachable } = await checkNetworkConnectivity();
-      
+
       if (!isConnected || !isReachable) {
         // Store for retry when network is available
         await storePendingUnregistration(deviceToken, userRole);
@@ -1354,7 +1391,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const endpoint = `${API_URL}/api/${userRole}-notifications/unregister-device`;
-      
+
       // Make the unregistration request with timeout
       const response = await axios.delete(endpoint, {
         data: { token: deviceToken },
@@ -1373,14 +1410,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     } catch (error) {
       console.error(`Device unregistration attempt ${retryCount + 1} failed:`, error);
-      
+
       // If we have retries left and it's a network/server error, retry
       if (retryCount < maxRetries && shouldRetry(error)) {
         console.log(`Retrying device unregistration in ${retryDelay}ms...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return unregisterDeviceToken(deviceToken, userRole, authToken, retryCount + 1);
       }
-      
+
       // If all retries failed, store for later retry
       await storePendingUnregistration(deviceToken, userRole);
       console.log("Device unregistration queued for retry (all attempts failed)");
@@ -1400,7 +1437,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const pendingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
       const unregistrations = pendingUnregistrations ? JSON.parse(pendingUnregistrations) : [];
-      
+
       // Add new unregistration (avoid duplicates)
       const exists = unregistrations.some((item: any) => item.deviceToken === deviceToken);
       if (!exists) {
@@ -1409,7 +1446,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userRole,
           timestamp: Date.now(),
         });
-        
+
         await AsyncStorage.setItem('pending_device_unregistrations', JSON.stringify(unregistrations));
       }
     } catch (error) {
@@ -1442,7 +1479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
 
       // Filter out old unregistrations
-      const validUnregistrations = unregistrations.filter((item: any) => 
+      const validUnregistrations = unregistrations.filter((item: any) =>
         now - item.timestamp < maxAge
       );
 
@@ -1457,7 +1494,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Note: We don't have the auth token here, so we'll use a different approach
           // The server should handle unregistration based on device token alone
           const endpoint = `${API_URL}/api/${item.userRole}-notifications/unregister-device`;
-          
+
           const response = await axios.delete(endpoint, {
             data: { token: item.deviceToken },
             timeout: 10000,
@@ -1477,7 +1514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const remainingUnregistrations = await AsyncStorage.getItem('pending_device_unregistrations');
       if (remainingUnregistrations) {
         const remaining = JSON.parse(remainingUnregistrations);
-        const stillValid = remaining.filter((item: any) => 
+        const stillValid = remaining.filter((item: any) =>
           now - item.timestamp < maxAge
         );
         await AsyncStorage.setItem('pending_device_unregistrations', JSON.stringify(stillValid));

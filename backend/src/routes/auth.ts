@@ -536,14 +536,25 @@ router.post("/refresh", async (req: Request, res: Response) => {
         return res.status(401).json({ error: "Refresh token expired" });
       }
 
-      // Get user details
-      const result = await client.query(
-        `SELECT u.*, c.status as company_status 
-         FROM users u 
-         LEFT JOIN companies c ON u.company_id = c.id 
-         WHERE u.id = $1 AND u.token_version = $2`,
-        [decoded.id, decoded.token_version],
-      );
+      // Get user details - check if token_version exists in the decoded token
+      // Only validate token_version if it's present in the token (for backward compatibility)
+      let query, params;
+      if (decoded.token_version !== undefined) {
+        query = `SELECT u.*, c.status as company_status 
+                 FROM users u 
+                 LEFT JOIN companies c ON u.company_id = c.id 
+                 WHERE u.id = $1 AND u.token_version = $2`;
+        params = [decoded.id, decoded.token_version];
+      } else {
+        // Fallback for old tokens without token_version
+        query = `SELECT u.*, c.status as company_status 
+                 FROM users u 
+                 LEFT JOIN companies c ON u.company_id = c.id 
+                 WHERE u.id = $1`;
+        params = [decoded.id];
+      }
+
+      const result = await client.query(query, params);
 
       if (result.rows.length === 0) {
         console.log("No user found or token version mismatch:", {
@@ -555,14 +566,14 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
       const user = result.rows[0];
 
-      // Check company status
+      // Check company status for non-super-admin users
       if (
         user.role !== "super-admin" &&
         user.company_id &&
         user.company_status === "disabled"
       ) {
         return res.status(403).json({
-          error: "Company access disabled, please contact administrator",
+          error: "Company access disabled. Please contact administrator.",
           code: "COMPANY_DISABLED",
         });
       }
@@ -573,7 +584,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
           id: user.id,
           role: user.role,
           company_id: user.company_id,
-          token_version: user.token_version,
+          token_version: user.token_version || 0,
           type: "access",
         },
         JWT_SECRET,
@@ -584,7 +595,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
       const newRefreshToken = jwt.sign(
         {
           id: user.id,
-          token_version: user.token_version,
+          token_version: user.token_version || 0,
           type: "refresh",
         },
         JWT_SECRET,
@@ -593,8 +604,9 @@ router.post("/refresh", async (req: Request, res: Response) => {
 
       console.log("Token refresh successful for user:", user.id);
 
+      // Return response with consistent naming (matching Avy-Notifier pattern)
       res.json({
-        accessToken: newAccessToken,
+        token: newAccessToken,        // Changed from accessToken to token for consistency
         refreshToken: newRefreshToken,
         user: {
           id: user.id,
