@@ -238,24 +238,24 @@ export default function SignIn() {
   };
 
   // Check if user is already authenticated and redirect accordingly
-  useEffect(() => {
-    const checkAuthenticationAndRedirect = async () => {
-      // Wait for AuthContext to finish loading
-      if (isLoading) {
-        return;
-      }
+  // useEffect(() => {
+  //   const checkAuthenticationAndRedirect = async () => {
+  //     // Wait for AuthContext to finish loading
+  //     if (isLoading) {
+  //       return;
+  //     }
 
-      // If user is authenticated and has a valid token, redirect to appropriate dashboard
-      if (user && token) {
-        console.log(`User ${user.name} (${user.role}) is already authenticated, redirecting to dashboard...`);
+  //     // If user is authenticated and has a valid token, redirect to appropriate dashboard
+  //     if (user && token) {
+  //       console.log(`User ${user.name} (${user.role}) is already authenticated, redirecting to dashboard...`);
 
-        // Use the same routing logic as AuthContext
-        await routeUserToDashboard(user.role);
-      }
-    };
+  //       // Use the same routing logic as AuthContext
+  //       await routeUserToDashboard(user.role);
+  //     }
+  //   };
 
-    checkAuthenticationAndRedirect();
-  }, [user, token, isLoading, router]);
+  //   checkAuthenticationAndRedirect();
+  // }, [user, token, isLoading, router]);
 
   const checkNetworkStatus = async () => {
     try {
