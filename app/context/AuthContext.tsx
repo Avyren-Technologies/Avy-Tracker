@@ -186,12 +186,29 @@ const validateTokenLocally = (token: string): boolean => {
 
     // Decode the token to check its contents
     const decoded = decodeToken(token);
-    if (!decoded || !decoded.id || !decoded.role) {
-      console.log("Token is missing required claims");
+    if (!decoded || !decoded.id) {
+      console.log("Token is missing required 'id' claim");
       return false;
     }
 
-    return true;
+    // Check based on token type
+    // Access tokens have: id, role, company_id, token_version, type
+    // Refresh tokens have: id, token_version, type
+    if (decoded.type === "refresh") {
+      // For refresh tokens, just check id exists (already checked above)
+      return true;
+    } else if (decoded.type === "access") {
+      // For access tokens, also check role exists
+      if (!decoded.role) {
+        console.log("Access token is missing required 'role' claim");
+        return false;
+      }
+      return true;
+    } else {
+      // Unknown or missing type - assume it's an old token format and just validate id
+      console.log("Token has unknown type, validating based on id only");
+      return true;
+    }
   } catch (error) {
     console.error("Error validating token locally:", error);
     return false;

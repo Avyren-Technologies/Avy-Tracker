@@ -103,8 +103,10 @@ export default function ForgotPassword() {
     setIsLoading(true);
     setError("");
     try {
+      // Normalize email to lowercase for case-insensitive matching
+      const normalizedEmail = email.toLowerCase().trim();
       const response = await axios.post(`${API_URL}/auth/forgot-password`, {
-        email,
+        email: normalizedEmail,
       });
 
       setStep("otp");
@@ -113,8 +115,8 @@ export default function ForgotPassword() {
         if (error.response?.status === 404) {
           setError(
             `No account found with this email address` +
-              `\n` +
-              "Please contact administrator",
+            `\n` +
+            "Please contact administrator",
           );
         } else if (error.response?.data?.error) {
           setError(error.response.data.error);
@@ -140,8 +142,10 @@ export default function ForgotPassword() {
     setIsLoading(true);
     setError("");
     try {
+      // Use normalized email for consistency
+      const normalizedEmail = email.toLowerCase().trim();
       const response = await axios.post(`${API_URL}/auth/verify-otp`, {
-        email,
+        email: normalizedEmail,
         otp,
       });
 
@@ -182,8 +186,10 @@ export default function ForgotPassword() {
     setIsLoading(true);
     setError("");
     try {
+      // Use normalized email for consistency
+      const normalizedEmail = email.toLowerCase().trim();
       const response = await axios.post(`${API_URL}/auth/reset-password`, {
-        email,
+        email: normalizedEmail,
         otp,
         newPassword,
       });
@@ -254,7 +260,7 @@ export default function ForgotPassword() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          <View className="flex-1 p-6">
+          <View className="flex-1 p-6 mt-8">
             {/* Header */}
             <View className="mb-8">
               <TouchableOpacity
@@ -277,9 +283,8 @@ export default function ForgotPassword() {
               </TouchableOpacity>
 
               <Text
-                className={`text-3xl font-bold mt-6 ${
-                  isDark ? "text-white" : "text-gray-900"
-                }`}
+                className={`text-3xl font-bold mt-6 ${isDark ? "text-white" : "text-gray-900"
+                  }`}
               >
                 Reset Password
               </Text>
@@ -302,9 +307,8 @@ export default function ForgotPassword() {
               {step === "email" && (
                 <View style={styles.inputContainer}>
                   <Text
-                    className={`text-sm font-medium mb-2 ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
+                    className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
                   >
                     Email Address
                   </Text>
@@ -330,9 +334,8 @@ export default function ForgotPassword() {
                       placeholder="Enter your email"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      className={`flex-1 ${
-                        isDark ? "text-white" : "text-gray-900"
-                      }`}
+                      className={`flex-1 ${isDark ? "text-white" : "text-gray-900"
+                        }`}
                       placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                     />
                   </View>
@@ -342,9 +345,8 @@ export default function ForgotPassword() {
               {step === "otp" && (
                 <View style={styles.inputContainer}>
                   <Text
-                    className={`text-sm font-medium mb-2 ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
+                    className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"
+                      }`}
                   >
                     Verification Code
                   </Text>
@@ -369,9 +371,8 @@ export default function ForgotPassword() {
                       onChangeText={setOtp}
                       placeholder="Enter OTP"
                       keyboardType="number-pad"
-                      className={`flex-1 ${
-                        isDark ? "text-white" : "text-gray-900"
-                      }`}
+                      className={`flex-1 ${isDark ? "text-white" : "text-gray-900"
+                        }`}
                       placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                     />
                   </View>
@@ -382,9 +383,8 @@ export default function ForgotPassword() {
                 <>
                   <View style={styles.inputContainer}>
                     <Text
-                      className={`text-sm font-medium mb-2 ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
                     >
                       New Password
                     </Text>
@@ -413,9 +413,8 @@ export default function ForgotPassword() {
                         placeholder="Enter new password"
                         secureTextEntry
                         maxLength={16}
-                        className={`flex-1 ${
-                          isDark ? "text-white" : "text-gray-900"
-                        }`}
+                        className={`flex-1 ${isDark ? "text-white" : "text-gray-900"
+                          }`}
                         placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                       />
                     </View>
@@ -424,9 +423,8 @@ export default function ForgotPassword() {
 
                   <View style={styles.inputContainer}>
                     <Text
-                      className={`text-sm font-medium mb-2 ${
-                        isDark ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
                     >
                       Confirm Password
                     </Text>
@@ -451,9 +449,8 @@ export default function ForgotPassword() {
                         onChangeText={setConfirmPassword}
                         placeholder="Confirm new password"
                         secureTextEntry
-                        className={`flex-1 ${
-                          isDark ? "text-white" : "text-gray-900"
-                        }`}
+                        className={`flex-1 ${isDark ? "text-white" : "text-gray-900"
+                          }`}
                         placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
                         onFocus={() => {
                           setTimeout(() => {
@@ -475,9 +472,8 @@ export default function ForgotPassword() {
                   else handleResetPassword();
                 }}
                 disabled={isLoading}
-                className={`py-4 rounded-xl mt-8 ${
-                  isLoading ? "opacity-50" : ""
-                }`}
+                className={`py-4 rounded-xl mt-8 ${isLoading ? "opacity-50" : ""
+                  }`}
                 style={[styles.button, { backgroundColor: "#3B82F6" }]}
               >
                 {isLoading ? (
